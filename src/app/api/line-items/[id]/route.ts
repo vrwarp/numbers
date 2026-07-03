@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
+import { computeLineItemChanges } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -38,11 +39,10 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       throw new ApiError(409, "Claim already generated; line items are frozen");
     }
 
-    const contentChanged =
-      (patch.description !== undefined && patch.description !== item.description) ||
-      (patch.quantity !== undefined && patch.quantity !== item.quantity) ||
-      (patch.amountCents !== undefined && patch.amountCents !== item.amountCents) ||
-      (patch.ministry !== undefined && patch.ministry !== item.ministry);
+    const changes = computeLineItemChanges(item, patch);
+    const contentChanged = ["description", "quantity", "amountCents", "ministry"].some(
+      (f) => f in changes
+    );
 
     const updated = await prisma.lineItem.update({
       where: { id },
@@ -51,6 +51,19 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         ...(contentChanged && patch.isVerified === undefined ? { isVerified: false } : {}),
       },
     });
+
+    // Record what the human changed — the counterpart to the AI extraction log.
+    if (Object.keys(changes).length > 0) {
+      await prisma.auditEvent.create({
+        data: {
+          userId,
+          reimbursementId: item.reimbursement.id,
+          lineItemId: id,
+          action: "update",
+          detail: JSON.stringify({ changes }),
+        },
+      });
+    }
 
     const items = await prisma.lineItem.findMany({ where: { reimbursementId: item.reimbursement.id } });
     const totalCents = items.reduce((s, it) => (it.isExcluded ? s : s + it.amountCents), 0);

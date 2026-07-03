@@ -13,13 +13,13 @@ async function shot(page: Page, name: string) {
   await page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true });
 }
 
-test("complete reimbursement journey: capture → batch → verify → PDF", async ({ page }) => {
+test("complete reimbursement journey: capture → batch → verify → PDF", async ({ page }, testInfo) => {
   page.on("dialog", (d) => d.accept());
 
   // --- Phase 0: sign in & profile ---
   await page.goto("/signin");
   await shot(page, "01-signin");
-  await signInAs(page, "grace@example.com", "Grace Chen");
+  await signInAs(page, `grace-${testInfo.project.name}@example.com`, "Grace Chen");
   await shot(page, "02-dashboard");
 
   await page.goto("/profile");
@@ -137,6 +137,38 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   await expect(page.getByTestId("claim-status")).toHaveText("Generated", { timeout: 15_000 });
   await shot(page, "07-claim-generated");
 
+  // --- Prompt-tuning telemetry: AI call + human corrections were recorded ---
+  const claimId = page.url().match(/claims\/([^/]+)/)![1];
+  const logsRes = await page.request.get(`/api/extraction-logs?reimbursementId=${claimId}`);
+  expect(logsRes.ok()).toBeTruthy();
+  const { logs } = await logsRes.json();
+  expect(logs).toHaveLength(1);
+  expect(logs[0].status).toBe("success");
+
+  const detail = await (await page.request.get(`/api/extraction-logs/${logs[0].id}`)).json();
+  // The exact request/response pair is preserved.
+  expect(detail.log.prompt).toContain("RECEIPT ID");
+  expect(detail.log.rawResponse).toBeTruthy();
+  expect(JSON.parse(detail.log.parsedJson)).toHaveLength(6);
+  // Human corrections are derivable per line item (original AI value vs final).
+  const taxItem = detail.lineItems.find(
+    (it: { description: string; corrections: Record<string, unknown> }) =>
+      it.description === "Sales Tax"
+  );
+  expect(taxItem.corrections.amountCents).toEqual({ from: 864, to: 725 });
+  const splitHalf = detail.lineItems.filter(
+    (it: { description: string }) => it.description === "FOLDING TABLE 6FT"
+  );
+  expect(splitHalf.some((it: { humanCreated: boolean }) => it.humanCreated)).toBe(true);
+  // And the chronological audit trail includes the split and the exclusion.
+  const actions = detail.auditEvents.map((e: { action: string }) => e.action);
+  expect(actions).toContain("split");
+  const exclusion = detail.auditEvents.find(
+    (e: { detail: { changes?: { isExcluded?: { to: boolean } } } }) =>
+      e.detail.changes?.isExcluded?.to === true
+  );
+  expect(exclusion).toBeTruthy();
+
   // --- Phase 5 prep: receipts are consumed, claim is frozen ---
   await page.goto("/shoebox");
   await expect(page.getByText("Processed receipts (2)")).toBeVisible();
@@ -145,8 +177,8 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   await shot(page, "08-claims-list");
 });
 
-test("claim with more items than the 13-row form paginates onto two form pages", async ({ page }) => {
-  await signInAs(page, "manyitems@example.com");
+test("claim with more items than the 13-row form paginates onto two form pages", async ({ page }, testInfo) => {
+  await signInAs(page, `manyitems-${testInfo.project.name}@example.com`);
   await page.goto("/shoebox");
   const fixtures = [];
   for (let i = 0; i < 4; i++) fixtures.push(await makeReceiptFixture(`bulk-${i}.jpg`));

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
-import { extractLineItems } from "@/lib/ai/extract";
+import { extractLineItems, ExtractionError } from "@/lib/ai/extract";
 import { parseDollarsToCents } from "@/lib/money";
 import { MINISTRIES } from "@/lib/config";
 
@@ -48,19 +48,43 @@ export async function POST(req: NextRequest) {
     try {
       extracted = await extractLineItems(receipts);
     } catch (err) {
+      // Failed calls are logged too — bad model output is prompt-tuning gold.
+      if (err instanceof ExtractionError) {
+        await prisma.extractionLog.create({
+          data: {
+            userId,
+            model: err.meta.model,
+            prompt: err.meta.prompt,
+            receiptsJson: err.meta.receiptsJson,
+            rawResponse: err.meta.rawResponse,
+            status: "error",
+            errorMessage: err.message,
+            durationMs: err.meta.durationMs,
+          },
+        });
+      }
       const message = err instanceof Error ? err.message : "extraction failed";
       throw new ApiError(502, `AI extraction failed: ${message}`);
     }
 
     const ministrySet = new Set<string>(MINISTRIES);
-    const items = extracted.map((item, i) => ({
-      receiptId: item.receiptId,
-      description: item.description,
-      quantity: item.quantity,
-      amountCents: parseDollarsToCents(item.amount),
-      ministry: ministrySet.has(item.suggestedMinistry) ? item.suggestedMinistry : "General Fund",
-      sortOrder: i,
-    }));
+    const items = extracted.items.map((item, i) => {
+      const ministry = ministrySet.has(item.suggestedMinistry) ? item.suggestedMinistry : "General Fund";
+      const amountCents = parseDollarsToCents(item.amount);
+      return {
+        receiptId: item.receiptId,
+        description: item.description,
+        quantity: item.quantity,
+        amountCents,
+        ministry,
+        sortOrder: i,
+        // Frozen AI snapshot for later original-vs-final comparison.
+        originalDescription: item.description,
+        originalQuantity: item.quantity,
+        originalAmountCents: amountCents,
+        originalMinistry: ministry,
+      };
+    });
     const totalCents = items.reduce((s, it) => s + it.amountCents, 0);
 
     const reimbursement = await prisma.reimbursement.create({
@@ -71,6 +95,20 @@ export async function POST(req: NextRequest) {
         lineItems: { create: items },
       },
       include: { lineItems: true },
+    });
+
+    await prisma.extractionLog.create({
+      data: {
+        userId,
+        reimbursementId: reimbursement.id,
+        model: extracted.meta.model,
+        prompt: extracted.meta.prompt,
+        receiptsJson: extracted.meta.receiptsJson,
+        rawResponse: extracted.meta.rawResponse,
+        parsedJson: JSON.stringify(extracted.items),
+        status: "success",
+        durationMs: extracted.meta.durationMs,
+      },
     });
 
     return NextResponse.json({ reimbursement }, { status: 201 });

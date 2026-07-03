@@ -2,8 +2,8 @@ import { test, expect } from "@playwright/test";
 import { makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
 
 /** The capture flow is phone-first — make sure it works on a mobile viewport. */
-test("phone-sized capture flow: sign in, upload, see the receipt", async ({ page }) => {
-  await signInAs(page, "mobile@example.com", "Mobile Mary");
+test("phone-sized capture flow: sign in, upload, see the receipt", async ({ page }, testInfo) => {
+  await signInAs(page, `mobile-${testInfo.project.name}@example.com`, "Mobile Mary");
   await page.goto("/shoebox");
   await expect(page.getByTestId("upload-button")).toBeVisible();
   await uploadReceipts(page, [await makeReceiptFixture("mobile.jpg")]);

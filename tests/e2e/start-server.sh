@@ -14,6 +14,8 @@ export PORT=3100
 rm -rf .e2e-data
 mkdir -p .e2e-data
 
+npx prisma generate > /dev/null
+
 if [ ! -d .next ] || [ "${E2E_FORCE_BUILD:-0}" = "1" ]; then
   npx next build
 fi

@@ -60,6 +60,22 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       }),
     ]);
 
+    await prisma.auditEvent.create({
+      data: {
+        userId,
+        reimbursementId: item.reimbursementId,
+        lineItemId: id,
+        action: "split",
+        detail: JSON.stringify({
+          description: item.description,
+          totalCents: total,
+          firstAmountCents: first,
+          secondAmountCents: second,
+          newLineItemId: created.id,
+        }),
+      },
+    });
+
     // Renumber so the new half sits directly under the original.
     const all = await prisma.lineItem.findMany({
       where: { reimbursementId: item.reimbursementId },

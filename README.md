@@ -63,17 +63,51 @@ npm run test:e2e      # Playwright end-to-end suite (full journey, security, mob
 ```
 
 The e2e suite builds the app, boots a production server on port 3100 with an isolated database
-(`.e2e-data/`), mock AI, and the dev login. It covers the complete journey — upload → claim →
-review (exclude/split/tax-adjust/verify-all) → PDF download (page count + content assertions) —
-plus multi-tenant isolation, the verification gate, deletion/discard housekeeping, and a
-phone-sized viewport. Screenshots of every screen land in `screenshots/`.
+(`.e2e-data/`), mock AI, and the dev login. It runs a **(desktop, mobile) × (chromium, webkit)**
+matrix: the desktop projects cover the complete journey — upload → claim → review
+(exclude/split/tax-adjust/verify-all) → PDF download (page count + content assertions) — plus
+extraction-log telemetry, multi-tenant isolation, the verification gate, and deletion/discard
+housekeeping; the mobile projects (Pixel 7 / iPhone 14) cover the phone-first capture flow.
+Screenshots of every screen land in `screenshots/`.
 
-If your machine has a pre-installed Playwright Chromium, point at it with
-`PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome npm run test:e2e`; otherwise run
-`npx playwright install chromium` once.
+Run `npx playwright install --with-deps chromium webkit` once. To limit engines (e.g. where
+WebKit isn't installed) set `E2E_BROWSERS=chromium`; a pre-installed Chromium can be pointed at
+with `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome`.
 
 `node scripts/render-pdf.mjs <file.pdf> <out-prefix>` rasterizes a generated packet to PNGs for
 eyeballing.
+
+### Continuous integration & delivery
+
+- **`.github/workflows/ci.yml`** — on every PR and push to `main`: the Vitest unit suite plus
+  the full Playwright matrix (chromium and webkit jobs, each running desktop + mobile projects).
+  Playwright reports are uploaded as artifacts on failure.
+- **`.github/workflows/docker.yml`** — on PRs the image is built as a **dry run** (never
+  pushed); on merge to `main` it is built and pushed to Docker Hub as
+  `<DOCKERHUB_USERNAME>/numbers:latest` and `:sha-<commit>`. Configure two repository secrets:
+  `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (an access token with write scope).
+
+## AI telemetry for prompt tuning
+
+Every GLM call and every human correction is recorded, so the extraction prompt can be tuned
+against real data:
+
+- **`extraction_logs`** — one row per extraction call (including failures): model, the exact
+  prompt, receipt metadata, the raw model response, the parsed items, status/error, duration.
+- **`line_items.original*`** — a frozen snapshot of what the AI extracted for each row;
+  comparing it to the final values shows what the human fixed.
+- **`audit_events`** — a chronological trail of each manual edit with field-level
+  before/after diffs (`update`), plus `split` events.
+
+API (scoped to the signed-in user):
+
+- `GET /api/extraction-logs[?reimbursementId=…]` — list call summaries
+- `GET /api/extraction-logs/:id` — full tuning record: prompt, raw response, parsed items,
+  final line items with per-field `corrections` (AI value → human value, `humanCreated` flag
+  for split-added rows), and the audit trail
+
+For bulk analysis across all users, query the SQLite file in `/data` directly — e.g.
+`sqlite3 data/numbers.db "SELECT prompt, rawResponse FROM ExtractionLog WHERE status='success'"`.
 
 ## Deployment (single container)
 

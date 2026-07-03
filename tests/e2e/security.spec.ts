@@ -13,10 +13,10 @@ test("unauthenticated visitors are redirected to sign-in and APIs return 401", a
   }
 });
 
-test("users cannot see or fetch each other's data (multi-tenant isolation)", async ({ browser }) => {
+test("users cannot see or fetch each other's data (multi-tenant isolation)", async ({ browser }, testInfo) => {
   // Alice uploads a receipt and creates a claim.
   const alice = await (await browser.newContext()).newPage();
-  await signInAs(alice, "alice@example.com", "Alice");
+  await signInAs(alice, `alice-${testInfo.project.name}@example.com`, "Alice");
   await alice.goto("/shoebox");
   await uploadReceipts(alice, [await makeReceiptFixture("alice-receipt.jpg")]);
   const aliceReceipts = (await (await alice.request.get("/api/receipts")).json()).receipts;
@@ -28,21 +28,28 @@ test("users cannot see or fetch each other's data (multi-tenant isolation)", asy
 
   // Bob sees an empty shoebox and gets 404s for Alice's resources.
   const bob = await (await browser.newContext()).newPage();
-  await signInAs(bob, "bob@example.com", "Bob");
+  await signInAs(bob, `bob-${testInfo.project.name}@example.com`, "Bob");
   const bobReceipts = (await (await bob.request.get("/api/receipts")).json()).receipts;
   expect(bobReceipts).toHaveLength(0);
 
   expect((await bob.request.get(`/api/receipts/${receiptId}/file`)).status()).toBe(404);
   expect((await bob.request.get(`/api/reimbursements/${claimId}`)).status()).toBe(404);
+
+  // Extraction logs are tenant-scoped too.
+  const aliceLogs = (await (await alice.request.get(`/api/extraction-logs?reimbursementId=${claimId}`)).json()).logs;
+  expect(aliceLogs).toHaveLength(1);
+  const bobLogs = (await (await bob.request.get(`/api/extraction-logs?reimbursementId=${claimId}`)).json()).logs;
+  expect(bobLogs).toHaveLength(0);
+  expect((await bob.request.get(`/api/extraction-logs/${aliceLogs[0].id}`)).status()).toBe(404);
   expect((await bob.request.delete(`/api/receipts/${receiptId}`)).status()).toBe(404);
   expect((await bob.request.post(`/api/reimbursements/${claimId}/pdf`)).status()).toBe(404);
   // Bob cannot build a claim from Alice's receipt either.
   expect((await bob.request.post("/api/reimbursements", { data: { receiptIds: [receiptId] } })).status()).toBe(404);
 });
 
-test("shoebox housekeeping: deleting receipts and discarding drafts", async ({ page }) => {
+test("shoebox housekeeping: deleting receipts and discarding drafts", async ({ page }, testInfo) => {
   page.on("dialog", (d) => d.accept());
-  await signInAs(page, "keeper@example.com", "Keeper");
+  await signInAs(page, `keeper-${testInfo.project.name}@example.com`, "Keeper");
   await page.goto("/shoebox");
   await uploadReceipts(page, [
     await makeReceiptFixture("keep-1.jpg"),
@@ -71,8 +78,8 @@ test("shoebox housekeeping: deleting receipts and discarding drafts", async ({ p
   expect(res.status()).toBe(409);
 });
 
-test("PDF endpoint refuses while any active row is unverified", async ({ page }) => {
-  await signInAs(page, "strict@example.com", "Strict");
+test("PDF endpoint refuses while any active row is unverified", async ({ page }, testInfo) => {
+  await signInAs(page, `strict-${testInfo.project.name}@example.com`, "Strict");
   await page.goto("/shoebox");
   await uploadReceipts(page, [await makeReceiptFixture("strict.jpg")]);
   await page.locator('[data-testid^="receipt-card-"]').first().click();
