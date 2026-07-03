@@ -65,6 +65,8 @@ model LineItem {
   quantity        Float         @default(1)
   // Line total in cents (integer math avoids floating-point drift).
   amountCents     Int
+  // The user's explicit choice, made during review; empty until picked (the
+  // AI never assigns ministries, and a row cannot be verified without one).
   ministry        String        @default("")
   isVerified      Boolean       @default(false)
   isExcluded      Boolean       @default(false)
@@ -76,7 +78,6 @@ model LineItem {
   originalDescription String?
   originalQuantity    Float?
   originalAmountCents Int?
-  originalMinistry    String?
 
   @@index([reimbursementId])
 }

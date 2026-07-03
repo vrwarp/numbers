@@ -46,9 +46,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       if (it.originalAmountCents !== null && it.originalAmountCents !== it.amountCents) {
         corrections.amountCents = { from: it.originalAmountCents, to: it.amountCents };
       }
-      if (it.originalMinistry !== null && it.originalMinistry !== it.ministry) {
-        corrections.ministry = { from: it.originalMinistry, to: it.ministry };
-      }
       return {
         ...it,
         humanCreated: it.originalDescription === null,

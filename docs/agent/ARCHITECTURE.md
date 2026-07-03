@@ -2,7 +2,7 @@
 
 Single Next.js 15 (App Router) process = UI + API + auth. SQLite via Prisma. Files on local
 disk under `DATA_DIR`. No queue, no cache, no other services. External calls: OpenRouter API only,
-once per claim creation.
+at claim creation only (one call per receipt).
 
 ## File map (what lives where)
 
@@ -22,15 +22,17 @@ src/lib/storage.ts              saveReceiptFile/readStoredFile/deleteStoredFile;
 src/lib/image.ts                compressReceiptImage: rotate() → ≤1600px → jpeg q80→40 ladder
                                 → 1100px fallback; target ~100 KB. isSupportedUpload()
 src/lib/audit.ts                computeLineItemChanges(before, patch) → {field:{from,to}}
-src/lib/ai/prompt.ts            buildExtractionPrompt(receiptIds) — THE prompt being tuned
-src/lib/ai/schema.ts            zod ExtractedItemSchema {receiptId, description, quantity,
-                                amount(dollars), suggestedMinistry}
-src/lib/ai/parse.ts             parseExtractionResponse(text, validIds): strips fences/prose,
-                                zod-validates, rejects unknown receipt ids
+src/lib/ai/prompt.ts            buildExtractionPrompt() — THE prompt being tuned (one receipt
+                                per call; extraction only, ministries are a human choice)
+src/lib/ai/schema.ts            zod ModelItemSchema {description, quantity, amount(dollars)};
+                                ExtractedItem = model item + server-stamped receiptId
+src/lib/ai/parse.ts             parseExtractionResponse(text, receiptId): strips fences/prose,
+                                zod-validates, stamps receiptId (model output ids are ignored)
 src/lib/ai/mock.ts              deterministic extraction for AI_MOCK=1; "refund" in filename →
                                 all-negative items. E2E math depends on these exact numbers
-src/lib/ai/extract.ts           extractLineItems(receipts) → {items, meta}; throws
-                                ExtractionError carrying meta for failure logging; OpenRouter HTTP call
+src/lib/ai/extract.ts           extractReceipt(receipt) → {items, meta} (throws ExtractionError
+                                carrying meta); extractReceipts(receipts) → per-receipt outcomes
+                                (never rejects), one OpenRouter HTTP call each, concurrency 3
 src/lib/pdf/paginate.ts         paginateItems(items, 13) → pages; [] → [[]]
 src/lib/pdf/generate.ts         generateClaimPdf(input): per form page load template → fill
                                 AcroForm fields → flatten → copyPages into output; then append
@@ -66,11 +68,11 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/receipts/[id]` | DELETE | only if not in any claim (409 otherwise); removes file |
 | `/api/receipts/[id]/file` | GET | serve stored bytes, owner only |
 | `/api/reimbursements` | GET | list own claims with counts |
-| | POST | `{receiptIds[]}` → validates ownership + all `unassigned` (409 else) → extractLineItems → create draft + line items (with original* snapshot) + ExtractionLog(success). ExtractionError → ExtractionLog(error) + 502 |
+| | POST | `{receiptIds[]}` → validates ownership + all `unassigned` (409 else) → extractReceipts (one call per receipt) → any failure: log ALL calls + 502, no claim; else create draft + line items (with original* snapshot) + one ExtractionLog per call |
 | `/api/reimbursements/[id]` | GET | claim + lineItems(sortOrder asc) + receipts join |
 | | DELETE | draft only (409 else); receipts return to shoebox |
 | `/api/reimbursements/[id]/pdf` | POST | gate: ≥1 active row, all active verified (400 else) → generateClaimPdf → claim=generated, receipts=processed → returns application/pdf. Re-POST on generated claim re-downloads |
-| `/api/line-items/[id]` | PATCH | zod partial {description,quantity,amountCents,ministry,isVerified,isExcluded}; draft only (409); content change ⇒ isVerified=false unless patch sets it; writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
+| `/api/line-items/[id]` | PATCH | zod partial {description,quantity,amountCents,ministry,isVerified,isExcluded}; draft only (409); isVerified:true refused (400) while ministry is empty; content change ⇒ isVerified=false unless patch sets it; writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
 | `/api/line-items/[id]/split` | POST | `{firstAmountCents?}` default even split; both halves unverified; new row original*=NULL; AuditEvent(split); renumbers sortOrder so new half follows original |
 | `/api/profile` | GET PATCH | fullName, mailingAddress (printed on the form) |
 | `/api/extraction-logs` | GET | own logs, `?reimbursementId=`, newest first, summaries |
@@ -81,11 +83,11 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 **Upload**: FormData → isSupportedUpload → (image? compress to jpeg) → saveReceiptFile
 `uploads/<userId>/<cuid>.<jpg|pdf>` → prisma.receipt.create.
 
-**Claim creation**: receiptIds → ownership/status checks → `extractLineItems` (mock if
-AI_MOCK=1; else one OpenRouter chat/completions call, receipts inline as data-URIs each preceded by
-`RECEIPT ID: <id>` text part) → parse+validate → create Reimbursement + LineItems
-(ministry must be in MINISTRIES else "General Fund"; amount dollars→cents; original*=extracted
-values) → ExtractionLog.
+**Claim creation**: receiptIds → ownership/status checks → `extractReceipts` (mock if
+AI_MOCK=1; else one OpenRouter chat/completions call PER receipt, image/PDF inline as data-URI;
+receipt id stamped server-side) → parse+validate → create Reimbursement + LineItems
+(ministry starts empty — the user must pick one per row during review; amount dollars→cents;
+original*=extracted values) → ExtractionLog.
 
 **PDF**: gate check → read receipt files → `generateClaimPdf({requesterName, requesterAddress,
 dateString(MM/DD/YYYY), items(active only), receipts, templateBytes})` → transaction: claim

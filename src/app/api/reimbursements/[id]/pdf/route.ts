@@ -34,6 +34,12 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     if (unverified.length > 0) {
       throw new ApiError(400, `${unverified.length} row(s) still need verification before the PDF can be generated`);
     }
+    // Defense in depth: verifying already requires a ministry, but the PDF is
+    // the real gate — never print a row without an explicit ministry choice.
+    const missingMinistry = active.filter((it) => !it.ministry);
+    if (missingMinistry.length > 0) {
+      throw new ApiError(400, `${missingMinistry.length} row(s) still need a ministry before the PDF can be generated`);
+    }
 
     const receiptFiles = [];
     for (const rr of reimbursement.receipts) {

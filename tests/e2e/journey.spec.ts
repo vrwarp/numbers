@@ -101,6 +101,14 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   await expect(page.getByTestId("verify-progress")).toContainText("0 / 6 verified");
   const approveButtons = page.getByRole("button", { name: "Approve row" });
   await expect(approveButtons).toHaveCount(6); // excluded row has no visible check
+
+  // Rows arrive with no ministry — the AI never suggests one, and approving
+  // is blocked until the user explicitly picks.
+  await expect(approveButtons.first()).toBeDisabled();
+  for (const sel of await page.getByLabel("Ministry").all()) {
+    if (await sel.isDisabled()) continue; // excluded row
+    if (!(await sel.inputValue())) await sel.selectOption("General Fund");
+  }
   // Approving a row renames its button to "Mark unverified", so always click
   // the first remaining "Approve row".
   for (let i = 0; i < 6; i++) {
@@ -137,19 +145,29 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   await expect(page.getByTestId("claim-status")).toHaveText("Generated", { timeout: 15_000 });
   await shot(page, "07-claim-generated");
 
-  // --- Prompt-tuning telemetry: AI call + human corrections were recorded ---
+  // --- Prompt-tuning telemetry: AI calls + human corrections were recorded ---
   const claimId = page.url().match(/claims\/([^/]+)/)![1];
   const logsRes = await page.request.get(`/api/extraction-logs?reimbursementId=${claimId}`);
   expect(logsRes.ok()).toBeTruthy();
   const { logs } = await logsRes.json();
-  expect(logs).toHaveLength(1);
-  expect(logs[0].status).toBe("success");
+  // One extraction call per receipt.
+  expect(logs).toHaveLength(2);
+  expect(logs.every((l: { status: string }) => l.status === "success")).toBe(true);
 
-  const detail = await (await page.request.get(`/api/extraction-logs/${logs[0].id}`)).json();
-  // The exact request/response pair is preserved.
-  expect(detail.log.prompt).toContain("RECEIPT ID");
-  expect(detail.log.rawResponse).toBeTruthy();
-  expect(JSON.parse(detail.log.parsedJson)).toHaveLength(6);
+  const details = await Promise.all(
+    logs.map(async (l: { id: string }) =>
+      (await page.request.get(`/api/extraction-logs/${l.id}`)).json()
+    )
+  );
+  // The exact request/response pair is preserved per call; the two receipts
+  // (4-item purchase + 2-item refund) each got their own log.
+  for (const d of details) {
+    expect(d.log.prompt).toContain("one receipt document");
+    expect(d.log.rawResponse).toBeTruthy();
+  }
+  const itemCounts = details.map((d) => JSON.parse(d.log.parsedJson).length).sort();
+  expect(itemCounts).toEqual([2, 4]);
+  const detail = details.find((d) => JSON.parse(d.log.parsedJson).length === 4)!;
   // Human corrections are derivable per line item (original AI value vs final).
   const taxItem = detail.lineItems.find(
     (it: { description: string; corrections: Record<string, unknown> }) =>
@@ -190,6 +208,9 @@ test("claim with more items than the 13-row form paginates onto two form pages",
   // 4 receipts x 4 mock items = 16 rows.
   const rows = page.locator('li[data-testid^="row-"]');
   await expect(rows).toHaveCount(16);
+  for (const sel of await page.getByLabel("Ministry").all()) {
+    await sel.selectOption("General Fund");
+  }
   const approve = page.getByRole("button", { name: "Approve row" });
   for (let i = 0; i < 16; i++) {
     await approve.first().click();

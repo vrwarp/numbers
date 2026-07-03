@@ -57,13 +57,13 @@ flowchart LR
     API --> AUTH
     API --> SHARP --> FS
     API --> DB
-    API -->|batch extraction| LLM
+    API -->|extraction, one call per receipt| LLM
     API --> PDF
 ```
 
 One Node.js process serves the UI, the API, and auth. There is no queue, no cache server, no
 external database, and no cloud storage. The only external dependency at runtime is the OpenRouter API,
-and it is touched exactly once per claim, at claim-creation time.
+and it is touched only at claim-creation time, once per receipt.
 
 **Why this shape?** The deployment target is church hardware maintained by volunteers. Every
 additional moving part is a future 10pm phone call. SQLite handles this workload (tens of users,
@@ -88,26 +88,29 @@ Upload accepts images and PDFs. Images are compressed server-side to **~100 KB**
 fallback); PDFs are stored as-is. Files land in `DATA_DIR/uploads/<userId>/<receiptId>.<ext>`
 and a `receipts` row is created with status `unassigned`.
 
-Deliberately, **no AI runs here**. Capture must be instant and free; batching the LLM work into
-one call per claim is dramatically cheaper than one call per receipt, and lets the model see
-purchases and their refunds together.
+Deliberately, **no AI runs here**. Capture must be instant and free; deferring the LLM work to
+claim time means receipts that never make it into a claim never cost an API call.
 
 ### Phase 2 — Batch & generate
 
-The user selects receipts and hits *Generate Claim*. The server sends **one** OpenRouter request
-containing every receipt (images as base64 `image_url` parts, PDFs as file parts), each preceded
-by a `RECEIPT ID: <id>` text marker. The prompt (see `src/lib/ai/prompt.ts`) demands:
+The user selects receipts and hits *Generate Claim*. The server sends **one OpenRouter request
+per receipt** (a few in flight at a time; images as base64 `image_url` parts, PDFs as file
+parts). Small vision models attribute items unreliably when several documents share a context,
+so each call sees exactly one document and the server stamps the receipt id on every extracted
+item — the model never outputs ids. If any receipt fails, no claim is created (but every call is
+still logged). The prompt (see `src/lib/ai/prompt.ts`) demands:
 
 - line items extracted verbatim,
 - taxes and fees as their own dedicated rows,
 - returns/refunds as **negative** quantities and amounts,
-- a suggested ministry from the fixed list,
-- raw JSON array output keyed by receipt id.
+- raw JSON array output.
 
-The response is parsed defensively (markdown fences stripped, prose tolerated), validated with
-zod, and checked against a **hallucination guard**: any item referencing a receipt id that
-wasn't sent aborts the claim. On success a `draft` reimbursement is created with one unverified
-line item per extracted row.
+The model is never asked to pick a ministry — there is nothing on a receipt it could reasonably
+infer that from, so assigning one is an explicit human step during review. The response is
+parsed defensively (markdown fences stripped, prose tolerated), validated with zod, and each
+item is stamped with its receipt id server-side (ids in model output are ignored). On success a
+`draft` reimbursement is created with one unverified, ministry-less line item per extracted
+row.
 
 ### Phase 3 — Review & validate (the heart of the app)
 
@@ -119,7 +122,7 @@ Row operations and their exact semantics:
 
 | Operation | Semantics |
 | :-- | :-- |
-| **Approve** (checkmark) | Sets `isVerified`. The PDF button is enabled only when *every non-excluded row* is verified. |
+| **Approve** (checkmark) | Sets `isVerified`. Refused (server-side) until the row has a ministry — choosing one is part of the human sign-off. The PDF button is enabled only when *every non-excluded row* is verified. |
 | **Edit** (description, qty, amount, ministry) | Persists immediately and **revokes `isVerified`** — a changed row must be re-checked by a human. Enforced server-side. |
 | **Exclude** (trash) | Strikes the row out and removes it from all totals. Excluded rows don't need verification and don't reach the PDF. Reversible (Restore). |
 | **Split** | Divides one row's amount into two rows (default even split, odd cent stays on the first). Both halves come back **unverified**. The second half is marked human-created in telemetry. |
@@ -193,7 +196,7 @@ Three layers record "what the AI said" vs. "what the human accepted":
 1. **`extraction_logs`** — one row per extraction call, *including failures*: the model id, the exact
    prompt, receipt metadata (never image bytes), the raw response, parsed items, error message,
    and duration. Survives claim deletion (`reimbursementId` nulls out).
-2. **`line_items.original*`** — the AI-extracted description/quantity/amount/ministry frozen at
+2. **`line_items.original*`** — the AI-extracted description/quantity/amount frozen at
    claim creation. Original-vs-final diffs are computable at any time without replaying events.
    `NULL` originals mark human-created rows (the second half of a split).
 3. **`audit_events`** — the chronological trail: every edit with field-level `{from, to}`
@@ -202,7 +205,7 @@ Three layers record "what the AI said" vs. "what the human accepted":
 `GET /api/extraction-logs/:id` assembles the full tuning record (prompt, raw response, final
 rows with per-field `corrections`, audit trail). The intended workflow: periodically export
 success logs where `corrections` is non-empty, look for systematic model errors (wrong tax
-handling, missed refunds, bad ministry guesses), and tighten the prompt.
+handling, missed refunds), and tighten the prompt.
 
 ---
 
@@ -276,7 +279,7 @@ is predictable to the cent.
 | 1 | SQLite + local files | Postgres, S3-style storage | Zero-maintenance target hardware; workload is tiny; backup story is "copy a folder." |
 | 2 | JWT sessions, no DB adapter | NextAuth Prisma adapter | Keeps the schema domain-only; no session GC; sign-out needs no server state. |
 | 3 | Integer cents | Float dollars, decimal library | Floats drift; a decimal dep is overkill for add/subtract. Cents make every total exact. |
-| 4 | One batched LLM call per claim | Per-receipt OCR at upload | ~10× cheaper, and the model sees purchase+refund pairs together, which is exactly when it must reason about negatives. |
+| 4 | One LLM call per receipt, at claim time | One batched call per claim | Batching confused small vision models — items got attributed to the wrong receipt. Per-receipt calls make attribution exact by construction (the server stamps the id), and at ~$0.001/receipt the extra cost is noise. Extraction still waits for claim time so unclaimed receipts cost nothing. |
 | 5 | AcroForm fill + flatten | Coordinate overlay on a scanned form | The real form ships with named fields; filling them is exact by construction and survives font/spacing quirks. (The overlay engine existed first and was deleted — the form's field names are the contract now.) |
 | 6 | Verification gate enforced in API | UI-only disabled button | The rule is the product's integrity guarantee; it must hold against client bugs. |
 | 7 | Edit revokes verification | Trust prior checkmark | A checkmark attests to specific values; changed values are unattested by definition. |
