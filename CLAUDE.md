@@ -1,6 +1,7 @@
 # Numbers — agent guide
 
-Church reimbursement app: photograph receipts ("Shoebox") → per-receipt OpenRouter extraction →
+Church reimbursement app: photograph receipts ("Shoebox") → per-receipt LLM extraction
+(OpenRouter or Google AI Studio, per `AI_PROVIDER`) →
 human verifies every row → filled official CFCC PDF form + receipts appended. Next.js 15 App
 Router, SQLite + Prisma, Firebase Auth (+ self-issued session cookie), sharp, pdf-lib. Single
 Docker container, `/data` volume.

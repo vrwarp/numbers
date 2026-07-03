@@ -51,7 +51,7 @@ flowchart LR
         DB[(SQLite<br/>numbers.db)]
         FS[/data/uploads/]
     end
-    LLM[Vision model<br/>via OpenRouter]
+    LLM[Vision model<br/>via OpenRouter or Google AI Studio]
 
     UI -->|fetch| API
     API --> AUTH
@@ -62,8 +62,9 @@ flowchart LR
 ```
 
 One Node.js process serves the UI, the API, and auth. There is no queue, no cache server, no
-external database, and no cloud storage. The only external dependency at runtime is the OpenRouter API,
-and it is touched only at claim-creation time, once per receipt.
+external database, and no cloud storage. The only external dependency at runtime is one vision-model
+API — OpenRouter by default, or Google AI Studio (the Gemini API) directly when
+`AI_PROVIDER=google` — and it is touched only at claim-creation time, once per receipt.
 
 **Why this shape?** The deployment target is church hardware maintained by volunteers. Every
 additional moving part is a future 10pm phone call. SQLite handles this workload (tens of users,
@@ -93,9 +94,10 @@ claim time means receipts that never make it into a claim never cost an API call
 
 ### Phase 2 — Batch & generate
 
-The user selects receipts and hits *Generate Claim*. The server sends **one OpenRouter request
-per receipt** (a few in flight at a time; images as base64 `image_url` parts, PDFs as file
-parts). Small vision models attribute items unreliably when several documents share a context,
+The user selects receipts and hits *Generate Claim*. The server sends **one model request
+per receipt** (a few in flight at a time; via OpenRouter, images go as base64 `image_url` parts
+and PDFs as file parts; via Google AI Studio both go as `inline_data` parts). Small vision
+models attribute items unreliably when several documents share a context,
 so each call sees exactly one document and the server stamps the receipt id on every extracted
 item — the model never outputs ids. If any receipt fails, no claim is created (but every call is
 still logged). The prompt (see `src/lib/ai/prompt.ts`) demands:
@@ -300,5 +302,5 @@ is predictable to the cent.
   loop. A `scripts/` harness that replays logged receipts against a candidate prompt and scores
   it against the human-corrected values would close the loop.
 - **English-only UI.** A Chinese localization would serve this congregation well.
-- **PDF ingestion** uses OpenRouter's `file` content part; if that shape changes,
-  only `src/lib/ai/extract.ts` is affected.
+- **PDF ingestion** uses OpenRouter's `file` content part (or Gemini's `inline_data`); if
+  either shape changes, only `src/lib/ai/providers.ts` is affected.

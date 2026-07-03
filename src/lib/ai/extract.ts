@@ -3,6 +3,14 @@ import { isAiMock } from "@/lib/config";
 import { buildExtractionPrompt } from "./prompt";
 import { parseExtractionResponse } from "./parse";
 import { mockExtract } from "./mock";
+import {
+  callProvider,
+  currentProvider,
+  providerApiKey,
+  providerModel,
+  ProviderCallError,
+  type AiProvider,
+} from "./providers";
 import type { ExtractedItem } from "./schema";
 
 export interface ReceiptInput {
@@ -38,16 +46,17 @@ export class ExtractionError extends Error {
   }
 }
 
-export const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
-// Vision default: leads document/receipt extraction benchmarks at ~$0.001 per
-// receipt and ingests PDFs natively. Override with OPENROUTER_MODEL.
-export const DEFAULT_MODEL = "google/gemini-3.1-flash-lite";
 // Per-receipt calls in flight at once; keeps a big claim fast without
 // tripping provider rate limits.
 export const EXTRACTION_CONCURRENCY = 3;
 
 function currentModel(): string {
-  return isAiMock() ? "mock" : process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
+  if (isAiMock()) return "mock";
+  try {
+    return providerModel(currentProvider());
+  } catch {
+    return "unknown";
+  }
 }
 
 function receiptMetaJson(receipt: ReceiptInput): string {
@@ -57,11 +66,12 @@ function receiptMetaJson(receipt: ReceiptInput): string {
 }
 
 /**
- * Send ONE receipt to OpenRouter and get back validated line items stamped
- * with the receipt id, plus the request/response metadata. Small vision
- * models mix up attribution when several documents share a context, so
- * batching is deliberately not supported. With AI_MOCK=1 this returns
- * deterministic data without any network call (logged with model "mock").
+ * Send ONE receipt to the configured AI provider (AI_PROVIDER: OpenRouter or
+ * Google AI Studio) and get back validated line items stamped with the
+ * receipt id, plus the request/response metadata. Small vision models mix up
+ * attribution when several documents share a context, so batching is
+ * deliberately not supported. With AI_MOCK=1 this returns deterministic data
+ * without any network call (logged with model "mock").
  */
 export async function extractReceipt(
   receipt: ReceiptInput
@@ -84,7 +94,7 @@ export async function extractReceipt(
     };
   }
 
-  const model = currentModel();
+  let model = "unknown";
   const failMeta = (rawResponse: string | null): ExtractionMeta => ({
     model,
     prompt,
@@ -93,12 +103,15 @@ export async function extractReceipt(
     durationMs: Date.now() - started,
   });
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    throw new ExtractionError(
-      "OPENROUTER_API_KEY is not configured (set AI_MOCK=1 for offline use)",
-      failMeta(null)
-    );
+  let provider: AiProvider;
+  let apiKey: string;
+  try {
+    provider = currentProvider();
+    model = providerModel(provider);
+    apiKey = providerApiKey(provider);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "AI provider misconfigured";
+    throw new ExtractionError(msg, failMeta(null));
   }
 
   let data: Buffer;
@@ -108,48 +121,20 @@ export async function extractReceipt(
     const msg = err instanceof Error ? err.message : "read error";
     throw new ExtractionError(`Could not read receipt file: ${msg}`, failMeta(null));
   }
-  const dataUri = `data:${receipt.mimeType};base64,${data.toString("base64")}`;
-  const content: unknown[] = [{ type: "text", text: prompt }];
-  if (receipt.mimeType === "application/pdf") {
-    content.push({
-      type: "file",
-      file: { filename: receipt.originalName, file_data: dataUri },
-    });
-  } else {
-    content.push({ type: "image_url", image_url: { url: dataUri } });
-  }
 
-  let res: Response;
+  let text: string;
   try {
-    res = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        "X-Title": "Numbers",
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: "user", content }],
-        temperature: 0.1,
-      }),
+    text = await callProvider(provider, apiKey, model, prompt, {
+      mimeType: receipt.mimeType,
+      originalName: receipt.originalName,
+      base64: data.toString("base64"),
     });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "network error";
-    throw new ExtractionError(`OpenRouter API unreachable: ${msg}`, failMeta(null));
-  }
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new ExtractionError(`OpenRouter API error ${res.status}: ${body.slice(0, 500)}`, failMeta(body.slice(0, 10_000)));
-  }
-
-  const json = (await res.json()) as {
-    choices?: { message?: { content?: string } }[];
-  };
-  const text = json.choices?.[0]?.message?.content;
-  if (!text) {
-    throw new ExtractionError("OpenRouter API returned an empty response", failMeta(JSON.stringify(json).slice(0, 10_000)));
+    if (err instanceof ProviderCallError) {
+      throw new ExtractionError(err.message, failMeta(err.rawResponse));
+    }
+    const msg = err instanceof Error ? err.message : "extraction failed";
+    throw new ExtractionError(msg, failMeta(null));
   }
 
   let items: ExtractedItem[];
