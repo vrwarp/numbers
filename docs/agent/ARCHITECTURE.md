@@ -1,8 +1,8 @@
 # Architecture reference
 
 Single Next.js 15 (App Router) process = UI + API + auth. SQLite via Prisma. Files on local
-disk under `DATA_DIR`. No queue, no cache, no other services. External calls: OpenRouter API only,
-at claim creation only (one call per receipt).
+disk under `DATA_DIR`. No queue, no cache, no other services. External calls: one AI provider
+(OpenRouter or Google AI Studio, per `AI_PROVIDER`), at claim creation only (one call per receipt).
 
 ## File map (what lives where)
 
@@ -37,7 +37,9 @@ src/lib/ai/mock.ts              deterministic extraction for AI_MOCK=1; "refund"
                                 all-negative items. E2E math depends on these exact numbers
 src/lib/ai/extract.ts           extractReceipt(receipt) → {items, meta} (throws ExtractionError
                                 carrying meta); extractReceipts(receipts) → per-receipt outcomes
-                                (never rejects), one OpenRouter HTTP call each, concurrency 3
+                                (never rejects), one provider HTTP call each, concurrency 3
+src/lib/ai/providers.ts         AI_PROVIDER dispatch (openrouter | google) + the two HTTP
+                                callers; failures throw ProviderCallError carrying the raw body
 src/lib/pdf/paginate.ts         paginateItems(items, 13) → pages; [] → [[]]
 src/lib/pdf/generate.ts         generateClaimPdf(input): per form page load template → fill
                                 AcroForm fields → flatten → copyPages into output; then append
@@ -93,7 +95,8 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 `uploads/<userId>/<cuid>.<jpg|pdf>` → prisma.receipt.create.
 
 **Claim creation**: receiptIds → ownership/status checks → `extractReceipts` (mock if
-AI_MOCK=1; else one OpenRouter chat/completions call PER receipt, image/PDF inline as data-URI;
+AI_MOCK=1; else one provider call PER receipt — OpenRouter chat/completions with the image/PDF
+inline as data-URI, or Google AI Studio generateContent with inline_data;
 receipt id stamped server-side) → parse+validate → create Reimbursement + LineItems
 (ministry starts empty — the user must pick one per row during review; amount dollars→cents;
 original*=extracted values) → ExtractionLog.
@@ -126,7 +129,9 @@ multi-page), `Requestor Name`, `Request Date`. Left blank on purpose: `Approver 
 | `DATA_DIR` | upload root; `./data` dev, `/data` in image |
 | `AUTH_SECRET` | signs the session cookie — required |
 | `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID` (+optional `FIREBASE_APP_ID`) | Firebase web config; Google button rendered only if all three present. Client-safe values, relayed at runtime (not NEXT_PUBLIC_*, so one Docker image works everywhere) |
-| `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (default `google/gemini-3.1-flash-lite`) | extraction |
+| `AI_PROVIDER` (`openrouter` default, or `google`) | which extraction backend to call |
+| `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (default `google/gemini-3.1-flash-lite`) | extraction via OpenRouter |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` (default `gemini-3.1-flash-lite`) | extraction via Google AI Studio (Gemini API) |
 | `AI_MOCK=1` | deterministic extraction, no network (tests/dev) |
 | `AUTH_TEST_MODE=1` | enables dev login (tests/dev only) |
 | `TEMPLATE_PDF` | optional replacement blank form path |

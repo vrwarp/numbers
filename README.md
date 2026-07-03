@@ -19,8 +19,9 @@ just a copy of the `/data` folder.
 1. **Shoebox (capture).** Upload a photo or PDF of a receipt from your phone (installable PWA).
    Images are compressed to ~100 KB on the server; no AI runs at this stage.
 2. **Batch & generate.** Select receipts and hit *Generate Claim*. Each receipt goes to a
-   vision model via OpenRouter (one call per receipt) with a strict prompt: line items extracted
-   verbatim, taxes/fees as their own rows, returns/refunds as negative quantities and amounts.
+   vision model via OpenRouter or Google AI Studio (one call per receipt) with a strict prompt:
+   line items extracted verbatim, taxes/fees as their own rows, returns/refunds as negative
+   quantities and amounts.
 3. **Review & validate.** A side-by-side screen shows the original receipts next to an editable
    grid grouped by receipt, each group with a live subtotal to match against the printed total.
    Fix descriptions, change ministries, **exclude** personal items, **split** bulk items across
@@ -42,7 +43,7 @@ just a copy of the `/data` folder.
 | Database | SQLite + Prisma — a single `numbers.db` file |
 | File storage | Local filesystem under `DATA_DIR` (Docker volume `/data`) |
 | Image compression | sharp (~100 KB JPEG target, EXIF-rotation safe) |
-| AI parsing | OpenRouter (`OPENROUTER_MODEL`, default `google/gemini-3.1-flash-lite`), strict JSON output validated with zod |
+| AI parsing | OpenRouter (default) or Google AI Studio / Gemini API (`AI_PROVIDER=google`), strict JSON output validated with zod |
 | PDF engine | pdf-lib — fills + flattens the official form's AcroForm fields, merges receipts |
 
 Money is stored as **integer cents** everywhere; users only ever see dollars.
@@ -58,7 +59,7 @@ npm run dev                   # http://localhost:3000
 
 With `AUTH_TEST_MODE=1` you get a passwordless dev login, and `AI_MOCK=1` makes claim generation
 return deterministic fake line items so you can exercise the whole flow offline without Firebase
-or OpenRouter credentials.
+or AI-provider credentials.
 
 ### Tests
 
@@ -138,8 +139,11 @@ or use the provided `docker-compose.yml`. Migrations run automatically on boot.
 | `AUTH_SECRET` | Session-cookie signing secret (`openssl rand -base64 32`) — required |
 | `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID` | Firebase web-app config ([console](https://console.firebase.google.com) → Project settings → Your apps). Enable the **Google** provider under Authentication → Sign-in method and add your app's domain to Authentication → Authorized domains. These values are client-safe |
 | `FIREBASE_APP_ID` | Optional, from the same Firebase web-app config |
+| `AI_PROVIDER` | Extraction backend: `openrouter` (default) or `google` (Google AI Studio / Gemini API) |
 | `OPENROUTER_API_KEY` | OpenRouter API key ([openrouter.ai/keys](https://openrouter.ai/keys)) |
-| `OPENROUTER_MODEL` | Vision-capable model id, default `google/gemini-3.1-flash-lite` |
+| `OPENROUTER_MODEL` | Vision-capable OpenRouter model id, default `google/gemini-3.1-flash-lite` |
+| `GEMINI_API_KEY` | Google AI Studio API key ([aistudio.google.com/apikey](https://aistudio.google.com/apikey)) — used when `AI_PROVIDER=google` |
+| `GEMINI_MODEL` | Vision-capable Gemini model id, default `gemini-3.1-flash-lite` |
 | `DATA_DIR` / `DATABASE_URL` | Preset in the image (`/data`, `file:/data/numbers.db`) |
 | `TEMPLATE_PDF` | Optional path to a replacement blank form (must keep the same AcroForm field names) |
 | `AI_MOCK`, `AUTH_TEST_MODE` | Dev/test only — never set in production |
