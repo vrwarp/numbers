@@ -1,44 +1,63 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { extractLineItems, ExtractionError } from "@/lib/ai/extract";
+import { afterEach, describe, expect, it } from "vitest";
+import { extractReceipts, extractReceipt, ExtractionError } from "@/lib/ai/extract";
 
 const receipts = [
   { id: "r1", filePath: "x/r1.jpg", mimeType: "image/jpeg", originalName: "costco.jpg" },
+  { id: "r2", filePath: "x/r2.jpg", mimeType: "image/jpeg", originalName: "target-refund.jpg" },
 ];
 
-describe("extractLineItems metadata (for the tuning log)", () => {
+describe("per-receipt extraction metadata (for the tuning log)", () => {
   const oldEnv = { ...process.env };
   afterEach(() => {
     process.env = { ...oldEnv };
   });
 
-  it("returns items plus prompt/response metadata in mock mode", async () => {
+  it("returns one outcome per receipt with prompt/response metadata in mock mode", async () => {
     process.env.AI_MOCK = "1";
-    const { items, meta } = await extractLineItems(receipts);
-    expect(items.length).toBeGreaterThan(0);
-    expect(meta.model).toBe("mock");
-    expect(meta.prompt).toContain("RECEIPT ID");
-    expect(meta.prompt).toContain("r1");
-    expect(meta.rawResponse).toBeTruthy();
-    expect(JSON.parse(meta.receiptsJson)).toEqual([
-      { id: "r1", name: "costco.jpg", mimeType: "image/jpeg" },
-    ]);
-    expect(meta.durationMs).toBeGreaterThanOrEqual(0);
-    // The raw response must parse back to the same items (what gets logged).
-    expect(JSON.parse(meta.rawResponse!)).toEqual(items);
+    const outcomes = await extractReceipts(receipts);
+    expect(outcomes).toHaveLength(2);
+    for (const [i, outcome] of outcomes.entries()) {
+      expect(outcome.receipt.id).toBe(receipts[i].id);
+      expect(outcome.error).toBeNull();
+      expect(outcome.items!.length).toBeGreaterThan(0);
+      // Every item is stamped with its own receipt's id.
+      expect(outcome.items!.every((it) => it.receiptId === receipts[i].id)).toBe(true);
+      expect(outcome.meta.model).toBe("mock");
+      expect(outcome.meta.prompt).toContain("one receipt document");
+      expect(JSON.parse(outcome.meta.receiptsJson)).toEqual([
+        { id: receipts[i].id, name: receipts[i].originalName, mimeType: receipts[i].mimeType },
+      ]);
+      expect(outcome.meta.durationMs).toBeGreaterThanOrEqual(0);
+      // The raw response must parse back to the same items (what gets logged).
+      expect(JSON.parse(outcome.meta.rawResponse!)).toEqual(outcome.items);
+    }
   });
 
-  it("throws an ExtractionError carrying metadata when unconfigured", async () => {
+  it("extractReceipt throws an ExtractionError carrying metadata when unconfigured", async () => {
     process.env.AI_MOCK = "0";
     delete process.env.OPENROUTER_API_KEY;
     try {
-      await extractLineItems(receipts);
+      await extractReceipt(receipts[0]);
       expect.unreachable("should have thrown");
     } catch (err) {
       expect(err).toBeInstanceOf(ExtractionError);
       const e = err as ExtractionError;
       expect(e.message).toMatch(/OPENROUTER_API_KEY/);
-      expect(e.meta.prompt).toContain("r1");
+      expect(e.meta.receiptsJson).toContain("r1");
       expect(e.meta.rawResponse).toBeNull();
+    }
+  });
+
+  it("extractReceipts settles failures as loggable outcomes instead of rejecting", async () => {
+    process.env.AI_MOCK = "0";
+    delete process.env.OPENROUTER_API_KEY;
+    const outcomes = await extractReceipts(receipts);
+    expect(outcomes).toHaveLength(2);
+    for (const outcome of outcomes) {
+      expect(outcome.items).toBeNull();
+      expect(outcome.error).toMatch(/OPENROUTER_API_KEY/);
+      expect(outcome.meta.prompt).toBeTruthy();
+      expect(outcome.meta.rawResponse).toBeNull();
     }
   });
 });

@@ -1,10 +1,11 @@
-import { ExtractionResultSchema, type ExtractedItem } from "./schema";
+import { ModelResultSchema, type ExtractedItem } from "./schema";
 
 /**
- * Parse the LLM's text response into validated extraction items. Tolerates
- * markdown code fences and stray prose around the JSON array.
+ * Parse the LLM's text response for one receipt into validated items, each
+ * stamped with the receipt id. Tolerates markdown code fences and stray prose
+ * around the JSON array.
  */
-export function parseExtractionResponse(text: string, validReceiptIds: string[]): ExtractedItem[] {
+export function parseExtractionResponse(text: string, receiptId: string): ExtractedItem[] {
   const jsonText = extractJsonArray(text);
   let raw: unknown;
   try {
@@ -12,16 +13,9 @@ export function parseExtractionResponse(text: string, validReceiptIds: string[])
   } catch {
     throw new Error("AI response did not contain valid JSON");
   }
-  const items = ExtractionResultSchema.parse(raw);
+  const items = ModelResultSchema.parse(raw);
   if (items.length === 0) throw new Error("AI response contained no line items");
-
-  const valid = new Set(validReceiptIds);
-  for (const item of items) {
-    if (!valid.has(item.receiptId)) {
-      throw new Error(`AI referenced unknown receipt id: ${item.receiptId}`);
-    }
-  }
-  return items;
+  return items.map((item) => ({ ...item, receiptId }));
 }
 
 function extractJsonArray(text: string): string {

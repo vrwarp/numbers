@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
-import { extractLineItems, ExtractionError } from "@/lib/ai/extract";
+import { extractReceipts, type ReceiptExtraction } from "@/lib/ai/extract";
 import { parseDollarsToCents } from "@/lib/money";
 import { MINISTRIES } from "@/lib/config";
 
 export const runtime = "nodejs";
-// AI extraction on a large batch can take a while.
+// Per-receipt AI extraction on a large claim can take a while.
 export const maxDuration = 300;
 
 export async function GET() {
@@ -24,9 +24,26 @@ export async function GET() {
 
 const CreateSchema = z.object({ receiptIds: z.array(z.string().min(1)).min(1) });
 
+function extractionLogRow(userId: string, outcome: ReceiptExtraction, reimbursementId?: string) {
+  return {
+    userId,
+    reimbursementId,
+    model: outcome.meta.model,
+    prompt: outcome.meta.prompt,
+    receiptsJson: outcome.meta.receiptsJson,
+    rawResponse: outcome.meta.rawResponse,
+    parsedJson: outcome.items ? JSON.stringify(outcome.items) : null,
+    status: outcome.error ? "error" : "success",
+    errorMessage: outcome.error,
+    durationMs: outcome.meta.durationMs,
+  };
+}
+
 /**
- * "Generate Claim": batch the selected shoebox receipts through the LLM and
- * create a draft reimbursement with unverified line items.
+ * "Generate Claim": run each selected shoebox receipt through the LLM (one
+ * call per receipt) and create a draft reimbursement with unverified line
+ * items. All-or-nothing: if any receipt fails to extract, no claim is
+ * created — but every call is still telemetry-logged.
  */
 export async function POST(req: NextRequest) {
   return handleApi(async () => {
@@ -44,31 +61,20 @@ export async function POST(req: NextRequest) {
       throw new ApiError(409, `Already used in a claim: ${alreadyUsed.map((r) => r.originalName).join(", ")}`);
     }
 
-    let extracted;
-    try {
-      extracted = await extractLineItems(receipts);
-    } catch (err) {
+    const outcomes = await extractReceipts(receipts);
+
+    const failed = outcomes.filter((o) => o.items === null);
+    if (failed.length > 0) {
       // Failed calls are logged too — bad model output is prompt-tuning gold.
-      if (err instanceof ExtractionError) {
-        await prisma.extractionLog.create({
-          data: {
-            userId,
-            model: err.meta.model,
-            prompt: err.meta.prompt,
-            receiptsJson: err.meta.receiptsJson,
-            rawResponse: err.meta.rawResponse,
-            status: "error",
-            errorMessage: err.message,
-            durationMs: err.meta.durationMs,
-          },
-        });
-      }
-      const message = err instanceof Error ? err.message : "extraction failed";
-      throw new ApiError(502, `AI extraction failed: ${message}`);
+      await prisma.extractionLog.createMany({
+        data: outcomes.map((o) => extractionLogRow(userId, o)),
+      });
+      const names = failed.map((f) => f.receipt.originalName).join(", ");
+      throw new ApiError(502, `AI extraction failed for ${names}: ${failed[0].error}`);
     }
 
     const ministrySet = new Set<string>(MINISTRIES);
-    const items = extracted.items.map((item, i) => {
+    const items = outcomes.flatMap((o) => o.items!).map((item, i) => {
       const ministry = ministrySet.has(item.suggestedMinistry) ? item.suggestedMinistry : "General Fund";
       const amountCents = parseDollarsToCents(item.amount);
       return {
@@ -97,18 +103,8 @@ export async function POST(req: NextRequest) {
       include: { lineItems: true },
     });
 
-    await prisma.extractionLog.create({
-      data: {
-        userId,
-        reimbursementId: reimbursement.id,
-        model: extracted.meta.model,
-        prompt: extracted.meta.prompt,
-        receiptsJson: extracted.meta.receiptsJson,
-        rawResponse: extracted.meta.rawResponse,
-        parsedJson: JSON.stringify(extracted.items),
-        status: "success",
-        durationMs: extracted.meta.durationMs,
-      },
+    await prisma.extractionLog.createMany({
+      data: outcomes.map((o) => extractionLogRow(userId, o, reimbursement.id)),
     });
 
     return NextResponse.json({ reimbursement }, { status: 201 });

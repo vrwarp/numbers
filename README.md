@@ -18,9 +18,9 @@ just a copy of the `/data` folder.
 
 1. **Shoebox (capture).** Upload a photo or PDF of a receipt from your phone (installable PWA).
    Images are compressed to ~100 KB on the server; no AI runs at this stage.
-2. **Batch & generate.** Select receipts and hit *Generate Claim*. The batch goes to a vision model
-   via OpenRouter with a strict prompt: line items extracted verbatim, taxes/fees as their
-   own rows, returns/refunds as negative quantities and amounts.
+2. **Batch & generate.** Select receipts and hit *Generate Claim*. Each receipt goes to a
+   vision model via OpenRouter (one call per receipt) with a strict prompt: line items extracted
+   verbatim, taxes/fees as their own rows, returns/refunds as negative quantities and amounts.
 3. **Review & validate.** A side-by-side screen shows the original receipts next to an editable
    grid grouped by receipt, each group with a live subtotal to match against the printed total.
    Fix descriptions, change ministries, **exclude** personal items, **split** bulk items across
