@@ -12,7 +12,6 @@ services:
       AUTH_URL: ${AUTH_URL:-http://localhost:3000}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GLM_API_KEY: ${GLM_API_KEY:-}
-      GLM_BASE_URL: ${GLM_BASE_URL:-https://api.z.ai/api/paas/v4}
-      GLM_MODEL: ${GLM_MODEL:-glm-5.2}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemini-3.1-flash-lite}
     restart: unless-stopped

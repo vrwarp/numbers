@@ -40,10 +40,15 @@ function receiptsMetaJson(receipts: ReceiptInput[]): string {
   );
 }
 
+export const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
+// Vision default: leads document/receipt extraction benchmarks at ~$0.001 per
+// receipt and ingests PDFs natively. Override with OPENROUTER_MODEL.
+export const DEFAULT_MODEL = "google/gemini-3.1-flash-lite";
+
 /**
- * Send a batch of receipts to GLM and get back validated line items plus the
- * request/response metadata. With AI_MOCK=1 this returns deterministic data
- * without any network call (logged with model "mock").
+ * Send a batch of receipts to OpenRouter and get back validated line items
+ * plus the request/response metadata. With AI_MOCK=1 this returns
+ * deterministic data without any network call (logged with model "mock").
  */
 export async function extractLineItems(receipts: ReceiptInput[]): Promise<ExtractionResult> {
   if (receipts.length === 0) throw new Error("No receipts to extract");
@@ -66,7 +71,7 @@ export async function extractLineItems(receipts: ReceiptInput[]): Promise<Extrac
     };
   }
 
-  const model = process.env.GLM_MODEL || "glm-5.2";
+  const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
   const failMeta = (rawResponse: string | null): ExtractionMeta => ({
     model,
     prompt,
@@ -75,14 +80,13 @@ export async function extractLineItems(receipts: ReceiptInput[]): Promise<Extrac
     durationMs: Date.now() - started,
   });
 
-  const apiKey = process.env.GLM_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new ExtractionError(
-      "GLM_API_KEY is not configured (set AI_MOCK=1 for offline use)",
+      "OPENROUTER_API_KEY is not configured (set AI_MOCK=1 for offline use)",
       failMeta(null)
     );
   }
-  const baseUrl = (process.env.GLM_BASE_URL || "https://api.z.ai/api/paas/v4").replace(/\/$/, "");
 
   const content: unknown[] = [{ type: "text", text: prompt }];
   for (const receipt of receipts) {
@@ -90,7 +94,6 @@ export async function extractLineItems(receipts: ReceiptInput[]): Promise<Extrac
     const dataUri = `data:${receipt.mimeType};base64,${data.toString("base64")}`;
     content.push({ type: "text", text: `RECEIPT ID: ${receipt.id}` });
     if (receipt.mimeType === "application/pdf") {
-      // OpenRouter-style file attachment; Z.ai accepts the same shape.
       content.push({
         type: "file",
         file: { filename: receipt.originalName, file_data: dataUri },
@@ -102,11 +105,12 @@ export async function extractLineItems(receipts: ReceiptInput[]): Promise<Extrac
 
   let res: Response;
   try {
-    res = await fetch(`${baseUrl}/chat/completions`, {
+    res = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
+        "X-Title": "Numbers",
       },
       body: JSON.stringify({
         model,
@@ -116,12 +120,12 @@ export async function extractLineItems(receipts: ReceiptInput[]): Promise<Extrac
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "network error";
-    throw new ExtractionError(`GLM API unreachable: ${msg}`, failMeta(null));
+    throw new ExtractionError(`OpenRouter API unreachable: ${msg}`, failMeta(null));
   }
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new ExtractionError(`GLM API error ${res.status}: ${body.slice(0, 500)}`, failMeta(body.slice(0, 10_000)));
+    throw new ExtractionError(`OpenRouter API error ${res.status}: ${body.slice(0, 500)}`, failMeta(body.slice(0, 10_000)));
   }
 
   const json = (await res.json()) as {
@@ -129,7 +133,7 @@ export async function extractLineItems(receipts: ReceiptInput[]): Promise<Extrac
   };
   const text = json.choices?.[0]?.message?.content;
   if (!text) {
-    throw new ExtractionError("GLM API returned an empty response", failMeta(JSON.stringify(json).slice(0, 10_000)));
+    throw new ExtractionError("OpenRouter API returned an empty response", failMeta(JSON.stringify(json).slice(0, 10_000)));
   }
 
   let items: ExtractedItem[];

@@ -29,14 +29,14 @@ describe("extractLineItems metadata (for the tuning log)", () => {
 
   it("throws an ExtractionError carrying metadata when unconfigured", async () => {
     process.env.AI_MOCK = "0";
-    delete process.env.GLM_API_KEY;
+    delete process.env.OPENROUTER_API_KEY;
     try {
       await extractLineItems(receipts);
       expect.unreachable("should have thrown");
     } catch (err) {
       expect(err).toBeInstanceOf(ExtractionError);
       const e = err as ExtractionError;
-      expect(e.message).toMatch(/GLM_API_KEY/);
+      expect(e.message).toMatch(/OPENROUTER_API_KEY/);
       expect(e.meta.prompt).toContain("r1");
       expect(e.meta.rawResponse).toBeNull();
     }

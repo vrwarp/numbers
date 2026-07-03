@@ -51,18 +51,18 @@ flowchart LR
         DB[(SQLite<br/>numbers.db)]
         FS[/data/uploads/]
     end
-    GLM[GLM API<br/>Z.ai / OpenRouter]
+    LLM[Vision model<br/>via OpenRouter]
 
     UI -->|fetch| API
     API --> AUTH
     API --> SHARP --> FS
     API --> DB
-    API -->|batch extraction| GLM
+    API -->|batch extraction| LLM
     API --> PDF
 ```
 
 One Node.js process serves the UI, the API, and auth. There is no queue, no cache server, no
-external database, and no cloud storage. The only external dependency at runtime is the GLM API,
+external database, and no cloud storage. The only external dependency at runtime is the OpenRouter API,
 and it is touched exactly once per claim, at claim-creation time.
 
 **Why this shape?** The deployment target is church hardware maintained by volunteers. Every
@@ -94,7 +94,7 @@ purchases and their refunds together.
 
 ### Phase 2 — Batch & generate
 
-The user selects receipts and hits *Generate Claim*. The server sends **one** GLM request
+The user selects receipts and hits *Generate Claim*. The server sends **one** OpenRouter request
 containing every receipt (images as base64 `image_url` parts, PDFs as file parts), each preceded
 by a `RECEIPT ID: <id>` text marker. The prompt (see `src/lib/ai/prompt.ts`) demands:
 
@@ -190,7 +190,7 @@ Notable decisions:
 
 Three layers record "what the AI said" vs. "what the human accepted":
 
-1. **`extraction_logs`** — one row per GLM call, *including failures*: the model id, the exact
+1. **`extraction_logs`** — one row per extraction call, *including failures*: the model id, the exact
    prompt, receipt metadata (never image bytes), the raw response, parsed items, error message,
    and duration. Survives claim deletion (`reimbursementId` nulls out).
 2. **`line_items.original*`** — the AI-extracted description/quantity/amount/ministry frozen at
@@ -296,5 +296,5 @@ is predictable to the cent.
   loop. A `scripts/` harness that replays logged receipts against a candidate prompt and scores
   it against the human-corrected values would close the loop.
 - **English-only UI.** A Chinese localization would serve this congregation well.
-- **GLM PDF ingestion** uses the OpenRouter-style `file` content part; if Z.ai changes shape,
+- **PDF ingestion** uses OpenRouter's `file` content part; if that shape changes,
   only `src/lib/ai/extract.ts` is affected.

@@ -1,7 +1,7 @@
 # Architecture reference
 
 Single Next.js 15 (App Router) process = UI + API + auth. SQLite via Prisma. Files on local
-disk under `DATA_DIR`. No queue, no cache, no other services. External calls: GLM API only,
+disk under `DATA_DIR`. No queue, no cache, no other services. External calls: OpenRouter API only,
 once per claim creation.
 
 ## File map (what lives where)
@@ -30,7 +30,7 @@ src/lib/ai/parse.ts             parseExtractionResponse(text, validIds): strips 
 src/lib/ai/mock.ts              deterministic extraction for AI_MOCK=1; "refund" in filename →
                                 all-negative items. E2E math depends on these exact numbers
 src/lib/ai/extract.ts           extractLineItems(receipts) → {items, meta}; throws
-                                ExtractionError carrying meta for failure logging; GLM HTTP call
+                                ExtractionError carrying meta for failure logging; OpenRouter HTTP call
 src/lib/pdf/paginate.ts         paginateItems(items, 13) → pages; [] → [[]]
 src/lib/pdf/generate.ts         generateClaimPdf(input): per form page load template → fill
                                 AcroForm fields → flatten → copyPages into output; then append
@@ -82,7 +82,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 `uploads/<userId>/<cuid>.<jpg|pdf>` → prisma.receipt.create.
 
 **Claim creation**: receiptIds → ownership/status checks → `extractLineItems` (mock if
-AI_MOCK=1; else one GLM chat/completions call, receipts inline as data-URIs each preceded by
+AI_MOCK=1; else one OpenRouter chat/completions call, receipts inline as data-URIs each preceded by
 `RECEIPT ID: <id>` text part) → parse+validate → create Reimbursement + LineItems
 (ministry must be in MINISTRIES else "General Fund"; amount dollars→cents; original*=extracted
 values) → ExtractionLog.
@@ -115,7 +115,7 @@ multi-page), `Requestor Name`, `Request Date`. Left blank on purpose: `Approver 
 | `DATA_DIR` | upload root; `./data` dev, `/data` in image |
 | `AUTH_SECRET`, `AUTH_URL`, `AUTH_TRUST_HOST` | NextAuth |
 | `GOOGLE_CLIENT_ID/SECRET` | Google provider registered only if both present |
-| `GLM_API_KEY`, `GLM_BASE_URL` (default Z.ai), `GLM_MODEL` (default `glm-5.2`) | extraction |
+| `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (default `google/gemini-3.1-flash-lite`) | extraction |
 | `AI_MOCK=1` | deterministic extraction, no network (tests/dev) |
 | `AUTH_TEST_MODE=1` | enables dev login (tests/dev only) |
 | `TEMPLATE_PDF` | optional replacement blank form path |
