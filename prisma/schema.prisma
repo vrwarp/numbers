@@ -1,5 +1,8 @@
 generator client {
   provider = "prisma-client-js"
+  // "native" for local dev; the pinned target matches the Docker runtime image
+  // (node:22-bookworm-slim = debian-openssl-3.0.x) regardless of the build host.
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
