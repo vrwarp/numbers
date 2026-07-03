@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String          @id @default(cuid())
+  googleId       String?         @unique
+  email          String          @unique
+  fullName       String?
+  mailingAddress String?
+  role           String          @default("member") // member | treasurer | admin
+  createdAt      DateTime        @default(now())
+  receipts       Receipt[]
+  reimbursements Reimbursement[]
+}
+
+model Receipt {
+  id             String                 @id @default(cuid())
+  userId         String
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filePath       String // relative to DATA_DIR, e.g. uploads/<userId>/<id>.jpg
+  mimeType       String // image/jpeg | application/pdf
+  originalName   String
+  sizeBytes      Int
+  status         String                 @default("unassigned") // unassigned | processed
+  createdAt      DateTime               @default(now())
+  lineItems      LineItem[]
+  reimbursements ReimbursementReceipt[]
+
+  @@index([userId, status])
+}
+
+model Reimbursement {
+  id          String                 @id @default(cuid())
+  userId      String
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      String                 @default("draft") // draft | generated
+  // Sum of non-excluded line items, in cents. Recomputed on every change.
+  totalCents  Int                    @default(0)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  lineItems   LineItem[]
+  receipts    ReimbursementReceipt[]
+
+  @@index([userId, status])
+}
+
+model LineItem {
+  id              String        @id @default(cuid())
+  reimbursementId String
+  reimbursement   Reimbursement @relation(fields: [reimbursementId], references: [id], onDelete: Cascade)
+  receiptId       String
+  receipt         Receipt       @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  description     String
+  // Negative quantity/amount represents a return or refund.
+  quantity        Float         @default(1)
+  // Line total in cents (integer math avoids floating-point drift).
+  amountCents     Int
+  ministry        String        @default("")
+  isVerified      Boolean       @default(false)
+  isExcluded      Boolean       @default(false)
+  sortOrder       Int           @default(0)
+
+  @@index([reimbursementId])
+}
+
+// Join table: a claim bundles many receipts; a receipt may (rarely) appear in
+// several draft claims until one of them is generated.
+model ReimbursementReceipt {
+  reimbursementId String
+  reimbursement   Reimbursement @relation(fields: [reimbursementId], references: [id], onDelete: Cascade)
+  receiptId       String
+  receipt         Receipt       @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@id([reimbursementId, receiptId])
+}

@@ -1,0 +1,35 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+
+# local data (SQLite db, uploaded receipts)
+/data
+*.db
+*.db-journal
+
+# env
+.env
+.env.local
+.env.*.local
+
+# testing
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/screenshots/
+
+# misc
+.DS_Store
+*.tsbuildinfo
+
+# e2e artifacts
+/.e2e-data/
+tests/e2e/.fixtures/
