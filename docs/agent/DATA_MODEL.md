@@ -63,7 +63,7 @@ originalAmountCents?, originalMinistry?`
 `@@id([reimbursementId, receiptId])` — a claim bundles many receipts. Cascade-deletes with
 either side.
 
-### ExtractionLog (telemetry — one row per GLM call, success or error)
+### ExtractionLog (telemetry — one row per extraction call, success or error)
 `id, userId, reimbursementId?, model, prompt, receiptsJson, rawResponse?, parsedJson?,
 status("success"|"error"), errorMessage?, durationMs, createdAt`
 - `reimbursementId` is `SetNull` on claim deletion — logs must outlive claims.

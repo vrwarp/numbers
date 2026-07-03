@@ -3,7 +3,7 @@
 # Run:    docker run -d -p 3000:3000 -v /path/on/host/data:/data \
 #           -e AUTH_SECRET=... -e AUTH_URL=https://numbers.example.org \
 #           -e GOOGLE_CLIENT_ID=... -e GOOGLE_CLIENT_SECRET=... \
-#           -e GLM_API_KEY=... numbers
+#           -e OPENROUTER_API_KEY=... numbers
 # Everything persistent (SQLite db + receipt files) lives in /data.
 
 FROM node:22-bookworm-slim AS base

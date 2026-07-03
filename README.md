@@ -18,8 +18,8 @@ just a copy of the `/data` folder.
 
 1. **Shoebox (capture).** Upload a photo or PDF of a receipt from your phone (installable PWA).
    Images are compressed to ~100 KB on the server; no AI runs at this stage.
-2. **Batch & generate.** Select receipts and hit *Generate Claim*. The batch goes to GLM
-   (Z.ai / OpenRouter) with a strict prompt: line items extracted verbatim, taxes/fees as their
+2. **Batch & generate.** Select receipts and hit *Generate Claim*. The batch goes to a vision model
+   via OpenRouter with a strict prompt: line items extracted verbatim, taxes/fees as their
    own rows, returns/refunds as negative quantities and amounts.
 3. **Review & validate.** A side-by-side screen shows the original receipts next to an editable
    grid grouped by receipt, each group with a live subtotal to match against the printed total.
@@ -42,7 +42,7 @@ just a copy of the `/data` folder.
 | Database | SQLite + Prisma — a single `numbers.db` file |
 | File storage | Local filesystem under `DATA_DIR` (Docker volume `/data`) |
 | Image compression | sharp (~100 KB JPEG target, EXIF-rotation safe) |
-| AI parsing | GLM via Z.ai or OpenRouter (`GLM_MODEL`, default `glm-5.2`), strict JSON output validated with zod |
+| AI parsing | OpenRouter (`OPENROUTER_MODEL`, default `google/gemini-3.1-flash-lite`), strict JSON output validated with zod |
 | PDF engine | pdf-lib — fills + flattens the official form's AcroForm fields, merges receipts |
 
 Money is stored as **integer cents** everywhere; users only ever see dollars.
@@ -58,7 +58,7 @@ npm run dev                   # http://localhost:3000
 
 With `AUTH_TEST_MODE=1` you get a passwordless dev login, and `AI_MOCK=1` makes claim generation
 return deterministic fake line items so you can exercise the whole flow offline without Google
-or GLM credentials.
+or OpenRouter credentials.
 
 ### Tests
 
@@ -94,7 +94,7 @@ eyeballing.
 
 ## AI telemetry for prompt tuning
 
-Every GLM call and every human correction is recorded, so the extraction prompt can be tuned
+Every extraction call and every human correction is recorded, so the extraction prompt can be tuned
 against real data:
 
 - **`extraction_logs`** — one row per extraction call (including failures): model, the exact
@@ -123,7 +123,7 @@ docker run -d --name numbers -p 3000:3000 \
   -e AUTH_SECRET="$(openssl rand -base64 32)" \
   -e AUTH_URL="https://numbers.your-church.org" \
   -e GOOGLE_CLIENT_ID="..." -e GOOGLE_CLIENT_SECRET="..." \
-  -e GLM_API_KEY="..." \
+  -e OPENROUTER_API_KEY="..." \
   numbers
 ```
 
@@ -137,9 +137,8 @@ or use the provided `docker-compose.yml`. Migrations run automatically on boot.
 | `AUTH_SECRET` | Session signing secret (`openssl rand -base64 32`) — required |
 | `AUTH_URL` | Public URL of the app (needed behind a reverse proxy) |
 | `GOOGLE_CLIENT_ID/SECRET` | Google OAuth credentials ([console](https://console.cloud.google.com/apis/credentials); redirect URI `<AUTH_URL>/api/auth/callback/google`) |
-| `GLM_API_KEY` | Z.ai or OpenRouter API key |
-| `GLM_BASE_URL` | `https://api.z.ai/api/paas/v4` (default) or `https://openrouter.ai/api/v1` |
-| `GLM_MODEL` | Model id, default `glm-5.2` |
+| `OPENROUTER_API_KEY` | OpenRouter API key ([openrouter.ai/keys](https://openrouter.ai/keys)) |
+| `OPENROUTER_MODEL` | Vision-capable model id, default `google/gemini-3.1-flash-lite` |
 | `DATA_DIR` / `DATABASE_URL` | Preset in the image (`/data`, `file:/data/numbers.db`) |
 | `TEMPLATE_PDF` | Optional path to a replacement blank form (must keep the same AcroForm field names) |
 | `AI_MOCK`, `AUTH_TEST_MODE` | Dev/test only — never set in production |
