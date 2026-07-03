@@ -1,0 +1,18 @@
+# Example deployment for a Synology NAS / Raspberry Pi / small VPS.
+# Copy .env.example to .env, fill it in, then: docker compose up -d
+services:
+  numbers:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+    environment:
+      AUTH_SECRET: ${AUTH_SECRET:?set AUTH_SECRET in .env}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GLM_API_KEY: ${GLM_API_KEY:-}
+      GLM_BASE_URL: ${GLM_BASE_URL:-https://api.z.ai/api/paas/v4}
+      GLM_MODEL: ${GLM_MODEL:-glm-5.2}
+    restart: unless-stopped

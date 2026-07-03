@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String          @id @default(cuid())
+  googleId       String?         @unique
+  email          String          @unique
+  fullName       String?
+  mailingAddress String?
+  role           String          @default("member") // member | treasurer | admin
+  createdAt      DateTime        @default(now())
+  receipts       Receipt[]
+  reimbursements Reimbursement[]
+  extractionLogs ExtractionLog[]
+  auditEvents    AuditEvent[]
+}
+
+model Receipt {
+  id             String                 @id @default(cuid())
+  userId         String
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filePath       String // relative to DATA_DIR, e.g. uploads/<userId>/<id>.jpg
+  mimeType       String // image/jpeg | application/pdf
+  originalName   String
+  sizeBytes      Int
+  status         String                 @default("unassigned") // unassigned | processed
+  createdAt      DateTime               @default(now())
+  lineItems      LineItem[]
+  reimbursements ReimbursementReceipt[]
+
+  @@index([userId, status])
+}
+
+model Reimbursement {
+  id          String                 @id @default(cuid())
+  userId      String
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      String                 @default("draft") // draft | generated
+  // Sum of non-excluded line items, in cents. Recomputed on every change.
+  totalCents  Int                    @default(0)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  lineItems   LineItem[]
+  receipts    ReimbursementReceipt[]
+  extractionLogs ExtractionLog[]
+  auditEvents    AuditEvent[]
+
+  @@index([userId, status])
+}
+
+model LineItem {
+  id              String        @id @default(cuid())
+  reimbursementId String
+  reimbursement   Reimbursement @relation(fields: [reimbursementId], references: [id], onDelete: Cascade)
+  receiptId       String
+  receipt         Receipt       @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  description     String
+  // Negative quantity/amount represents a return or refund.
+  quantity        Float         @default(1)
+  // Line total in cents (integer math avoids floating-point drift).
+  amountCents     Int
+  ministry        String        @default("")
+  isVerified      Boolean       @default(false)
+  isExcluded      Boolean       @default(false)
+  sortOrder       Int           @default(0)
+  // Snapshot of the values the AI originally extracted, frozen at claim
+  // creation. Comparing them with the final values (plus the AuditEvent
+  // trail) shows exactly what humans had to correct — the raw material for
+  // prompt tuning. Null on human-created rows (e.g. the second half of a split).
+  originalDescription String?
+  originalQuantity    Float?
+  originalAmountCents Int?
+  originalMinistry    String?
+
+  @@index([reimbursementId])
+}
+
+// One row per GLM extraction call (success or failure): the exact prompt,
+// the raw model response, and what was parsed from it. Kept even if the
+// claim is later deleted (reimbursementId goes null) so tuning data survives.
+model ExtractionLog {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reimbursementId String?
+  reimbursement   Reimbursement? @relation(fields: [reimbursementId], references: [id], onDelete: SetNull)
+  model           String // e.g. "glm-5.2" or "mock"
+  prompt          String
+  receiptsJson    String // metadata of the receipts sent (id, name, mime, size) — not the image bytes
+  rawResponse     String?
+  parsedJson      String?
+  status          String // success | error
+  errorMessage    String?
+  durationMs      Int
+  createdAt       DateTime       @default(now())
+
+  @@index([userId, createdAt])
+  @@index([reimbursementId])
+}
+
+// Every manual change a user makes during review (edit, verify, exclude,
+// split, ...) with a field-level before/after diff. Together with the
+// LineItem.original* snapshot this is the "what did the human fix" record.
+model AuditEvent {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reimbursementId String?
+  reimbursement   Reimbursement? @relation(fields: [reimbursementId], references: [id], onDelete: SetNull)
+  lineItemId      String? // plain string on purpose: survives line-item deletion
+  action          String // update | split | create-claim | generate-pdf
+  detail          String // JSON, e.g. {"changes":{"amountCents":{"from":864,"to":725}}}
+  createdAt       DateTime       @default(now())
+
+  @@index([reimbursementId])
+  @@index([userId, createdAt])
+}
+
+// Join table: a claim bundles many receipts; a receipt may (rarely) appear in
+// several draft claims until one of them is generated.
+model ReimbursementReceipt {
+  reimbursementId String
+  reimbursement   Reimbursement @relation(fields: [reimbursementId], references: [id], onDelete: Cascade)
+  receiptId       String
+  receipt         Receipt       @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+
+  @@id([reimbursementId, receiptId])
+}

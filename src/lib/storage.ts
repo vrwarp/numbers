@@ -1,0 +1,33 @@
+import fs from "fs/promises";
+import path from "path";
+import { dataDir, uploadsDir } from "./config";
+
+/** Save a receipt file under DATA_DIR/uploads/<userId>/<fileName>. Returns the path relative to DATA_DIR. */
+export async function saveReceiptFile(
+  userId: string,
+  fileName: string,
+  data: Buffer
+): Promise<string> {
+  const dir = path.join(uploadsDir(), userId);
+  await fs.mkdir(dir, { recursive: true });
+  const absPath = path.join(dir, fileName);
+  await fs.writeFile(absPath, data);
+  return path.relative(dataDir(), absPath);
+}
+
+/** Read a stored file by its DATA_DIR-relative path, refusing traversal outside DATA_DIR. */
+export async function readStoredFile(relPath: string): Promise<Buffer> {
+  const abs = path.resolve(dataDir(), relPath);
+  if (!abs.startsWith(dataDir() + path.sep)) {
+    throw new Error("Invalid file path");
+  }
+  return fs.readFile(abs);
+}
+
+export async function deleteStoredFile(relPath: string): Promise<void> {
+  const abs = path.resolve(dataDir(), relPath);
+  if (!abs.startsWith(dataDir() + path.sep)) {
+    throw new Error("Invalid file path");
+  }
+  await fs.rm(abs, { force: true });
+}
