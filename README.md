@@ -9,6 +9,11 @@ Expense Reimbursement Form** with all receipts attached.
 It self-hosts as a **single Docker container** with SQLite and local file storage — backups are
 just a copy of the `/data` folder.
 
+> **Documentation**: [`docs/DESIGN.md`](docs/DESIGN.md) is the full design document for human
+> readers (architecture, rationale, decision log). [`docs/agent/`](docs/agent/) plus the root
+> [`CLAUDE.md`](CLAUDE.md) are reference docs optimized for AI coding agents (file map, data
+> semantics, conventions, testing harness, change playbooks).
+
 ## The user journey
 
 1. **Shoebox (capture).** Upload a photo or PDF of a receipt from your phone (installable PWA).
