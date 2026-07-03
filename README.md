@@ -38,7 +38,7 @@ just a copy of the `/data` folder.
 
 | Component | Technology |
 | :-- | :-- |
-| App, API & auth | Next.js 15 (App Router) + NextAuth v5 (Google OAuth) |
+| App, API & auth | Next.js 15 (App Router) + Firebase Authentication (Google sign-in) with a self-issued session cookie |
 | Database | SQLite + Prisma — a single `numbers.db` file |
 | File storage | Local filesystem under `DATA_DIR` (Docker volume `/data`) |
 | Image compression | sharp (~100 KB JPEG target, EXIF-rotation safe) |
@@ -57,7 +57,7 @@ npm run dev                   # http://localhost:3000
 ```
 
 With `AUTH_TEST_MODE=1` you get a passwordless dev login, and `AI_MOCK=1` makes claim generation
-return deterministic fake line items so you can exercise the whole flow offline without Google
+return deterministic fake line items so you can exercise the whole flow offline without Firebase
 or OpenRouter credentials.
 
 ### Tests
@@ -121,8 +121,9 @@ docker build -t numbers .
 docker run -d --name numbers -p 3000:3000 \
   -v /volume1/docker/numbers:/data \
   -e AUTH_SECRET="$(openssl rand -base64 32)" \
-  -e AUTH_URL="https://numbers.your-church.org" \
-  -e GOOGLE_CLIENT_ID="..." -e GOOGLE_CLIENT_SECRET="..." \
+  -e FIREBASE_API_KEY="..." \
+  -e FIREBASE_AUTH_DOMAIN="your-project.firebaseapp.com" \
+  -e FIREBASE_PROJECT_ID="your-project" \
   -e OPENROUTER_API_KEY="..." \
   numbers
 ```
@@ -134,9 +135,9 @@ or use the provided `docker-compose.yml`. Migrations run automatically on boot.
 
 | Variable | Purpose |
 | :-- | :-- |
-| `AUTH_SECRET` | Session signing secret (`openssl rand -base64 32`) — required |
-| `AUTH_URL` | Public URL of the app (needed behind a reverse proxy) |
-| `GOOGLE_CLIENT_ID/SECRET` | Google OAuth credentials ([console](https://console.cloud.google.com/apis/credentials); redirect URI `<AUTH_URL>/api/auth/callback/google`) |
+| `AUTH_SECRET` | Session-cookie signing secret (`openssl rand -base64 32`) — required |
+| `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID` | Firebase web-app config ([console](https://console.firebase.google.com) → Project settings → Your apps). Enable the **Google** provider under Authentication → Sign-in method and add your app's domain to Authentication → Authorized domains. These values are client-safe |
+| `FIREBASE_APP_ID` | Optional, from the same Firebase web-app config |
 | `OPENROUTER_API_KEY` | OpenRouter API key ([openrouter.ai/keys](https://openrouter.ai/keys)) |
 | `OPENROUTER_MODEL` | Vision-capable model id, default `google/gemini-3.1-flash-lite` |
 | `DATA_DIR` / `DATABASE_URL` | Preset in the image (`/data`, `file:/data/numbers.db`) |
@@ -155,7 +156,7 @@ the treasurer section are left blank for ink.
 
 ## Data model
 
-- `users` — Google identity, full name, mailing address (printed on the form), role
+- `users` — Firebase identity, full name, mailing address (printed on the form), role
 - `receipts` — file path, MIME type, size, status `unassigned → processed`
 - `reimbursements` — status `draft → generated`, total in cents
 - `line_items` — description, quantity, amount (cents, negative = refund), ministry,

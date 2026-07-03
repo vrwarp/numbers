@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+
+async function signOut() {
+  await fetch("/api/auth/session", { method: "DELETE" }).catch(() => {});
+  window.location.assign("/signin");
+}
 
 const LINKS = [
   { href: "/", label: "Home" },
@@ -35,7 +39,7 @@ export default function NavBar({ userName }: { userName: string }) {
             );
           })}
           <button
-            onClick={() => signOut({ callbackUrl: "/signin" })}
+            onClick={() => signOut()}
             className="ml-1 hidden rounded-lg px-3 py-1.5 text-sm text-stone-500 hover:bg-stone-100 sm:block"
             title={`Signed in as ${userName}`}
           >

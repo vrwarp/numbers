@@ -1,8 +1,9 @@
 # ---- Numbers: single-container deployment ----
 # Build:  docker build -t numbers .
 # Run:    docker run -d -p 3000:3000 -v /path/on/host/data:/data \
-#           -e AUTH_SECRET=... -e AUTH_URL=https://numbers.example.org \
-#           -e GOOGLE_CLIENT_ID=... -e GOOGLE_CLIENT_SECRET=... \
+#           -e AUTH_SECRET=... \
+#           -e FIREBASE_API_KEY=... -e FIREBASE_AUTH_DOMAIN=... \
+#           -e FIREBASE_PROJECT_ID=... \
 #           -e OPENROUTER_API_KEY=... numbers
 # Everything persistent (SQLite db + receipt files) lives in /data.
 
@@ -28,8 +29,7 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     PORT=3000 \
     DATA_DIR=/data \
-    DATABASE_URL=file:/data/numbers.db \
-    AUTH_TRUST_HOST=true
+    DATABASE_URL=file:/data/numbers.db
 
 # openssl for Prisma's query engine; prisma CLI to run migrations on boot.
 RUN apt-get update \

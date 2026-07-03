@@ -7,9 +7,14 @@ at claim creation only (one call per receipt).
 ## File map (what lives where)
 
 ```
-src/auth.ts                     NextAuth v5 config; JWT sessions; Google + test-mode Credentials
-                                provider; jwt callback upserts domain User, pins token.userId;
-                                exports auth(), currentUserId()
+src/auth.ts                     session cookie → currentUserId()/currentUser(). Identity comes
+                                from Firebase Auth (Google sign-in in the browser); the session
+                                itself is ours (src/lib/session.ts)
+src/lib/session.ts              HMAC-signed stateless session token (AUTH_SECRET, 30d) +
+                                cookie set/clear helpers — SERVER ONLY
+src/lib/firebase-admin.ts       firebaseWebConfig() (relayed to the sign-in page),
+                                verifyFirebaseIdToken() via firebase-admin (projectId only,
+                                no service-account key)
 src/lib/api.ts                  ApiError, requireUserId(), handleApi() — wrap EVERY route body
 src/lib/config.ts               server config: dataDir()/uploadsDir() (imports node:path —
                                 SERVER ONLY), FORM_ROWS_PER_PAGE=13, IMAGE_TARGET_BYTES,
@@ -46,7 +51,9 @@ src/components/ReviewClaim.tsx  the review screen (largest component): groups, L
 src/components/ProfileForm.tsx  name + mailing address form
 src/app/layout.tsx              shell; reads session; renders NavBar
 src/app/page.tsx                dashboard (server component, direct Prisma)
-src/app/signin/page.tsx         Google button + dev-login form (server actions calling signIn)
+src/app/signin/page.tsx         server shell for SignInCard (passes firebase config + test flag)
+src/components/SignInCard.tsx   client: Firebase Google popup → POST idToken to
+                                /api/auth/session; dev-login form → /api/auth/test-login
 src/app/shoebox|claims|profile  thin server components: currentUserId() → redirect("/signin")
                                 → render client component
 assets/cfcc-form-template.pdf   the real church AcroForm — DO NOT regenerate or optimize
@@ -62,7 +69,9 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 
 | Route | Methods | Behavior |
 | :-- | :-- | :-- |
-| `/api/auth/[...nextauth]` | GET POST | NextAuth handlers |
+| `/api/auth/session` | POST | `{idToken}` → verifyFirebaseIdToken (verified email required) → upsert User by email (stores firebaseUid) → set session cookie. No requireUserId (this IS login) |
+| | DELETE | clear session cookie (sign out) |
+| `/api/auth/test-login` | POST | `{email,name}` → upsert + cookie; 404 unless AUTH_TEST_MODE=1 |
 | `/api/receipts` | GET | list own receipts; `?status=` filter |
 | | POST | multipart field `files`; images → compressReceiptImage, pdf → as-is; creates Receipt(unassigned); 415 unsupported, 400 empty |
 | `/api/receipts/[id]` | DELETE | only if not in any claim (409 otherwise); removes file |
@@ -115,8 +124,8 @@ multi-page), `Requestor Name`, `Request Date`. Left blank on purpose: `Approver 
 | :-- | :-- |
 | `DATABASE_URL` | `file:./data/numbers.db` dev; `file:/data/numbers.db` in image |
 | `DATA_DIR` | upload root; `./data` dev, `/data` in image |
-| `AUTH_SECRET`, `AUTH_URL`, `AUTH_TRUST_HOST` | NextAuth |
-| `GOOGLE_CLIENT_ID/SECRET` | Google provider registered only if both present |
+| `AUTH_SECRET` | signs the session cookie — required |
+| `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID` (+optional `FIREBASE_APP_ID`) | Firebase web config; Google button rendered only if all three present. Client-safe values, relayed at runtime (not NEXT_PUBLIC_*, so one Docker image works everywhere) |
 | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (default `google/gemini-3.1-flash-lite`) | extraction |
 | `AI_MOCK=1` | deterministic extraction, no network (tests/dev) |
 | `AUTH_TEST_MODE=1` | enables dev login (tests/dev only) |

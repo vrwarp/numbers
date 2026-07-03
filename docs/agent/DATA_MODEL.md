@@ -18,8 +18,9 @@ Reimbursement.status:  "draft"      ──(PDF generated)───────�
 ## Tables
 
 ### User
-`id, googleId?, email(unique), fullName?, mailingAddress?, role("member"), createdAt`
-- Upserted by email in the NextAuth `jwt` callback (`src/auth.ts`). `role` is currently unread
+`id, firebaseUid?, email(unique), fullName?, mailingAddress?, role("member"), createdAt`
+- Upserted by email at login (`/api/auth/session` after Firebase ID-token verification;
+  the test-login route creates rows with `firebaseUid` NULL). `role` is currently unread
   — reserved for a treasurer feature.
 - `fullName`/`mailingAddress` are stamped onto the PDF; empty is allowed (PDF prints email /
   blank), dashboard nudges the user.

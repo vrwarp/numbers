@@ -45,7 +45,7 @@ flowchart LR
     end
     subgraph Container [Single Docker container]
         API[Next.js route handlers]
-        AUTH[NextAuth v5<br/>Google OAuth]
+        AUTH[Firebase Auth<br/>Google sign-in + session cookie]
         SHARP[sharp<br/>image compression]
         PDF[pdf-lib<br/>AcroForm fill + merge]
         DB[(SQLite<br/>numbers.db)]
@@ -211,10 +211,11 @@ handling, missed refunds), and tighten the prompt.
 
 ## 5. Security model
 
-- **Authentication**: Google OAuth via NextAuth v5, JWT session strategy (no session table).
-  On first sign-in a domain `User` row is upserted and its id pinned into the token. A
-  passwordless *Dev Login* credentials provider exists **only** when `AUTH_TEST_MODE=1` — never
-  set it in production.
+- **Authentication**: Google sign-in via Firebase Authentication in the browser. The server
+  verifies the Firebase ID token once at login (`firebase-admin`, signature check against
+  Google's public certs — no service-account key), upserts a domain `User` row by verified
+  email, and issues its own HMAC-signed session cookie (no session table). A passwordless
+  *Dev Login* endpoint exists **only** when `AUTH_TEST_MODE=1` — never set it in production.
 - **Authorization**: there are no shared resources, so authorization is uniformly "owner only."
   Every query filters by the session's `userId`; cross-tenant access attempts return `404` (not
   `403`) so resource existence isn't leaked. This is covered by a dedicated e2e test.
@@ -259,7 +260,7 @@ is predictable to the cent.
 
 - **Deploy**: one container (`Dockerfile`, `docker-compose.yml`). On boot the entrypoint
   creates `/data/uploads`, runs `prisma migrate deploy`, then starts the standalone Next.js
-  server. Reverse-proxy with HTTPS and set `AUTH_URL` accordingly.
+  server. Reverse-proxy with HTTPS and add the public domain to Firebase's authorized domains.
 - **Backup**: copy `/data`. It contains the SQLite db and every receipt file. Restore = put it
   back.
 - **CI/CD**: `ci.yml` runs unit + the e2e matrix on every PR and merge; `docker.yml` dry-builds
@@ -277,7 +278,7 @@ is predictable to the cent.
 | # | Decision | Alternatives considered | Why |
 | :-- | :-- | :-- | :-- |
 | 1 | SQLite + local files | Postgres, S3-style storage | Zero-maintenance target hardware; workload is tiny; backup story is "copy a folder." |
-| 2 | JWT sessions, no DB adapter | NextAuth Prisma adapter | Keeps the schema domain-only; no session GC; sign-out needs no server state. |
+| 2 | Firebase Auth for identity + our own stateless signed cookie | NextAuth (previous), Firebase session cookies via service account | Firebase owns the OAuth dance and console; verifying the ID token needs only the project id, so the container ships with zero Google secrets. The HMAC cookie keeps the schema domain-only, needs no session GC, and sign-out needs no server state. |
 | 3 | Integer cents | Float dollars, decimal library | Floats drift; a decimal dep is overkill for add/subtract. Cents make every total exact. |
 | 4 | One LLM call per receipt, at claim time | One batched call per claim | Batching confused small vision models — items got attributed to the wrong receipt. Per-receipt calls make attribution exact by construction (the server stamps the id), and at ~$0.001/receipt the extra cost is noise. Extraction still waits for claim time so unclaimed receipts cost nothing. |
 | 5 | AcroForm fill + flatten | Coordinate overlay on a scanned form | The real form ships with named fields; filling them is exact by construction and survives font/spacing quirks. (The overlay engine existed first and was deleted — the form's field names are the contract now.) |

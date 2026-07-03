@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { auth } from "@/auth";
+import { currentUser } from "@/auth";
 import NavBar from "@/components/NavBar";
 
 export const metadata: Metadata = {
@@ -21,11 +21,11 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
+  const user = await currentUser();
   return (
     <html lang="en">
       <body className="min-h-screen">
-        {session?.user && <NavBar userName={session.user.name ?? session.user.email ?? ""} />}
+        {user && <NavBar userName={user.fullName ?? user.email} />}
         <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
       </body>
     </html>
