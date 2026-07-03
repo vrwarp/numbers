@@ -2,7 +2,8 @@
 
 Church reimbursement app: photograph receipts ("Shoebox") → per-receipt OpenRouter extraction →
 human verifies every row → filled official CFCC PDF form + receipts appended. Next.js 15 App
-Router, SQLite + Prisma, NextAuth v5, sharp, pdf-lib. Single Docker container, `/data` volume.
+Router, SQLite + Prisma, Firebase Auth (+ self-issued session cookie), sharp, pdf-lib. Single
+Docker container, `/data` volume.
 
 ## Commands
 
