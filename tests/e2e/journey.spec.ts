@@ -101,6 +101,14 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   await expect(page.getByTestId("verify-progress")).toContainText("0 / 6 verified");
   const approveButtons = page.getByRole("button", { name: "Approve row" });
   await expect(approveButtons).toHaveCount(6); // excluded row has no visible check
+
+  // Rows arrive with no ministry — the AI never suggests one, and approving
+  // is blocked until the user explicitly picks.
+  await expect(approveButtons.first()).toBeDisabled();
+  for (const sel of await page.getByLabel("Ministry").all()) {
+    if (await sel.isDisabled()) continue; // excluded row
+    if (!(await sel.inputValue())) await sel.selectOption("General Fund");
+  }
   // Approving a row renames its button to "Mark unverified", so always click
   // the first remaining "Approve row".
   for (let i = 0; i < 6; i++) {
@@ -200,6 +208,9 @@ test("claim with more items than the 13-row form paginates onto two form pages",
   // 4 receipts x 4 mock items = 16 rows.
   const rows = page.locator('li[data-testid^="row-"]');
   await expect(rows).toHaveCount(16);
+  for (const sel of await page.getByLabel("Ministry").all()) {
+    await sel.selectOption("General Fund");
+  }
   const approve = page.getByRole("button", { name: "Approve row" });
   for (let i = 0; i < 16; i++) {
     await approve.first().click();

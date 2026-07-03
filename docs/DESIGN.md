@@ -103,13 +103,14 @@ still logged). The prompt (see `src/lib/ai/prompt.ts`) demands:
 - line items extracted verbatim,
 - taxes and fees as their own dedicated rows,
 - returns/refunds as **negative** quantities and amounts,
-- a suggested ministry from the fixed list,
-- raw JSON array output keyed by receipt id.
+- raw JSON array output.
 
-The response is parsed defensively (markdown fences stripped, prose tolerated), validated with
-zod, and checked against a **hallucination guard**: any item referencing a receipt id that
-wasn't sent aborts the claim. On success a `draft` reimbursement is created with one unverified
-line item per extracted row.
+The model is never asked to pick a ministry — there is nothing on a receipt it could reasonably
+infer that from, so assigning one is an explicit human step during review. The response is
+parsed defensively (markdown fences stripped, prose tolerated), validated with zod, and each
+item is stamped with its receipt id server-side (ids in model output are ignored). On success a
+`draft` reimbursement is created with one unverified, ministry-less line item per extracted
+row.
 
 ### Phase 3 — Review & validate (the heart of the app)
 
@@ -121,7 +122,7 @@ Row operations and their exact semantics:
 
 | Operation | Semantics |
 | :-- | :-- |
-| **Approve** (checkmark) | Sets `isVerified`. The PDF button is enabled only when *every non-excluded row* is verified. |
+| **Approve** (checkmark) | Sets `isVerified`. Refused (server-side) until the row has a ministry — choosing one is part of the human sign-off. The PDF button is enabled only when *every non-excluded row* is verified. |
 | **Edit** (description, qty, amount, ministry) | Persists immediately and **revokes `isVerified`** — a changed row must be re-checked by a human. Enforced server-side. |
 | **Exclude** (trash) | Strikes the row out and removes it from all totals. Excluded rows don't need verification and don't reach the PDF. Reversible (Restore). |
 | **Split** | Divides one row's amount into two rows (default even split, odd cent stays on the first). Both halves come back **unverified**. The second half is marked human-created in telemetry. |
@@ -195,7 +196,7 @@ Three layers record "what the AI said" vs. "what the human accepted":
 1. **`extraction_logs`** — one row per extraction call, *including failures*: the model id, the exact
    prompt, receipt metadata (never image bytes), the raw response, parsed items, error message,
    and duration. Survives claim deletion (`reimbursementId` nulls out).
-2. **`line_items.original*`** — the AI-extracted description/quantity/amount/ministry frozen at
+2. **`line_items.original*`** — the AI-extracted description/quantity/amount frozen at
    claim creation. Original-vs-final diffs are computable at any time without replaying events.
    `NULL` originals mark human-created rows (the second half of a split).
 3. **`audit_events`** — the chronological trail: every edit with field-level `{from, to}`
@@ -204,7 +205,7 @@ Three layers record "what the AI said" vs. "what the human accepted":
 `GET /api/extraction-logs/:id` assembles the full tuning record (prompt, raw response, final
 rows with per-field `corrections`, audit trail). The intended workflow: periodically export
 success logs where `corrections` is non-empty, look for systematic model errors (wrong tax
-handling, missed refunds, bad ministry guesses), and tighten the prompt.
+handling, missed refunds), and tighten the prompt.
 
 ---
 

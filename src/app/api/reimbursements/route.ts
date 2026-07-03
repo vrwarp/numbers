@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { extractReceipts, type ReceiptExtraction } from "@/lib/ai/extract";
 import { parseDollarsToCents } from "@/lib/money";
-import { MINISTRIES } from "@/lib/config";
 
 export const runtime = "nodejs";
 // Per-receipt AI extraction on a large claim can take a while.
@@ -73,22 +72,21 @@ export async function POST(req: NextRequest) {
       throw new ApiError(502, `AI extraction failed for ${names}: ${failed[0].error}`);
     }
 
-    const ministrySet = new Set<string>(MINISTRIES);
     const items = outcomes.flatMap((o) => o.items!).map((item, i) => {
-      const ministry = ministrySet.has(item.suggestedMinistry) ? item.suggestedMinistry : "General Fund";
       const amountCents = parseDollarsToCents(item.amount);
       return {
         receiptId: item.receiptId,
         description: item.description,
         quantity: item.quantity,
         amountCents,
-        ministry,
+        // The model never assigns ministries; the user picks one per row
+        // during review (a row cannot be verified without one).
+        ministry: "",
         sortOrder: i,
         // Frozen AI snapshot for later original-vs-final comparison.
         originalDescription: item.description,
         originalQuantity: item.quantity,
         originalAmountCents: amountCents,
-        originalMinistry: ministry,
       };
     });
     const totalCents = items.reduce((s, it) => s + it.amountCents, 0);

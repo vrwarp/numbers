@@ -301,7 +301,11 @@ function LineItemRow({
             item.isVerified
               ? "border-emerald-600 bg-emerald-600 text-white"
               : "border-stone-300 bg-white text-transparent hover:border-emerald-400"
-          } ${excluded || readOnly ? "invisible" : ""}`}
+          } ${excluded || readOnly ? "invisible" : ""} disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-stone-300`}
+          // Cosmetic: the line-items PATCH route is what actually refuses to
+          // verify a row without a ministry.
+          disabled={!item.isVerified && !item.ministry}
+          title={!item.isVerified && !item.ministry ? "Choose a ministry first" : undefined}
           onClick={() => onPatch(item.id, { isVerified: !item.isVerified })}
           aria-label={item.isVerified ? "Mark unverified" : "Approve row"}
           aria-pressed={item.isVerified}

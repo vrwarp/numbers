@@ -40,15 +40,16 @@ Reimbursement.status:  "draft"      ──(PDF generated)───────�
 ### LineItem
 `id, reimbursementId, receiptId, description, quantity(Float), amountCents(Int), ministry,
 isVerified, isExcluded, sortOrder, originalDescription?, originalQuantity?,
-originalAmountCents?, originalMinistry?`
+originalAmountCents?`
 - `amountCents` is the LINE TOTAL (not unit price). Negative ⇒ refund (UI renders red +
   REFUND badge; PDF prints minus values; no other special-casing).
 - `quantity` may be fractional or negative.
-- `ministry` should be one of `MINISTRIES` (`src/lib/ministries.ts`); claim creation coerces
-  unknown suggestions to `"General Fund"`, but PATCH accepts any string ≤100 chars (UI only
-  offers the list).
+- `ministry` starts `""` — the AI never assigns one; the user must pick during review.
+  Should be one of `MINISTRIES` (`src/lib/ministries.ts`); PATCH accepts any string ≤100 chars
+  (UI only offers the list) but refuses `isVerified:true` while it is empty.
 - **Verification semantics** (the core product rule):
-  - PDF gate: every row with `isExcluded=false` must have `isVerified=true`.
+  - PDF gate: every row with `isExcluded=false` must have `isVerified=true` and a
+    non-empty `ministry`.
   - Any content change (description/quantity/amountCents/ministry) resets `isVerified=false`
     unless the same patch explicitly sets `isVerified`.
   - Excluding sets the row aside entirely (no verification needed, not on the PDF, out of all

@@ -22,11 +22,12 @@ src/lib/storage.ts              saveReceiptFile/readStoredFile/deleteStoredFile;
 src/lib/image.ts                compressReceiptImage: rotate() → ≤1600px → jpeg q80→40 ladder
                                 → 1100px fallback; target ~100 KB. isSupportedUpload()
 src/lib/audit.ts                computeLineItemChanges(before, patch) → {field:{from,to}}
-src/lib/ai/prompt.ts            buildExtractionPrompt(receiptIds) — THE prompt being tuned
-src/lib/ai/schema.ts            zod ExtractedItemSchema {receiptId, description, quantity,
-                                amount(dollars), suggestedMinistry}
-src/lib/ai/parse.ts             parseExtractionResponse(text, validIds): strips fences/prose,
-                                zod-validates, rejects unknown receipt ids
+src/lib/ai/prompt.ts            buildExtractionPrompt() — THE prompt being tuned (one receipt
+                                per call; extraction only, ministries are a human choice)
+src/lib/ai/schema.ts            zod ModelItemSchema {description, quantity, amount(dollars)};
+                                ExtractedItem = model item + server-stamped receiptId
+src/lib/ai/parse.ts             parseExtractionResponse(text, receiptId): strips fences/prose,
+                                zod-validates, stamps receiptId (model output ids are ignored)
 src/lib/ai/mock.ts              deterministic extraction for AI_MOCK=1; "refund" in filename →
                                 all-negative items. E2E math depends on these exact numbers
 src/lib/ai/extract.ts           extractReceipt(receipt) → {items, meta} (throws ExtractionError
@@ -71,7 +72,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/reimbursements/[id]` | GET | claim + lineItems(sortOrder asc) + receipts join |
 | | DELETE | draft only (409 else); receipts return to shoebox |
 | `/api/reimbursements/[id]/pdf` | POST | gate: ≥1 active row, all active verified (400 else) → generateClaimPdf → claim=generated, receipts=processed → returns application/pdf. Re-POST on generated claim re-downloads |
-| `/api/line-items/[id]` | PATCH | zod partial {description,quantity,amountCents,ministry,isVerified,isExcluded}; draft only (409); content change ⇒ isVerified=false unless patch sets it; writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
+| `/api/line-items/[id]` | PATCH | zod partial {description,quantity,amountCents,ministry,isVerified,isExcluded}; draft only (409); isVerified:true refused (400) while ministry is empty; content change ⇒ isVerified=false unless patch sets it; writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
 | `/api/line-items/[id]/split` | POST | `{firstAmountCents?}` default even split; both halves unverified; new row original*=NULL; AuditEvent(split); renumbers sortOrder so new half follows original |
 | `/api/profile` | GET PATCH | fullName, mailingAddress (printed on the form) |
 | `/api/extraction-logs` | GET | own logs, `?reimbursementId=`, newest first, summaries |
@@ -85,8 +86,8 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 **Claim creation**: receiptIds → ownership/status checks → `extractReceipts` (mock if
 AI_MOCK=1; else one OpenRouter chat/completions call PER receipt, image/PDF inline as data-URI;
 receipt id stamped server-side) → parse+validate → create Reimbursement + LineItems
-(ministry must be in MINISTRIES else "General Fund"; amount dollars→cents; original*=extracted
-values) → ExtractionLog.
+(ministry starts empty — the user must pick one per row during review; amount dollars→cents;
+original*=extracted values) → ExtractionLog.
 
 **PDF**: gate check → read receipt files → `generateClaimPdf({requesterName, requesterAddress,
 dateString(MM/DD/YYYY), items(active only), receipts, templateBytes})` → transaction: claim

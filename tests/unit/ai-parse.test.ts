@@ -3,7 +3,7 @@ import { parseExtractionResponse } from "@/lib/ai/parse";
 import { mockExtract } from "@/lib/ai/mock";
 
 describe("parseExtractionResponse", () => {
-  const item = { description: "Coffee", quantity: 1, amount: 4.5, suggestedMinistry: "Worship" };
+  const item = { description: "Coffee", quantity: 1, amount: 4.5 };
 
   it("parses a clean JSON array and stamps the receipt id", () => {
     const out = parseExtractionResponse(JSON.stringify([item]), "r1");
@@ -27,11 +27,6 @@ describe("parseExtractionResponse", () => {
     const out = parseExtractionResponse(JSON.stringify([refund]), "r1");
     expect(out[0].amount).toBe(-27.98);
     expect(out[0].quantity).toBe(-2);
-  });
-
-  it("defaults a missing suggestedMinistry", () => {
-    const noMinistry = { description: "Tape", quantity: 1, amount: 3 };
-    expect(parseExtractionResponse(JSON.stringify([noMinistry]), "r1")[0].suggestedMinistry).toBe("");
   });
 
   it("overrides any receiptId the model tries to output (hallucination guard)", () => {

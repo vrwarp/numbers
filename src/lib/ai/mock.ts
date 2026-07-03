@@ -19,14 +19,12 @@ export function mockExtract(receipts: ReceiptInput[]): ExtractedItem[] {
           description: "KS PAPER TOWEL (RETURN)",
           quantity: -2,
           amount: -27.98,
-          suggestedMinistry: "Fellowship & Hospitality",
         },
         {
           receiptId: receipt.id,
           description: "Sales Tax (Refund)",
           quantity: -1,
           amount: -2.59,
-          suggestedMinistry: "Fellowship & Hospitality",
         }
       );
     } else {
@@ -36,28 +34,24 @@ export function mockExtract(receipts: ReceiptInput[]): ExtractedItem[] {
           description: "KS PAPER TOWEL",
           quantity: 2,
           amount: 27.98,
-          suggestedMinistry: "Fellowship & Hospitality",
         },
         {
           receiptId: receipt.id,
           description: "SNACK VARIETY PACK",
           quantity: 1,
           amount: 15.49,
-          suggestedMinistry: "Youth (High School CE)",
         },
         {
           receiptId: receipt.id,
           description: "FOLDING TABLE 6FT",
           quantity: 1,
           amount: 49.99,
-          suggestedMinistry: "Facilities",
         },
         {
           receiptId: receipt.id,
           description: "Sales Tax",
           quantity: 1,
           amount: 8.64,
-          suggestedMinistry: "General Fund",
         }
       );
     }

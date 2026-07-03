@@ -38,6 +38,11 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     if (item.reimbursement.status !== "draft") {
       throw new ApiError(409, "Claim already generated; line items are frozen");
     }
+    // Verification is an explicit human sign-off, and the ministry is part of
+    // it — the AI never assigns one, so the user must choose before approving.
+    if (patch.isVerified === true && !(patch.ministry ?? item.ministry)) {
+      throw new ApiError(400, "Choose a ministry before verifying this row");
+    }
 
     const changes = computeLineItemChanges(item, patch);
     const contentChanged = ["description", "quantity", "amountCents", "ministry"].some(

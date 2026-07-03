@@ -6,7 +6,6 @@ export const ModelItemSchema = z.object({
   description: z.string().min(1),
   quantity: z.number().finite(),
   amount: z.number().finite(), // dollars; negative for returns/refunds
-  suggestedMinistry: z.string().default(""),
 });
 
 export const ModelResultSchema = z.array(ModelItemSchema);

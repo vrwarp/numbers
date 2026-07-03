@@ -26,8 +26,10 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    (`src/lib/api.ts`); every Prisma query filters by that `userId`. Cross-tenant access returns
    **404**, never 403.
 3. **Human-in-the-loop gate**: PDF generation requires every non-excluded line item
-   `isVerified`. Enforced in `src/app/api/reimbursements/[id]/pdf/route.ts` — keep it there,
-   the UI's disabled button is cosmetic.
+   `isVerified` with a non-empty `ministry` (the AI never assigns ministries; verifying a
+   ministry-less row is refused in the line-items PATCH route). Enforced in
+   `src/app/api/reimbursements/[id]/pdf/route.ts` — keep it there, the UI's disabled
+   button is cosmetic.
 4. **Content edits revoke verification**: changing description/quantity/amountCents/ministry
    sets `isVerified=false` unless the patch explicitly sets it (see line-items PATCH route).
 5. **`totalCents` is recomputed server-side** after every line-item mutation. Never trust a

@@ -6,6 +6,9 @@ cd "$(dirname "$0")/../.."
 export DATA_DIR="$PWD/.e2e-data"
 export DATABASE_URL="file:$PWD/.e2e-data/numbers.db"
 export AUTH_SECRET="e2e-secret-0123456789abcdef0123456789abcdef"
+# Explicit AUTH_URL so a developer's .env (which points at :3000) can't leak
+# into the test server and break sign-in redirects.
+export AUTH_URL="http://localhost:3100"
 export AUTH_TRUST_HOST="true"
 export AUTH_TEST_MODE="1"
 export AI_MOCK="1"
