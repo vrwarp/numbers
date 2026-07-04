@@ -212,19 +212,22 @@ export default function ReceiptImageEditor({
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <button className="btn-secondary" onClick={() => turn(270)} disabled={busy} data-testid="rotate-left">
-            ⟲ Rotate left
+          <button className="btn-secondary" onClick={() => turn(270)} disabled={busy} data-testid="rotate-left" aria-label="Rotate left" title="Rotate left">
+            ↺
           </button>
-          <button className="btn-secondary" onClick={() => turn(90)} disabled={busy} data-testid="rotate-right">
-            ⟳ Rotate right
+          <button className="btn-secondary" onClick={() => turn(90)} disabled={busy} data-testid="rotate-right" aria-label="Rotate right" title="Rotate right">
+            ↻
           </button>
           <button
             className="btn-secondary"
-            onClick={() => setCrop(FULL_CROP)}
-            disabled={busy || isFullCrop}
+            onClick={() => {
+              setRotate(0);
+              setCrop(FULL_CROP);
+            }}
+            disabled={busy || !hasChanges}
             data-testid="crop-reset"
           >
-            Reset crop
+            Reset
           </button>
         </div>
 
