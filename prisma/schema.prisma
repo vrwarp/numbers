@@ -64,6 +64,18 @@ model Reimbursement {
   status      String                 @default("draft") // draft | generated
   // Sum of non-excluded line items, in cents. Recomputed on every change.
   totalCents  Int                    @default(0)
+  // Single-ministry mode: the claim-level ministry/event mirror onto every
+  // non-excluded row (fan-out in the claim PATCH route). A UI-level
+  // convenience, not a row lock — LineItem.ministry stays the source of truth
+  // for the PDF and rows may still be patched directly via the API. New claims
+  // default to single (most claims are for one ministry); pre-existing claims
+  // were migrated to multi to preserve their behavior.
+  singleMinistry   Boolean @default(true)
+  claimMinistry    String  @default("")
+  claimEvent       String  @default("")
+  // The user's one-sentence "what is this claim for", kept both as the input
+  // to the ministry-suggestion AI call and as a human-readable claim note.
+  claimDescription String  @default("")
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt
   lineItems   LineItem[]
@@ -105,18 +117,21 @@ model LineItem {
   @@index([reimbursementId])
 }
 
-// One row per extraction call (success or failure): the exact prompt,
-// the raw model response, and what was parsed from it. Kept even if the
-// claim is later deleted (reimbursementId goes null) so tuning data survives.
+// One row per AI call (success or failure): the exact prompt, the raw model
+// response, and what was parsed from it. Kept even if the claim is later
+// deleted (reimbursementId goes null) so tuning data survives.
 model ExtractionLog {
   id              String         @id @default(cuid())
   userId          String
   user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   reimbursementId String?
   reimbursement   Reimbursement? @relation(fields: [reimbursementId], references: [id], onDelete: SetNull)
+  // What kind of AI call this was: "receipt" (vision extraction) or
+  // "suggestion" (text-only ministry/event suggestion).
+  kind            String         @default("receipt")
   model           String // e.g. "google/gemini-3.1-flash-lite" or "mock"
   prompt          String
-  receiptsJson    String // metadata of the receipts sent (id, name, mime, size) — not the image bytes
+  receiptsJson    String? // metadata of the receipts sent (id, name, mime, size) — not the image bytes. Null on suggestion calls.
   rawResponse     String?
   parsedJson      String?
   status          String // success | error

@@ -63,6 +63,12 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   await expect(page.getByTestId("claim-status")).toHaveText("Draft");
   const rows = page.locator('li[data-testid^="row-"]');
   await expect(rows).toHaveCount(3); // ONE row per receipt
+
+  // This journey spans several ministries. New claims default to
+  // single-ministry mode (no per-row selectors), so switch to Multiple first —
+  // no rows have a ministry yet, so there is no confirm dialog.
+  await page.getByTestId("claim-mode-multi").click();
+  await expect(page.getByLabel("Ministry", { exact: true })).toHaveCount(3);
   await expect(page.getByText("REFUND", { exact: true })).toHaveCount(1); // the pure return
   await shot(page, "05-review-initial");
 
@@ -250,12 +256,14 @@ test("claim with more receipts than the 13-row form paginates onto two form page
   await page.getByTestId("generate-claim").click();
   await page.waitForURL(/\/claims\/[^/]+$/, { timeout: 30_000 });
 
-  // 14 receipts x 1 row each = 14 rows.
+  // 14 receipts x 1 row each = 14 rows. The claim arrives in single-ministry
+  // mode (the default), so one claim-level pick fans out to every row.
   const rows = page.locator('li[data-testid^="row-"]');
   await expect(rows).toHaveCount(14);
-  for (const sel of await page.getByLabel("Ministry", { exact: true }).all()) {
-    await sel.selectOption("237 Office Supplies");
-  }
+  await page.getByTestId("claim-ministry").selectOption("237 Office Supplies");
+  await expect(
+    page.locator('[data-testid^="row-ministry-badge-"]').filter({ hasText: "237 Office Supplies" })
+  ).toHaveCount(14);
   const approve = page.getByRole("button", { name: /Confirm \$/ });
   for (let i = 0; i < 14; i++) {
     await approve.first().click();

@@ -124,7 +124,10 @@ multi-ministry receipt — which the Split operation already covers. The prompt 
 
 The model's item-reading ability is spent on the *description*, not the amounts. The model is
 never asked to pick a ministry — there is nothing on a receipt it could reasonably infer that
-from, so assigning one is an explicit human step during review. The response is parsed
+from, so assigning one is an explicit human step during review. (The review screen's separate
+*Suggest* feature may **propose** a ministry from the user's own description of the claim, but
+the principle holds as *suggest, never verify*: a suggestion sits pending in the UI until a
+human applies it, and applied rows still need their per-row confirmation.) The response is parsed
 defensively (markdown fences stripped, prose tolerated), validated with zod, and stamped with
 its receipt id server-side (ids in model output are ignored). On success a `draft`
 reimbursement is created with **one unverified, ministry-less line item per receipt**:
@@ -140,6 +143,29 @@ showing the extracted merchant + date and a live subtotal to eyeball against the
 receipt total. When a receipt had refunds, the group
 shows the derivation — *"Charged $36.31 − refunded $5.36 → suggested $30.95"* — so the human
 verifies two printed numbers and a subtraction, not a bare figure.
+
+**Single-ministry mode.** Most claims are for one thing ("the retreat", "office supplies"),
+and picking the same ministry on a dozen dropdowns was the review screen's biggest tedium. New
+claims therefore default to *one ministry*: a claim-level ministry + event control replaces
+every per-row selector (rows show a read-only badge), and its value **mirrors onto every
+non-excluded row** server-side — including receipts added to the draft later. The mirror is a
+convenience, not a lock: row values stay the source of truth for the PDF, and it never
+verifies anything — a fan-out that touches rows *un-verifies* them like any other content
+change, so each row still needs its individual ✓. Because one click can rewrite many rows,
+every fan-out is undoable from a toast. Switching a divergent claim from *multiple* to *one
+ministry* asks first and adopts the most common row value; switching back just stops the
+mirroring, leaving row values in place. Split — the multi-ministry mechanism — stays visible
+in single mode but offers the mode switch instead of silently diverging a row.
+
+**Suggest.** In single mode the user can type one sentence ("snacks for the youth retreat")
+and ask the model to propose a ministry + event. The prompt carries the chart of accounts plus
+an operator-maintained *church context* document (`<DATA_DIR>/church-context.md` — group
+names, recurring events, labeling rules: the vocabulary the account list alone can't resolve;
+template in `docs/church-context.example.md`). The answer is validated against the known
+ministry list (an unknown category becomes "no confident match", never an invented one) and
+lands as a *pending* suggestion the human must explicitly apply, entering the same
+undoable fan-out path as a manual claim-level pick. Every call is telemetry-logged
+(`ExtractionLog.kind="suggestion"`), and the sentence is kept as the claim's description.
 
 Row operations and their exact semantics:
 

@@ -29,10 +29,12 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    (`src/lib/api.ts`); every Prisma query filters by that `userId`. Cross-tenant access returns
    **404**, never 403.
 3. **Human-in-the-loop gate**: PDF generation requires every non-excluded line item
-   `isVerified` with a non-empty `ministry` (the AI never assigns ministries; verifying a
+   `isVerified` with a non-empty `ministry` (the AI may *suggest* a ministry via the Suggest
+   feature but never assigns or verifies one — a human applies suggestions; verifying a
    ministry-less row is refused in the line-items PATCH route). Enforced in
    `src/app/api/reimbursements/[id]/pdf/route.ts` — keep it there, the UI's disabled
-   button is cosmetic.
+   button is cosmetic. Single-ministry mode (claim-level ministry mirrored onto rows by the
+   claim PATCH route) is a convenience, not a lock — fan-outs un-verify the rows they touch.
 4. **Content edits revoke verification**: changing description/amountCents/ministry
    sets `isVerified=false` unless the patch explicitly sets it (see line-items PATCH route).
 5. **`totalCents` is recomputed server-side** after every line-item mutation. Never trust a
@@ -42,8 +44,10 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    Generated claims are frozen (line-item routes reject with 409). The escape hatch is
    POST `/api/reimbursements/[id]/revert` (claim → draft; receipts released unless another
    generated claim holds them).
-7. **Telemetry**: every extraction call (success AND failure) writes an `ExtractionLog`; every
-   manual edit writes an `AuditEvent` with field diffs; `LineItem.original*` freezes AI values
+7. **Telemetry**: every AI call (success AND failure) writes an `ExtractionLog` — receipt
+   extraction `kind="receipt"`, ministry suggestions `kind="suggestion"`; every manual edit
+   writes an `AuditEvent` with field diffs (`update-claim` for claim-level settings; fan-out
+   row updates carry `source:"claim-ministry"`); `LineItem.original*` freezes AI values
    at creation (NULL = human-created row, e.g. a split half); the printed totals behind the
    AI's net amount live in `Receipt.extractedTotalCents/extractedRefundCents`. New mutation
    paths must keep this trail complete.

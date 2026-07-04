@@ -58,9 +58,20 @@ merchant, purchaseDate, extractedTotalCents?, extractedRefundCents?, createdAt`
 - Delete is blocked (409) while any `reimbursement_receipts` row references it.
 
 ### Reimbursement
-`id, userId, status, totalCents, createdAt, updatedAt`
+`id, userId, status, totalCents, singleMinistry, claimMinistry, claimEvent, claimDescription,
+createdAt, updatedAt`
 - **Invariant**: `totalCents == Σ amountCents of its non-excluded line items`. Recomputed in
   the line-items PATCH route and at PDF generation. If you add a mutation path, recompute.
+- `singleMinistry` (default `true`; existing claims were migrated to `false`): the claim uses
+  one ministry/event for every row. `claimMinistry`/`claimEvent` are the claim-level values;
+  the claim PATCH route MIRRORS them onto every non-excluded row whenever they change (or the
+  mode turns on), un-verifying and audit-logging each touched row. This is a **mirror, not a
+  lock**: `LineItem.ministry` stays the source of truth for the PDF, and direct row PATCHes
+  are still accepted (the UI just doesn't offer them in single mode). Rows created later
+  (add-receipts) or un-excluded inherit the claim values at that moment. Switching multi →
+  single without an explicit value adopts `mostCommonMinistryEvent(rows)`.
+- `claimDescription`: the user's one-sentence "what is this claim for" — the input to the
+  suggestion call (`POST …/suggest`), kept as a human-readable claim note.
 
 ### LineItem
 `id, reimbursementId, receiptId, description, amountCents(Int), ministry, event,
@@ -71,10 +82,11 @@ isVerified, isExcluded, sortOrder, originalDescription?, originalAmountCents?`
   quantity column.
 - `amountCents` is the ROW TOTAL. Negative ⇒ net refund (UI renders red + REFUND badge; PDF
   prints minus values; no other special-casing).
-- `ministry` starts `""` — the AI never assigns one; the user must pick during review.
-  Usually one of the budget categories in `MINISTRY_GROUPS` (`src/lib/ministries.ts`), but
-  PATCH accepts any string ≤100 chars (the UI's "Other…" option) and refuses
-  `isVerified:true` while it is empty.
+- `ministry` starts `""` — the AI never assigns one (the suggestion feature only proposes; a
+  human applies it via the claim PATCH); the user must pick during review, per row or through
+  single-ministry mode's claim-level control. Usually one of the budget categories in
+  `MINISTRY_GROUPS` (`src/lib/ministries.ts`), but PATCH accepts any string ≤100 chars (the
+  UI's "Other…" option) and refuses `isVerified:true` while it is empty.
 - `event` is optional free text (default `""`, ≤100 chars, never required). Printed with
   the ministry on the PDF's "For Ministry / Event" column via `formatMinistryEvent`
   (`"<ministry> — <event>"`).
@@ -97,22 +109,27 @@ isVerified, isExcluded, sortOrder, originalDescription?, originalAmountCents?`
 `@@id([reimbursementId, receiptId])` — a claim bundles many receipts. Cascade-deletes with
 either side.
 
-### ExtractionLog (telemetry — one row per extraction call, success or error)
-`id, userId, reimbursementId?, model, prompt, receiptsJson, rawResponse?, parsedJson?,
-status("success"|"error"), errorMessage?, durationMs, createdAt`
+### ExtractionLog (telemetry — one row per AI call, success or error)
+`id, userId, reimbursementId?, kind("receipt"|"suggestion"), model, prompt, receiptsJson?,
+rawResponse?, parsedJson?, status("success"|"error"), errorMessage?, durationMs, createdAt`
 - `reimbursementId` is `SetNull` on claim deletion — logs must outlive claims.
-- `receiptsJson` = metadata array `{id, name, mimeType}` — NEVER store image bytes.
-- `parsedJson` = the receipt-level result object `{merchant, purchaseDate, totalAmount,
-  refundAmount, summary, receiptId}`.
+- `kind="receipt"` (vision extraction): `receiptsJson` = metadata array `{id, name, mimeType}`
+  — NEVER store image bytes; `parsedJson` = the receipt-level result `{merchant, purchaseDate,
+  totalAmount, refundAmount, summary, receiptId}`. Written by the claim-building routes
+  (create claim, add receipts to a draft) via `src/lib/claims.ts` (success and failure
+  branches); failure meta comes from `ExtractionError.meta` (`src/lib/ai/extract.ts`).
+- `kind="suggestion"` (text-only ministry suggestion): `receiptsJson` NULL, the user's
+  sentence travels inside `prompt`, `parsedJson` = `{ministry, event, rationale}`. Written by
+  `POST /api/reimbursements/[id]/suggest` (success and failure).
 - `model` is `"mock"` under AI_MOCK.
-- Written by the claim-building routes (create claim, add receipts to a draft) via
-  `src/lib/claims.ts` (success and failure branches). Failure meta comes from
-  `ExtractionError.meta` (`src/lib/ai/extract.ts`).
 
 ### AuditEvent (telemetry — human actions)
 `id, userId, reimbursementId?, lineItemId?, action, detail(JSON string), createdAt`
 - `action="update"`: detail `{"changes":{field:{from,to}}}` from `computeLineItemChanges` —
-  only actually-changed fields, includes isVerified/isExcluded toggles.
+  only actually-changed fields, includes isVerified/isExcluded toggles. Rows touched by a
+  single-ministry fan-out get the same shape plus `source:"claim-ministry"`.
+- `action="update-claim"`: detail `{"changes":{field:{from,to}}}` over the claim-level review
+  settings (singleMinistry/claimMinistry/claimEvent/claimDescription).
 - `action="split"`: detail `{description, totalCents, firstAmountCents, secondAmountCents,
   newLineItemId}`.
 - `action="merge"`: detail `{description, mergedLineItemId, mergedDescription,

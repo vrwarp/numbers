@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
       select: {
         id: true,
         reimbursementId: true,
+        kind: true,
         model: true,
         status: true,
         errorMessage: true,
