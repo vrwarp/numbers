@@ -45,6 +45,25 @@ test("rotate and crop a receipt image from the claim review screen", async ({ pa
     (await page.request.post(`/api/receipts/${receiptId}/edit`, { data: { rotate: 0 } })).status()
   ).toBe(400);
 
+  // The pristine upload was preserved on the first edit and can be restored:
+  // the stored image goes back to its original (pre-rotate, pre-crop) size.
+  expect(
+    (await (await page.request.get(`/api/receipts/${receiptId}/edit`)).json()).hasOriginal
+  ).toBe(true);
+  const restoreRes = await page.request.post(`/api/receipts/${receiptId}/edit`, {
+    data: { restore: true, reimbursementId: claimId },
+  });
+  expect(restoreRes.status()).toBe(200);
+  const restored = await storedImageMeta(page, receiptId);
+  expect(restored.width).toBe(before.width);
+  expect(restored.height).toBe(before.height);
+
+  // The dialog surfaces the same restore via a button once an original exists.
+  await page.getByTestId(`edit-image-${receiptId}`).click();
+  await expect(page.getByTestId("restore-original")).toBeVisible();
+  await page.getByTestId("restore-original").click();
+  await expect(page.getByTestId("image-editor-save")).toHaveCount(0); // dialog closed
+
   // Both edits landed in the claim's audit trail (telemetry duty).
   const { logs } = await (
     await page.request.get(`/api/extraction-logs?reimbursementId=${claimId}`)

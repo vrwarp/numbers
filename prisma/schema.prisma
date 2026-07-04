@@ -29,6 +29,10 @@ model Receipt {
   userId         String
   user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   filePath       String // relative to DATA_DIR, e.g. uploads/<userId>/<id>.jpg
+  // Pristine copy of the uploaded image, written lazily the first time the
+  // rotate/crop tool overwrites filePath. NULL until then (the stored file is
+  // still the original). Lets the editor restore the original upload.
+  originalFilePath String?
   mimeType       String // image/jpeg | application/pdf
   originalName   String
   sizeBytes      Int
@@ -134,7 +138,7 @@ model AuditEvent {
   reimbursementId String?
   reimbursement   Reimbursement? @relation(fields: [reimbursementId], references: [id], onDelete: SetNull)
   lineItemId      String? // plain string on purpose: survives line-item deletion
-  action          String // update | manual-entry | split | merge | add-receipt | remove-receipt | revert-to-draft | create-claim | generate-pdf
+  action          String // update | manual-entry | split | merge | add-receipt | remove-receipt | revert-to-draft | create-claim | generate-pdf | edit-receipt-image | restore-receipt-image
   detail          String // JSON, e.g. {"changes":{"amountCents":{"from":864,"to":725}}}
   createdAt       DateTime       @default(now())
 

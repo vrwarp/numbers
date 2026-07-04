@@ -76,6 +76,7 @@ export default function ReceiptImageEditor({
   const [crop, setCrop] = useState<Crop>(FULL_CROP);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasOriginal, setHasOriginal] = useState(false);
   const drag = useRef<{ mode: DragMode; x: number; y: number; crop: Crop } | null>(null);
 
   useEffect(() => {
@@ -84,6 +85,17 @@ export default function ReceiptImageEditor({
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/receipts/${receiptId}/edit`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => alive && setHasOriginal(Boolean(d?.hasOriginal)))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [receiptId]);
 
   const rotatedW = natural ? (rotate % 180 === 0 ? natural.w : natural.h) : 0;
   const rotatedH = natural ? (rotate % 180 === 0 ? natural.h : natural.w) : 0;
@@ -141,6 +153,22 @@ export default function ReceiptImageEditor({
     onSaved();
   }
 
+  async function restore() {
+    setBusy(true);
+    setError(null);
+    const res = await fetch(`/api/receipts/${receiptId}/edit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restore: true, reimbursementId: reimbursementId || undefined }),
+    });
+    if (!res.ok) {
+      setError((await res.json()).error ?? "Restore failed");
+      setBusy(false);
+      return;
+    }
+    onSaved();
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal>
       <div className="card w-full max-w-2xl p-6">
@@ -168,6 +196,17 @@ export default function ReceiptImageEditor({
           >
             Reset
           </button>
+          {hasOriginal && (
+            <button
+              className="btn-secondary"
+              onClick={restore}
+              disabled={busy}
+              data-testid="restore-original"
+              title="Discard edits and put the originally uploaded image back"
+            >
+              Restore original
+            </button>
+          )}
         </div>
 
         <div ref={measureRef} className="mt-4 w-full">

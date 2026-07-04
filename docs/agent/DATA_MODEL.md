@@ -32,8 +32,8 @@ Reimbursement.status:  "draft"      ──(PDF generated)───────�
   blank), dashboard nudges the user.
 
 ### Receipt
-`id, userId, filePath, mimeType, originalName, sizeBytes, status, note, merchant,
-purchaseDate, extractedTotalCents?, extractedRefundCents?, createdAt`
+`id, userId, filePath, originalFilePath?, mimeType, originalName, sizeBytes, status, note,
+merchant, purchaseDate, extractedTotalCents?, extractedRefundCents?, createdAt`
 - A receipt may join ANY number of claims (a purchase split across filings).
   `status="processed"` is a cache meaning "on ≥1 GENERATED claim", maintained at PDF
   generation and revert (revert releases a receipt only if no other generated claim holds
@@ -44,6 +44,10 @@ purchaseDate, extractedTotalCents?, extractedRefundCents?, createdAt`
   the PDF appendix page label.
 - `filePath` is RELATIVE to `DATA_DIR` (e.g. `uploads/<userId>/<id>.jpg`). Resolve/read only
   through `src/lib/storage.ts` (traversal guard).
+- `originalFilePath` is NULL until the rotate/crop tool first overwrites `filePath`, at which
+  point the pristine upload is copied to a sidecar (`<id>.orig.<ext>`) so the editor's "Restore
+  original" can put it back. Stays set across further edits (it always points at the first
+  upload); deleted alongside the receipt.
 - `mimeType` after upload is only `image/jpeg` (everything raster is converted) or
   `application/pdf`.
 - `merchant`/`purchaseDate`/`extracted*Cents` are stamped by AI extraction at claim creation
@@ -123,6 +127,8 @@ status("success"|"error"), errorMessage?, durationMs, createdAt`
 - `action="remove-receipt"`: detail `{receiptId, originalName, removedLineItems[]}` — a
   receipt pulled out of a draft claim (its rows are deleted, so this is their only record).
 - `action="revert-to-draft"`: detail `{receiptIds}` — a generated claim unfrozen.
+- `action="restore-receipt-image"`: detail `{receiptId, originalName}` — the stored image was
+  reset to the pristine upload (`/api/receipts/[id]/edit` with `{restore:true}`).
 - `action="edit-receipt-image"`: detail `{receiptId, originalName, rotate, crop}` — the stored
   image was rotated/cropped in place (`/api/receipts/[id]/edit`); `reimbursementId` is set when
   the edit was made from a claim's review screen.
