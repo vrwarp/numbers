@@ -147,6 +147,20 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     }
   }
 
+  async function removeReceipt(receiptId: string) {
+    if (
+      !confirm(
+        "Remove this receipt from the claim? Its rows are deleted and the receipt returns to your Shoebox."
+      )
+    )
+      return;
+    const res = await fetch(`/api/reimbursements/${claim!.id}/receipts/${receiptId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) setError((await res.json()).error ?? "Remove failed");
+    await load();
+  }
+
   async function deleteClaim() {
     if (!confirm("Discard this draft claim? Receipts return to your Shoebox.")) return;
     const res = await fetch(`/api/reimbursements/${claim!.id}`, { method: "DELETE" });
@@ -245,12 +259,29 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         <div className="space-y-4">
           {groups.map((group, gi) => (
             <div key={group.receipt.id} className="card overflow-hidden" data-testid={`group-${group.receipt.id}`}>
-              <div className="flex items-center justify-between border-b border-stone-100 bg-stone-50 px-4 py-2">
+              <div className="flex items-center justify-between gap-2 border-b border-stone-100 bg-stone-50 px-4 py-2">
                 <span className="text-sm font-semibold text-stone-700">
                   Receipt {gi + 1}: {receiptLabel(group.receipt)}
                 </span>
-                <span className="text-sm font-bold" data-testid={`subtotal-${group.receipt.id}`}>
-                  Subtotal: {formatCents(subtotalCents(group.items))}
+                <span className="flex items-center gap-2">
+                  <span className="text-sm font-bold" data-testid={`subtotal-${group.receipt.id}`}>
+                    Subtotal: {formatCents(subtotalCents(group.items))}
+                  </span>
+                  {isDraft && (
+                    <button
+                      className="rounded px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+                      disabled={claim.receipts.length === 1}
+                      title={
+                        claim.receipts.length === 1
+                          ? "This is the only receipt — discard the claim instead"
+                          : "Remove receipt from claim (returns to Shoebox)"
+                      }
+                      onClick={() => removeReceipt(group.receipt.id)}
+                      data-testid={`remove-receipt-${group.receipt.id}`}
+                    >
+                      ✕ Remove
+                    </button>
+                  )}
                 </span>
               </div>
               {(group.receipt.extractedRefundCents ?? 0) > 0 && (

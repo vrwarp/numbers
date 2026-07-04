@@ -43,6 +43,9 @@ test("users cannot see or fetch each other's data (multi-tenant isolation)", asy
   expect((await bob.request.get(`/api/extraction-logs/${aliceLogs[0].id}`)).status()).toBe(404);
   expect((await bob.request.delete(`/api/receipts/${receiptId}`)).status()).toBe(404);
   expect((await bob.request.post(`/api/reimbursements/${claimId}/pdf`)).status()).toBe(404);
+  expect(
+    (await bob.request.delete(`/api/reimbursements/${claimId}/receipts/${receiptId}`)).status()
+  ).toBe(404);
   // Bob cannot build a claim from Alice's receipt either.
   expect((await bob.request.post("/api/reimbursements", { data: { receiptIds: [receiptId] } })).status()).toBe(404);
 });
@@ -76,6 +79,51 @@ test("shoebox housekeeping: deleting receipts and discarding drafts", async ({ p
   const receipts = (await (await page.request.get("/api/receipts")).json()).receipts;
   const res = await page.request.delete(`/api/receipts/${receipts[0].id}`);
   expect(res.status()).toBe(409);
+});
+
+test("removing a receipt from a draft claim returns it to the shoebox", async ({ page }, testInfo) => {
+  page.on("dialog", (d) => d.accept());
+  await signInAs(page, `remover-${testInfo.project.name}@example.com`, "Remover");
+  await page.goto("/shoebox");
+  await uploadReceipts(page, [
+    await makeReceiptFixture("rm-1.jpg"),
+    await makeReceiptFixture("rm-2.jpg"),
+  ]);
+  for (const card of await page.locator('[data-testid^="receipt-card-"]').all()) await card.click();
+  await page.getByTestId("generate-claim").click();
+  await page.waitForURL(/\/claims\/[^/]+$/, { timeout: 30_000 });
+  const claimId = page.url().match(/claims\/([^/]+)/)![1];
+
+  // Two receipt rows; remove one — its row disappears and the total halves.
+  const rows = page.locator('li[data-testid^="row-"]');
+  await expect(rows).toHaveCount(2);
+  await expect(page.getByTestId("claim-total")).toHaveText("$204.20");
+  await page.locator('[data-testid^="remove-receipt-"]').first().click();
+  await expect(rows).toHaveCount(1);
+  await expect(page.getByTestId("claim-total")).toHaveText("$102.10");
+
+  // The removed receipt is fully released: deletable again, while the one
+  // still in the draft stays delete-blocked.
+  const all = (await (await page.request.get("/api/receipts")).json()).receipts;
+  const kept = (await (await page.request.get(`/api/reimbursements/${claimId}`)).json())
+    .reimbursement.receipts[0].receiptId;
+  const removed = all.find((r: { id: string }) => r.id !== kept)!;
+  expect((await page.request.delete(`/api/receipts/${removed.id}`)).status()).toBe(200);
+  expect((await page.request.delete(`/api/receipts/${kept}`)).status()).toBe(409);
+
+  // Removing the last receipt is refused — discard the claim instead.
+  await page.goto(`/claims/${claimId}`);
+  const remaining = page.locator('[data-testid^="remove-receipt-"]');
+  await expect(remaining).toBeDisabled();
+  const res = await page.request.delete(`/api/reimbursements/${claimId}/receipts/${kept}`);
+  expect(res.status()).toBe(409);
+
+  // The removal left an audit trail (telemetry duty for mutation routes).
+  const { logs } = await (
+    await page.request.get(`/api/extraction-logs?reimbursementId=${claimId}`)
+  ).json();
+  const detail = await (await page.request.get(`/api/extraction-logs/${logs[0].id}`)).json();
+  expect(detail.auditEvents.map((e: { action: string }) => e.action)).toContain("remove-receipt");
 });
 
 test("PDF endpoint refuses while any active row is unverified", async ({ page }, testInfo) => {

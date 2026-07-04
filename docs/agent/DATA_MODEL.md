@@ -89,6 +89,8 @@ status("success"|"error"), errorMessage?, durationMs, createdAt`
   only actually-changed fields, includes isVerified/isExcluded toggles.
 - `action="split"`: detail `{description, totalCents, firstAmountCents, secondAmountCents,
   newLineItemId}`.
+- `action="remove-receipt"`: detail `{receiptId, originalName, removedLineItems[]}` — a
+  receipt pulled out of a draft claim (its rows are deleted, so this is their only record).
 - `lineItemId` is a plain string (no FK) so events survive line-item deletion;
   `reimbursementId` is `SetNull`.
 - If you add a new mutation route, emit an AuditEvent — the tuning pipeline assumes the trail

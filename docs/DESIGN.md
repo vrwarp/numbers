@@ -139,7 +139,8 @@ Row operations and their exact semantics:
 | :-- | :-- |
 | **Approve** (checkmark) | Sets `isVerified`. Refused (server-side) until the row has a ministry — choosing one is part of the human sign-off. The PDF button is enabled only when *every non-excluded row* is verified. |
 | **Edit** (description, amount, ministry) | Persists immediately and **revokes `isVerified`** — a changed row must be re-checked by a human. Enforced server-side. |
-| **Exclude** (trash) | Strikes the row out and removes it from all totals. Excluded rows don't need verification and don't reach the PDF. Reversible (Restore). |
+| **Exclude** (trash) | Strikes the row out and removes it from all totals. Excluded rows don't need verification and don't reach the PDF; a receipt whose every row is excluded is also left out of the appended packet. Reversible (Restore). |
+| **Remove receipt** | Pulls an accidentally-added receipt out of a draft claim entirely: its rows are deleted (recorded in the audit trail) and the receipt returns to the Shoebox. Refused for the last receipt — discard the claim instead. |
 | **Split** | Divides one row's amount into two rows (default even split, odd cent stays on the first). Both halves come back **unverified**. The second half is marked human-created in telemetry. **This is the multi-ministry mechanism** — real splits rarely align with line items anyway ("$40 of this Costco run was youth group"). |
 | **Remove personal items** | Not a special feature — edit the row's amount down and note it in the description ("less $12.50 personal items"), exactly as one would on paper. The edit-revokes-verification rule forces a re-check. |
 
