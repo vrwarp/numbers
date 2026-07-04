@@ -1083,69 +1083,81 @@ function ClaimMinistryPanel({
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              className="input w-auto max-w-full"
-              value={showOtherInput ? OTHER_MINISTRY : claim.claimMinistry}
-              onChange={(e) => {
-                if (e.target.value === OTHER_MINISTRY) {
-                  setOtherPicked(true);
-                  // Clear the stored category (and the rows mirroring it) so
-                  // the verify gate stays honest until custom text is typed.
-                  if (claim.claimMinistry)
-                    onFanOut({ claimMinistry: "", claimEvent: claim.claimEvent });
-                } else {
-                  setOtherPicked(false);
-                  onFanOut({ claimMinistry: e.target.value, claimEvent: claim.claimEvent });
-                }
-              }}
-              aria-label="Claim ministry"
-              data-testid="claim-ministry"
-            >
-              <option value="">— pick ministry —</option>
-              {MINISTRY_GROUPS.map((group) => (
-                <optgroup key={group.label} label={group.label}>
-                  {group.options.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-              <option value={OTHER_MINISTRY}>Other…</option>
-            </select>
+          {/* Each field sits in a width-controlling wrapper rather than a `w-*`
+              class on the input itself — `.input`'s `@apply w-full` otherwise
+              wins the cascade over a same-element width utility regardless of
+              class order (see CONVENTIONS.md). Stacked on mobile (each
+              wrapper is a plain block, full width); side by side from `sm:`
+              up, with the ministry select taking the remaining room. */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="sm:min-w-56 sm:flex-1">
+              <select
+                className="input"
+                value={showOtherInput ? OTHER_MINISTRY : claim.claimMinistry}
+                onChange={(e) => {
+                  if (e.target.value === OTHER_MINISTRY) {
+                    setOtherPicked(true);
+                    // Clear the stored category (and the rows mirroring it) so
+                    // the verify gate stays honest until custom text is typed.
+                    if (claim.claimMinistry)
+                      onFanOut({ claimMinistry: "", claimEvent: claim.claimEvent });
+                  } else {
+                    setOtherPicked(false);
+                    onFanOut({ claimMinistry: e.target.value, claimEvent: claim.claimEvent });
+                  }
+                }}
+                aria-label="Claim ministry"
+                data-testid="claim-ministry"
+              >
+                <option value="">— pick ministry —</option>
+                {MINISTRY_GROUPS.map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.options.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+                <option value={OTHER_MINISTRY}>Other…</option>
+              </select>
+            </div>
             {showOtherInput && (
+              <div className="sm:w-48 sm:flex-none">
+                <input
+                  key={`claim-other-${claim.claimMinistry}`}
+                  className="input"
+                  defaultValue={isKnownMinistry(claim.claimMinistry) ? "" : claim.claimMinistry}
+                  placeholder="Custom ministry"
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (v !== claim.claimMinistry)
+                      onFanOut({ claimMinistry: v, claimEvent: claim.claimEvent });
+                  }}
+                  aria-label="Custom claim ministry"
+                  data-testid="claim-ministry-other"
+                />
+              </div>
+            )}
+            <div className="sm:w-48 sm:flex-none">
               <input
-                key={`claim-other-${claim.claimMinistry}`}
-                className="input w-44"
-                defaultValue={isKnownMinistry(claim.claimMinistry) ? "" : claim.claimMinistry}
-                placeholder="Custom ministry"
+                key={`claim-event-${claim.claimEvent}`}
+                className="input"
+                defaultValue={claim.claimEvent}
+                placeholder="Event (optional)"
                 onBlur={(e) => {
                   const v = e.target.value.trim();
-                  if (v !== claim.claimMinistry)
-                    onFanOut({ claimMinistry: v, claimEvent: claim.claimEvent });
+                  if (v !== claim.claimEvent)
+                    onFanOut({ claimMinistry: claim.claimMinistry, claimEvent: v });
                 }}
-                aria-label="Custom claim ministry"
-                data-testid="claim-ministry-other"
+                aria-label="Claim event"
+                data-testid="claim-event"
               />
-            )}
-            <input
-              key={`claim-event-${claim.claimEvent}`}
-              className="input w-40"
-              defaultValue={claim.claimEvent}
-              placeholder="Event (optional)"
-              onBlur={(e) => {
-                const v = e.target.value.trim();
-                if (v !== claim.claimEvent)
-                  onFanOut({ claimMinistry: claim.claimMinistry, claimEvent: v });
-              }}
-              aria-label="Claim event"
-              data-testid="claim-event"
-            />
+            </div>
+            <p className="text-xs text-stone-500 sm:basis-full">
+              Applied to every row — you still confirm each amount below.
+            </p>
           </div>
-          <p className="text-xs text-stone-500">
-            Applied to every row — you still confirm each amount below.
-          </p>
         </>
       ) : (
         <p className="text-xs text-stone-500">
