@@ -172,17 +172,6 @@ export default function ReceiptViewer({
           {receipt.originalName}
         </span>
         <div className="flex items-center gap-1">
-          {canEdit && (
-            <button
-              className="flex h-9 items-center justify-center gap-1 rounded-full px-3 text-sm text-white transition-colors hover:bg-white/20"
-              onClick={() => setEditing(true)}
-              aria-label="Rotate or crop this receipt"
-              title="Rotate or crop"
-              data-testid="receipt-viewer-edit"
-            >
-              ✂ Rotate / crop
-            </button>
-          )}
           <a
             href={src}
             target="_blank"
@@ -239,7 +228,18 @@ export default function ReceiptViewer({
         )}
 
         {!isPdf && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-5 flex justify-center">
+          <div className="pointer-events-none absolute inset-x-0 bottom-5 flex flex-col items-center gap-2">
+            {canEdit && (
+              <button
+                className="pointer-events-auto flex h-10 items-center justify-center gap-1.5 rounded-full bg-black/70 px-4 text-sm font-medium text-white shadow-lg backdrop-blur transition-colors hover:bg-black/80"
+                onClick={() => setEditing(true)}
+                aria-label="Rotate or crop this receipt"
+                title="Rotate or crop"
+                data-testid="receipt-viewer-edit"
+              >
+                ✂ Rotate / crop
+              </button>
+            )}
             <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 shadow-lg backdrop-blur">
               <button
                 className={ctrlBtn}

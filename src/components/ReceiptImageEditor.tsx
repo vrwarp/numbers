@@ -150,6 +150,26 @@ export default function ReceiptImageEditor({
           stored image.
         </p>
 
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <button className="btn-secondary" onClick={() => turn(270)} disabled={busy} data-testid="rotate-left" aria-label="Rotate left" title="Rotate left">
+            ↺
+          </button>
+          <button className="btn-secondary" onClick={() => turn(90)} disabled={busy} data-testid="rotate-right" aria-label="Rotate right" title="Rotate right">
+            ↻
+          </button>
+          <button
+            className="btn-secondary"
+            onClick={() => {
+              setRotate(0);
+              setCrop(FULL_CROP);
+            }}
+            disabled={busy || !hasChanges}
+            data-testid="crop-reset"
+          >
+            Reset
+          </button>
+        </div>
+
         <div ref={measureRef} className="mt-4 w-full">
           {/* Hidden probe: we need the natural dimensions before laying out the stage. */}
           {!natural && (
@@ -211,30 +231,13 @@ export default function ReceiptImageEditor({
           )}
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <button className="btn-secondary" onClick={() => turn(270)} disabled={busy} data-testid="rotate-left">
-            ⟲ Rotate left
-          </button>
-          <button className="btn-secondary" onClick={() => turn(90)} disabled={busy} data-testid="rotate-right">
-            ⟳ Rotate right
-          </button>
-          <button
-            className="btn-secondary"
-            onClick={() => setCrop(FULL_CROP)}
-            disabled={busy || isFullCrop}
-            data-testid="crop-reset"
-          >
-            Reset crop
-          </button>
-        </div>
-
         {error && (
           <p className="mt-3 text-sm text-red-700" role="alert">
             {error}
           </p>
         )}
 
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="mt-4 flex items-center justify-center gap-2">
           <button className="btn-secondary" onClick={onClose} disabled={busy} data-testid="image-editor-cancel">
             Cancel
           </button>
@@ -245,7 +248,7 @@ export default function ReceiptImageEditor({
             title={!hasChanges ? "Rotate or draw a crop first" : undefined}
             data-testid="image-editor-save"
           >
-            {busy ? "Saving…" : "Save image"}
+            {busy ? "Saving…" : "Save"}
           </button>
         </div>
       </div>
