@@ -4,6 +4,7 @@ import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { readStoredFile } from "@/lib/storage";
 import { generateClaimPdf } from "@/lib/pdf/generate";
 import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
+import { formatMinistryEvent } from "@/lib/ministries";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -68,7 +69,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       items: active.map((it) => ({
         description: it.description,
         amountCents: it.amountCents,
-        ministry: it.ministry,
+        ministry: formatMinistryEvent(it.ministry, it.event),
       })),
       receipts: receiptFiles,
       templateBytes: await loadTemplateBytes(),

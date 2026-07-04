@@ -19,7 +19,9 @@ src/lib/api.ts                  ApiError, requireUserId(), handleApi() — wrap 
 src/lib/config.ts               server config: dataDir()/uploadsDir() (imports node:path —
                                 SERVER ONLY), FORM_ROWS_PER_PAGE=13, IMAGE_TARGET_BYTES,
                                 isAiMock(), isAuthTestMode(); re-exports MINISTRIES
-src/lib/ministries.ts           MINISTRIES list — dependency-free, safe for client components
+src/lib/ministries.ts           MINISTRY_GROUPS budget categories (+ flat MINISTRIES,
+                                isKnownMinistry, formatMinistryEvent) — dependency-free,
+                                safe for client components
 src/lib/money.ts                parseDollarsToCents, centsToDollarString, formatCents,
                                 subtotalCents — the ONLY money conversion code
 src/lib/storage.ts              saveReceiptFile/readStoredFile/deleteStoredFile; blocks path
@@ -97,7 +99,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/reimbursements/[id]/pdf` | POST | gate: ≥1 active row, all active verified (400 else) → generateClaimPdf (packet appends only receipts with ≥1 non-excluded row) → claim=generated, receipts=processed → returns application/pdf. Re-POST on generated claim re-downloads |
 | `/api/reimbursements/[id]/receipts/[receiptId]` | DELETE | draft only (409); refuses the last receipt (409 — discard the claim instead); deletes the receipt's line items + join row (receipt returns to Shoebox — status never left `unassigned`); AuditEvent(remove-receipt); recomputes totalCents |
 | `/api/reimbursements/[id]/revert` | POST | generated only (409 else); claim → draft; receipts → unassigned unless another GENERATED claim still holds them; AuditEvent(revert-to-draft). Rows keep isVerified (values were frozen; edits still revoke) |
-| `/api/line-items/[id]` | PATCH | zod partial {description,amountCents,ministry,isVerified,isExcluded}; draft only (409); isVerified:true refused (400) while ministry is empty; content change ⇒ isVerified=false unless patch sets it; writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
+| `/api/line-items/[id]` | PATCH | zod partial {description,amountCents,ministry,event,isVerified,isExcluded}; draft only (409); isVerified:true refused (400) while ministry is empty (event is always optional); content change ⇒ isVerified=false unless patch sets it; writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
 | `/api/line-items/[id]/split` | POST | `{firstAmountCents?}` default even split; both halves unverified; new row original*=NULL; AuditEvent(split); renumbers sortOrder so new half follows original |
 | `/api/profile` | GET PATCH | fullName, mailingAddress (printed on the form) |
 | `/api/extraction-logs` | GET | own logs, `?reimbursementId=`, newest first, summaries |
@@ -129,7 +131,7 @@ Per row n = 1..13 (⚠ literal double space in the ministry field name):
 - `Description QuantityRow{n}` — description
 - `Description QuantityRow{n}_2` — quantity (left blank — rows are whole receipts)
 - `AmountRow{n}` — amount (plain `centsToDollarString`, e.g. `-27.98`)
-- `For Ministry  EventRow{n}` — ministry
+- `For Ministry  EventRow{n}` — `formatMinistryEvent(ministry, event)` (`"<ministry> — <event>"`, ministry alone when no event)
 
 Header/footer fields: `Make check payable to`, `Mail check to address`,
 `Make check to address 2` (sic — that's the real name), `TotalAmount` (grand total on last

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MINISTRIES } from "@/lib/ministries";
+import { MINISTRY_GROUPS, isKnownMinistry } from "@/lib/ministries";
 import { centsToDollarString, formatCents, parseDollarsToCents, subtotalCents } from "@/lib/money";
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 
@@ -13,6 +13,7 @@ interface LineItem {
   description: string;
   amountCents: number;
   ministry: string;
+  event: string;
   isVerified: boolean;
   isExcluded: boolean;
   sortOrder: number;
@@ -393,6 +394,9 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   );
 }
 
+// Sentinel select value for the free-text ministry escape hatch; never stored.
+const OTHER_MINISTRY = "__other__";
+
 function LineItemRow({
   item,
   readOnly,
@@ -406,6 +410,10 @@ function LineItemRow({
 }) {
   const negative = item.amountCents < 0;
   const excluded = item.isExcluded;
+  // "Other…" stays selected while the custom text box is still empty; a saved
+  // value that isn't in the budget list (custom or legacy) also renders as Other.
+  const [otherPicked, setOtherPicked] = useState(false);
+  const showOtherInput = otherPicked || (!!item.ministry && !isKnownMinistry(item.ministry));
 
   return (
     <li
@@ -451,22 +459,63 @@ function LineItemRow({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select
-              className="input w-auto"
-              value={item.ministry}
+              className="input w-auto max-w-full"
+              value={showOtherInput ? OTHER_MINISTRY : item.ministry}
               disabled={excluded || readOnly}
-              onChange={(e) => onPatch(item.id, { ministry: e.target.value })}
+              onChange={(e) => {
+                if (e.target.value === OTHER_MINISTRY) {
+                  setOtherPicked(true);
+                  // Clear the stored category so the verify gate stays honest
+                  // until the custom text is actually typed.
+                  if (item.ministry) onPatch(item.id, { ministry: "" });
+                } else {
+                  setOtherPicked(false);
+                  onPatch(item.id, { ministry: e.target.value });
+                }
+              }}
               aria-label="Ministry"
               data-testid={`ministry-${item.id}`}
             >
-              {!MINISTRIES.includes(item.ministry as (typeof MINISTRIES)[number]) && (
-                <option value={item.ministry}>{item.ministry || "— pick ministry —"}</option>
-              )}
-              {MINISTRIES.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
+              <option value="">— pick ministry —</option>
+              {MINISTRY_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
+              <option value={OTHER_MINISTRY}>Other…</option>
             </select>
+            {showOtherInput && (
+              <input
+                key={`other-${item.id}-${item.ministry}`}
+                className="input w-44"
+                defaultValue={isKnownMinistry(item.ministry) ? "" : item.ministry}
+                placeholder="Custom ministry"
+                disabled={excluded || readOnly}
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if (v !== item.ministry) onPatch(item.id, { ministry: v });
+                }}
+                aria-label="Custom ministry"
+                data-testid={`ministry-other-${item.id}`}
+              />
+            )}
+            <input
+              key={`event-${item.id}-${item.event}`}
+              className="input w-40"
+              defaultValue={item.event}
+              placeholder="Event (optional)"
+              disabled={excluded || readOnly}
+              onBlur={(e) => {
+                const v = e.target.value.trim();
+                if (v !== item.event) onPatch(item.id, { event: v });
+              }}
+              aria-label="Event"
+              data-testid={`event-${item.id}`}
+            />
             <label className="flex items-center gap-1 text-xs text-stone-500">
               $
               <input
