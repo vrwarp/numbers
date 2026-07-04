@@ -23,10 +23,15 @@ just a copy of the `/data` folder.
    line items extracted verbatim, taxes/fees as their own rows, returns/refunds as negative
    quantities and amounts.
 3. **Review & validate.** One card per receipt shows the original image beside its editable
-   rows, with a live subtotal to match against the printed total. Fix descriptions, change
-   ministries, **exclude** personal items, **split** bulk items across ministries (and **merge**
-   them back), adjust the tax row. Refund rows are highlighted red. *Generate PDF* stays locked
-   until **every** row has been explicitly confirmed — and editing a confirmed row revokes its
+   rows, with a live subtotal to match against the printed total. Most claims are for one
+   thing, so new claims start in **single-ministry mode**: pick the ministry & event once at
+   the top and it applies to every row — or type a one-sentence description ("snacks for the
+   youth retreat") and hit **✨ Suggest** to have the AI propose them, informed by your
+   church's own vocabulary (see [the church context document](#the-church-context-document)).
+   The AI only ever *suggests*; you apply. Switch to *multiple* for per-row ministries. Fix
+   descriptions, **exclude** personal items, **split** bulk items across ministries (and
+   **merge** them back). Refund rows are highlighted red. *Generate PDF* stays locked until
+   **every** row has been explicitly confirmed — and editing a confirmed row revokes its
    check.
 4. **PDF generation.** The backend fills the official form's AcroForm fields (name, address,
    date, line items, total), flattens it, paginates onto extra form pages when a claim exceeds
@@ -167,9 +172,39 @@ See [`config.json.example`](config.json.example) for a full template (`cp config
 | `OPENROUTER_MODEL` | Vision-capable OpenRouter model id, default `google/gemini-3.1-flash-lite` |
 | `GEMINI_API_KEY` | Google AI Studio API key ([aistudio.google.com/apikey](https://aistudio.google.com/apikey)) — used when `AI_PROVIDER=google` |
 | `GEMINI_MODEL` | Vision-capable Gemini model id, default `gemini-3.1-flash-lite` |
+| `CHURCH_CONTEXT_PATH` | Optional path to [the church context document](#the-church-context-document); default `<DATA_DIR>/church-context.md` |
 | `DATA_DIR` / `DATABASE_URL` | Preset in the image (`/data`, `file:/data/numbers.db`) |
 | `TEMPLATE_PDF` | Optional path to a replacement blank form (must keep the same AcroForm field names) |
 | `AI_MOCK`, `AUTH_TEST_MODE` | Dev/test only — never set in production |
+
+### The church context document
+
+The review screen's **✨ Suggest** button turns a one-sentence claim description ("snacks for
+the youth retreat") into a proposed ministry & event. Out of the box the AI only knows the
+chart of accounts, which can't resolve church-specific shorthand — which fellowship "Ember"
+is, that "the retreat" means the Summer Retreat, that building paper goods aren't Office
+Supplies. That knowledge lives in a small markdown file **you** (the operator) maintain on the
+data volume, prepended to every Suggest prompt:
+
+```bash
+cp docs/church-context.example.md /data/church-context.md   # then edit for your church
+```
+
+The [template](docs/church-context.example.md) shows the three kinds of content that help:
+**vocabulary & aliases** (group names, nicknames), **recurring events** (name + rough season),
+and **labeling rules** ("food purchases default to Luncheon Catering unless tied to a named
+event"). Don't list the budget categories themselves — the app already sends the chart of
+accounts with every request.
+
+Operational notes:
+
+- The file is re-read on **every** Suggest call, so edits apply immediately — no restart.
+- If the file is missing or empty, Suggest still works with chart-of-accounts knowledge only.
+- Keep it small (it rides along on every request; capped at 16 KB). The default location is
+  `/data/church-context.md`; override with `CHURCH_CONTEXT_PATH`.
+- **Privacy**: the file's full contents are sent to your configured AI provider with every
+  Suggest request (receipt images already go to the same provider). Think twice before naming
+  individuals.
 
 ## The official form
 
