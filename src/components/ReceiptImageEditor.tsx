@@ -249,7 +249,7 @@ export default function ReceiptImageEditor({
               title={!hasChanges ? "Rotate or draw a crop first" : undefined}
               data-testid="image-editor-save"
             >
-              {busy ? "Saving…" : "Save image"}
+              {busy ? "Saving…" : "Save"}
             </button>
           </div>
         </div>
