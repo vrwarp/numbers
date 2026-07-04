@@ -9,8 +9,7 @@ async function signOut() {
 }
 
 const LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/shoebox", label: "Shoebox" },
+  { href: "/", label: "Shoebox" },
   { href: "/claims", label: "Claims" },
   { href: "/profile", label: "Profile" },
 ];

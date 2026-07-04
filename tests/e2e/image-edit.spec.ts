@@ -10,7 +10,7 @@ async function storedImageMeta(page: import("@playwright/test").Page, receiptId:
 
 test("rotate and crop a receipt image from the claim review screen", async ({ page }, testInfo) => {
   await signInAs(page, `cropper-${testInfo.project.name}@example.com`, "Cropper");
-  await page.goto("/shoebox");
+  await page.goto("/");
   await uploadReceipts(page, [await makeReceiptFixture("edit-me.jpg")]);
   await page.locator('[data-testid^="receipt-card-"]').first().click();
   await page.getByTestId("generate-claim").click();

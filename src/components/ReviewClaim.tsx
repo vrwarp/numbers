@@ -224,7 +224,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   async function deleteClaim() {
     if (!confirm("Discard this draft claim? Receipts return to your Shoebox.")) return;
     const res = await fetch(`/api/reimbursements/${claim!.id}`, { method: "DELETE" });
-    if (res.ok) router.push("/shoebox");
+    if (res.ok) router.push("/");
     else setError((await res.json()).error ?? "Delete failed");
   }
 

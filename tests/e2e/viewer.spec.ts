@@ -10,7 +10,7 @@ test("receipt viewer opens, zooms, and closes without selecting the card", async
   await page.goto("/signin");
   await signInAs(page, `viewer-${testInfo.project.name}@example.com`, "Zoom Tester");
 
-  await page.goto("/shoebox");
+  await page.goto("/");
   await uploadReceipts(page, [await makeReceiptFixture("costco.jpg")]);
 
   // The expand button sits in the bottom-right of the thumbnail.
@@ -43,7 +43,7 @@ test("receipt viewer can rotate/crop an image, and hides the tool for PDFs", asy
   page,
 }, testInfo) => {
   await signInAs(page, `viewer-edit-${testInfo.project.name}@example.com`, "Editor");
-  await page.goto("/shoebox");
+  await page.goto("/");
   await uploadReceipts(page, [await makeReceiptFixture("edit-me.jpg")]);
 
   const receiptId = (await (await page.request.get("/api/receipts")).json()).receipts[0].id;
