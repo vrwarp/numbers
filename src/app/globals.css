@@ -29,3 +29,16 @@ body {
 .card {
   @apply rounded-xl border border-stone-200 bg-white shadow-sm;
 }
+
+/* Expanding-ring pulse pointing the user at the next verify button. */
+@keyframes nudge-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(16 185 129 / 0.65);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgb(16 185 129 / 0);
+  }
+}
+.nudge-ring {
+  animation: nudge-ring 1.1s ease-out 3;
+}

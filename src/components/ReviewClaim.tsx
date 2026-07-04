@@ -60,6 +60,14 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const [editingReceiptId, setEditingReceiptId] = useState<string | null>(null);
   // Bumped after a rotate/crop so the <img> cache-busts past the file route's max-age.
   const [fileVersions, setFileVersions] = useState<Record<string, number>>({});
+  // Row whose confirm button is pulsing after a click on the gated PDF button.
+  const [nudgedItemId, setNudgedItemId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!nudgedItemId) return;
+    const timer = setTimeout(() => setNudgedItemId(null), 3500);
+    return () => clearTimeout(timer);
+  }, [nudgedItemId]);
 
   const fileUrl = useCallback(
     (receiptId: string) =>
@@ -171,6 +179,19 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const verifiedCount = activeItems.filter((it) => it.isVerified).length;
   const allVerified = activeItems.length > 0 && verifiedCount === activeItems.length;
   const isDraft = claim.status === "draft";
+  // First unverified row in display order — the nudge target when the gated
+  // Generate PDF button is clicked while rows remain unverified.
+  const firstUnverified = groups
+    .flatMap((g) => g.items)
+    .find((it) => !it.isExcluded && !it.isVerified);
+
+  function nudgeFirstUnverified() {
+    if (!firstUnverified) return;
+    setNudgedItemId(firstUnverified.id);
+    document
+      .querySelector(`[data-testid="row-${firstUnverified.id}"]`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
   async function generatePdf() {
     setDownloading(true);
@@ -230,59 +251,22 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">
-            Review claim{" "}
-            <span
-              className={`ml-1 align-middle rounded-full px-3 py-1 text-xs font-semibold ${
-                isDraft ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
-              }`}
-              data-testid="claim-status"
-            >
-              {isDraft ? "Draft" : "Generated"}
-            </span>
-          </h1>
-          <p className="text-sm text-stone-500">
-            Check each amount against what you actually paid, pick a ministry, then check it off.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {isDraft && (
-            <button className="btn-secondary" onClick={deleteClaim} data-testid="discard-claim">
-              Discard
-            </button>
-          )}
-          {!isDraft && (
-            <button className="btn-secondary" onClick={revertClaim} data-testid="revert-claim">
-              ↩ Revert to draft
-            </button>
-          )}
-          <button
-            className="btn-primary"
-            onClick={generatePdf}
-            disabled={(isDraft && !allVerified) || downloading}
-            data-testid="generate-pdf"
-            title={isDraft && !allVerified ? "Verify every row first" : undefined}
+      <div>
+        <h1 className="text-2xl font-bold">
+          Review claim{" "}
+          <span
+            className={`ml-1 align-middle rounded-full px-3 py-1 text-xs font-semibold ${
+              isDraft ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+            }`}
+            data-testid="claim-status"
           >
-            {downloading ? "Building PDF…" : isDraft ? "⬇ Generate PDF" : "⬇ Download PDF again"}
-          </button>
-        </div>
-      </div>
-
-      {isDraft && (
-        <div className="card flex items-center gap-3 p-3" data-testid="verify-progress">
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-stone-200">
-            <div
-              className="h-full rounded-full bg-indigo-600 transition-all"
-              style={{ width: activeItems.length ? `${(verifiedCount / activeItems.length) * 100}%` : "0%" }}
-            />
-          </div>
-          <span className="whitespace-nowrap text-sm font-medium text-stone-600">
-            {verifiedCount} / {activeItems.length} verified
+            {isDraft ? "Draft" : "Generated"}
           </span>
-        </div>
-      )}
+        </h1>
+        <p className="text-sm text-stone-500">
+          Check each amount against what you actually paid, pick a ministry, then check it off.
+        </p>
+      </div>
 
       {error && (
         <div className="card border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
@@ -378,6 +362,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                       key={item.id}
                       item={item}
                       readOnly={!isDraft}
+                      nudged={item.id === nudgedItemId}
                       onPatch={patchItem}
                       onSplit={() => setSplitItem(item)}
                       canMergeUp={idx > 0}
@@ -406,6 +391,58 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           <span className="font-semibold text-indigo-900">Claim total</span>
           <span className="text-xl font-bold text-indigo-900" data-testid="claim-total">
             {formatCents(claim.totalCents)}
+          </span>
+        </div>
+      </div>
+
+      {/* Floating action bar: verify progress and the claim actions stay in
+          reach while scrolling a long claim. */}
+      <div className="card sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 bg-white/95 p-3 shadow-lg backdrop-blur">
+        {isDraft ? (
+          <div className="flex min-w-48 flex-1 items-center gap-3" data-testid="verify-progress">
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-stone-200">
+              <div
+                className="h-full rounded-full bg-indigo-600 transition-all"
+                style={{
+                  width: activeItems.length ? `${(verifiedCount / activeItems.length) * 100}%` : "0%",
+                }}
+              />
+            </div>
+            <span className="whitespace-nowrap text-sm font-medium text-stone-600">
+              {verifiedCount} / {activeItems.length} verified
+            </span>
+          </div>
+        ) : (
+          <span className="text-sm text-stone-500">Generated — rows are frozen.</span>
+        )}
+        <div className="ml-auto flex items-center gap-3">
+          {isDraft && (
+            <button className="btn-secondary" onClick={deleteClaim} data-testid="discard-claim">
+              Discard
+            </button>
+          )}
+          {!isDraft && (
+            <button className="btn-secondary" onClick={revertClaim} data-testid="revert-claim">
+              ↩ Revert to draft
+            </button>
+          )}
+          {/* The disabled button drops pointer events so the wrapper catches the
+              click and walks the user to the first row still needing a verify.
+              The real gate stays server-side in the PDF route. */}
+          <span
+            onClick={() => {
+              if (isDraft && !allVerified && !downloading) nudgeFirstUnverified();
+            }}
+            title={isDraft && !allVerified ? "Verify every row first" : undefined}
+          >
+            <button
+              className="btn-primary disabled:pointer-events-none"
+              onClick={generatePdf}
+              disabled={(isDraft && !allVerified) || downloading}
+              data-testid="generate-pdf"
+            >
+              {downloading ? "Building PDF…" : isDraft ? "⬇ Generate PDF" : "⬇ Download PDF again"}
+            </button>
           </span>
         </div>
       </div>
@@ -446,6 +483,7 @@ const OTHER_MINISTRY = "__other__";
 function LineItemRow({
   item,
   readOnly,
+  nudged,
   onPatch,
   onSplit,
   canMergeUp,
@@ -454,6 +492,9 @@ function LineItemRow({
 }: {
   item: LineItem;
   readOnly: boolean;
+  /** Pulse the confirm button — the gated PDF button was clicked and this is
+      the first row still needing a verify. */
+  nudged: boolean;
   onPatch: (id: string, patch: Partial<LineItem>) => Promise<void>;
   onSplit: () => void;
   /** True when a row from the same receipt sits directly above this one. */
@@ -613,24 +654,31 @@ function LineItemRow({
               {excluded ? "↩ Restore" : "🗑 Exclude"}
             </button>
             {!excluded && (
-              <button
-                className={`ml-auto flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
-                  item.isVerified
-                    ? "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100"
-                    : "bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-400"
-                }`}
-                // Cosmetic: the line-items PATCH route is what actually refuses to
-                // verify a row without a ministry.
-                disabled={!item.isVerified && !item.ministry}
-                title={!item.isVerified && !item.ministry ? "Choose a ministry first" : undefined}
-                onClick={() => onPatch(item.id, { isVerified: !item.isVerified })}
-                aria-pressed={item.isVerified}
-                data-testid={`verify-${item.id}`}
-              >
-                {item.isVerified
-                  ? "✓ Verified · Undo"
-                  : `✓ Confirm ${formatCents(item.amountCents)}`}
-              </button>
+              <span className="ml-auto flex items-center gap-2">
+                {nudged && (
+                  <span className="animate-pulse text-xs font-medium text-emerald-700">
+                    {item.ministry ? "Click to verify →" : "Pick a ministry, then verify →"}
+                  </span>
+                )}
+                <button
+                  className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
+                    item.isVerified
+                      ? "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100"
+                      : "bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-400"
+                  } ${nudged ? "nudge-ring" : ""}`}
+                  // Cosmetic: the line-items PATCH route is what actually refuses to
+                  // verify a row without a ministry.
+                  disabled={!item.isVerified && !item.ministry}
+                  title={!item.isVerified && !item.ministry ? "Choose a ministry first" : undefined}
+                  onClick={() => onPatch(item.id, { isVerified: !item.isVerified })}
+                  aria-pressed={item.isVerified}
+                  data-testid={`verify-${item.id}`}
+                >
+                  {item.isVerified
+                    ? "✓ Verified · Undo"
+                    : `✓ Confirm ${formatCents(item.amountCents)}`}
+                </button>
+              </span>
             )}
           </div>
         )}
