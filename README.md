@@ -134,6 +134,20 @@ or use the provided `docker-compose.yml`. Migrations run automatically on boot.
 
 ### Environment variables
 
+Every setting below **except `DATA_DIR` / `DATABASE_URL`** can also be supplied by a JSON file at
+`<DATA_DIR>/config.json` (i.e. `/data/config.json` in the container) instead of — or on top of —
+process env vars:
+
+```json
+{ "AI_PROVIDER": "google", "GEMINI_API_KEY": "...", "AI_RPM_TARGET": "10" }
+```
+
+File values **override** the corresponding env vars and are re-read whenever the file changes, so a
+running deployment can be reconfigured (swap the AI provider, rotate a key) by editing a file on the
+`/data` volume — no container restart or redeploy. `DATA_DIR` is exempt because it locates the file
+itself, and `DATABASE_URL` is read directly by Prisma. Since the file can hold secrets, it lives on
+the same volume as the database and receipts — keep it out of version control.
+
 | Variable | Purpose |
 | :-- | :-- |
 | `AUTH_SECRET` | Session-cookie signing secret (`openssl rand -base64 32`) — required |
