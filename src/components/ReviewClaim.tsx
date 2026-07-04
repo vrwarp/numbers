@@ -333,7 +333,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             )}
             <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
               {/* The relative wrapper matches the clamped scroll viewport, so the
-                  floating edit button stays centered over the visible part of a
+                  floating edit button stays pinned to the visible part of a
                   tall receipt photo rather than its full scroll height. */}
               <div className="relative border-b border-stone-100 lg:border-b-0 lg:border-r">
                 <div className="max-h-[75vh] overflow-y-auto bg-stone-50/50">
@@ -361,7 +361,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                 </div>
                 {isDraft && group.receipt.mimeType !== "application/pdf" && (
                   <button
-                    className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-stone-900/60 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-stone-900/80"
+                    className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-stone-900/60 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-stone-900/80"
                     onClick={() => setEditingReceiptId(group.receipt.id)}
                     title="Rotate or crop this receipt photo"
                     data-testid={`edit-image-${group.receipt.id}`}
