@@ -190,7 +190,7 @@ describe("generateClaimPdf (official CFCC AcroForm template)", () => {
     ).rejects.toThrow(/template/i);
   });
 
-  it("stamps the QR self-link (with caption) on EVERY form page when selfLinkUrl is set", async () => {
+  it("stamps the QR self-link on EVERY form page when selfLinkUrl is set", async () => {
     const bytes = await generateClaimPdf({
       ...baseInput(),
       items: items(15), // two form pages
@@ -198,13 +198,17 @@ describe("generateClaimPdf (official CFCC AcroForm template)", () => {
       selfLinkUrl: "https://numbers.example.org/c/AbC123xyz_-AbC123xyz_-AbC123xyz_",
     });
     const text = pdfVisibleText(bytes);
-    // Caption is drawn text; it appears once per form page.
-    expect(text.match(/Scan for digital copy/g)).toHaveLength(2);
+    // The stamp redraws the note box narrower to make room for the QR; the
+    // redrawn note text is pdf-lib-drawn (hex-searchable), unlike the
+    // template's own subset-encoded original — so it marks exactly the
+    // pages that got the stamp.
+    expect(text.match(/pastor\/deacon\./g)).toHaveLength(2);
+    expect(text.match(/turn-around time is 1-2 weeks\./g)).toHaveLength(2);
   });
 
-  it("omits the stamp when selfLinkUrl is not provided", async () => {
+  it("omits the stamp (and leaves the note box alone) without selfLinkUrl", async () => {
     const bytes = await generateClaimPdf({ ...baseInput(), items: items(1), receipts: [] });
-    expect(pdfVisibleText(bytes)).not.toContain("Scan for digital copy");
+    expect(pdfVisibleText(bytes)).not.toContain("pastor/deacon.");
   });
 });
 

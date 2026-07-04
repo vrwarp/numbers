@@ -82,9 +82,10 @@ src/lib/pdf/generate.ts         generateClaimPdf(input): per form page load temp
                                 AcroForm fields → flatten → optional QR self-link stamp →
                                 copyPages into output; then append receipts (images on Letter
                                 pages w/ label, PDFs merged). Also splitAddress()
-src/lib/pdf/qr.ts               qrMatrix(url) + drawQrStamp(page, url, font): vector QR of the
-                                /c/<publicToken> capability URL in the form page's blank
-                                top-right corner (geometry constants in QR_STAMP)
+src/lib/pdf/qr.ts               qrMatrix(url) + applyQrStamp(page, url, font): narrows the
+                                "Note:" box (white-out + redraw with re-flowed text) and draws
+                                a vector QR of the /c/<publicToken> capability URL in the
+                                freed slot beside it (geometry in NOTE_BOX / QR_STAMP)
 src/lib/pdf/loadTemplate.ts     TEMPLATE_PDF env override, else assets/cfcc-form-template.pdf
 src/lib/image-client.ts         DOM-only canvas helpers for the pre-upload prepare step:
                                 renderTransformedImage (rotate/crop at native resolution,
@@ -209,9 +210,11 @@ the (possibly slow) extraction before writing.
 receipts, templateBytes, selfLinkUrl?})` (selfLinkUrl = `<PUBLIC_BASE_URL>/c/<token>`, omitted
 when PUBLIC_BASE_URL unset → no QR stamp) → `saveGeneratedPdf` overwrites
 `generated/<userId>/<claimId>.pdf` → transaction: claim generated (+publicToken) + receipts
-processed → stream bytes. The QR stamp (`src/lib/pdf/qr.ts`) is drawn post-flatten as vector
-rects in the blank top-right corner of every form page (title box ends x≈522pt / y≈738pt;
-stamp is 60pt at 18pt/16pt from the right/top edges, caption beneath).
+processed → stream bytes. The QR stamp (`src/lib/pdf/qr.ts`) is drawn post-flatten on every
+form page: the full-width "Note:" box is painted over and redrawn narrower (right edge
+541→477pt, same four notes re-flowed in Helvetica), and a 56pt vector QR sits in the freed
+slot — right-aligned to the form's content edge (x≈541), vertically centered between the
+table's bottom rule (y≈292.5) and the "Requested by" bar (y≈217.5).
 
 ## PDF AcroForm field names (the contract with assets/cfcc-form-template.pdf)
 
