@@ -132,9 +132,12 @@ assets/cfcc-form-template.pdf   the real church AcroForm — DO NOT regenerate o
 prisma/schema.prisma            data model (see DATA_MODEL.md)
 tests/unit/*.test.ts            Vitest; tests/e2e/*.spec.ts Playwright (see TESTING.md)
 src/lib/pdf/preview.ts          rasterize a PDF receipt to one tall JPEG strip (pdfjs-dist +
-                                @napi-rs/canvas) for inline mobile display; caps at 12 pages
+                                @napi-rs/canvas) for inline mobile display; ~300 DPI (scaled down
+                                to a 40 MP ceiling), ~100 KB/page quality ladder, first 10 pages +
+                                a "N more pages" bailout band
 src/components/PdfReceiptPreview.tsx  inline PDF preview <img> (from /preview) + "open original"
-                                link + 📄 fallback; used by ReviewClaim and the Shoebox dialog
+                                link + 📄 fallback; used by ReviewClaim and the Shoebox dialog.
+                                ReceiptGrid shows the same /preview (top slice) as its card thumb
 scripts/render-pdf.mjs          rasterize a PDF to PNGs (pdfjs-dist) for visual checks
 Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migrate deploy
 .github/workflows/ci.yml        unit + e2e matrix (chromium, webkit jobs)

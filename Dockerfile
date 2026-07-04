@@ -31,9 +31,11 @@ ENV NODE_ENV=production \
     DATA_DIR=/data \
     DATABASE_URL=file:/data/numbers.db
 
-# openssl for Prisma's query engine; prisma CLI to run migrations on boot.
+# openssl for Prisma's query engine; prisma CLI to run migrations on boot;
+# fonts-dejavu-core so @napi-rs/canvas can draw the PDF-preview truncation notice
+# (the base image ships no fonts, so fillText would otherwise render nothing).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && apt-get install -y --no-install-recommends openssl ca-certificates fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/* \
     && npm install -g prisma@6
 
