@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ReceiptViewer from "./ReceiptViewer";
 
 interface ClaimRef {
   id: string;
@@ -30,6 +31,7 @@ export default function Shoebox() {
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<Receipt | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/receipts");
@@ -185,6 +187,7 @@ export default function Shoebox() {
             onToggle={toggle}
             onDelete={deleteReceipt}
             onSaveNote={saveNote}
+            onView={setViewing}
           />
           {processed.length > 0 && (
             <details className="pt-2">
@@ -203,12 +206,15 @@ export default function Shoebox() {
                   onToggle={toggle}
                   onDelete={deleteReceipt}
                   onSaveNote={saveNote}
+                  onView={setViewing}
                 />
               </div>
             </details>
           )}
         </>
       )}
+
+      {viewing && <ReceiptViewer receipt={viewing} onClose={() => setViewing(null)} />}
     </div>
   );
 }
@@ -220,6 +226,7 @@ function ReceiptGrid({
   onToggle,
   onDelete,
   onSaveNote,
+  onView,
 }: {
   receipts: Receipt[];
   selectable?: boolean;
@@ -227,6 +234,7 @@ function ReceiptGrid({
   onToggle?: (id: string) => void;
   onDelete?: (id: string) => void;
   onSaveNote?: (id: string, note: string) => void;
+  onView?: (r: Receipt) => void;
 }) {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -266,7 +274,7 @@ function ReceiptGrid({
                 🗑
               </button>
             )}
-            <div className="flex h-36 items-center justify-center bg-stone-50">
+            <div className="relative flex h-36 items-center justify-center bg-stone-50">
               {r.mimeType === "application/pdf" ? (
                 <div className="text-center text-stone-400">
                   <div className="text-4xl">📄</div>
@@ -279,6 +287,35 @@ function ReceiptGrid({
                   alt={r.originalName}
                   className="h-full w-full object-cover"
                 />
+              )}
+              {onView && (
+                <button
+                  className="absolute bottom-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-stone-600 shadow hover:text-indigo-600"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onView(r);
+                  }}
+                  aria-label={`View ${r.originalName} larger`}
+                  title="View larger"
+                  data-testid={`receipt-view-${r.id}`}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M15 3h6v6" />
+                    <path d="M9 21H3v-6" />
+                    <path d="M21 3l-7 7" />
+                    <path d="M3 21l7-7" />
+                  </svg>
+                </button>
               )}
             </div>
             <div className="space-y-1 p-2">
