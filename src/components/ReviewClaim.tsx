@@ -147,6 +147,18 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     }
   }
 
+  async function revertClaim() {
+    if (
+      !confirm(
+        "Revert this claim to draft? Only do this if you have NOT filed the printed form yet. Rows become editable again and the receipts leave “processed”."
+      )
+    )
+      return;
+    const res = await fetch(`/api/reimbursements/${claim!.id}/revert`, { method: "POST" });
+    if (!res.ok) setError((await res.json()).error ?? "Revert failed");
+    await load();
+  }
+
   async function removeReceipt(receiptId: string) {
     if (
       !confirm(
@@ -191,6 +203,11 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           {isDraft && (
             <button className="btn-secondary" onClick={deleteClaim} data-testid="discard-claim">
               Discard
+            </button>
+          )}
+          {!isDraft && (
+            <button className="btn-secondary" onClick={revertClaim} data-testid="revert-claim">
+              ↩ Revert to draft
             </button>
           )}
           <button

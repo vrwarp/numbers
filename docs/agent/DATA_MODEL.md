@@ -8,12 +8,17 @@ and commit the generated migration. IDs are cuid strings.
 ```
 Receipt.status:        "unassigned" ──(claim PDF generated)──▶ "processed"
 Reimbursement.status:  "draft"      ──(PDF generated)────────▶ "generated"   (frozen)
+                          ◀──────────(revert to draft)──────────┘  (both transitions reversed)
 ```
 
 - Only `unassigned` receipts can join a new claim (POST /api/reimbursements 409s otherwise).
 - Deleting a draft claim cascades its line items and join rows; receipts revert to being
   selectable (their status never left `unassigned` — status changes only at PDF generation).
 - `generated` claims: line-item PATCH/split → 409; DELETE claim → 409; PDF re-download allowed.
+- POST `/api/reimbursements/[id]/revert` (generated only, 409 else) is the escape hatch for
+  mistakes noticed before the printed form is filed: claim → draft, its receipts →
+  unassigned, AuditEvent(revert-to-draft). Rows keep `isVerified` — values were frozen at
+  generation, so the attestations hold until edited.
 
 ## Tables
 
@@ -91,6 +96,7 @@ status("success"|"error"), errorMessage?, durationMs, createdAt`
   newLineItemId}`.
 - `action="remove-receipt"`: detail `{receiptId, originalName, removedLineItems[]}` — a
   receipt pulled out of a draft claim (its rows are deleted, so this is their only record).
+- `action="revert-to-draft"`: detail `{receiptIds}` — a generated claim unfrozen.
 - `lineItemId` is a plain string (no FK) so events survive line-item deletion;
   `reimbursementId` is `SetNull`.
 - If you add a new mutation route, emit an AuditEvent — the tuning pipeline assumes the trail

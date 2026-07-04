@@ -170,6 +170,12 @@ Generating the PDF transitions the claim to `generated` (frozen — line items c
 edited) and its receipts to `processed`. The PDF can be re-downloaded at any time; it is
 regenerated deterministically from the stored data.
 
+Mistakes noticed after generation but **before the printed form is filed** have an escape
+hatch: *Revert to draft* unfreezes the claim and returns its receipts from `processed`. Rows
+keep their checkmarks (the values were frozen, so the attestations still hold), and any edit
+revokes them as usual. Once the paper packet is in the treasurer's inbox, reverting is a
+process question, not a software one — the button just asks you to be sure.
+
 ### Phase 5 — Physical signatures
 
 Outside the system on purpose. The user prints, signs "Requested by," obtains the pastor/deacon

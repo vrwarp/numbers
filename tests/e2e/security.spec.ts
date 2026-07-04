@@ -46,6 +46,7 @@ test("users cannot see or fetch each other's data (multi-tenant isolation)", asy
   expect(
     (await bob.request.delete(`/api/reimbursements/${claimId}/receipts/${receiptId}`)).status()
   ).toBe(404);
+  expect((await bob.request.post(`/api/reimbursements/${claimId}/revert`)).status()).toBe(404);
   // Bob cannot build a claim from Alice's receipt either.
   expect((await bob.request.post("/api/reimbursements", { data: { receiptIds: [receiptId] } })).status()).toBe(404);
 });
@@ -124,6 +125,66 @@ test("removing a receipt from a draft claim returns it to the shoebox", async ({
   ).json();
   const detail = await (await page.request.get(`/api/extraction-logs/${logs[0].id}`)).json();
   expect(detail.auditEvents.map((e: { action: string }) => e.action)).toContain("remove-receipt");
+});
+
+test("revert to draft unfreezes a generated claim and its receipts", async ({ page }, testInfo) => {
+  page.on("dialog", (d) => d.accept());
+  await signInAs(page, `reverter-${testInfo.project.name}@example.com`, "Reverter");
+  await page.goto("/shoebox");
+  await uploadReceipts(page, [await makeReceiptFixture("revert-me.jpg")]);
+  await page.locator('[data-testid^="receipt-card-"]').first().click();
+  await page.getByTestId("generate-claim").click();
+  await page.waitForURL(/\/claims\/[^/]+$/, { timeout: 30_000 });
+  const claimId = page.url().match(/claims\/([^/]+)/)![1];
+
+  // Reverting a draft is refused — only generated claims revert.
+  expect((await page.request.post(`/api/reimbursements/${claimId}/revert`)).status()).toBe(409);
+
+  // Verify the single row and generate the PDF via the API.
+  const item = (await (await page.request.get(`/api/reimbursements/${claimId}`)).json())
+    .reimbursement.lineItems[0];
+  expect(
+    (
+      await page.request.patch(`/api/line-items/${item.id}`, {
+        data: { ministry: "General Fund", isVerified: true },
+      })
+    ).status()
+  ).toBe(200);
+  expect((await page.request.post(`/api/reimbursements/${claimId}/pdf`)).status()).toBe(200);
+
+  // Generated: frozen rows, processed receipt.
+  expect(
+    (await page.request.patch(`/api/line-items/${item.id}`, { data: { amountCents: 1 } })).status()
+  ).toBe(409);
+
+  // Revert through the UI.
+  await page.goto(`/claims/${claimId}`);
+  await expect(page.getByTestId("claim-status")).toHaveText("Generated");
+  await page.getByTestId("revert-claim").click();
+  await expect(page.getByTestId("claim-status")).toHaveText("Draft");
+
+  // Receipt is back to unassigned; rows are editable again (edit revokes the
+  // checkmark as usual), and the revert left an audit trail.
+  const receipts = (await (await page.request.get("/api/receipts")).json()).receipts;
+  expect(receipts.every((r: { status: string }) => r.status === "unassigned")).toBe(true);
+  expect(
+    (
+      await page.request.patch(`/api/line-items/${item.id}`, {
+        data: { description: "edited after revert" },
+      })
+    ).status()
+  ).toBe(200);
+  const { logs } = await (
+    await page.request.get(`/api/extraction-logs?reimbursementId=${claimId}`)
+  ).json();
+  const detail = await (await page.request.get(`/api/extraction-logs/${logs[0].id}`)).json();
+  expect(detail.auditEvents.map((e: { action: string }) => e.action)).toContain("revert-to-draft");
+
+  // The round trip completes: re-verify and regenerate.
+  expect(
+    (await page.request.patch(`/api/line-items/${item.id}`, { data: { isVerified: true } })).status()
+  ).toBe(200);
+  expect((await page.request.post(`/api/reimbursements/${claimId}/pdf`)).status()).toBe(200);
 });
 
 test("PDF endpoint refuses while any active row is unverified", async ({ page }, testInfo) => {
