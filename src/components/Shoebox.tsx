@@ -38,6 +38,10 @@ export default function Shoebox() {
   const [waitKey, setWaitKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [viewing, setViewing] = useState<Receipt | null>(null);
+  // Whole-page drag target: true while a file is dragged over the Shoebox.
+  const [dragging, setDragging] = useState(false);
+  // Depth counter so nested dragenter/dragleave don't flicker the overlay.
+  const dragDepth = useRef(0);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/receipts");
@@ -70,6 +74,38 @@ export default function Shoebox() {
       setUploading(false);
       if (fileInput.current) fileInput.current.value = "";
     }
+  }
+
+  // Only treat drags that carry files as an upload (ignore text/element drags).
+  const dragHasFiles = (e: React.DragEvent) =>
+    Array.from(e.dataTransfer.types).includes("Files");
+
+  function onDragEnter(e: React.DragEvent) {
+    if (!dragHasFiles(e)) return;
+    e.preventDefault();
+    dragDepth.current += 1;
+    setDragging(true);
+  }
+
+  function onDragOver(e: React.DragEvent) {
+    if (!dragHasFiles(e)) return;
+    // Required so the drop event fires; also marks this a copy operation.
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  }
+
+  function onDragLeave(e: React.DragEvent) {
+    if (!dragHasFiles(e)) return;
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setDragging(false);
+  }
+
+  function onDrop(e: React.DragEvent) {
+    if (!dragHasFiles(e)) return;
+    e.preventDefault();
+    dragDepth.current = 0;
+    setDragging(false);
+    onFilesPicked(e.dataTransfer.files);
   }
 
   const describing: Receipt | null = describeQueue[0] ?? null;
@@ -205,7 +241,26 @@ export default function Shoebox() {
   const processed = (receipts ?? []).filter((r) => r.status !== "unassigned");
 
   return (
-    <div className="space-y-6">
+    <div
+      className="relative space-y-6"
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      data-testid="shoebox-dropzone"
+    >
+      {dragging && (
+        <div
+          className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-indigo-900/20 p-4"
+          data-testid="shoebox-drop-overlay"
+        >
+          <div className="card flex flex-col items-center gap-2 border-2 border-dashed border-indigo-400 bg-white/95 px-10 py-8 text-center shadow-lg">
+            <div className="text-4xl">📥</div>
+            <p className="font-semibold text-indigo-900">Drop receipts to upload</p>
+            <p className="text-sm text-stone-500">Images or PDFs</p>
+          </div>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Shoebox</h1>
