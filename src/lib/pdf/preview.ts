@@ -7,21 +7,25 @@
 // final packet appends and what the "open original" link serves).
 
 /** Render density. Receipt line items are often 7–8pt, so a fixed narrow width
- *  (a Letter page at ~118 DPI) turned them to mush — render at ~220 DPI so the
- *  smallest text stays readable in-card and when zoomed in the viewer. */
-const PREVIEW_DPI = 220;
+ *  (a Letter page at ~118 DPI) turned them to mush — render at ~300 DPI so the
+ *  smallest text is sharp and spends the ~100 KB/page budget below. Long docs
+ *  are scaled down to stay within MAX_STRIP_PIXELS. */
+const PREVIEW_DPI = 300;
 /** Hard cap on a page's rendered width (px) so a large-format page can't blow
- *  up the strip; a Letter page at 220 DPI is ~1870px, comfortably under this. */
-const MAX_PAGE_WIDTH = 2200;
+ *  up the strip; a Letter page at 300 DPI is ~2550px, under this. */
+const MAX_PAGE_WIDTH = 2600;
+/** Ceiling on the whole strip's pixel count (~40 MP ≈ a 160 MB canvas). A few
+ *  pages render at full DPI; a pathologically long one is scaled down uniformly
+ *  to fit rather than exhausting server memory. */
+const MAX_STRIP_PIXELS = 40_000_000;
 /** Per-page size budget, mirroring the ~100 KB/image target of the photo
  *  pipeline. The strip is JPEG-encoded at the highest quality on the ladder
  *  whose total size stays within this × (rendered page count); crisp vector
- *  text lands well under it, photographed pages step down to fit. */
+ *  text lands near it, photographed pages step down to fit. */
 const PER_PAGE_TARGET_BYTES = 100 * 1024;
 const JPEG_QUALITY_LADDER = [0.92, 0.86, 0.8, 0.74, 0.68];
 /** Only the first this-many pages are rasterized; the rest get a bailout notice
- *  (with the omitted count) at the foot of the strip. Also bounds the transient
- *  server-side canvas — at ~220 DPI a Letter page is ~1870×2420px (~18 MB). */
+ *  (with the omitted count) at the foot of the strip. */
 export const MAX_PREVIEW_PAGES = 10;
 /** Height (px) of the "N more pages" notice band appended when truncating. */
 const NOTICE_BAND_HEIGHT = 150;
@@ -47,26 +51,34 @@ export async function renderPdfToPreviewJpeg(pdf: Buffer | Uint8Array): Promise<
     const pageCount = Math.min(doc.numPages, MAX_PREVIEW_PAGES);
     const omittedPages = doc.numPages - pageCount;
 
-    // First pass: size every page (getViewport is cheap, no rasterization) so
-    // we can allocate the strip once and render each page straight onto it.
-    const pages = [];
-    let stripWidth = 0;
-    let contentHeight = 0;
+    // First pass: pick each page's target scale (DPI, capped per-page width) and
+    // measure the total pixel area — getViewport is cheap, no rasterization.
+    const sized = [];
+    let targetArea = 0;
     for (let i = 1; i <= pageCount; i++) {
       const page = await doc.getPage(i);
       const unscaled = page.getViewport({ scale: 1 });
-      // Scale for the target DPI (PDF user units are 1/72"), but never let a
-      // single page exceed MAX_PAGE_WIDTH.
       const scale = Math.min(PREVIEW_DPI / 72, MAX_PAGE_WIDTH / unscaled.width);
-      const viewport = page.getViewport({ scale });
+      sized.push({ page, scale });
+      targetArea += Math.ceil(unscaled.width * scale) * Math.ceil(unscaled.height * scale);
+    }
+    // Scale the whole strip down uniformly if it would exceed the memory ceiling.
+    const shrink = targetArea > MAX_STRIP_PIXELS ? Math.sqrt(MAX_STRIP_PIXELS / targetArea) : 1;
+
+    // Second pass: final viewports + vertical offsets for the stacked strip.
+    const pages = [];
+    let stripWidth = 0;
+    let contentHeight = 0;
+    for (const { page, scale } of sized) {
+      const viewport = page.getViewport({ scale: scale * shrink });
       pages.push({ page, viewport, top: contentHeight });
       stripWidth = Math.max(stripWidth, Math.ceil(viewport.width));
       contentHeight += Math.ceil(viewport.height);
     }
     const noticeHeight = omittedPages > 0 ? NOTICE_BAND_HEIGHT : 0;
 
-    // Second pass: one canvas for the whole strip; each page renders at its
-    // vertical offset via a translate transform (no per-page canvas to hold).
+    // One canvas for the whole strip; each page renders at its vertical offset
+    // via a translate transform (no per-page canvas to hold).
     const { canvas, context } = canvasFactory.create(stripWidth, contentHeight + noticeHeight);
     context.fillStyle = "white";
     context.fillRect(0, 0, stripWidth, contentHeight + noticeHeight);

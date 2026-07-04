@@ -1,6 +1,32 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+
+/** Thumbnail for a PDF receipt: the top slice of the server-rasterized preview
+ *  (browsers can't thumbnail a PDF), falling back to a plain chip if it fails. */
+function PdfThumb({ id }: { id: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <div className="text-center text-stone-400">
+        <div className="text-4xl">📄</div>
+        <div className="text-xs font-semibold">PDF</div>
+      </div>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`/api/receipts/${id}/preview`}
+      alt="PDF receipt"
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="h-full w-full object-cover object-top"
+      data-testid={`pdf-thumb-${id}`}
+    />
+  );
+}
 
 export interface ClaimRef {
   id: string;
@@ -85,10 +111,7 @@ export default function ReceiptGrid({
             )}
             <div className="relative flex h-36 items-center justify-center bg-stone-50">
               {r.mimeType === "application/pdf" ? (
-                <div className="text-center text-stone-400">
-                  <div className="text-4xl">📄</div>
-                  <div className="text-xs font-semibold">PDF</div>
-                </div>
+                <PdfThumb id={r.id} />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
