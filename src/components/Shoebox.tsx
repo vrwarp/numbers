@@ -1,7 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+interface ClaimRef {
+  id: string;
+  status: string;
+  createdAt: string;
+}
 
 interface Receipt {
   id: string;
@@ -9,7 +16,9 @@ interface Receipt {
   mimeType: string;
   sizeBytes: number;
   status: string;
+  note: string;
   createdAt: string;
+  claims: ClaimRef[];
 }
 
 export default function Shoebox() {
@@ -17,6 +26,7 @@ export default function Shoebox() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [receipts, setReceipts] = useState<Receipt[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [uploadNote, setUploadNote] = useState("");
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +47,10 @@ export default function Shoebox() {
     try {
       const form = new FormData();
       for (const f of Array.from(files)) form.append("files", f);
+      if (uploadNote.trim()) form.append("note", uploadNote.trim());
       const res = await fetch("/api/receipts", { method: "POST", body: form });
       if (!res.ok) throw new Error((await res.json()).error ?? "Upload failed");
+      setUploadNote("");
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
@@ -55,6 +67,16 @@ export default function Shoebox() {
       else next.add(id);
       return next;
     });
+  }
+
+  async function saveNote(id: string, note: string) {
+    const res = await fetch(`/api/receipts/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ note }),
+    });
+    if (!res.ok) setError((await res.json()).error ?? "Could not save the description");
+    await load();
   }
 
   async function deleteReceipt(id: string) {
@@ -99,7 +121,7 @@ export default function Shoebox() {
             Drop receipts here as you go. Select some when you&apos;re ready to file a claim.
           </p>
         </div>
-        <div>
+        <div className="flex flex-wrap items-center gap-2">
           <input
             ref={fileInput}
             type="file"
@@ -108,6 +130,15 @@ export default function Shoebox() {
             className="hidden"
             data-testid="file-input"
             onChange={(e) => onFilesPicked(e.target.files)}
+          />
+          <input
+            className="input w-56"
+            placeholder="Optional description…"
+            value={uploadNote}
+            onChange={(e) => setUploadNote(e.target.value)}
+            maxLength={300}
+            aria-label="Optional description for this upload"
+            data-testid="upload-note"
           />
           <button
             className="btn-primary"
@@ -153,14 +184,26 @@ export default function Shoebox() {
             selected={selected}
             onToggle={toggle}
             onDelete={deleteReceipt}
+            onSaveNote={saveNote}
           />
           {processed.length > 0 && (
             <details className="pt-2">
               <summary className="cursor-pointer text-sm font-medium text-stone-500">
                 Processed receipts ({processed.length})
               </summary>
+              <p className="mt-1 text-xs text-stone-400">
+                Already on a generated claim — still selectable if part of the purchase belongs
+                on another claim.
+              </p>
               <div className="mt-3">
-                <ReceiptGrid receipts={processed} />
+                <ReceiptGrid
+                  receipts={processed}
+                  selectable
+                  selected={selected}
+                  onToggle={toggle}
+                  onDelete={deleteReceipt}
+                  onSaveNote={saveNote}
+                />
               </div>
             </details>
           )}
@@ -176,12 +219,14 @@ function ReceiptGrid({
   selected,
   onToggle,
   onDelete,
+  onSaveNote,
 }: {
   receipts: Receipt[];
   selectable?: boolean;
   selected?: Set<string>;
   onToggle?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onSaveNote?: (id: string, note: string) => void;
 }) {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -236,12 +281,45 @@ function ReceiptGrid({
                 />
               )}
             </div>
-            <div className="p-2">
+            <div className="space-y-1 p-2">
               <div className="truncate text-xs font-medium">{r.originalName}</div>
+              {onSaveNote ? (
+                <input
+                  key={`note-${r.id}-${r.note}`}
+                  className="w-full rounded border border-transparent bg-transparent px-1 py-0.5 text-[11px] text-stone-600 placeholder:italic hover:border-stone-200 focus:border-stone-300 focus:outline-none"
+                  defaultValue={r.note}
+                  placeholder="Add description…"
+                  maxLength={300}
+                  onClick={(e) => e.stopPropagation()}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (v !== r.note) onSaveNote(r.id, v);
+                  }}
+                  aria-label={`Description for ${r.originalName}`}
+                  data-testid={`receipt-note-${r.id}`}
+                />
+              ) : (
+                r.note && <div className="truncate text-[11px] text-stone-600">{r.note}</div>
+              )}
               <div className="text-[11px] text-stone-400">
                 {new Date(r.createdAt).toLocaleDateString()} · {(r.sizeBytes / 1024).toFixed(0)} KB
                 {r.status !== "unassigned" && " · processed"}
               </div>
+              {r.claims.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {r.claims.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/claims/${c.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] text-indigo-700 hover:bg-indigo-100"
+                      data-testid={`claim-link-${r.id}-${c.id}`}
+                    >
+                      {c.status === "draft" ? "Draft" : "Claim"} {new Date(c.createdAt).toLocaleDateString()}
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         );

@@ -21,6 +21,7 @@ interface ReceiptInfo {
   id: string;
   originalName: string;
   mimeType: string;
+  note: string;
   merchant: string;
   purchaseDate: string; // "YYYY-MM-DD" or ""
   extractedTotalCents: number | null;
@@ -249,6 +250,9 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             <div key={ref.receiptId} className="card overflow-hidden">
               <div className="border-b border-stone-100 px-3 py-2 text-xs font-semibold text-stone-500">
                 Receipt {i + 1}: {receiptLabel(ref.receipt)}
+                {ref.receipt.note && (
+                  <span className="ml-1 font-normal text-stone-400">· {ref.receipt.note}</span>
+                )}
               </div>
               {ref.receipt.mimeType === "application/pdf" ? (
                 <object
@@ -277,8 +281,11 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           {groups.map((group, gi) => (
             <div key={group.receipt.id} className="card overflow-hidden" data-testid={`group-${group.receipt.id}`}>
               <div className="flex items-center justify-between gap-2 border-b border-stone-100 bg-stone-50 px-4 py-2">
-                <span className="text-sm font-semibold text-stone-700">
+                <span className="min-w-0 text-sm font-semibold text-stone-700">
                   Receipt {gi + 1}: {receiptLabel(group.receipt)}
+                  {group.receipt.note && (
+                    <span className="ml-1 font-normal text-stone-500">· {group.receipt.note}</span>
+                  )}
                 </span>
                 <span className="flex items-center gap-2">
                   <span className="text-sm font-bold" data-testid={`subtotal-${group.receipt.id}`}>

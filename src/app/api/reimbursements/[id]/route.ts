@@ -21,6 +21,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
                 originalName: true,
                 mimeType: true,
                 createdAt: true,
+                note: true,
                 merchant: true,
                 purchaseDate: true,
                 extractedTotalCents: true,

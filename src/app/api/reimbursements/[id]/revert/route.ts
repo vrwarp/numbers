@@ -26,10 +26,22 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     }
 
     const receiptIds = reimbursement.receipts.map((rr) => rr.receiptId);
+    // "processed" means "on ≥1 generated claim" — only release receipts that
+    // no OTHER generated claim still holds.
+    const heldElsewhere = await prisma.reimbursementReceipt.findMany({
+      where: {
+        receiptId: { in: receiptIds },
+        reimbursementId: { not: id },
+        reimbursement: { status: "generated" },
+      },
+      select: { receiptId: true },
+    });
+    const held = new Set(heldElsewhere.map((rr) => rr.receiptId));
+    const releasable = receiptIds.filter((rid) => !held.has(rid));
     await prisma.$transaction([
       prisma.reimbursement.update({ where: { id }, data: { status: "draft" } }),
       prisma.receipt.updateMany({
-        where: { id: { in: receiptIds } },
+        where: { id: { in: releasable } },
         data: { status: "unassigned" },
       }),
       prisma.auditEvent.create({

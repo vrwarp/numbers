@@ -54,6 +54,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
         data: await readStoredFile(rr.receipt.filePath),
         mimeType: rr.receipt.mimeType,
         originalName: rr.receipt.originalName,
+        note: rr.receipt.note,
       });
     }
 
