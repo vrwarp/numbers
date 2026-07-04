@@ -59,7 +59,7 @@ merchant, purchaseDate, extractedTotalCents?, extractedRefundCents?, createdAt`
 
 ### Reimbursement
 `id, userId, status, totalCents, singleMinistry, claimMinistry, claimEvent, claimDescription,
-createdAt, updatedAt`
+publicToken?, createdAt, updatedAt`
 - **Invariant**: `totalCents == Σ amountCents of its non-excluded line items`. Recomputed in
   the line-items PATCH route and at PDF generation. If you add a mutation path, recompute.
 - `singleMinistry` (default `true`; existing claims were migrated to `false`): the claim uses
@@ -72,6 +72,11 @@ createdAt, updatedAt`
   single without an explicit value adopts `mostCommonMinistryEvent(rows)`.
 - `claimDescription`: the user's one-sentence "what is this claim for" — the input to the
   suggestion call (`POST …/suggest`), kept as a human-readable claim note.
+- `publicToken` (unique, NULL until first PDF generation): 24 random bytes base64url — the
+  capability credential behind `GET /c/<token>`, which serves the claim's latest stored packet
+  (`generated/<userId>/<claimId>.pdf`) with no sign-in. NEVER derive it from the claim id.
+  It is minted once and kept through revert/re-generate cycles so a QR printed on any earlier
+  version keeps resolving to the newest packet.
 
 ### LineItem
 `id, reimbursementId, receiptId, description, amountCents(Int), ministry, event,

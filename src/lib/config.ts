@@ -22,6 +22,20 @@ export function isAiMock(): boolean {
   return configValue("AI_MOCK") === "1";
 }
 
+/**
+ * Externally-reachable origin of this deployment (PUBLIC_BASE_URL), e.g.
+ * "https://numbers.example.org" — behind Docker/reverse proxies the server
+ * cannot infer it, so it is explicit configuration. Used to build the
+ * self-link URL stamped as a QR code on generated PDFs; when unset the PDF
+ * simply omits the stamp. Trailing slashes are dropped so callers can append
+ * paths directly.
+ */
+export function publicBaseUrl(): string | undefined {
+  const raw = configValue("PUBLIC_BASE_URL")?.trim();
+  if (!raw) return undefined;
+  return raw.replace(/\/+$/, "");
+}
+
 // --- AI rate limiting -------------------------------------------------------
 // Gemini's free tier grants ~15 requests/minute; extraction is throttled to
 // stay under whatever quota the deployment actually has. All three are read

@@ -1,5 +1,6 @@
 import { PDFDocument, PDFFont, rgb, StandardFonts } from "pdf-lib";
 import { paginateItems } from "./paginate";
+import { applyQrStamp } from "./qr";
 import { centsToDollarString } from "@/lib/money";
 
 /**
@@ -46,6 +47,13 @@ export interface ClaimPdfInput {
   receipts: PdfReceipt[];
   /** The blank CFCC AcroForm template. */
   templateBytes: Uint8Array;
+  /**
+   * Capability URL of this claim's own packet (/c/<publicToken>). When set,
+   * every form page gets a QR stamp beside the (narrowed) note box linking
+   * back to the latest generated version; omitted (e.g. PUBLIC_BASE_URL not
+   * configured) the pages are unchanged.
+   */
+  selfLinkUrl?: string;
 }
 
 /** Usable text box inside a field widget, after pdf-lib's border+padding inset. */
@@ -219,6 +227,13 @@ async function fillFormPage(
 
   form.updateFieldAppearances(helv);
   form.flatten();
+
+  // Stamped AFTER flattening so the QR (and the narrowed note box that makes
+  // room for it) is plain page content like the baked field values; every
+  // form page carries it so any sheet of a multi-page claim can be scanned.
+  if (input.selfLinkUrl) {
+    applyQrStamp(tpl.getPage(0), input.selfLinkUrl, helv);
+  }
   return tpl;
 }
 

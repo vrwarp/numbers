@@ -24,6 +24,24 @@ export async function readStoredFile(relPath: string): Promise<Buffer> {
   return fs.readFile(abs);
 }
 
+/** DATA_DIR-relative path of a claim's generated packet PDF. Overwritten on
+ *  every (re)generation, so it is always the LATEST version — the target the
+ *  QR capability link (/c/<publicToken>) serves. */
+export function generatedPdfPath(userId: string, reimbursementId: string): string {
+  return path.join("generated", userId, `${reimbursementId}.pdf`);
+}
+
+/** Persist a claim's generated packet at its well-known path (see above). */
+export async function saveGeneratedPdf(
+  userId: string,
+  reimbursementId: string,
+  data: Uint8Array
+): Promise<void> {
+  const abs = path.resolve(dataDir(), generatedPdfPath(userId, reimbursementId));
+  await fs.mkdir(path.dirname(abs), { recursive: true });
+  await fs.writeFile(abs, data);
+}
+
 /** DATA_DIR-relative path of a receipt's cached raster preview (PDF → JPEG).
  *  Sits beside the original, e.g. uploads/<userId>/<id>.pdf → …/<id>.preview.jpg. */
 export function previewCachePath(filePath: string): string {

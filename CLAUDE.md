@@ -27,7 +27,8 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    Dollars exist only at UI/LLM boundaries. Never do float arithmetic on money.
 2. **Every API route** wraps its body in `handleApi()` and starts with `await requireUserId()`
    (`src/lib/api.ts`); every Prisma query filters by that `userId`. Cross-tenant access returns
-   **404**, never 403.
+   **404**, never 403. Sole exception: `GET /c/[token]` — the QR capability link on generated
+   PDFs, where the unguessable `publicToken` is the credential (still 404 on any miss).
 3. **Human-in-the-loop gate**: PDF generation requires every non-excluded line item
    `isVerified` with a non-empty `ministry` (the AI may *suggest* a ministry via the Suggest
    feature but never assigns or verifies one — a human applies suggestions; verifying a

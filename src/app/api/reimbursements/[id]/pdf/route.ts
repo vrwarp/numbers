@@ -1,10 +1,12 @@
+import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
-import { readStoredFile } from "@/lib/storage";
+import { readStoredFile, saveGeneratedPdf } from "@/lib/storage";
 import { generateClaimPdf } from "@/lib/pdf/generate";
 import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
 import { formatMinistryEvent } from "@/lib/ministries";
+import { publicBaseUrl } from "@/lib/config";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -62,6 +64,14 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     const now = new Date();
     const dateString = `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")}/${now.getFullYear()}`;
 
+    // Mint the capability token on first generation; it survives revert /
+    // re-generate cycles so a QR printed from any version keeps resolving to
+    // the latest packet. 24 random bytes (base64url) — unguessable, and NOT
+    // derived from the claim id.
+    const publicToken =
+      reimbursement.publicToken ?? crypto.randomBytes(24).toString("base64url");
+    const base = publicBaseUrl();
+
     const pdfBytes = await generateClaimPdf({
       requesterName: reimbursement.user.fullName || reimbursement.user.email,
       requesterAddress: reimbursement.user.mailingAddress || "",
@@ -73,11 +83,21 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       })),
       receipts: receiptFiles,
       templateBytes: await loadTemplateBytes(),
+      // No PUBLIC_BASE_URL configured → no QR stamp (the server can't know
+      // what URL a scanner could actually reach).
+      selfLinkUrl: base ? `${base}/c/${publicToken}` : undefined,
     });
+
+    // Persist the packet so /c/<token> can serve it later; overwriting on
+    // every generation keeps the link pointed at the latest version.
+    await saveGeneratedPdf(userId, id, pdfBytes);
 
     const totalCents = active.reduce((s, it) => s + it.amountCents, 0);
     await prisma.$transaction([
-      prisma.reimbursement.update({ where: { id }, data: { status: "generated", totalCents } }),
+      prisma.reimbursement.update({
+        where: { id },
+        data: { status: "generated", totalCents, publicToken },
+      }),
       prisma.receipt.updateMany({
         where: { id: { in: reimbursement.receipts.map((rr) => rr.receiptId) } },
         data: { status: "processed" },

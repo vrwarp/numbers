@@ -189,6 +189,42 @@ describe("generateClaimPdf (official CFCC AcroForm template)", () => {
       generateClaimPdf({ ...baseInput(), templateBytes: new Uint8Array(), items: items(1), receipts: [] })
     ).rejects.toThrow(/template/i);
   });
+
+  it("stamps the QR self-link on EVERY form page when selfLinkUrl is set", async () => {
+    const bytes = await generateClaimPdf({
+      ...baseInput(),
+      items: items(15), // two form pages
+      receipts: [],
+      selfLinkUrl: "https://numbers.example.org/c/AbC123xyz_-AbC123xyz_-AbC123xyz_",
+    });
+    const text = pdfVisibleText(bytes);
+    // The stamp redraws the note box narrower to make room for the QR; the
+    // redrawn note text is pdf-lib-drawn (hex-searchable), unlike the
+    // template's own subset-encoded original — so it marks exactly the
+    // pages that got the stamp.
+    expect(text.match(/pastor\/deacon\./g)).toHaveLength(2);
+    expect(text.match(/turn-around time is 1-2 weeks\./g)).toHaveLength(2);
+  });
+
+  it("omits the stamp (and leaves the note box alone) without selfLinkUrl", async () => {
+    const bytes = await generateClaimPdf({ ...baseInput(), items: items(1), receipts: [] });
+    expect(pdfVisibleText(bytes)).not.toContain("pastor/deacon.");
+  });
+});
+
+describe("qrMatrix (QR stamp geometry)", () => {
+  it("emits a square matrix with the three finder patterns", async () => {
+    const { qrMatrix } = await import("@/lib/pdf/qr");
+    const m = qrMatrix("https://numbers.example.org/c/AbC123xyz_-AbC123xyz_-AbC123xyz_");
+    const n = m.length;
+    expect(n).toBeGreaterThanOrEqual(21); // ≥ version 1
+    expect(n % 2).toBe(1); // QR sizes are odd (4v+17)
+    for (const row of m) expect(row).toHaveLength(n);
+    // Finder pattern corners (top-left, top-right, bottom-left) are dark.
+    for (const [r, c] of [[0, 0], [0, n - 1], [n - 1, 0]] as const) {
+      expect(m[r][c]).toBe(true);
+    }
+  });
 });
 
 describe("fittingFontSize (description column auto-shrink)", () => {
