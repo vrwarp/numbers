@@ -6,14 +6,25 @@
 // *derived preview* only — the original PDF stays authoritative (it is what the
 // final packet appends and what the "open original" link serves).
 
-/** Target width, in px, of the rendered strip. ~1000px keeps a receipt legible
- *  while staying small over the wire. */
-const TARGET_WIDTH = 1000;
-/** JPEG quality for the strip — receipts are high-contrast, so this is plenty. */
-const JPEG_QUALITY = 0.72;
-/** Pages beyond this are dropped from the preview; the original-PDF link covers
- *  them. Bounds the transient server-side canvas for pathologically long PDFs. */
-export const MAX_PREVIEW_PAGES = 12;
+/** Render density. Receipt line items are often 7–8pt, so a fixed narrow width
+ *  (a Letter page at ~118 DPI) turned them to mush — render at ~220 DPI so the
+ *  smallest text stays readable in-card and when zoomed in the viewer. */
+const PREVIEW_DPI = 220;
+/** Hard cap on a page's rendered width (px) so a large-format page can't blow
+ *  up the strip; a Letter page at 220 DPI is ~1870px, comfortably under this. */
+const MAX_PAGE_WIDTH = 2200;
+/** Per-page size budget, mirroring the ~100 KB/image target of the photo
+ *  pipeline. The strip is JPEG-encoded at the highest quality on the ladder
+ *  whose total size stays within this × (rendered page count); crisp vector
+ *  text lands well under it, photographed pages step down to fit. */
+const PER_PAGE_TARGET_BYTES = 100 * 1024;
+const JPEG_QUALITY_LADDER = [0.92, 0.86, 0.8, 0.74, 0.68];
+/** Only the first this-many pages are rasterized; the rest get a bailout notice
+ *  (with the omitted count) at the foot of the strip. Also bounds the transient
+ *  server-side canvas — at ~220 DPI a Letter page is ~1870×2420px (~18 MB). */
+export const MAX_PREVIEW_PAGES = 10;
+/** Height (px) of the "N more pages" notice band appended when truncating. */
+const NOTICE_BAND_HEIGHT = 150;
 
 /**
  * Render a PDF into one tall JPEG (pages stacked vertically, white background).
@@ -34,40 +45,79 @@ export async function renderPdfToPreviewJpeg(pdf: Buffer | Uint8Array): Promise<
       create: (w: number, h: number) => { canvas: PreviewCanvas; context: CanvasRenderingContext2D };
     };
     const pageCount = Math.min(doc.numPages, MAX_PREVIEW_PAGES);
+    const omittedPages = doc.numPages - pageCount;
 
-    const rendered: { canvas: PreviewCanvas; width: number; height: number }[] = [];
+    // First pass: size every page (getViewport is cheap, no rasterization) so
+    // we can allocate the strip once and render each page straight onto it.
+    const pages = [];
     let stripWidth = 0;
-    let stripHeight = 0;
+    let contentHeight = 0;
     for (let i = 1; i <= pageCount; i++) {
       const page = await doc.getPage(i);
       const unscaled = page.getViewport({ scale: 1 });
-      const viewport = page.getViewport({ scale: TARGET_WIDTH / unscaled.width });
-      const width = Math.ceil(viewport.width);
-      const height = Math.ceil(viewport.height);
-      const { canvas, context } = canvasFactory.create(width, height);
+      // Scale for the target DPI (PDF user units are 1/72"), but never let a
+      // single page exceed MAX_PAGE_WIDTH.
+      const scale = Math.min(PREVIEW_DPI / 72, MAX_PAGE_WIDTH / unscaled.width);
+      const viewport = page.getViewport({ scale });
+      pages.push({ page, viewport, top: contentHeight });
+      stripWidth = Math.max(stripWidth, Math.ceil(viewport.width));
+      contentHeight += Math.ceil(viewport.height);
+    }
+    const noticeHeight = omittedPages > 0 ? NOTICE_BAND_HEIGHT : 0;
+
+    // Second pass: one canvas for the whole strip; each page renders at its
+    // vertical offset via a translate transform (no per-page canvas to hold).
+    const { canvas, context } = canvasFactory.create(stripWidth, contentHeight + noticeHeight);
+    context.fillStyle = "white";
+    context.fillRect(0, 0, stripWidth, contentHeight + noticeHeight);
+    for (const { page, viewport, top } of pages) {
       await page.render({
         canvas: canvas as unknown as HTMLCanvasElement,
         canvasContext: context,
         viewport,
+        transform: [1, 0, 0, 1, 0, top],
       }).promise;
-      rendered.push({ canvas, width, height });
-      stripWidth = Math.max(stripWidth, width);
-      stripHeight += height;
     }
+    if (omittedPages > 0) drawTruncationNotice(context, stripWidth, contentHeight, omittedPages);
 
-    const { canvas, context } = canvasFactory.create(stripWidth, stripHeight);
-    context.fillStyle = "white";
-    context.fillRect(0, 0, stripWidth, stripHeight);
-    let y = 0;
-    for (const p of rendered) {
-      context.drawImage(p.canvas as unknown as CanvasImageSource, 0, y);
-      y += p.height;
+    // Encode at the highest ladder quality that fits ~100 KB/page.
+    const budget = PER_PAGE_TARGET_BYTES * pageCount;
+    let out = canvas.toBuffer("image/jpeg", JPEG_QUALITY_LADDER[0]);
+    for (const quality of JPEG_QUALITY_LADDER.slice(1)) {
+      if (out.length <= budget) break;
+      out = canvas.toBuffer("image/jpeg", quality);
     }
-    return canvas.toBuffer("image/jpeg", JPEG_QUALITY);
+    return out;
   } finally {
     // Release the document's worker/resources.
     await loadingTask.destroy();
   }
+}
+
+/** Draw the "N more pages not shown" band at the foot of the strip. Uses the
+ *  DejaVu font shipped in the Docker runtime (see Dockerfile) so it renders even
+ *  in a font-less slim image; fontconfig maps the sans-serif fallback locally. */
+function drawTruncationNotice(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  top: number,
+  omitted: number,
+) {
+  ctx.fillStyle = "#f5f5f4";
+  ctx.fillRect(0, top, width, NOTICE_BAND_HEIGHT);
+  ctx.fillStyle = "#d6d3d1";
+  ctx.fillRect(0, top, width, 3); // divider from the last page
+  ctx.fillStyle = "#57534e";
+  ctx.font = '500 40px "DejaVu Sans", sans-serif';
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const noun = omitted === 1 ? "page" : "pages";
+  const it = omitted === 1 ? "it" : "them";
+  ctx.fillText(
+    `+${omitted} more ${noun} not shown — open the PDF receipt to view ${it}.`,
+    width / 2,
+    top + NOTICE_BAND_HEIGHT / 2,
+  );
 }
 
 // The canvas pdfjs' node canvasFactory hands back (concretely @napi-rs/canvas)
