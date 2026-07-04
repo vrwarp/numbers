@@ -82,8 +82,10 @@ isVerified, isExcluded, sortOrder, originalDescription?, originalAmountCents?`
   - Excluding sets the row aside entirely (no verification needed, not on the PDF, out of all
     totals). UI also sets `isVerified:false` when toggling exclusion.
 - **original\* columns**: frozen copy of the AI extraction at claim creation. NULL ⇒ row was
-  human-created (currently: the second half of a split). Never update them after creation —
-  they are the baseline for the corrections diff.
+  human-created: the second half of a split, or a failed-extraction/manual placeholder (the AI
+  produced nothing to freeze; an empty `description` on such a row is the review UI's cue to
+  prompt for manual entry). Never update them after creation — they are the baseline for the
+  corrections diff.
 - `sortOrder`: unique-ish ints per claim, renumbered contiguously after splits/merges. Display order
   = `sortOrder asc` within receipt groups.
 
@@ -115,6 +117,9 @@ status("success"|"error"), errorMessage?, durationMs, createdAt`
 - `action="add-receipt"`: detail `{addedReceipts: [{receiptId, originalName, description,
   amountCents}]}` — receipts appended to a draft claim after creation
   (`POST /api/reimbursements/[id]/receipts`; one line item each, same AI extraction as create).
+- `action="manual-entry"`: detail `{receiptId, merchant, changes}` — the user filled in a
+  failed-extraction placeholder by hand (`PATCH /api/reimbursements/[id]/receipts/[receiptId]`);
+  `changes` is the `computeLineItemChanges` diff (empty → composed description/amount).
 - `action="remove-receipt"`: detail `{receiptId, originalName, removedLineItems[]}` — a
   receipt pulled out of a draft claim (its rows are deleted, so this is their only record).
 - `action="revert-to-draft"`: detail `{receiptIds}` — a generated claim unfrozen.

@@ -134,7 +134,7 @@ model AuditEvent {
   reimbursementId String?
   reimbursement   Reimbursement? @relation(fields: [reimbursementId], references: [id], onDelete: SetNull)
   lineItemId      String? // plain string on purpose: survives line-item deletion
-  action          String // update | split | merge | add-receipt | remove-receipt | revert-to-draft | create-claim | generate-pdf
+  action          String // update | manual-entry | split | merge | add-receipt | remove-receipt | revert-to-draft | create-claim | generate-pdf
   detail          String // JSON, e.g. {"changes":{"amountCents":{"from":864,"to":725}}}
   createdAt       DateTime       @default(now())
 

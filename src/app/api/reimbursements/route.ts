@@ -9,6 +9,7 @@ import {
   claimProgressStream,
   extractClaimRows,
   extractionLogRow,
+  manualClaimRows,
 } from "@/lib/claims";
 
 export const runtime = "nodejs";
@@ -28,10 +29,17 @@ export async function GET() {
   });
 }
 
-const CreateSchema = z.object({ receiptIds: z.array(z.string().min(1)).min(1) });
+const CreateSchema = z.object({
+  receiptIds: z.array(z.string().min(1)).min(1),
+  // Skip AI extraction and start with blank rows — the manual escape hatch.
+  manual: z.boolean().optional(),
+});
 
 /** Resolve + own-check the selected receipts, or throw the right ApiError. */
-async function loadSelectedReceipts(req: NextRequest, userId: string): Promise<Receipt[]> {
+async function loadSelectedReceipts(
+  req: NextRequest,
+  userId: string
+): Promise<{ receipts: Receipt[]; manual: boolean }> {
   const body = CreateSchema.safeParse(await req.json().catch(() => null));
   if (!body.success) throw new ApiError(400, "receiptIds (non-empty array) required");
   const receiptIds = [...new Set(body.data.receiptIds)];
@@ -43,19 +51,23 @@ async function loadSelectedReceipts(req: NextRequest, userId: string): Promise<R
   // A receipt may go on any number of claims (e.g. one purchase split across
   // two filings) — processed receipts are deliberately allowed. Each claim
   // re-extracts, overwriting the receipt's extraction metadata.
-  return receipts;
+  return { receipts, manual: body.data.manual ?? false };
 }
 
 /**
- * Extract every selected receipt (see extractClaimRows for the all-or-nothing
- * failure handling) and create the draft claim.
+ * Build the draft claim from the selected receipts: extract each with AI (see
+ * extractClaimRows for how read failures degrade to manual rows), or, in manual
+ * mode, skip AI entirely and start every row blank for the user to fill in.
  */
 async function generateClaim(
   userId: string,
   receipts: Receipt[],
+  manual: boolean,
   onEvent?: ExtractionEventHandler
 ) {
-  const { outcomes, extractions } = await extractClaimRows(userId, receipts, onEvent);
+  const { outcomes, extractions } = manual
+    ? { outcomes: [], extractions: manualClaimRows(receipts) }
+    : await extractClaimRows(userId, receipts, onEvent);
   const items = extractions.map((e) => e.item);
   const totalCents = items.reduce((s, it) => s + it.amountCents, 0);
 
@@ -70,14 +82,21 @@ async function generateClaim(
       },
       include: { lineItems: true },
     }),
-    ...extractions.map(({ receiptUpdate: { id, ...data } }) =>
-      prisma.receipt.update({ where: { id }, data })
-    ),
+    // Failed extractions have no receiptUpdate (their row is a manual-entry
+    // placeholder) — only stamp the receipts the model actually read.
+    ...extractions
+      .filter((e) => e.receiptUpdate)
+      .map(({ receiptUpdate }) => {
+        const { id, ...data } = receiptUpdate!;
+        return prisma.receipt.update({ where: { id }, data });
+      }),
   ]);
 
-  await prisma.extractionLog.createMany({
-    data: outcomes.map((o) => extractionLogRow(userId, o, reimbursement.id)),
-  });
+  if (outcomes.length > 0) {
+    await prisma.extractionLog.createMany({
+      data: outcomes.map((o) => extractionLogRow(userId, o, reimbursement.id)),
+    });
+  }
 
   return reimbursement;
 }
@@ -98,8 +117,8 @@ export async function POST(req: NextRequest) {
   if (!wantsStream) {
     return handleApi(async () => {
       const userId = await requireUserId();
-      const receipts = await loadSelectedReceipts(req, userId);
-      const reimbursement = await generateClaim(userId, receipts);
+      const { receipts, manual } = await loadSelectedReceipts(req, userId);
+      const reimbursement = await generateClaim(userId, receipts, manual);
       return NextResponse.json({ reimbursement }, { status: 201 });
     });
   }
@@ -109,15 +128,16 @@ export async function POST(req: NextRequest) {
   // streams NDJSON with HTTP 200 and carries any failure in the final line.
   let userId: string;
   let receipts: Receipt[];
+  let manual: boolean;
   try {
     userId = await requireUserId();
-    receipts = await loadSelectedReceipts(req, userId);
+    ({ receipts, manual } = await loadSelectedReceipts(req, userId));
   } catch (err) {
     return apiErrorJson(err);
   }
 
   return claimProgressStream(receipts.length, async (onEvent) => {
-    const reimbursement = await generateClaim(userId, receipts, onEvent);
+    const reimbursement = await generateClaim(userId, receipts, manual, onEvent);
     return { reimbursementId: reimbursement.id };
   });
 }

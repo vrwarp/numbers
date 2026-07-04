@@ -11,6 +11,12 @@ import type { ReceiptInput } from "./extract";
  */
 export function mockExtract(receipt: ReceiptInput): ExtractedReceipt {
   const name = receipt.originalName.toLowerCase();
+  // A file whose name says it can't be read (e.g. a photo that isn't a
+  // receipt) simulates an extraction failure so the manual-entry fallback is
+  // exercised; throwing here surfaces as a failed outcome (result: null).
+  if (name.includes("unreadable")) {
+    throw new Error("Mock: receipt could not be read");
+  }
   if (name.includes("return")) {
     return {
       receiptId: receipt.id,

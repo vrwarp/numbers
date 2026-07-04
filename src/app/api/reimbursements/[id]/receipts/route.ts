@@ -9,13 +9,18 @@ import {
   claimProgressStream,
   extractClaimRows,
   extractionLogRow,
+  manualClaimRows,
 } from "@/lib/claims";
 
 export const runtime = "nodejs";
 // Same budget as claim creation: extraction can sit through quota cooldowns.
 export const maxDuration = 900;
 
-const AddSchema = z.object({ receiptIds: z.array(z.string().min(1)).min(1) });
+const AddSchema = z.object({
+  receiptIds: z.array(z.string().min(1)).min(1),
+  // Skip AI extraction and start with blank rows — the manual escape hatch.
+  manual: z.boolean().optional(),
+});
 
 /** Own-check the claim (draft only) and the receipts to add, or throw. */
 async function loadValidated(req: NextRequest, userId: string, id: string) {
@@ -42,22 +47,26 @@ async function loadValidated(req: NextRequest, userId: string, id: string) {
   // As at claim creation, any owned receipt qualifies regardless of status —
   // a receipt may sit on several claims. It is re-extracted for this claim,
   // overwriting the receipt's extraction metadata.
-  return receipts;
+  return { receipts, manual: body.data.manual ?? false };
 }
 
 /**
- * Extract the new receipts (all-or-nothing — on any failure the claim is left
- * untouched) and append them to the draft: join rows + ONE line item per
- * receipt, exactly like claim creation, then AuditEvent(add-receipt) and a
- * fresh totalCents recompute.
+ * Extract the new receipts and append them to the draft: join rows + ONE line
+ * item per receipt, exactly like claim creation, then AuditEvent(add-receipt)
+ * and a fresh totalCents recompute. A receipt the AI can't read becomes a
+ * manual-entry placeholder rather than blocking the add; manual mode skips AI
+ * entirely and starts every new row blank.
  */
 async function addReceipts(
   userId: string,
   reimbursementId: string,
   receipts: Receipt[],
+  manual: boolean,
   onEvent?: ExtractionEventHandler
 ) {
-  const { outcomes, extractions } = await extractClaimRows(userId, receipts, onEvent);
+  const { outcomes, extractions } = manual
+    ? { outcomes: [], extractions: manualClaimRows(receipts) }
+    : await extractClaimRows(userId, receipts, onEvent);
 
   // Extraction can take minutes on a slow provider — re-check that the claim
   // wasn't generated (or discarded) in the meantime before writing rows.
@@ -83,9 +92,14 @@ async function addReceipts(
         lineItems: { create: items },
       },
     }),
-    ...extractions.map(({ receiptUpdate: { id, ...data } }) =>
-      prisma.receipt.update({ where: { id }, data })
-    ),
+    // Failed extractions have no receiptUpdate (their row is a manual-entry
+    // placeholder) — only stamp the receipts the model actually read.
+    ...extractions
+      .filter((e) => e.receiptUpdate)
+      .map(({ receiptUpdate }) => {
+        const { id, ...data } = receiptUpdate!;
+        return prisma.receipt.update({ where: { id }, data });
+      }),
     prisma.auditEvent.create({
       data: {
         userId,
@@ -107,9 +121,11 @@ async function addReceipts(
   const totalCents = all.reduce((s, it) => (it.isExcluded ? s : s + it.amountCents), 0);
   await prisma.reimbursement.update({ where: { id: reimbursementId }, data: { totalCents } });
 
-  await prisma.extractionLog.createMany({
-    data: outcomes.map((o) => extractionLogRow(userId, o, reimbursementId)),
-  });
+  if (outcomes.length > 0) {
+    await prisma.extractionLog.createMany({
+      data: outcomes.map((o) => extractionLogRow(userId, o, reimbursementId)),
+    });
+  }
 
   return totalCents;
 }
@@ -129,23 +145,24 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   if (!wantsStream) {
     return handleApi(async () => {
       const userId = await requireUserId();
-      const receipts = await loadValidated(req, userId, id);
-      const totalCents = await addReceipts(userId, id, receipts);
+      const { receipts, manual } = await loadValidated(req, userId, id);
+      const totalCents = await addReceipts(userId, id, receipts, manual);
       return NextResponse.json({ ok: true, totalCents });
     });
   }
 
   let userId: string;
   let receipts: Receipt[];
+  let manual: boolean;
   try {
     userId = await requireUserId();
-    receipts = await loadValidated(req, userId, id);
+    ({ receipts, manual } = await loadValidated(req, userId, id));
   } catch (err) {
     return apiErrorJson(err);
   }
 
   return claimProgressStream(receipts.length, async (onEvent) => {
-    await addReceipts(userId, id, receipts, onEvent);
+    await addReceipts(userId, id, receipts, manual, onEvent);
     return { reimbursementId: id };
   });
 }

@@ -33,9 +33,11 @@ src/lib/image.ts                compressReceiptImage: rotate() → ≤1600px →
                                 rotation frame) → same ladder; ImageTransformError → 400
 src/lib/audit.ts                computeLineItemChanges(before, patch) → {field:{from,to}}
 src/lib/claims.ts               shared claim-building machinery (SERVER ONLY): extractClaimRows
-                                (per-receipt extraction → line-item/receipt-update row data,
-                                all-or-nothing failure handling), extractionLogRow,
-                                claimProgressStream (NDJSON progress response), apiErrorJson
+                                (per-receipt extraction → line-item/receipt-update row data; a
+                                read failure degrades to a blank manual-entry row, quota errors
+                                stay all-or-nothing 429), manualClaimRows (all-blank rows, no AI
+                                — the manual escape hatch), extractionLogRow, claimProgressStream
+                                (NDJSON progress response), apiErrorJson
 src/lib/claim-stream.ts         ClaimStreamMessage — the NDJSON progress-line union shared by
                                 the claim-building routes and their client consumers
                                 (dependency-free, client-safe)
@@ -113,12 +115,13 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/receipts/[id]/file` | GET | serve stored bytes, owner only |
 | `/api/receipts/[id]/edit` | POST | `{rotate: 0|90|180|270, crop?: {left,top,width,height} fractions of the ROTATED frame, reimbursementId?}` → sharp rotate→crop → compression ladder → overwrite stored file + sizeBytes; AuditEvent(edit-receipt-image). 400 PDFs/no-op/too-small crop; 409 while receipt is `processed` (a generated claim's packet must re-download unchanged) |
 | `/api/reimbursements` | GET | list own claims with counts |
-| | POST | `{receiptIds[]}` → validates ownership (404 else; ANY status is allowed — a receipt may go on many claims and is re-extracted each time) → extractReceipts (one call per receipt) → any failure: log ALL calls + 502, no claim; else create draft + ONE line item per receipt (composed description, amount = total − refunds, original* snapshot) + stamp Receipt merchant/purchaseDate/extracted*Cents + one ExtractionLog per call |
+| | POST | `{receiptIds[], manual?}` → validates ownership (404 else; ANY status is allowed — a receipt may go on many claims and is re-extracted each time) → extractReceipts (one call per receipt) → create draft + ONE line item per receipt (composed description, amount = total − refunds, original* snapshot) + stamp Receipt merchant/purchaseDate/extracted*Cents + one ExtractionLog per call. A read failure degrades to a BLANK manual-entry row (no receiptUpdate, original* NULL) instead of failing the batch; only a quota/rate-limit error is all-or-nothing (log ALL + 429, no claim). `manual:true` skips AI entirely → all-blank rows, no ExtractionLogs (the rate-limit escape hatch) |
 | `/api/reimbursements/[id]` | GET | claim + lineItems(sortOrder asc) + receipts join |
 | | DELETE | draft only (409 else); receipts return to shoebox |
 | `/api/reimbursements/[id]/pdf` | POST | gate: ≥1 active row, all active verified (400 else) → generateClaimPdf (packet appends only receipts with ≥1 non-excluded row) → claim=generated, receipts=processed → returns application/pdf. Re-POST on generated claim re-downloads |
-| `/api/reimbursements/[id]/receipts` | POST | `{receiptIds[]}` → add receipts to a DRAFT claim (409 generated; 409 if any receipt is already on it; 404 foreign/unknown) → same extraction pipeline as create (all-or-nothing; ONE line item per receipt appended after existing sortOrders; Receipt extraction fields stamped) → AuditEvent(add-receipt) + ExtractionLog per call + totalCents recompute. Returns `{ok, totalCents}` or NDJSON progress per Accept header |
-| `/api/reimbursements/[id]/receipts/[receiptId]` | DELETE | draft only (409); refuses the last receipt (409 — discard the claim instead); deletes the receipt's line items + join row (receipt returns to Shoebox — status never left `unassigned`); AuditEvent(remove-receipt); recomputes totalCents |
+| `/api/reimbursements/[id]/receipts` | POST | `{receiptIds[], manual?}` → add receipts to a DRAFT claim (409 generated; 409 if any receipt is already on it; 404 foreign/unknown) → same extraction pipeline as create (read failure → blank manual-entry row; quota all-or-nothing; `manual:true` skips AI; ONE line item per receipt appended after existing sortOrders; Receipt extraction fields stamped) → AuditEvent(add-receipt) + ExtractionLog per call + totalCents recompute. Returns `{ok, totalCents}` or NDJSON progress per Accept header |
+| `/api/reimbursements/[id]/receipts/[receiptId]` | PATCH | manual entry for a failed-extraction placeholder: `{merchant, purchaseDate, totalAmount, refundAmount, summary}` (dollars) → draft only (409); receipt must be on the claim (404) with exactly ONE un-split row (409 else) → stamps Receipt + fills the row (composed description, amount = total − refund; still unverified, original* stay NULL) → AuditEvent(manual-entry) + totalCents recompute |
+| | DELETE | draft only (409); refuses the last receipt (409 — discard the claim instead); deletes the receipt's line items + join row (receipt returns to Shoebox — status never left `unassigned`); AuditEvent(remove-receipt); recomputes totalCents |
 | `/api/reimbursements/[id]/revert` | POST | generated only (409 else); claim → draft; receipts → unassigned unless another GENERATED claim still holds them; AuditEvent(revert-to-draft). Rows keep isVerified (values were frozen; edits still revoke) |
 | `/api/line-items/[id]` | PATCH | zod partial {description,amountCents,ministry,event,isVerified,isExcluded}; draft only (409); isVerified:true refused (400) while ministry is empty (event is always optional); content change ⇒ isVerified=false unless patch sets it; writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
 | `/api/line-items/[id]/split` | POST | `{firstAmountCents?}` default even split; both halves unverified; new row original*=NULL; AuditEvent(split); renumbers sortOrder so new half follows original |
