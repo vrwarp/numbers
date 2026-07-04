@@ -161,7 +161,7 @@ reclaimed width given to Description). Field names and the 13-row layout are unc
 | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (default `google/gemini-3.1-flash-lite`) | extraction via OpenRouter |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` (default `gemini-3.1-flash-lite`) | extraction via Google AI Studio (Gemini API) |
 | `AI_RPM_TARGET` (default `15`) | requests/minute the server paces provider calls to (a shared rolling-window limiter in `src/lib/ai/throttle.ts`; Gemini's free tier is 15/min) |
-| `AI_QUOTA_COOLDOWN_MS` (default `60000`), `AI_QUOTA_MAX_RETRIES` (default `1`) | on a quota/rate-limit error (429) wait this long and retry this many times; each wait is surfaced to the user |
+| `AI_QUOTA_COOLDOWN_MS` (default `60000`), `AI_QUOTA_MAX_RETRIES` (default `3`) | on a quota/rate-limit error (429) wait this long and retry this many times; each wait is surfaced to the user |
 | `AI_MOCK=1` | deterministic extraction, no network (tests/dev) — bypasses throttle/retry |
 | `AUTH_TEST_MODE=1` | enables dev login (tests/dev only) |
 | `TEMPLATE_PDF` | optional replacement blank form path |

@@ -31,7 +31,7 @@ export const DEFAULT_RPM_TARGET = 15;
 /** How long to wait out a quota/rate-limit error before retrying (AI_QUOTA_COOLDOWN_MS). */
 export const DEFAULT_QUOTA_COOLDOWN_MS = 60_000;
 /** Extra attempts after a quota error clears the cooldown (AI_QUOTA_MAX_RETRIES). */
-export const DEFAULT_QUOTA_MAX_RETRIES = 1;
+export const DEFAULT_QUOTA_MAX_RETRIES = 3;
 
 function intEnv(name: string, fallback: number, min: number): number {
   const raw = process.env[name];

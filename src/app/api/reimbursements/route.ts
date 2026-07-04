@@ -15,8 +15,9 @@ import { composeDescription } from "@/lib/ai/compose";
 import { parseDollarsToCents } from "@/lib/money";
 
 export const runtime = "nodejs";
-// Per-receipt AI extraction on a large claim can take a while.
-export const maxDuration = 300;
+// Per-receipt AI extraction on a large claim can take a while — especially
+// when quota errors trigger ~60s cooldown-and-retry cycles (AI_QUOTA_*).
+export const maxDuration = 900;
 
 export async function GET() {
   return handleApi(async () => {
