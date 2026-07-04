@@ -45,25 +45,26 @@ test("rotate and crop a receipt image from the claim review screen", async ({ pa
     (await page.request.post(`/api/receipts/${receiptId}/edit`, { data: { rotate: 0 } })).status()
   ).toBe(400);
 
-  // The pristine upload was preserved on the first edit and can be restored:
-  // the stored image goes back to its original (pre-rotate, pre-crop) size.
+  // The pristine upload was preserved on the first edit, so a restore is
+  // available even with no unsaved changes.
   expect(
     (await (await page.request.get(`/api/receipts/${receiptId}/edit`)).json()).hasOriginal
   ).toBe(true);
-  const restoreRes = await page.request.post(`/api/receipts/${receiptId}/edit`, {
-    data: { restore: true, reimbursementId: claimId },
-  });
-  expect(restoreRes.status()).toBe(200);
-  const restored = await storedImageMeta(page, receiptId);
-  expect(restored.width).toBe(before.width);
-  expect(restored.height).toBe(before.height);
 
-  // With an original preserved, the dialog's Reset button restores it (rather
-  // than only clearing the unsaved rotate/crop) — enabled even before any edit.
+  // Reset restores it INLINE: the dialog stays open and the editor reloads the
+  // original image (no close/refresh), and the stored file reverts to the
+  // pre-rotate/crop upload dimensions.
   await page.getByTestId(`edit-image-${receiptId}`).click();
   await expect(page.getByTestId("crop-reset")).toBeEnabled();
   await page.getByTestId("crop-reset").click();
-  await expect(page.getByTestId("image-editor-save")).toHaveCount(0); // dialog closed
+  await expect(page.getByTestId("image-editor-cancel")).toHaveText("Done"); // restore finished
+  await expect(page.getByTestId("image-editor-save")).toBeVisible(); // dialog stayed open
+  await expect(page.getByTestId("image-editor-save")).toBeDisabled(); // changes cleared
+  const restored = await storedImageMeta(page, receiptId);
+  expect(restored.width).toBe(before.width);
+  expect(restored.height).toBe(before.height);
+  await page.getByTestId("image-editor-cancel").click(); // dismiss
+  await expect(page.getByTestId("image-editor-save")).toHaveCount(0);
 
   // Both edits landed in the claim's audit trail (telemetry duty).
   const { logs } = await (

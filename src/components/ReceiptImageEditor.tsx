@@ -77,7 +77,13 @@ export default function ReceiptImageEditor({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasOriginal, setHasOriginal] = useState(false);
+  // Bumped to cache-bust the <img> after a server-side restore swaps the stored
+  // file for the original; `replaced` tells the parent to refresh on close.
+  const [imgVersion, setImgVersion] = useState(0);
+  const [replaced, setReplaced] = useState(false);
   const drag = useRef<{ mode: DragMode; x: number; y: number; crop: Crop } | null>(null);
+
+  const displaySrc = imgVersion === 0 ? src : `${src}${src.includes("?") ? "&" : "?"}v=${imgVersion}`;
 
   useEffect(() => {
     const measure = () => setStageMaxWidth(measureRef.current?.clientWidth ?? 0);
@@ -112,15 +118,14 @@ export default function ReceiptImageEditor({
     setCrop(FULL_CROP); // the crop box is meaningless in the new frame
   }
 
-  // Undo everything: if an earlier edit was saved, put the pristine upload back
-  // (server round-trip); otherwise just clear the unsaved rotate/crop.
+  // Reset to the originally uploaded image. Always clears the unsaved
+  // rotate/crop; if an earlier edit was saved, it also swaps the stored file
+  // back to the original and reloads it inline — the dialog stays open, so it
+  // feels the same whether or not there was a prior edit.
   function reset() {
-    if (hasOriginal) {
-      void restore();
-    } else {
-      setRotate(0);
-      setCrop(FULL_CROP);
-    }
+    setRotate(0);
+    setCrop(FULL_CROP);
+    if (hasOriginal) void restoreOriginal();
   }
 
   function startDrag(mode: DragMode) {
@@ -164,7 +169,7 @@ export default function ReceiptImageEditor({
     onSaved();
   }
 
-  async function restore() {
+  async function restoreOriginal() {
     setBusy(true);
     setError(null);
     const res = await fetch(`/api/receipts/${receiptId}/edit`, {
@@ -177,7 +182,19 @@ export default function ReceiptImageEditor({
       setBusy(false);
       return;
     }
-    onSaved();
+    // Swap the restored original in place: re-probe its (upload) dimensions and
+    // cache-bust the <img> so the browser fetches the new bytes.
+    setReplaced(true);
+    setNatural(null);
+    setImgVersion((v) => v + 1);
+    setBusy(false);
+  }
+
+  function close() {
+    // A restore already rewrote the stored file; onSaved lets the parent
+    // refresh its thumbnail. Otherwise nothing changed — just dismiss.
+    if (replaced) onSaved();
+    else onClose();
   }
 
   return (
@@ -201,9 +218,7 @@ export default function ReceiptImageEditor({
             onClick={reset}
             disabled={busy || (!hasChanges && !hasOriginal)}
             data-testid="crop-reset"
-            title={
-              hasOriginal ? "Restore the originally uploaded image" : "Clear the rotate/crop"
-            }
+            title="Reset to the originally uploaded image"
           >
             Reset
           </button>
@@ -214,7 +229,7 @@ export default function ReceiptImageEditor({
           {!natural && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={src}
+              src={displaySrc}
               alt=""
               className="hidden"
               onLoad={(e) =>
@@ -234,7 +249,7 @@ export default function ReceiptImageEditor({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={src}
+                src={displaySrc}
                 alt="Receipt being edited"
                 draggable={false}
                 className="absolute left-1/2 top-1/2 max-w-none"
@@ -277,8 +292,8 @@ export default function ReceiptImageEditor({
         )}
 
         <div className="mt-4 flex items-center justify-center gap-2">
-          <button className="btn-secondary" onClick={onClose} disabled={busy} data-testid="image-editor-cancel">
-            Cancel
+          <button className="btn-secondary" onClick={close} disabled={busy} data-testid="image-editor-cancel">
+            {replaced ? "Done" : "Cancel"}
           </button>
           <button
             className="btn-primary"

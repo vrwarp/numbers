@@ -80,9 +80,10 @@ src/components/ReviewClaim.tsx  the review screen (largest component): groups, L
                                 SplitDialog, optimistic PATCH, PDF download
 src/components/ReceiptImageEditor.tsx  rotate/crop dialog (image receipts, from draft-claim
                                 review or the Shoebox viewer): CSS-rotated preview + draggable
-                                crop box → POST /api/receipts/[id]/edit; once an earlier edit was
-                                saved, Reset restores the pristine upload (POST {restore:true})
-                                instead of only clearing the unsaved rotate/crop; parent
+                                crop box → POST /api/receipts/[id]/edit; Reset clears the unsaved
+                                rotate/crop and, when an earlier edit was saved, restores the
+                                pristine upload (POST {restore:true}) and reloads it inline
+                                (dialog stays open, refreshes parent on close); parent
                                 cache-busts the <img> after
 src/components/ProfileForm.tsx  name + mailing address form
 src/app/layout.tsx              shell; reads session; renders NavBar
