@@ -106,6 +106,9 @@ status("success"|"error"), errorMessage?, durationMs, createdAt`
 - `action="remove-receipt"`: detail `{receiptId, originalName, removedLineItems[]}` — a
   receipt pulled out of a draft claim (its rows are deleted, so this is their only record).
 - `action="revert-to-draft"`: detail `{receiptIds}` — a generated claim unfrozen.
+- `action="edit-receipt-image"`: detail `{receiptId, originalName, rotate, crop}` — the stored
+  image was rotated/cropped in place (`/api/receipts/[id]/edit`); `reimbursementId` is set when
+  the edit was made from a claim's review screen.
 - `lineItemId` is a plain string (no FK) so events survive line-item deletion;
   `reimbursementId` is `SetNull`.
 - If you add a new mutation route, emit an AuditEvent — the tuning pipeline assumes the trail

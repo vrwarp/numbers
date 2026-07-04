@@ -54,7 +54,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   derivation-<receiptId>, remove-receipt-<receiptId>, revert-claim, upload-note,
   receipt-note-<receiptId>, claim-link-<receiptId>-<claimId>, split-first-amount,
   split-confirm, profile-name, profile-address, profile-save, dev-email, dev-name,
-  dev-signin`.
+  dev-signin, edit-image-<receiptId>, image-editor-stage, crop-box, rotate-left, rotate-right,
+  crop-reset, image-editor-save, image-editor-cancel`.
 - Review rows also carry `data-description={item.description}` — e2e matches rows by it
   because descriptions live in `<textarea>`/`<input>` values, which Playwright `hasText`
   CANNOT see. Composed descriptions are long, so match with the substring attribute selector

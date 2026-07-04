@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MINISTRIES } from "@/lib/ministries";
 import { centsToDollarString, formatCents, parseDollarsToCents, subtotalCents } from "@/lib/money";
+import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 
 interface LineItem {
   id: string;
@@ -55,6 +56,15 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [splitItem, setSplitItem] = useState<LineItem | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [editingReceiptId, setEditingReceiptId] = useState<string | null>(null);
+  // Bumped after a rotate/crop so the <img> cache-busts past the file route's max-age.
+  const [fileVersions, setFileVersions] = useState<Record<string, number>>({});
+
+  const fileUrl = useCallback(
+    (receiptId: string) =>
+      `/api/receipts/${receiptId}/file${fileVersions[receiptId] ? `?v=${fileVersions[receiptId]}` : ""}`,
+    [fileVersions]
+  );
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/reimbursements/${claimId}`);
@@ -248,10 +258,22 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         <div className="space-y-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-1">
           {claim.receipts.map((ref, i) => (
             <div key={ref.receiptId} className="card overflow-hidden">
-              <div className="border-b border-stone-100 px-3 py-2 text-xs font-semibold text-stone-500">
-                Receipt {i + 1}: {receiptLabel(ref.receipt)}
-                {ref.receipt.note && (
-                  <span className="ml-1 font-normal text-stone-400">· {ref.receipt.note}</span>
+              <div className="flex items-center justify-between gap-2 border-b border-stone-100 px-3 py-2 text-xs font-semibold text-stone-500">
+                <span className="min-w-0">
+                  Receipt {i + 1}: {receiptLabel(ref.receipt)}
+                  {ref.receipt.note && (
+                    <span className="ml-1 font-normal text-stone-400">· {ref.receipt.note}</span>
+                  )}
+                </span>
+                {isDraft && ref.receipt.mimeType !== "application/pdf" && (
+                  <button
+                    className="shrink-0 rounded px-2 py-1 font-normal text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+                    onClick={() => setEditingReceiptId(ref.receipt.id)}
+                    title="Rotate or crop this receipt photo"
+                    data-testid={`edit-image-${ref.receipt.id}`}
+                  >
+                    ✂ Rotate / crop
+                  </button>
                 )}
               </div>
               {ref.receipt.mimeType === "application/pdf" ? (
@@ -267,7 +289,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={`/api/receipts/${ref.receipt.id}/file`}
+                  src={fileUrl(ref.receipt.id)}
                   alt={ref.receipt.originalName}
                   className="w-full"
                 />
@@ -340,6 +362,22 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           </div>
         </div>
       </div>
+
+      {editingReceiptId && (
+        <ReceiptImageEditor
+          receiptId={editingReceiptId}
+          reimbursementId={claim.id}
+          src={fileUrl(editingReceiptId)}
+          onClose={() => setEditingReceiptId(null)}
+          onSaved={() => {
+            setFileVersions((prev) => ({
+              ...prev,
+              [editingReceiptId]: (prev[editingReceiptId] ?? 0) + 1,
+            }));
+            setEditingReceiptId(null);
+          }}
+        />
+      )}
 
       {splitItem && (
         <SplitDialog
