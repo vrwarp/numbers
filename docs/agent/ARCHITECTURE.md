@@ -129,6 +129,11 @@ multi-page), `Requestor Name`, `Request Date`. Left blank on purpose: `Approver 
 `Approval Date`, treasurer fields. Missing fields warn and skip (template swap tolerance);
 `form.updateFieldAppearances(helv)` then `form.flatten()` bakes values in.
 
+The bundled template is the church's original reworked once by
+`scripts/shrink-quantity-column.mjs` (quantity column narrowed to 36pt and headed "Qty",
+reclaimed width given to Description). Field names and the 13-row layout are unchanged;
+`generateClaimPdf` reads widget rects at runtime, so it needs no geometry constants.
+
 ## Environment variables
 
 | Var | Notes |

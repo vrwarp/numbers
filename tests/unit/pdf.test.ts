@@ -182,9 +182,10 @@ describe("generateClaimPdf (official CFCC AcroForm template)", () => {
 });
 
 describe("fittingFontSize (description column auto-shrink)", () => {
-  // Real geometry of "Description QuantityRow{n}" on the CFCC template,
-  // minus pdf-lib's 1pt padding per side (the fields have no border).
-  const DESC_BOUNDS = { width: 157.96, height: 15.76 };
+  // Real geometry of "Description QuantityRow{n}" on the CFCC template
+  // (after scripts/shrink-quantity-column.mjs widened it), minus pdf-lib's
+  // 1pt padding per side (the fields have no border).
+  const DESC_BOUNDS = { width: 191.68, height: 15.76 };
 
   async function helvetica() {
     const doc = await PDFDocument.create();
