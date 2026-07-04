@@ -134,10 +134,26 @@ test("receipt notes are visible everywhere and receipts can go on multiple claim
   await signInAs(page, `reuse-${testInfo.project.name}@example.com`, "Reuser");
   await page.goto("/shoebox");
 
-  // Upload with an optional description — stored and shown on the card.
+  // Upload happens immediately; the describe dialog then shows the uploaded
+  // receipt's PREVIEW next to the description field. (Driven manually here
+  // instead of via the helper to also assert the dialog and screenshot it.)
+  await page.getByTestId("file-input").setInputFiles([await makeReceiptFixture("note-me.jpg")]);
+  await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(1, { timeout: 20_000 });
+  await expect(page.getByTestId("upload-note")).toBeVisible();
+  await expect(page.getByTestId("upload-preview").locator("img")).toBeVisible();
+
+  // The rotate/crop editor is available right in the describe step.
+  await page.locator('[data-testid^="edit-image-"]').click();
+  await expect(page.getByTestId("image-editor-stage")).toBeVisible();
+  await page.getByTestId("rotate-right").click();
+  await page.getByTestId("image-editor-save").click();
+  await expect(page.getByTestId("image-editor-stage")).toBeHidden();
+  await expect(page.getByTestId("upload-preview").locator("img")).toBeVisible();
+
   await page.getByTestId("upload-note").fill("VBS craft supplies");
-  await uploadReceipts(page, [await makeReceiptFixture("note-me.jpg")]);
-  await expect(page.getByTestId("upload-note")).toHaveValue(""); // cleared after upload
+  await page.screenshot({ path: "screenshots/10-upload-dialog.png" });
+  await page.getByTestId("upload-note-confirm").click();
+  await expect(page.getByTestId("upload-note")).toBeHidden(); // queue drained
   const noteInput = page.locator('[data-testid^="receipt-note-"]');
   await expect(noteInput).toHaveValue("VBS craft supplies");
 

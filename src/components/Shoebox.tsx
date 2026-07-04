@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import ReceiptViewer from "./ReceiptViewer";
 
 interface ClaimRef {
@@ -27,8 +28,19 @@ export default function Shoebox() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [receipts, setReceipts] = useState<Receipt[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Just-uploaded receipts awaiting the optional describe step (front = current).
+  const [describeQueue, setDescribeQueue] = useState<Receipt[]>([]);
   const [uploadNote, setUploadNote] = useState("");
   const [uploading, setUploading] = useState(false);
+  // Rotate/crop editor open for the receipt currently in the describe step.
+  const [editingUpload, setEditingUpload] = useState(false);
+  // Bumped after a rotate/crop so <img> cache-busts past the file route's max-age.
+  const [fileVersions, setFileVersions] = useState<Record<string, number>>({});
+
+  const fileUrl = useCallback(
+    (id: string) => `/api/receipts/${id}/file${fileVersions[id] ? `?v=${fileVersions[id]}` : ""}`,
+    [fileVersions]
+  );
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewing, setViewing] = useState<Receipt | null>(null);
@@ -44,22 +56,39 @@ export default function Shoebox() {
 
   async function onFilesPicked(files: FileList | null) {
     if (!files || files.length === 0) return;
+    // Upload immediately (capture must be instant), then step through the
+    // uploaded receipts asking for an optional description with the actual
+    // image on screen.
     setUploading(true);
     setError(null);
     try {
       const form = new FormData();
       for (const f of Array.from(files)) form.append("files", f);
-      if (uploadNote.trim()) form.append("note", uploadNote.trim());
       const res = await fetch("/api/receipts", { method: "POST", body: form });
       if (!res.ok) throw new Error((await res.json()).error ?? "Upload failed");
-      setUploadNote("");
+      const { receipts: created } = await res.json();
       await load();
+      setUploadNote("");
+      setDescribeQueue(created);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setUploading(false);
       if (fileInput.current) fileInput.current.value = "";
     }
+  }
+
+  const describing: Receipt | null = describeQueue[0] ?? null;
+
+  function skipDescribe(all = false) {
+    setUploadNote("");
+    setEditingUpload(false);
+    setDescribeQueue((q) => (all ? [] : q.slice(1)));
+  }
+
+  async function saveDescribe() {
+    if (describing && uploadNote.trim()) await saveNote(describing.id, uploadNote.trim());
+    skipDescribe();
   }
 
   function toggle(id: string) {
@@ -123,7 +152,7 @@ export default function Shoebox() {
             Drop receipts here as you go. Select some when you&apos;re ready to file a claim.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div>
           <input
             ref={fileInput}
             type="file"
@@ -132,15 +161,6 @@ export default function Shoebox() {
             className="hidden"
             data-testid="file-input"
             onChange={(e) => onFilesPicked(e.target.files)}
-          />
-          <input
-            className="input w-56"
-            placeholder="Optional description…"
-            value={uploadNote}
-            onChange={(e) => setUploadNote(e.target.value)}
-            maxLength={300}
-            aria-label="Optional description for this upload"
-            data-testid="upload-note"
           />
           <button
             className="btn-primary"
@@ -200,6 +220,7 @@ export default function Shoebox() {
             onToggle={toggle}
             onDelete={deleteReceipt}
             onSaveNote={saveNote}
+            fileUrl={fileUrl}
             onView={setViewing}
           />
           {processed.length > 0 && (
@@ -219,6 +240,7 @@ export default function Shoebox() {
                   onToggle={toggle}
                   onDelete={deleteReceipt}
                   onSaveNote={saveNote}
+                  fileUrl={fileUrl}
                   onView={setViewing}
                 />
               </div>
@@ -227,8 +249,128 @@ export default function Shoebox() {
         </>
       )}
 
+      {describing && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal
+        >
+          <div className="card w-full max-w-md p-6">
+            <h2 className="font-bold">
+              Describe this receipt
+              {describeQueue.length > 1 && (
+                <span className="ml-1 font-normal text-stone-400">
+                  ({describeQueue.length} left)
+                </span>
+              )}
+            </h2>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <p className="truncate text-sm text-stone-500">{describing.originalName}</p>
+              {describing.mimeType.startsWith("image/") && (
+                <button
+                  className="shrink-0 rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+                  onClick={() => setEditingUpload(true)}
+                  title="Rotate or crop this receipt photo"
+                  data-testid={`edit-image-${describing.id}`}
+                >
+                  ✂ Rotate / crop
+                </button>
+              )}
+            </div>
+            <div
+              className="mt-3 flex max-h-72 items-center justify-center overflow-hidden rounded-lg bg-stone-100"
+              data-testid="upload-preview"
+            >
+              {describing.mimeType === "application/pdf" ? (
+                <object
+                  data={fileUrl(describing.id)}
+                  type="application/pdf"
+                  className="h-72 w-full"
+                >
+                  <div className="p-8 text-center text-stone-400">
+                    <div className="text-4xl">📄</div>
+                    <div className="text-xs font-semibold">PDF</div>
+                  </div>
+                </object>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={fileUrl(describing.id)}
+                  src={fileUrl(describing.id)}
+                  alt={describing.originalName}
+                  className="max-h-72 w-auto"
+                />
+              )}
+            </div>
+            <label className="mt-4 block text-sm font-medium">
+              Description (optional)
+              <input
+                key={describing.id}
+                className="input mt-1"
+                placeholder="e.g. VBS craft supplies"
+                value={uploadNote}
+                onChange={(e) => setUploadNote(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveDescribe();
+                }}
+                maxLength={300}
+                autoFocus
+                data-testid="upload-note"
+              />
+            </label>
+            <p className="mt-2 text-xs text-stone-400">You can edit it on the card later.</p>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              {describeQueue.length > 1 && (
+                <button
+                  className="mr-auto rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100"
+                  onClick={() => skipDescribe(true)}
+                  data-testid="upload-note-skip-all"
+                >
+                  Skip all
+                </button>
+              )}
+              <button
+                className="btn-secondary"
+                onClick={() => skipDescribe()}
+                data-testid="upload-note-cancel"
+              >
+                Skip
+              </button>
+              <button className="btn-primary" onClick={saveDescribe} data-testid="upload-note-confirm">
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingUpload && describing && (
+        <ReceiptImageEditor
+          receiptId={describing.id}
+          src={fileUrl(describing.id)}
+          onClose={() => setEditingUpload(false)}
+          onSaved={() => {
+            setFileVersions((prev) => ({
+              ...prev,
+              [describing.id]: (prev[describing.id] ?? 0) + 1,
+            }));
+            setEditingUpload(false);
+            load();
+          }}
+        />
+      )}
+
       {viewing && (
-        <ReceiptViewer receipt={viewing} onClose={() => setViewing(null)} onEdited={load} />
+        <ReceiptViewer
+          receipt={viewing}
+          onClose={() => setViewing(null)}
+          onEdited={() => {
+            // Bump the version so card thumbnails cache-bust past the file
+            // route's max-age (the viewer busts its own image internally).
+            setFileVersions((prev) => ({ ...prev, [viewing.id]: (prev[viewing.id] ?? 0) + 1 }));
+            load();
+          }}
+        />
       )}
     </div>
   );
@@ -241,6 +383,7 @@ function ReceiptGrid({
   onToggle,
   onDelete,
   onSaveNote,
+  fileUrl,
   onView,
 }: {
   receipts: Receipt[];
@@ -249,6 +392,7 @@ function ReceiptGrid({
   onToggle?: (id: string) => void;
   onDelete?: (id: string) => void;
   onSaveNote?: (id: string, note: string) => void;
+  fileUrl?: (id: string) => string;
   onView?: (r: Receipt) => void;
 }) {
   return (
@@ -298,7 +442,8 @@ function ReceiptGrid({
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={`/api/receipts/${r.id}/file`}
+                  key={fileUrl?.(r.id)}
+                  src={fileUrl ? fileUrl(r.id) : `/api/receipts/${r.id}/file`}
                   alt={r.originalName}
                   className="h-full w-full object-cover"
                 />

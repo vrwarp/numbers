@@ -90,8 +90,11 @@ Upload accepts images and PDFs. Images are compressed server-side to **~100 KB**
 fallback); PDFs are stored as-is. Files land in `DATA_DIR/uploads/<userId>/<receiptId>.<ext>`
 and a `receipts` row is created with status `unassigned`.
 
-An optional free-text **description** can be attached at upload (or added/edited on the card
-later) — "VBS craft supplies" written in the parking lot beats a mystery JPEG a month later.
+Right after upload, a small **describe** step shows each receipt's actual image and asks for
+an optional free-text description (skippable, editable on the card later) — "VBS craft
+supplies" written in the parking lot, with the photo on screen, beats a mystery JPEG a month
+later. The same step offers the rotate/crop tool, so a sideways or cluttered photo gets fixed
+the moment it's taken rather than at claim time.
 It follows the receipt everywhere: the Shoebox card, the review headers, and the label above
 the receipt image in the final PDF packet. Each card also links to every claim the receipt is
 on. Deliberately, **no AI runs here**. Capture must be instant and free; deferring the LLM
