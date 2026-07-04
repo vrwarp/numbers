@@ -4,7 +4,13 @@ import path from "path";
 import zlib from "zlib";
 import { PDFDocument } from "pdf-lib";
 import sharp from "sharp";
-import { fittingFontSize, generateClaimPdf, splitAddress, type PdfLineItem } from "@/lib/pdf/generate";
+import {
+  fittingFontSize,
+  generateClaimPdf,
+  splitAddress,
+  toEncodableText,
+  type PdfLineItem,
+} from "@/lib/pdf/generate";
 
 let templateBytes: Uint8Array;
 
@@ -156,6 +162,18 @@ describe("generateClaimPdf (official CFCC AcroForm template)", () => {
     expect(text).toContain("-22.98"); // grand total
   });
 
+  it("truncates over-long receipt file names in the appended-page label", async () => {
+    const longName = `${"a-very-long-receipt-file-name".repeat(10)}.jpg`; // ~294 chars
+    const bytes = await generateClaimPdf({
+      ...baseInput(),
+      items: items(1),
+      receipts: [{ data: await jpegReceipt(), mimeType: "image/jpeg", originalName: longName }],
+    });
+    const text = pdfVisibleText(bytes);
+    expect(text).toContain("Receipt 1 of 1");
+    expect(text).not.toContain(longName); // clipped to the page width, not drawn off-page
+  });
+
   it("refuses to run without the template", async () => {
     await expect(
       generateClaimPdf({ ...baseInput(), templateBytes: new Uint8Array(), items: items(1), receipts: [] })
@@ -193,6 +211,44 @@ describe("fittingFontSize (description column auto-shrink)", () => {
   it("never returns below pdf-lib's 4pt floor even for absurd input", async () => {
     const font = await helvetica();
     expect(fittingFontSize("WORD ".repeat(400).trim(), font, DESC_BOUNDS, 8)).toBe(4);
+  });
+
+  it("shrinks single-line fields (ministry column) on width alone — no wrapping", async () => {
+    // "For Ministry  EventRow{n}" geometry: 154.32 × 17.76 minus 1pt padding.
+    const bounds = { width: 152.32, height: 15.76 };
+    const font = await helvetica();
+    expect(fittingFontSize("Children's Ministry", font, bounds, 8, false)).toBe(8);
+    const long = "Children's Ministry / Summer Camp 2026 Outreach";
+    const size = fittingFontSize(long, font, bounds, 8, false);
+    expect(size).toBeLessThan(8);
+    expect(font.widthOfTextAtSize(long, size)).toBeLessThanOrEqual(bounds.width);
+  });
+});
+
+describe("toEncodableText (WinAnsi sanitizing)", () => {
+  async function helvetica() {
+    const doc = await PDFDocument.create();
+    const { StandardFonts } = await import("pdf-lib");
+    return doc.embedFont(StandardFonts.Helvetica);
+  }
+
+  it("passes plain descriptions through untouched, incl. em-dash and accents", async () => {
+    const font = await helvetica();
+    const s = "Café Récolte 06/21 — crème brûlée (refunded)";
+    expect(toEncodableText(s, font)).toBe(s);
+  });
+
+  it("keeps the Latin part of a CJK description instead of a blank field", async () => {
+    // Unsanitized, pdf-lib renders the ENTIRE field blank for this input.
+    const font = await helvetica();
+    expect(toEncodableText("大華超市 99 Ranch Market 06/28 — 燒臘, rice", font)).toBe(
+      "… 99 Ranch Market 06/28 — …, rice"
+    );
+  });
+
+  it("collapses an unencodable run to a single ellipsis", async () => {
+    const font = await helvetica();
+    expect(toEncodableText("中文事工 Chinese Ministry", font)).toBe("… Chinese Ministry");
   });
 });
 
