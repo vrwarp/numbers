@@ -14,10 +14,12 @@ const PREVIEW_DPI = 300;
 /** Hard cap on a page's rendered width (px) so a large-format page can't blow
  *  up the strip; a Letter page at 300 DPI is ~2550px, under this. */
 const MAX_PAGE_WIDTH = 2600;
-/** Ceiling on the whole strip's pixel count (~40 MP ≈ a 160 MB canvas). A few
- *  pages render at full DPI; a pathologically long one is scaled down uniformly
- *  to fit rather than exhausting server memory. */
-const MAX_STRIP_PIXELS = 40_000_000;
+/** Ceiling on the whole strip's pixel count (~80 MP ≈ a 320 MB RGBA canvas).
+ *  Sized so a normal multi-page doc — up to ~9 Letter pages at 300 DPI — renders
+ *  at full density; only pages with unusually large dimensions are scaled down
+ *  uniformly to fit, rather than exhausting server memory. (At 40 MP a 7-page
+ *  doc was forced to ~247 DPI and never approached the quality budget.) */
+const MAX_STRIP_PIXELS = 80_000_000;
 /** Per-page size budget, mirroring the ~100 KB/image target of the photo
  *  pipeline. The strip is JPEG-encoded at the highest quality on the ladder
  *  whose total size stays within this × (rendered page count); crisp vector

@@ -52,6 +52,15 @@ describe("renderPdfToPreviewJpeg", () => {
     expect(three.height!).toBeLessThanOrEqual(one.height! * 3 + 3);
   });
 
+  it("renders a normal multi-page (Letter) document at full density", async () => {
+    // Regression: a too-low pixel ceiling forced a 7-page Letter doc down to
+    // ~247 DPI. Seven 612pt pages must still render at ~300 DPI (612pt→2550px).
+    const doc = await PDFDocument.create();
+    for (let i = 0; i < 7; i++) doc.addPage([612, 792]);
+    const meta = await sharp(await renderPdfToPreviewJpeg(Buffer.from(await doc.save()))).metadata();
+    expect(meta.width!).toBeGreaterThanOrEqual(2500);
+  });
+
   it("renders content on every page, not just the last", async () => {
     // Regression: pdfjs clears the target canvas per render(), so a shared-canvas
     // approach left only the final page and blanked the rest.
