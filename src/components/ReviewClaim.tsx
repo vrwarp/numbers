@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MINISTRY_GROUPS, isKnownMinistry } from "@/lib/ministries";
+import {
+  MINISTRY_GROUPS,
+  formatMinistryEvent,
+  isKnownMinistry,
+  mostCommonMinistryEvent,
+} from "@/lib/ministries";
 import { centsToDollarString, formatCents, parseDollarsToCents, subtotalCents } from "@/lib/money";
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import AddReceiptsDialog from "@/components/AddReceiptsDialog";
@@ -42,9 +47,33 @@ interface Claim {
   id: string;
   status: "draft" | "generated";
   totalCents: number;
+  // Single-ministry mode: claimMinistry/claimEvent mirror onto every active
+  // row (the server fans out on PATCH); rows keep their own values as the
+  // source of truth for the PDF.
+  singleMinistry: boolean;
+  claimMinistry: string;
+  claimEvent: string;
+  claimDescription: string;
   createdAt: string;
   lineItems: LineItem[];
   receipts: ReceiptRef[];
+}
+
+type ClaimSettingsPatch = Partial<
+  Pick<Claim, "singleMinistry" | "claimMinistry" | "claimEvent" | "claimDescription">
+>;
+
+interface MinistrySuggestion {
+  ministry: string | null;
+  event: string | null;
+  rationale: string;
+}
+
+/** Pre-fan-out values of the rows a claim-level ministry change touched. */
+interface FanOutUndo {
+  restoreClaim: Pick<Claim, "singleMinistry" | "claimMinistry" | "claimEvent">;
+  rows: Pick<LineItem, "id" | "ministry" | "event" | "isVerified">[];
+  message: string;
 }
 
 /** "Amazon — 06/04/2026", falling back to the uploaded file name until extraction runs. */
@@ -70,12 +99,30 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const [fileVersions, setFileVersions] = useState<Record<string, number>>({});
   // Row whose confirm button is pulsing after a click on the gated PDF button.
   const [nudgedItemId, setNudgedItemId] = useState<string | null>(null);
+  // Single-ministry mode state: the AI's pending suggestion (never applied
+  // until the user clicks Apply), the multi→single confirm dialog, the undo
+  // toast for the last fan-out, and the split-needs-multi-mode gate.
+  const [pendingSuggestion, setPendingSuggestion] = useState<MinistrySuggestion | null>(null);
+  const [suggesting, setSuggesting] = useState(false);
+  const [modeSwitchPrompt, setModeSwitchPrompt] = useState<{
+    adopt: { ministry: string; event: string };
+    distinct: number;
+    unverify: number;
+  } | null>(null);
+  const [fanOutUndo, setFanOutUndo] = useState<FanOutUndo | null>(null);
+  const [splitModeItem, setSplitModeItem] = useState<LineItem | null>(null);
 
   useEffect(() => {
     if (!nudgedItemId) return;
     const timer = setTimeout(() => setNudgedItemId(null), 3500);
     return () => clearTimeout(timer);
   }, [nudgedItemId]);
+
+  useEffect(() => {
+    if (!fanOutUndo) return;
+    const timer = setTimeout(() => setFanOutUndo(null), 15_000);
+    return () => clearTimeout(timer);
+  }, [fanOutUndo]);
 
   const fileUrl = useCallback(
     (receiptId: string) =>
@@ -145,6 +192,33 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
       });
     },
     [enqueue, load]
+  );
+
+  // Claim-level review settings (mode, claim ministry/event, description).
+  // The server fans single-mode ministry changes out onto the rows, so the
+  // response is the full refreshed claim.
+  const patchClaim = useCallback(
+    (patch: ClaimSettingsPatch) => {
+      setClaim((prev) => (prev ? { ...prev, ...patch } : prev));
+      return enqueue(async () => {
+        try {
+          const res = await fetch(`/api/reimbursements/${claimId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch),
+          });
+          if (!res.ok) {
+            setError((await res.json()).error ?? "Update failed");
+            await load();
+            return;
+          }
+          setClaim((await res.json()).reimbursement);
+        } catch {
+          setError("Update failed");
+        }
+      });
+    },
+    [claimId, enqueue, load]
   );
 
   const mergeUp = useCallback(
@@ -230,6 +304,131 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
       ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
+  /**
+   * Apply claim-level ministry/event (optionally flipping the mode) and let
+   * the server mirror them onto every active row. Rows are updated
+   * optimistically, and the pre-change values of every touched row are kept
+   * in an undo toast — a fan-out can silently un-verify rows, so it must be
+   * one click to take back.
+   */
+  function fanOutClaimPatch(next: {
+    singleMinistry?: boolean;
+    claimMinistry: string;
+    claimEvent: string;
+  }) {
+    if (!claim) return;
+    const touched = claim.lineItems.filter(
+      (it) => !it.isExcluded && (it.ministry !== next.claimMinistry || it.event !== next.claimEvent)
+    );
+    if (touched.length > 0) {
+      const label = next.claimMinistry
+        ? `“${formatMinistryEvent(next.claimMinistry, next.claimEvent)}”`
+        : "no ministry";
+      setFanOutUndo({
+        restoreClaim: {
+          singleMinistry: claim.singleMinistry,
+          claimMinistry: claim.claimMinistry,
+          claimEvent: claim.claimEvent,
+        },
+        rows: touched.map(({ id, ministry, event, isVerified }) => ({
+          id,
+          ministry,
+          event,
+          isVerified,
+        })),
+        message: `Set ${label} on ${touched.length} row${touched.length === 1 ? "" : "s"}`,
+      });
+      // Optimistic mirror so the row badges don't lag the control.
+      setClaim((prev) =>
+        prev
+          ? {
+              ...prev,
+              lineItems: prev.lineItems.map((it) =>
+                it.isExcluded
+                  ? it
+                  : {
+                      ...it,
+                      ministry: next.claimMinistry,
+                      event: next.claimEvent,
+                      isVerified:
+                        it.ministry === next.claimMinistry && it.event === next.claimEvent
+                          ? it.isVerified
+                          : false,
+                    }
+              ),
+            }
+          : prev
+      );
+    }
+    return patchClaim({
+      singleMinistry: next.singleMinistry ?? claim.singleMinistry,
+      claimMinistry: next.claimMinistry,
+      claimEvent: next.claimEvent,
+    });
+  }
+
+  /** Put the touched rows (and the claim settings) back the way they were. */
+  function undoFanOut() {
+    const undo = fanOutUndo;
+    if (!undo) return;
+    setFanOutUndo(null);
+    patchClaim(undo.restoreClaim);
+    for (const row of undo.rows) {
+      patchItem(row.id, { ministry: row.ministry, event: row.event, isVerified: row.isVerified });
+    }
+  }
+
+  /** Multi → single: adopt the most common row value, confirming when rows diverge. */
+  function switchToSingle() {
+    if (!claim || claim.singleMinistry) return;
+    const adopt = mostCommonMinistryEvent(claim.lineItems);
+    const active = claim.lineItems.filter((it) => !it.isExcluded);
+    const touched = active.filter(
+      (it) => it.ministry !== adopt.ministry || it.event !== adopt.event
+    );
+    if (touched.length === 0) {
+      patchClaim({ singleMinistry: true, claimMinistry: adopt.ministry, claimEvent: adopt.event });
+      return;
+    }
+    setModeSwitchPrompt({
+      adopt,
+      distinct: new Set(
+        active.filter((it) => it.ministry).map((it) => JSON.stringify([it.ministry, it.event]))
+      ).size,
+      unverify: touched.filter((it) => it.isVerified).length,
+    });
+  }
+
+  async function runSuggest(input: HTMLInputElement | null) {
+    if (!claim || suggesting) return;
+    const description = input?.value.trim() ?? "";
+    if (!description) {
+      input?.focus();
+      return;
+    }
+    setSuggesting(true);
+    setPendingSuggestion(null);
+    try {
+      const res = await fetch(`/api/reimbursements/${claim.id}/suggest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description }),
+      });
+      if (!res.ok) {
+        setError((await res.json()).error ?? "Suggestion failed");
+        return;
+      }
+      setError(null);
+      // The route persisted the description as the claim note.
+      setClaim((prev) => (prev ? { ...prev, claimDescription: description } : prev));
+      setPendingSuggestion((await res.json()).suggestion);
+    } catch {
+      setError("Suggestion failed");
+    } finally {
+      setSuggesting(false);
+    }
+  }
+
   async function generatePdf() {
     setDownloading(true);
     setError(null);
@@ -309,6 +508,27 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         <div className="card border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
           {error}
         </div>
+      )}
+
+      {isDraft && (
+        <ClaimMinistryPanel
+          claim={claim}
+          suggesting={suggesting}
+          pendingSuggestion={pendingSuggestion}
+          onModeSingle={switchToSingle}
+          onModeMulti={() => {
+            setPendingSuggestion(null);
+            patchClaim({ singleMinistry: false });
+          }}
+          onFanOut={fanOutClaimPatch}
+          onPersistDescription={(v) => patchClaim({ claimDescription: v })}
+          onSuggest={runSuggest}
+          onApplySuggestion={(s) => {
+            setPendingSuggestion(null);
+            fanOutClaimPatch({ claimMinistry: s.ministry ?? "", claimEvent: s.event ?? "" });
+          }}
+          onDismissSuggestion={() => setPendingSuggestion(null)}
+        />
       )}
 
       {/* One card per receipt: the image and its digitized rows travel together
@@ -406,9 +626,12 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                       key={item.id}
                       item={item}
                       readOnly={!isDraft}
+                      singleMode={claim.singleMinistry}
                       nudged={item.id === nudgedItemId}
                       onPatch={patchItem}
-                      onSplit={() => setSplitItem(item)}
+                      onSplit={() =>
+                        claim.singleMinistry ? setSplitModeItem(item) : setSplitItem(item)
+                      }
                       canMergeUp={idx > 0}
                       mergeUpBlocked={idx > 0 && group.items[idx - 1].isExcluded}
                       onMergeUp={() => mergeUp(item.id)}
@@ -562,6 +785,144 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           }}
         />
       )}
+
+      {/* Split is the multi-ministry mechanism, so in single mode it first
+          offers the mode switch instead of silently diverging a row. */}
+      {splitModeItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal
+          data-testid="split-mode-dialog"
+        >
+          <div className="card w-full max-w-sm p-6">
+            <h2 className="font-bold">Split across ministries?</h2>
+            <p className="mt-2 text-sm text-stone-600">
+              Splitting divides one receipt between different ministries, but this claim is set to
+              use <strong>one ministry</strong> for every row.
+            </p>
+            <p className="mt-2 text-sm text-stone-600">
+              Switch the claim to multiple ministries to split this row.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                className="btn-secondary"
+                onClick={() => setSplitModeItem(null)}
+                data-testid="split-mode-cancel"
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                data-testid="split-mode-switch"
+                onClick={async () => {
+                  const item = splitModeItem;
+                  setSplitModeItem(null);
+                  await patchClaim({ singleMinistry: false });
+                  setSplitItem(item);
+                }}
+              >
+                Switch &amp; split
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Multi → single is the one destructive transition: rows with other
+          ministries get overwritten with the adopted value. Spell that out. */}
+      {modeSwitchPrompt && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal
+          data-testid="mode-switch-dialog"
+        >
+          <div className="card w-full max-w-md p-6">
+            <h2 className="font-bold">Use one ministry for the whole claim?</h2>
+            <p className="mt-2 text-sm text-stone-600">
+              {modeSwitchPrompt.adopt.ministry ? (
+                <>
+                  Every row will be set to{" "}
+                  <strong>
+                    {formatMinistryEvent(
+                      modeSwitchPrompt.adopt.ministry,
+                      modeSwitchPrompt.adopt.event
+                    )}
+                  </strong>{" "}
+                  (what most rows already use
+                  {modeSwitchPrompt.distinct > 1
+                    ? `, of the ${modeSwitchPrompt.distinct} different ministries currently picked`
+                    : ""}
+                  ).
+                </>
+              ) : (
+                <>Rows keep no ministry until you pick one at the top.</>
+              )}
+              {modeSwitchPrompt.unverify > 0 && (
+                <>
+                  {" "}
+                  <span className="font-medium text-amber-700">
+                    {modeSwitchPrompt.unverify} verified row
+                    {modeSwitchPrompt.unverify === 1 ? "" : "s"} will need re-verifying.
+                  </span>
+                </>
+              )}
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                className="btn-secondary"
+                onClick={() => setModeSwitchPrompt(null)}
+                data-testid="mode-switch-cancel"
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                data-testid="mode-switch-confirm"
+                onClick={() => {
+                  const { adopt } = modeSwitchPrompt;
+                  setModeSwitchPrompt(null);
+                  fanOutClaimPatch({
+                    singleMinistry: true,
+                    claimMinistry: adopt.ministry,
+                    claimEvent: adopt.event,
+                  });
+                }}
+              >
+                Switch &amp; apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* A fan-out can un-verify rows wholesale, so it's always one click to
+          take back while the toast is up. */}
+      {fanOutUndo && (
+        <div
+          className="fixed bottom-24 left-1/2 z-30 -translate-x-1/2"
+          data-testid="fanout-toast"
+        >
+          <div className="flex items-center gap-3 rounded-lg bg-stone-900 px-4 py-2 text-sm text-white shadow-xl">
+            <span>{fanOutUndo.message}</span>
+            <button
+              className="font-semibold text-amber-300 hover:text-amber-200"
+              onClick={undoFanOut}
+              data-testid="fanout-undo"
+            >
+              Undo
+            </button>
+            <button
+              className="text-stone-400 hover:text-white"
+              onClick={() => setFanOutUndo(null)}
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -569,9 +930,236 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
 // Sentinel select value for the free-text ministry escape hatch; never stored.
 const OTHER_MINISTRY = "__other__";
 
+/**
+ * Claim-level ministry & event controls. In single mode ("most claims are for
+ * one thing") the one selector here replaces every per-row selector, and the
+ * user can describe the claim in a sentence to get an AI suggestion — which
+ * is only ever applied by the human clicking Apply.
+ */
+function ClaimMinistryPanel({
+  claim,
+  suggesting,
+  pendingSuggestion,
+  onModeSingle,
+  onModeMulti,
+  onFanOut,
+  onPersistDescription,
+  onSuggest,
+  onApplySuggestion,
+  onDismissSuggestion,
+}: {
+  claim: Claim;
+  suggesting: boolean;
+  pendingSuggestion: MinistrySuggestion | null;
+  onModeSingle: () => void;
+  onModeMulti: () => void;
+  onFanOut: (next: { claimMinistry: string; claimEvent: string }) => void;
+  onPersistDescription: (value: string) => void;
+  onSuggest: (input: HTMLInputElement | null) => void;
+  onApplySuggestion: (s: MinistrySuggestion) => void;
+  onDismissSuggestion: () => void;
+}) {
+  const descRef = useRef<HTMLInputElement | null>(null);
+  // Same "Other…" mechanics as the per-row selector: the sentinel stays
+  // selected while the custom text box is still empty.
+  const [otherPicked, setOtherPicked] = useState(false);
+  const showOtherInput =
+    otherPicked || (!!claim.claimMinistry && !isKnownMinistry(claim.claimMinistry));
+  const single = claim.singleMinistry;
+
+  const modeButton = (active: boolean) =>
+    `rounded-md px-3 py-1.5 transition-colors ${
+      active ? "bg-indigo-600 font-semibold text-white" : "text-stone-600 hover:bg-stone-100"
+    }`;
+
+  return (
+    <div className="card space-y-3 p-4" data-testid="claim-ministry-panel">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-stone-700">
+          {single ? "Ministry & event for this claim" : "Ministry & event"}
+        </span>
+        <div className="flex rounded-lg border border-stone-200 p-0.5 text-xs">
+          <button
+            className={modeButton(single)}
+            onClick={() => !single && onModeSingle()}
+            aria-pressed={single}
+            data-testid="claim-mode-single"
+          >
+            One ministry
+          </button>
+          <button
+            className={modeButton(!single)}
+            onClick={() => single && onModeMulti()}
+            aria-pressed={!single}
+            data-testid="claim-mode-multi"
+          >
+            Multiple
+          </button>
+        </div>
+      </div>
+
+      {single ? (
+        <>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              ref={descRef}
+              key={`claim-desc-${claim.claimDescription}`}
+              className="input flex-1"
+              defaultValue={claim.claimDescription}
+              placeholder='What’s this claim for? e.g. “snacks for the youth retreat”'
+              maxLength={300}
+              onBlur={(e) => {
+                const v = e.target.value.trim();
+                if (v !== claim.claimDescription) onPersistDescription(v);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") onSuggest(descRef.current);
+              }}
+              aria-label="Claim description"
+              data-testid="claim-description"
+            />
+            <button
+              className="btn-secondary whitespace-nowrap"
+              onClick={() => onSuggest(descRef.current)}
+              disabled={suggesting}
+              title="Let the AI suggest a ministry & event from your description — you still apply it"
+              data-testid="suggest-ministry"
+            >
+              {suggesting ? "Thinking…" : "✨ Suggest"}
+            </button>
+          </div>
+
+          {pendingSuggestion && (
+            <div
+              className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-900"
+              data-testid="suggestion-banner"
+            >
+              {pendingSuggestion.ministry ? (
+                <>
+                  <span>
+                    Suggested:{" "}
+                    <strong>
+                      {formatMinistryEvent(
+                        pendingSuggestion.ministry,
+                        pendingSuggestion.event ?? ""
+                      )}
+                    </strong>
+                  </span>
+                  {pendingSuggestion.rationale && (
+                    <span className="text-xs text-violet-700">{pendingSuggestion.rationale}</span>
+                  )}
+                  <span className="ml-auto flex items-center gap-2">
+                    <button
+                      className="rounded-full bg-violet-600 px-3 py-1 text-xs font-semibold text-white hover:bg-violet-700"
+                      onClick={() => onApplySuggestion(pendingSuggestion)}
+                      data-testid="suggestion-apply"
+                    >
+                      Apply to all rows
+                    </button>
+                    <button
+                      className="text-xs text-violet-700 hover:underline"
+                      onClick={onDismissSuggestion}
+                      data-testid="suggestion-dismiss"
+                    >
+                      Dismiss
+                    </button>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span>No confident match — pick a ministry below.</span>
+                  {pendingSuggestion.rationale && (
+                    <span className="text-xs text-violet-700">{pendingSuggestion.rationale}</span>
+                  )}
+                  <button
+                    className="ml-auto text-xs text-violet-700 hover:underline"
+                    onClick={onDismissSuggestion}
+                    data-testid="suggestion-dismiss"
+                  >
+                    Dismiss
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              className="input w-auto max-w-full"
+              value={showOtherInput ? OTHER_MINISTRY : claim.claimMinistry}
+              onChange={(e) => {
+                if (e.target.value === OTHER_MINISTRY) {
+                  setOtherPicked(true);
+                  // Clear the stored category (and the rows mirroring it) so
+                  // the verify gate stays honest until custom text is typed.
+                  if (claim.claimMinistry)
+                    onFanOut({ claimMinistry: "", claimEvent: claim.claimEvent });
+                } else {
+                  setOtherPicked(false);
+                  onFanOut({ claimMinistry: e.target.value, claimEvent: claim.claimEvent });
+                }
+              }}
+              aria-label="Claim ministry"
+              data-testid="claim-ministry"
+            >
+              <option value="">— pick ministry —</option>
+              {MINISTRY_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+              <option value={OTHER_MINISTRY}>Other…</option>
+            </select>
+            {showOtherInput && (
+              <input
+                key={`claim-other-${claim.claimMinistry}`}
+                className="input w-44"
+                defaultValue={isKnownMinistry(claim.claimMinistry) ? "" : claim.claimMinistry}
+                placeholder="Custom ministry"
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if (v !== claim.claimMinistry)
+                    onFanOut({ claimMinistry: v, claimEvent: claim.claimEvent });
+                }}
+                aria-label="Custom claim ministry"
+                data-testid="claim-ministry-other"
+              />
+            )}
+            <input
+              key={`claim-event-${claim.claimEvent}`}
+              className="input w-40"
+              defaultValue={claim.claimEvent}
+              placeholder="Event (optional)"
+              onBlur={(e) => {
+                const v = e.target.value.trim();
+                if (v !== claim.claimEvent)
+                  onFanOut({ claimMinistry: claim.claimMinistry, claimEvent: v });
+              }}
+              aria-label="Claim event"
+              data-testid="claim-event"
+            />
+          </div>
+          <p className="text-xs text-stone-500">
+            Applied to every row — you still confirm each amount below.
+          </p>
+        </>
+      ) : (
+        <p className="text-xs text-stone-500">
+          Each row picks its own ministry below. Switch to “One ministry” to set them all at once.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function LineItemRow({
   item,
   readOnly,
+  singleMode,
   nudged,
   onPatch,
   onSplit,
@@ -581,6 +1169,9 @@ function LineItemRow({
 }: {
   item: LineItem;
   readOnly: boolean;
+  /** Single-ministry claim: the ministry/event are set claim-wide, so the
+      per-row selector collapses to a read-only badge. */
+  singleMode: boolean;
   /** Pulse the confirm button — the gated PDF button was clicked and this is
       the first row still needing a verify. */
   nudged: boolean;
@@ -624,64 +1215,82 @@ function LineItemRow({
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            className="input w-auto max-w-full"
-            value={showOtherInput ? OTHER_MINISTRY : item.ministry}
-            disabled={excluded || readOnly}
-            onChange={(e) => {
-              if (e.target.value === OTHER_MINISTRY) {
-                setOtherPicked(true);
-                // Clear the stored category so the verify gate stays honest
-                // until the custom text is actually typed.
-                if (item.ministry) onPatch(item.id, { ministry: "" });
-              } else {
-                setOtherPicked(false);
-                onPatch(item.id, { ministry: e.target.value });
-              }
-            }}
-            aria-label="Ministry"
-            data-testid={`ministry-${item.id}`}
-          >
-            <option value="">— pick ministry —</option>
-            {MINISTRY_GROUPS.map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.options.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
+          {singleMode ? (
+            // The ministry is set once for the whole claim; the badge shows
+            // this row's actual stored value (the PDF's source of truth).
+            <span
+              className={`inline-flex max-w-full items-center truncate rounded-full px-3 py-1 text-xs ${
+                item.ministry ? "bg-stone-100 text-stone-600" : "bg-amber-50 text-amber-700"
+              }`}
+              title="Ministry applies claim-wide — set it at the top"
+              data-testid={`row-ministry-badge-${item.id}`}
+            >
+              {item.ministry
+                ? formatMinistryEvent(item.ministry, item.event)
+                : "Ministry set above ↑"}
+            </span>
+          ) : (
+            <>
+              <select
+                className="input w-auto max-w-full"
+                value={showOtherInput ? OTHER_MINISTRY : item.ministry}
+                disabled={excluded || readOnly}
+                onChange={(e) => {
+                  if (e.target.value === OTHER_MINISTRY) {
+                    setOtherPicked(true);
+                    // Clear the stored category so the verify gate stays honest
+                    // until the custom text is actually typed.
+                    if (item.ministry) onPatch(item.id, { ministry: "" });
+                  } else {
+                    setOtherPicked(false);
+                    onPatch(item.id, { ministry: e.target.value });
+                  }
+                }}
+                aria-label="Ministry"
+                data-testid={`ministry-${item.id}`}
+              >
+                <option value="">— pick ministry —</option>
+                {MINISTRY_GROUPS.map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.options.map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
-              </optgroup>
-            ))}
-            <option value={OTHER_MINISTRY}>Other…</option>
-          </select>
-          {showOtherInput && (
-            <input
-              key={`other-${item.id}-${item.ministry}`}
-              className="input w-44"
-              defaultValue={isKnownMinistry(item.ministry) ? "" : item.ministry}
-              placeholder="Custom ministry"
-              disabled={excluded || readOnly}
-              onBlur={(e) => {
-                const v = e.target.value.trim();
-                if (v !== item.ministry) onPatch(item.id, { ministry: v });
-              }}
-              aria-label="Custom ministry"
-              data-testid={`ministry-other-${item.id}`}
-            />
+                <option value={OTHER_MINISTRY}>Other…</option>
+              </select>
+              {showOtherInput && (
+                <input
+                  key={`other-${item.id}-${item.ministry}`}
+                  className="input w-44"
+                  defaultValue={isKnownMinistry(item.ministry) ? "" : item.ministry}
+                  placeholder="Custom ministry"
+                  disabled={excluded || readOnly}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (v !== item.ministry) onPatch(item.id, { ministry: v });
+                  }}
+                  aria-label="Custom ministry"
+                  data-testid={`ministry-other-${item.id}`}
+                />
+              )}
+              <input
+                key={`event-${item.id}-${item.event}`}
+                className="input w-40"
+                defaultValue={item.event}
+                placeholder="Event (optional)"
+                disabled={excluded || readOnly}
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if (v !== item.event) onPatch(item.id, { event: v });
+                }}
+                aria-label="Event"
+                data-testid={`event-${item.id}`}
+              />
+            </>
           )}
-          <input
-            key={`event-${item.id}-${item.event}`}
-            className="input w-40"
-            defaultValue={item.event}
-            placeholder="Event (optional)"
-            disabled={excluded || readOnly}
-            onBlur={(e) => {
-              const v = e.target.value.trim();
-              if (v !== item.event) onPatch(item.id, { event: v });
-            }}
-            aria-label="Event"
-            data-testid={`event-${item.id}`}
-          />
           <label className="flex items-center gap-1 text-xs text-stone-500">
             $
             <input
@@ -747,7 +1356,11 @@ function LineItemRow({
               <span className="ml-auto flex items-center gap-2">
                 {nudged && (
                   <span className="animate-pulse text-xs font-medium text-emerald-700">
-                    {item.ministry ? "Click to verify →" : "Pick a ministry, then verify →"}
+                    {item.ministry
+                      ? "Click to verify →"
+                      : singleMode
+                        ? "Set the ministry at the top, then verify →"
+                        : "Pick a ministry, then verify →"}
                   </span>
                 )}
                 <button

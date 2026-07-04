@@ -98,3 +98,29 @@ export function formatMinistryEvent(ministry: string, event: string): string {
   const e = event.trim();
   return e ? `${ministry} — ${e}` : ministry;
 }
+
+/**
+ * The most frequent non-empty (ministry, event) pair among a claim's active
+ * rows — what single-ministry mode adopts when the user switches a claim from
+ * "multiple" to "one ministry". Excluded rows don't vote; ties go to the pair
+ * seen first in row order. Both strings empty when no row has a ministry.
+ * Kept here (dependency-free) because both the claim PATCH route and the
+ * review UI's mode-switch dialog must compute the same answer.
+ */
+export function mostCommonMinistryEvent(
+  rows: readonly { ministry: string; event: string; isExcluded?: boolean }[]
+): { ministry: string; event: string } {
+  const counts = new Map<string, { ministry: string; event: string; count: number }>();
+  for (const row of rows) {
+    if (row.isExcluded || !row.ministry) continue;
+    const key = JSON.stringify([row.ministry, row.event]);
+    const entry = counts.get(key) ?? { ministry: row.ministry, event: row.event, count: 0 };
+    entry.count += 1;
+    counts.set(key, entry);
+  }
+  let best = { ministry: "", event: "", count: 0 };
+  for (const entry of counts.values()) {
+    if (entry.count > best.count) best = entry;
+  }
+  return { ministry: best.ministry, event: best.event };
+}

@@ -82,7 +82,16 @@ async function addReceipts(
   // New rows sort after every existing row (splits renumber within a receipt,
   // so the claim-wide max keeps appended receipts at the end).
   const sortOrderStart = current.lineItems.reduce((m, it) => Math.max(m, it.sortOrder), -1) + 1;
-  const items = extractions.map((e) => ({ ...e.item, sortOrder: sortOrderStart + e.item.sortOrder }));
+  const items = extractions.map((e) => ({
+    ...e.item,
+    sortOrder: sortOrderStart + e.item.sortOrder,
+    // A single-ministry claim mirrors its ministry/event onto every row, so
+    // late-added receipts inherit them at creation (still unverified — the
+    // human sign-off is per row).
+    ...(current.singleMinistry
+      ? { ministry: current.claimMinistry, event: current.claimEvent }
+      : {}),
+  }));
 
   await prisma.$transaction([
     prisma.reimbursement.update({

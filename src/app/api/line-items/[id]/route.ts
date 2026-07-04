@@ -32,7 +32,11 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
 
     const item = await prisma.lineItem.findFirst({
       where: { id, reimbursement: { userId } },
-      include: { reimbursement: { select: { status: true, id: true } } },
+      include: {
+        reimbursement: {
+          select: { status: true, id: true, singleMinistry: true, claimMinistry: true, claimEvent: true },
+        },
+      },
     });
     if (!item) throw new ApiError(404, "Line item not found");
     if (item.reimbursement.status !== "draft") {
@@ -42,6 +46,12 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     // it — the AI never assigns one, so the user must choose before approving.
     if (patch.isVerified === true && !(patch.ministry ?? item.ministry)) {
       throw new ApiError(400, "Choose a ministry before verifying this row");
+    }
+    // A row restored in single-ministry mode missed any fan-out that happened
+    // while it was excluded — stamp it back to the claim's ministry/event.
+    if (patch.isExcluded === false && item.isExcluded && item.reimbursement.singleMinistry) {
+      if (patch.ministry === undefined) patch.ministry = item.reimbursement.claimMinistry;
+      if (patch.event === undefined) patch.event = item.reimbursement.claimEvent;
     }
 
     const changes = computeLineItemChanges(item, patch);
