@@ -62,7 +62,9 @@ export default function ReceiptImageEditor({
   onSaved,
 }: {
   receiptId: string;
-  reimbursementId: string;
+  /** Claim the edit is made from, for the audit trail. Omit outside a claim
+   *  (e.g. the post-upload describe step). */
+  reimbursementId?: string;
   src: string;
   onClose: () => void;
   onSaved: () => void;
@@ -124,7 +126,12 @@ export default function ReceiptImageEditor({
     const res = await fetch(`/api/receipts/${receiptId}/edit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rotate, crop: isFullCrop ? undefined : crop, reimbursementId }),
+      body: JSON.stringify({
+        rotate,
+        crop: isFullCrop ? undefined : crop,
+        // undefined is dropped by JSON.stringify; an empty string would 404.
+        reimbursementId: reimbursementId || undefined,
+      }),
     });
     if (!res.ok) {
       setError((await res.json()).error ?? "Image edit failed");

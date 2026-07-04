@@ -141,6 +141,15 @@ test("receipt notes are visible everywhere and receipts can go on multiple claim
   await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(1, { timeout: 20_000 });
   await expect(page.getByTestId("upload-note")).toBeVisible();
   await expect(page.getByTestId("upload-preview").locator("img")).toBeVisible();
+
+  // The rotate/crop editor is available right in the describe step.
+  await page.locator('[data-testid^="edit-image-"]').click();
+  await expect(page.getByTestId("image-editor-stage")).toBeVisible();
+  await page.getByTestId("rotate-right").click();
+  await page.getByTestId("image-editor-save").click();
+  await expect(page.getByTestId("image-editor-stage")).toBeHidden();
+  await expect(page.getByTestId("upload-preview").locator("img")).toBeVisible();
+
   await page.getByTestId("upload-note").fill("VBS craft supplies");
   await page.screenshot({ path: "screenshots/10-upload-dialog.png" });
   await page.getByTestId("upload-note-confirm").click();

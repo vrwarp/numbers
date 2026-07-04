@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 
 interface ClaimRef {
   id: string;
@@ -30,6 +31,15 @@ export default function Shoebox() {
   const [describeQueue, setDescribeQueue] = useState<Receipt[]>([]);
   const [uploadNote, setUploadNote] = useState("");
   const [uploading, setUploading] = useState(false);
+  // Rotate/crop editor open for the receipt currently in the describe step.
+  const [editingUpload, setEditingUpload] = useState(false);
+  // Bumped after a rotate/crop so <img> cache-busts past the file route's max-age.
+  const [fileVersions, setFileVersions] = useState<Record<string, number>>({});
+
+  const fileUrl = useCallback(
+    (id: string) => `/api/receipts/${id}/file${fileVersions[id] ? `?v=${fileVersions[id]}` : ""}`,
+    [fileVersions]
+  );
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,6 +80,7 @@ export default function Shoebox() {
 
   function skipDescribe(all = false) {
     setUploadNote("");
+    setEditingUpload(false);
     setDescribeQueue((q) => (all ? [] : q.slice(1)));
   }
 
@@ -194,6 +205,7 @@ export default function Shoebox() {
             onToggle={toggle}
             onDelete={deleteReceipt}
             onSaveNote={saveNote}
+            fileUrl={fileUrl}
           />
           {processed.length > 0 && (
             <details className="pt-2">
@@ -212,6 +224,7 @@ export default function Shoebox() {
                   onToggle={toggle}
                   onDelete={deleteReceipt}
                   onSaveNote={saveNote}
+                  fileUrl={fileUrl}
                 />
               </div>
             </details>
@@ -234,14 +247,26 @@ export default function Shoebox() {
                 </span>
               )}
             </h2>
-            <p className="mt-1 truncate text-sm text-stone-500">{describing.originalName}</p>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <p className="truncate text-sm text-stone-500">{describing.originalName}</p>
+              {describing.mimeType.startsWith("image/") && (
+                <button
+                  className="shrink-0 rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+                  onClick={() => setEditingUpload(true)}
+                  title="Rotate or crop this receipt photo"
+                  data-testid={`edit-image-${describing.id}`}
+                >
+                  ✂ Rotate / crop
+                </button>
+              )}
+            </div>
             <div
               className="mt-3 flex max-h-72 items-center justify-center overflow-hidden rounded-lg bg-stone-100"
               data-testid="upload-preview"
             >
               {describing.mimeType === "application/pdf" ? (
                 <object
-                  data={`/api/receipts/${describing.id}/file`}
+                  data={fileUrl(describing.id)}
                   type="application/pdf"
                   className="h-72 w-full"
                 >
@@ -253,7 +278,8 @@ export default function Shoebox() {
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={`/api/receipts/${describing.id}/file`}
+                  key={fileUrl(describing.id)}
+                  src={fileUrl(describing.id)}
                   alt={describing.originalName}
                   className="max-h-72 w-auto"
                 />
@@ -300,6 +326,22 @@ export default function Shoebox() {
           </div>
         </div>
       )}
+
+      {editingUpload && describing && (
+        <ReceiptImageEditor
+          receiptId={describing.id}
+          src={fileUrl(describing.id)}
+          onClose={() => setEditingUpload(false)}
+          onSaved={() => {
+            setFileVersions((prev) => ({
+              ...prev,
+              [describing.id]: (prev[describing.id] ?? 0) + 1,
+            }));
+            setEditingUpload(false);
+            load();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -311,6 +353,7 @@ function ReceiptGrid({
   onToggle,
   onDelete,
   onSaveNote,
+  fileUrl,
 }: {
   receipts: Receipt[];
   selectable?: boolean;
@@ -318,6 +361,7 @@ function ReceiptGrid({
   onToggle?: (id: string) => void;
   onDelete?: (id: string) => void;
   onSaveNote?: (id: string, note: string) => void;
+  fileUrl?: (id: string) => string;
 }) {
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -366,7 +410,8 @@ function ReceiptGrid({
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={`/api/receipts/${r.id}/file`}
+                  key={fileUrl?.(r.id)}
+                  src={fileUrl ? fileUrl(r.id) : `/api/receipts/${r.id}/file`}
                   alt={r.originalName}
                   className="h-full w-full object-cover"
                 />
