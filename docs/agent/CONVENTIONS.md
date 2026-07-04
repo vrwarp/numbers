@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   claim-link-<receiptId>-<claimId>, split-first-amount, split-confirm, profile-name,
   profile-address, profile-save, dev-email, dev-name, dev-signin,
   edit-image-<receiptId>, image-editor-stage, crop-box, rotate-left, rotate-right,
-  crop-reset, restore-original, image-editor-save, image-editor-cancel, add-receipts, add-receipts-dialog,
+  crop-reset, image-editor-save, image-editor-cancel, add-receipts, add-receipts-dialog,
   add-receipts-file-input, add-receipts-upload, add-receipts-status, add-receipts-confirm,
   add-receipts-cancel`.
 - Uploading is immediate, but a describe dialog then steps through each uploaded receipt

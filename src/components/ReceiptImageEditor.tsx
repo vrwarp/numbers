@@ -112,6 +112,17 @@ export default function ReceiptImageEditor({
     setCrop(FULL_CROP); // the crop box is meaningless in the new frame
   }
 
+  // Undo everything: if an earlier edit was saved, put the pristine upload back
+  // (server round-trip); otherwise just clear the unsaved rotate/crop.
+  function reset() {
+    if (hasOriginal) {
+      void restore();
+    } else {
+      setRotate(0);
+      setCrop(FULL_CROP);
+    }
+  }
+
   function startDrag(mode: DragMode) {
     return (e: React.PointerEvent) => {
       e.preventDefault();
@@ -187,26 +198,15 @@ export default function ReceiptImageEditor({
           </button>
           <button
             className="btn-secondary"
-            onClick={() => {
-              setRotate(0);
-              setCrop(FULL_CROP);
-            }}
-            disabled={busy || !hasChanges}
+            onClick={reset}
+            disabled={busy || (!hasChanges && !hasOriginal)}
             data-testid="crop-reset"
+            title={
+              hasOriginal ? "Restore the originally uploaded image" : "Clear the rotate/crop"
+            }
           >
             Reset
           </button>
-          {hasOriginal && (
-            <button
-              className="btn-secondary"
-              onClick={restore}
-              disabled={busy}
-              data-testid="restore-original"
-              title="Discard edits and put the originally uploaded image back"
-            >
-              Restore original
-            </button>
-          )}
         </div>
 
         <div ref={measureRef} className="mt-4 w-full">

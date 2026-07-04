@@ -58,10 +58,11 @@ test("rotate and crop a receipt image from the claim review screen", async ({ pa
   expect(restored.width).toBe(before.width);
   expect(restored.height).toBe(before.height);
 
-  // The dialog surfaces the same restore via a button once an original exists.
+  // With an original preserved, the dialog's Reset button restores it (rather
+  // than only clearing the unsaved rotate/crop) — enabled even before any edit.
   await page.getByTestId(`edit-image-${receiptId}`).click();
-  await expect(page.getByTestId("restore-original")).toBeVisible();
-  await page.getByTestId("restore-original").click();
+  await expect(page.getByTestId("crop-reset")).toBeEnabled();
+  await page.getByTestId("crop-reset").click();
   await expect(page.getByTestId("image-editor-save")).toHaveCount(0); // dialog closed
 
   // Both edits landed in the claim's audit trail (telemetry duty).
