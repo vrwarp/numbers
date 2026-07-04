@@ -23,6 +23,14 @@ interface Receipt {
   claims: ClaimRef[];
 }
 
+// NDJSON progress lines streamed by POST /api/reimbursements (see the route).
+type StreamMessage =
+  | { type: "status"; phase: "extracting"; total: number }
+  | { type: "receipt-done"; receiptId: string; receiptName: string; ok: boolean; completed: number; total: number }
+  | { type: "quota-wait"; receiptId: string; receiptName: string; attempt: number; maxRetries: number; cooldownMs: number; message: string }
+  | { type: "done"; reimbursementId: string }
+  | { type: "error"; status: number; message: string };
+
 export default function Shoebox() {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -42,6 +50,11 @@ export default function Shoebox() {
     [fileVersions]
   );
   const [generating, setGenerating] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [waiting, setWaiting] = useState(false);
+  const [waitCooldownMs, setWaitCooldownMs] = useState(0);
+  // Bumped on each quota wait so the countdown ring remounts and restarts.
+  const [waitKey, setWaitKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [viewing, setViewing] = useState<Receipt | null>(null);
 
@@ -124,19 +137,71 @@ export default function Shoebox() {
 
   async function generateClaim() {
     setGenerating(true);
+    setWaiting(false);
     setError(null);
+    setStatus("Reading receipts with AI…");
     try {
       const res = await fetch("/api/reimbursements", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        // Ask for streamed progress so quota waits show up live.
+        headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
         body: JSON.stringify({ receiptIds: Array.from(selected) }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Claim generation failed");
-      router.push(`/claims/${json.reimbursement.id}`);
+      // A pre-stream failure (auth/validation) comes back as plain JSON.
+      if (!res.ok || !res.body) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Claim generation failed");
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let claimId: string | null = null;
+
+      const handle = (ev: StreamMessage) => {
+        switch (ev.type) {
+          case "status":
+            setStatus(`Reading ${ev.total} receipt${ev.total > 1 ? "s" : ""} with AI…`);
+            break;
+          case "receipt-done":
+            setWaiting(false);
+            setStatus(`Read ${ev.completed} of ${ev.total} receipts…`);
+            break;
+          case "quota-wait":
+            setWaiting(true);
+            setWaitCooldownMs(ev.cooldownMs);
+            setWaitKey((k) => k + 1);
+            setStatus(ev.message);
+            break;
+          case "done":
+            claimId = ev.reimbursementId;
+            break;
+          case "error":
+            throw new Error(ev.message);
+        }
+      };
+
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buffer.indexOf("\n")) >= 0) {
+          const line = buffer.slice(0, nl).trim();
+          buffer = buffer.slice(nl + 1);
+          if (line) handle(JSON.parse(line) as StreamMessage);
+        }
+      }
+      const tail = buffer.trim();
+      if (tail) handle(JSON.parse(tail) as StreamMessage);
+
+      if (!claimId) throw new Error("Claim generation ended unexpectedly");
+      router.push(`/claims/${claimId}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Claim generation failed");
       setGenerating(false);
+      setWaiting(false);
+      setStatus(null);
     }
   }
 
@@ -180,26 +245,47 @@ export default function Shoebox() {
       )}
 
       <div
-        className={`card sticky top-16 z-30 flex min-h-16 items-center justify-between gap-3 p-3 transition-colors ${
+        className={`card sticky top-16 z-30 flex min-h-16 flex-col justify-center gap-2 p-3 transition-colors ${
           selected.size > 0 ? "border-indigo-200 bg-indigo-50" : ""
         }`}
       >
-        <span
-          className={`truncate text-sm font-medium ${selected.size > 0 ? "text-indigo-900" : "text-stone-500"}`}
-        >
-          {selected.size > 0
-            ? `${selected.size} receipt${selected.size > 1 ? "s" : ""} selected`
-            : "Select receipts to claim"}
-        </span>
-        {selected.size > 0 && (
-          <button
-            className="btn-primary shrink-0 whitespace-nowrap"
-            onClick={generateClaim}
-            disabled={generating}
-            data-testid="generate-claim"
+        <div className="flex items-center justify-between gap-3">
+          <span
+            className={`truncate text-sm font-medium ${selected.size > 0 ? "text-indigo-900" : "text-stone-500"}`}
           >
-            {generating ? "Reading receipts with AI…" : "✨ Generate Claim"}
-          </button>
+            {selected.size > 0
+              ? `${selected.size} receipt${selected.size > 1 ? "s" : ""} selected`
+              : "Select receipts to claim"}
+          </span>
+          {selected.size > 0 && (
+            <button
+              className="btn-primary shrink-0 whitespace-nowrap"
+              onClick={generateClaim}
+              disabled={generating}
+              data-testid="generate-claim"
+            >
+              {generating
+                ? waiting
+                  ? "Waiting on rate limit…"
+                  : "Reading receipts…"
+                : "✨ Generate Claim"}
+            </button>
+          )}
+        </div>
+        {generating && status && (
+          <div
+            className="flex items-center gap-2"
+            role="status"
+            aria-live="polite"
+            data-testid="generate-status"
+          >
+            {waiting && waitCooldownMs > 0 && (
+              <QuotaWaitRing key={waitKey} durationMs={waitCooldownMs} />
+            )}
+            <span className={`text-xs ${waiting ? "font-medium text-amber-700" : "text-indigo-700"}`}>
+              {status}
+            </span>
+          </div>
         )}
       </div>
 
@@ -373,6 +459,75 @@ export default function Shoebox() {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * A ring that fills from empty to full over `durationMs` (the quota cooldown)
+ * with a live seconds countdown in the middle, so a rate-limit wait shows
+ * visible progress instead of a frozen spinner. Remount (via a changing key)
+ * to restart it for a new wait.
+ */
+function QuotaWaitRing({ durationMs }: { durationMs: number }) {
+  const R = 14;
+  const C = 2 * Math.PI * R;
+  const [offset, setOffset] = useState(C); // start empty
+  const [remaining, setRemaining] = useState(Math.ceil(durationMs / 1000));
+
+  useEffect(() => {
+    const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+    // Let the empty ring paint, then flip to full so the transition animates.
+    const rafs: number[] = [];
+    rafs.push(
+      requestAnimationFrame(() => rafs.push(requestAnimationFrame(() => setOffset(0))))
+    );
+    const start = now();
+    const timer = setInterval(() => {
+      const left = Math.max(0, Math.ceil((durationMs - (now() - start)) / 1000));
+      setRemaining(left);
+      if (left <= 0) clearInterval(timer);
+    }, 250);
+    return () => {
+      rafs.forEach(cancelAnimationFrame);
+      clearInterval(timer);
+    };
+  }, [durationMs]);
+
+  return (
+    <svg
+      width="34"
+      height="34"
+      viewBox="0 0 36 36"
+      className="shrink-0"
+      role="img"
+      aria-label={`Retrying in about ${remaining} second${remaining === 1 ? "" : "s"}`}
+    >
+      <circle cx="18" cy="18" r={R} fill="none" strokeWidth="3" className="stroke-amber-200" />
+      <circle
+        cx="18"
+        cy="18"
+        r={R}
+        fill="none"
+        strokeWidth="3"
+        strokeLinecap="round"
+        className="stroke-amber-500"
+        transform="rotate(-90 18 18)"
+        style={{
+          strokeDasharray: C,
+          strokeDashoffset: offset,
+          transition: `stroke-dashoffset ${durationMs}ms linear`,
+        }}
+      />
+      <text
+        x="18"
+        y="18"
+        textAnchor="middle"
+        dominantBaseline="central"
+        className="fill-amber-700 text-[10px] font-semibold tabular-nums"
+      >
+        {remaining}
+      </text>
+    </svg>
   );
 }
 

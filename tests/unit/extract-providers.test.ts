@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { extractReceipt, extractReceipts, ExtractionError } from "@/lib/ai/extract";
+import {
+  extractReceipt,
+  extractReceipts,
+  ExtractionError,
+  type ExtractionEvent,
+} from "@/lib/ai/extract";
+import { resetRateLimiterForTests } from "@/lib/ai/throttle";
 
 vi.mock("@/lib/storage", () => ({
   readStoredFile: vi.fn(async () => Buffer.from("fake-receipt-bytes")),
@@ -27,6 +33,7 @@ describe("AI provider selection (AI_PROVIDER)", () => {
   afterEach(() => {
     process.env = { ...oldEnv };
     vi.unstubAllGlobals();
+    resetRateLimiterForTests();
   });
 
   it("settles an unknown AI_PROVIDER as a loggable failure, not a rejection", async () => {
@@ -97,6 +104,7 @@ describe("AI provider selection (AI_PROVIDER)", () => {
     process.env.AI_MOCK = "0";
     process.env.AI_PROVIDER = "google";
     process.env.GEMINI_API_KEY = "test-key";
+    process.env.AI_QUOTA_MAX_RETRIES = "0"; // surface the 429 without retrying
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => googleResponse({ error: { message: "quota exceeded" } }, 429))
@@ -110,6 +118,30 @@ describe("AI provider selection (AI_PROVIDER)", () => {
       expect(e.message).toMatch(/Google AI Studio API error 429/);
       expect(e.meta.rawResponse).toContain("quota exceeded");
     }
+  });
+
+  it("waits out a quota error, retries, and notifies via onEvent", async () => {
+    process.env.AI_MOCK = "0";
+    process.env.AI_PROVIDER = "google";
+    process.env.GEMINI_API_KEY = "test-key";
+    process.env.AI_QUOTA_MAX_RETRIES = "1";
+    process.env.AI_QUOTA_COOLDOWN_MS = "0"; // don't actually wait a minute in tests
+    let call = 0;
+    const fetchMock = vi.fn(async () => {
+      call += 1;
+      return call === 1
+        ? googleResponse({ error: { message: "RESOURCE_EXHAUSTED" } }, 429)
+        : googleResponse({ candidates: [{ content: { parts: [{ text: receiptJson }] } }] });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const events: ExtractionEvent[] = [];
+    const { result } = await extractReceipt(receipt, (ev) => events.push(ev));
+
+    expect(result.merchant).toBe("Peets Coffee");
+    expect(fetchMock).toHaveBeenCalledTimes(2); // failed once, then retried
+    const wait = events.find((e) => e.type === "quota-wait");
+    expect(wait).toMatchObject({ type: "quota-wait", attempt: 1, maxRetries: 1 });
   });
 
   it("treats a response without candidate text as an error", async () => {

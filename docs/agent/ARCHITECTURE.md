@@ -118,12 +118,16 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 **Claim creation**: receiptIds → ownership/status checks → `extractReceipts` (mock if
 AI_MOCK=1; else one provider call PER receipt — OpenRouter chat/completions with the image/PDF
 inline as data-URI, or Google AI Studio generateContent with inline_data;
-receipt id stamped server-side) → parse+validate → create Reimbursement + ONE LineItem per
-receipt (description = composeDescription(merchant/date/summary); amountCents = totalAmount −
-refundAmount in cents; ministry starts empty — the user must pick one per row during review;
-original*=composed/net values) + stamp Receipt.merchant/purchaseDate/extracted*Cents in the
-same transaction → ExtractionLog. The review UI shows the net-amount derivation ("charged X −
-refunded Y") from the Receipt columns; Split divides a row for multi-ministry receipts.
+receipt id stamped server-side. Calls are throttled to `AI_RPM_TARGET`/min by a shared limiter
+and retried on quota errors — see `src/lib/ai/throttle.ts`) → parse+validate → create
+Reimbursement + ONE LineItem per receipt (description = composeDescription(merchant/date/summary);
+amountCents = totalAmount − refundAmount in cents; ministry starts empty — the user must pick one
+per row during review; original*=composed/net values) + stamp
+Receipt.merchant/purchaseDate/extracted*Cents in the same transaction → ExtractionLog. The review
+UI shows the net-amount derivation ("charged X − refunded Y") from the Receipt columns; Split
+divides a row for multi-ministry receipts. The POST returns the classic `{reimbursement}` 201 JSON,
+**or** streams newline-delimited progress (per-receipt completion, quota-wait notices) when the
+client sends `Accept: application/x-ndjson` — the Shoebox uses this to show live status.
 
 **PDF**: gate check → read receipt files → `generateClaimPdf({requesterName, requesterAddress,
 dateString(MM/DD/YYYY), items(active only), receipts, templateBytes})` → transaction: claim
@@ -161,7 +165,9 @@ reclaimed width given to Description). Field names and the 13-row layout are unc
 | `AI_PROVIDER` (`openrouter` default, or `google`) | which extraction backend to call |
 | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (default `google/gemini-3.1-flash-lite`) | extraction via OpenRouter |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` (default `gemini-3.1-flash-lite`) | extraction via Google AI Studio (Gemini API) |
-| `AI_MOCK=1` | deterministic extraction, no network (tests/dev) |
+| `AI_RPM_TARGET` (default `15`) | requests/minute the server paces provider calls to (a shared rolling-window limiter in `src/lib/ai/throttle.ts`; Gemini's free tier is 15/min) |
+| `AI_QUOTA_COOLDOWN_MS` (default `60000`), `AI_QUOTA_MAX_RETRIES` (default `3`) | on a quota/rate-limit error (429) wait this long and retry this many times; each wait is surfaced to the user |
+| `AI_MOCK=1` | deterministic extraction, no network (tests/dev) — bypasses throttle/retry |
 | `AUTH_TEST_MODE=1` | enables dev login (tests/dev only) |
 | `TEMPLATE_PDF` | optional replacement blank form path |
 | `E2E_BROWSERS`, `E2E_FORCE_BUILD`, `PLAYWRIGHT_CHROMIUM_PATH` | test harness (see TESTING.md) |
