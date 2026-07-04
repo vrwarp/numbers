@@ -74,7 +74,8 @@ src/components/ReceiptGrid.tsx  the selectable receipt-card grid (Shoebox + AddR
 src/components/AddReceiptsDialog.tsx  review-screen modal: pick Shoebox receipts / upload new
                                 ones → POST /api/reimbursements/[id]/receipts (streamed)
 src/components/ReceiptViewer.tsx  full-screen viewer (client): image zoom/pan (wheel, pinch,
-                                drag, buttons) or the browser's native PDF viewer; launches
+                                drag, buttons); PDFs show the same zoomable image from the raster
+                                /preview (↗ still opens the real PDF); launches
                                 ReceiptImageEditor for unassigned photos, cache-busts on save
 src/components/ReviewClaim.tsx  the review screen (largest component): groups, LineItemRow,
                                 SplitDialog, optimistic PATCH, PDF download
@@ -98,6 +99,10 @@ src/app/claims|profile          thin server components: currentUserId() → redi
 assets/cfcc-form-template.pdf   the real church AcroForm — DO NOT regenerate or optimize
 prisma/schema.prisma            data model (see DATA_MODEL.md)
 tests/unit/*.test.ts            Vitest; tests/e2e/*.spec.ts Playwright (see TESTING.md)
+src/lib/pdf/preview.ts          rasterize a PDF receipt to one tall JPEG strip (pdfjs-dist +
+                                @napi-rs/canvas) for inline mobile display; caps at 12 pages
+src/components/PdfReceiptPreview.tsx  inline PDF preview <img> (from /preview) + "open original"
+                                link + 📄 fallback; used by ReviewClaim and the Shoebox dialog
 scripts/render-pdf.mjs          rasterize a PDF to PNGs (pdfjs-dist) for visual checks
 Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migrate deploy
 .github/workflows/ci.yml        unit + e2e matrix (chromium, webkit jobs)
@@ -114,8 +119,9 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/receipts` | GET | list own receipts (+ `claims: {id,status,createdAt}[]` each receipt is on); `?status=` filter |
 | | POST | multipart field `files` (+ optional `note` text stored on every receipt in the batch — API convenience; the UI's describe step applies notes per receipt via PATCH after upload); images → compressReceiptImage, pdf → as-is; creates Receipt(unassigned); 415 unsupported, 400 empty |
 | `/api/receipts/[id]` | PATCH | `{note}` (≤300 chars) — user metadata, editable in any state, no AuditEvent (not part of the claim trail) |
-| | DELETE | only if not in any claim (409 otherwise); removes file + preserved original |
+| | DELETE | only if not in any claim (409 otherwise); removes file + preserved original + any cached PDF preview |
 | `/api/receipts/[id]/file` | GET | serve stored bytes, owner only; `?original=1` serves the preserved pristine upload (sidecar), falling back to the current file |
+| `/api/receipts/[id]/preview` | GET | PDF receipts only: serve a raster JPEG of the PDF (mobile browsers won't render an embedded PDF); rendered once via `src/lib/pdf/preview.ts` and cached beside the original as `<id>.preview.jpg`. 400 for non-PDF receipts |
 | `/api/receipts/[id]/edit` | GET | `→ {hasOriginal}` — whether a pristine upload is preserved to restore |
 | | POST | `{rotate: 0|90|180|270, crop?: {left,top,width,height} fractions of the ROTATED frame, restore?, reimbursementId?}` → sharp rotate→crop → compression ladder → overwrite stored file + sizeBytes. Source is the current file, or the preserved original when `restore:true` (rotate/crop still apply on top). A normal first edit copies the pristine upload to `<id>.orig.<ext>` (`originalFilePath`); `{restore:true}` with no transform is a plain restore. AuditEvent(edit-receipt-image / restore-receipt-image). 400 PDFs/no-op/too-small crop/nothing-to-restore; 409 while receipt is `processed` (a generated claim's packet must re-download unchanged) |
 | `/api/reimbursements` | GET | list own claims with counts |

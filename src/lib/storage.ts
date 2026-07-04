@@ -24,6 +24,12 @@ export async function readStoredFile(relPath: string): Promise<Buffer> {
   return fs.readFile(abs);
 }
 
+/** DATA_DIR-relative path of a receipt's cached raster preview (PDF → JPEG).
+ *  Sits beside the original, e.g. uploads/<userId>/<id>.pdf → …/<id>.preview.jpg. */
+export function previewCachePath(filePath: string): string {
+  return filePath.replace(/\.[^.]+$/, "") + ".preview.jpg";
+}
+
 export async function deleteStoredFile(relPath: string): Promise<void> {
   const abs = path.resolve(dataDir(), relPath);
   if (!abs.startsWith(dataDir() + path.sep)) {

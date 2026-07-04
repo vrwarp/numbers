@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
-import { deleteStoredFile } from "@/lib/storage";
+import { deleteStoredFile, previewCachePath } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
@@ -39,6 +39,8 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
     await prisma.receipt.delete({ where: { id } });
     await deleteStoredFile(receipt.filePath);
     if (receipt.originalFilePath) await deleteStoredFile(receipt.originalFilePath);
+    // Best-effort: drop the cached raster preview if this was a PDF (no-op otherwise).
+    await deleteStoredFile(previewCachePath(receipt.filePath));
     return NextResponse.json({ ok: true });
   });
 }

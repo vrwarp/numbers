@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import ReceiptViewer from "./ReceiptViewer";
+import PdfReceiptPreview from "@/components/PdfReceiptPreview";
 import ReceiptGrid, { type ReceiptSummary as Receipt } from "./ReceiptGrid";
 import { readNdjsonStream } from "@/lib/ndjson";
 import type { ClaimStreamMessage } from "@/lib/claim-stream";
@@ -379,16 +380,9 @@ export default function Shoebox() {
               data-testid="upload-preview"
             >
               {describing.mimeType === "application/pdf" ? (
-                <object
-                  data={fileUrl(describing.id)}
-                  type="application/pdf"
-                  className="h-72 w-full"
-                >
-                  <div className="p-8 text-center text-stone-400">
-                    <div className="text-4xl">📄</div>
-                    <div className="text-xs font-semibold">PDF</div>
-                  </div>
-                </object>
+                <div className="max-h-72 w-full overflow-y-auto">
+                  <PdfReceiptPreview receiptId={describing.id} fileHref={fileUrl(describing.id)} />
+                </div>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

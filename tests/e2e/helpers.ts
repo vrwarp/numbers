@@ -2,8 +2,29 @@ import { Page, expect } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
+import { PDFDocument, StandardFonts } from "pdf-lib";
 
 export const FIXTURES_DIR = path.join(__dirname, ".fixtures");
+
+/** Write a simple multi-page PDF receipt fixture for upload tests. */
+export async function makePdfFixture(
+  fileName: string,
+  opts: { pages?: number } = {}
+): Promise<string> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const pages = opts.pages ?? 1;
+  for (let i = 0; i < pages; i++) {
+    const page = doc.addPage([612, 792]);
+    page.drawText(`RECEIPT — page ${i + 1} of ${pages}`, { x: 72, y: 700, size: 22, font });
+    page.drawText("Costco Wholesale", { x: 72, y: 660, size: 14, font });
+    page.drawText("TOTAL  102.10", { x: 72, y: 630, size: 14, font });
+  }
+  await fs.mkdir(FIXTURES_DIR, { recursive: true });
+  const filePath = path.join(FIXTURES_DIR, fileName);
+  await fs.writeFile(filePath, await doc.save());
+  return filePath;
+}
 
 /** Render a realistic-looking receipt photo (JPEG) for upload fixtures. */
 export async function makeReceiptFixture(

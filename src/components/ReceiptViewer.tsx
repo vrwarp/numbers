@@ -42,6 +42,9 @@ export default function ReceiptViewer({
   const editingRef = useRef(editing);
   editingRef.current = editing;
   const src = `/api/receipts/${receipt.id}/file${version ? `?v=${version}` : ""}`;
+  // PDFs display as a server-rasterized image (mobile browsers won't render an
+  // embedded PDF); the ↗ link below still opens the real PDF via `src`.
+  const imgSrc = isPdf ? `/api/receipts/${receipt.id}/preview` : src;
 
   const [view, setView] = useState({ scale: 1, x: 0, y: 0 });
   const viewRef = useRef(view);
@@ -106,14 +109,14 @@ export default function ReceiptViewer({
   // Native (non-passive) wheel listener so we can preventDefault the page scroll.
   useEffect(() => {
     const el = stageRef.current;
-    if (!el || isPdf) return;
+    if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       zoomAt(viewRef.current.scale * Math.exp(-e.deltaY * 0.0015), e.clientX, e.clientY);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [isPdf, zoomAt]);
+  }, [zoomAt]);
 
   function onPointerDown(e: React.PointerEvent) {
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
@@ -199,81 +202,77 @@ export default function ReceiptViewer({
       <div
         ref={stageRef}
         className="relative flex-1 overflow-hidden"
-        style={isPdf ? undefined : { touchAction: "none" }}
+        style={{ touchAction: "none" }}
         onClick={(e) => {
           if (e.target === e.currentTarget) onClose();
         }}
       >
-        {isPdf ? (
-          <iframe src={src} title={receipt.originalName} className="h-full w-full bg-white" />
-        ) : (
-          <div className="pointer-events-none flex h-full w-full items-center justify-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={src}
-              alt={receipt.originalName}
-              draggable={false}
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={endPointer}
-              onPointerCancel={endPointer}
-              onDoubleClick={onDoubleClick}
-              style={{
-                transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
-                cursor: view.scale > 1 ? "grab" : "zoom-in",
-              }}
-              className="pointer-events-auto max-h-full max-w-full touch-none select-none object-contain will-change-transform"
-            />
-          </div>
-        )}
+        {/* PDFs show the same zoom/pan image as photos, but from the raster
+            preview; only real image receipts can be rotated/cropped (canEdit). */}
+        <div className="pointer-events-none flex h-full w-full items-center justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imgSrc}
+            alt={receipt.originalName}
+            draggable={false}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={endPointer}
+            onPointerCancel={endPointer}
+            onDoubleClick={onDoubleClick}
+            style={{
+              transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
+              cursor: view.scale > 1 ? "grab" : "zoom-in",
+            }}
+            className="pointer-events-auto max-h-full max-w-full touch-none select-none object-contain will-change-transform"
+          />
+        </div>
 
-        {!isPdf && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-5 flex flex-col items-center gap-2">
-            {canEdit && (
-              <button
-                className="pointer-events-auto flex h-10 items-center justify-center gap-1.5 rounded-full bg-black/70 px-4 text-sm font-medium text-white shadow-lg backdrop-blur transition-colors hover:bg-black/80"
-                onClick={() => setEditing(true)}
-                aria-label="Rotate or crop this receipt"
-                title="Rotate or crop"
-                data-testid="receipt-viewer-edit"
-              >
-                ✂ Rotate / crop
-              </button>
-            )}
-            <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 shadow-lg backdrop-blur">
-              <button
-                className={ctrlBtn}
-                onClick={() => zoomFromCenter(1 / 1.4)}
-                disabled={view.scale <= MIN_SCALE}
-                aria-label="Zoom out"
-                title="Zoom out"
-              >
-                −
-              </button>
-              <span className="w-12 select-none text-center text-xs font-medium tabular-nums text-white">
-                {Math.round(view.scale * 100)}%
-              </span>
-              <button
-                className={ctrlBtn}
-                onClick={() => zoomFromCenter(1.4)}
-                disabled={view.scale >= MAX_SCALE}
-                aria-label="Zoom in"
-                title="Zoom in"
-              >
-                +
-              </button>
-              <button
-                className={ctrlBtn}
-                onClick={reset}
-                disabled={view.scale <= MIN_SCALE && view.x === 0 && view.y === 0}
-                aria-label="Reset zoom"
-                title="Reset zoom"
-              >
-                ⤢
-              </button>
-            </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-5 flex flex-col items-center gap-2">
+          {canEdit && (
+            <button
+              className="pointer-events-auto flex h-10 items-center justify-center gap-1.5 rounded-full bg-black/70 px-4 text-sm font-medium text-white shadow-lg backdrop-blur transition-colors hover:bg-black/80"
+              onClick={() => setEditing(true)}
+              aria-label="Rotate or crop this receipt"
+              title="Rotate or crop"
+              data-testid="receipt-viewer-edit"
+            >
+              ✂ Rotate / crop
+            </button>
+          )}
+          <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 shadow-lg backdrop-blur">
+            <button
+              className={ctrlBtn}
+              onClick={() => zoomFromCenter(1 / 1.4)}
+              disabled={view.scale <= MIN_SCALE}
+              aria-label="Zoom out"
+              title="Zoom out"
+            >
+              −
+            </button>
+            <span className="w-12 select-none text-center text-xs font-medium tabular-nums text-white">
+              {Math.round(view.scale * 100)}%
+            </span>
+            <button
+              className={ctrlBtn}
+              onClick={() => zoomFromCenter(1.4)}
+              disabled={view.scale >= MAX_SCALE}
+              aria-label="Zoom in"
+              title="Zoom in"
+            >
+              +
+            </button>
+            <button
+              className={ctrlBtn}
+              onClick={reset}
+              disabled={view.scale <= MIN_SCALE && view.x === 0 && view.y === 0}
+              aria-label="Reset zoom"
+              title="Reset zoom"
+            >
+              ⤢
+            </button>
           </div>
-        )}
+        </div>
       </div>
 
       {editing && (
