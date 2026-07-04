@@ -31,9 +31,14 @@ just a copy of the `/data` folder.
 4. **PDF generation.** The backend fills the official form's AcroForm fields (name, address,
    date, line items, total), flattens it, paginates onto extra form pages when a claim exceeds
    the 13-row table, and appends every receipt image/PDF as additional pages. One unified PDF
-   downloads to your browser.
+   downloads to your browser. When `PUBLIC_BASE_URL` is configured, every form page is also
+   stamped with a **QR code linking back to the packet itself** — an unguessable capability URL
+   (`/c/<token>`) that always serves the **latest** generated version, even after the claim is
+   reverted to draft, edited, and re-finalized.
 5. **Physical signatures.** Print, sign "Requested by", get the pastor/deacon's signature, and
-   drop the packet in the Treasurer's inbox.
+   drop the packet in the Treasurer's inbox. Anyone holding the printed page can scan the QR
+   stamp to pull up the digital packet — no sign-in needed, the unguessable link is the
+   credential.
 
 ## Tech stack
 
@@ -154,6 +159,7 @@ See [`config.json.example`](config.json.example) for a full template (`cp config
 | Variable | Purpose |
 | :-- | :-- |
 | `AUTH_SECRET` | Session-cookie signing secret (`openssl rand -base64 32`) — required |
+| `PUBLIC_BASE_URL` | The URL users reach the deployment at, e.g. `https://numbers.example.org`. Enables the QR self-link stamp on generated PDFs (the server can't infer its public origin behind Docker/reverse proxies). Unset → PDFs are generated without the stamp |
 | `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID` | Firebase web-app config ([console](https://console.firebase.google.com) → Project settings → Your apps). Enable the **Google** provider under Authentication → Sign-in method and add your app's domain to Authentication → Authorized domains. These values are client-safe |
 | `FIREBASE_APP_ID` | Optional, from the same Firebase web-app config |
 | `AI_PROVIDER` | Extraction backend: `openrouter` (default) or `google` (Google AI Studio / Gemini API) |
@@ -173,13 +179,16 @@ named AcroForm fields (`Make check payable to`, `Description QuantityRow1..13`, 
 the result, so output aligns with the printed form exactly. Claims longer than 13 rows produce
 multiple form pages — earlier pages show "(continued)" in the total cell and a page number in
 the total row's ministry cell; the grand total appears on the last form page. "Approved by" and
-the treasurer section are left blank for ink.
+the treasurer section are left blank for ink. When the QR self-link stamp is enabled, the
+"Note:" box is redrawn slightly narrower at generation time (same text, re-flowed) and the QR
+code is placed in the freed space beside it — the bundled template file itself is never
+modified.
 
 ## Data model
 
 - `users` — Firebase identity, full name, mailing address (printed on the form), role
 - `receipts` — file path, MIME type, size, status `unassigned → processed`
-- `reimbursements` — status `draft → generated`, total in cents
+- `reimbursements` — status `draft → generated`, total in cents, QR capability token
 - `line_items` — description, quantity, amount (cents, negative = refund), ministry,
   `is_verified`, `is_excluded`, sort order
 - `reimbursement_receipts` — join table linking claims to their receipts
