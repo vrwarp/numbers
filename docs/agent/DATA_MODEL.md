@@ -99,7 +99,8 @@ status("success"|"error"), errorMessage?, durationMs, createdAt`
 - `parsedJson` = the receipt-level result object `{merchant, purchaseDate, totalAmount,
   refundAmount, summary, receiptId}`.
 - `model` is `"mock"` under AI_MOCK.
-- Written in `src/app/api/reimbursements/route.ts` (both branches). Failure meta comes from
+- Written by the claim-building routes (create claim, add receipts to a draft) via
+  `src/lib/claims.ts` (success and failure branches). Failure meta comes from
   `ExtractionError.meta` (`src/lib/ai/extract.ts`).
 
 ### AuditEvent (telemetry — human actions)
@@ -111,6 +112,9 @@ status("success"|"error"), errorMessage?, durationMs, createdAt`
 - `action="merge"`: detail `{description, mergedLineItemId, mergedDescription,
   mergedAmountCents, targetAmountCents, resultAmountCents}` — undo-split; the merged row is
   deleted, so this is its only record (`lineItemId` points at the surviving row).
+- `action="add-receipt"`: detail `{addedReceipts: [{receiptId, originalName, description,
+  amountCents}]}` — receipts appended to a draft claim after creation
+  (`POST /api/reimbursements/[id]/receipts`; one line item each, same AI extraction as create).
 - `action="remove-receipt"`: detail `{receiptId, originalName, removedLineItems[]}` — a
   receipt pulled out of a draft claim (its rows are deleted, so this is their only record).
 - `action="revert-to-draft"`: detail `{receiptIds}` — a generated claim unfrozen.

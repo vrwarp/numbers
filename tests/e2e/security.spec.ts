@@ -4,6 +4,7 @@ import { makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
 test("unauthenticated visitors are redirected to sign-in and APIs return 401", async ({ page }) => {
   await page.goto("/");
   await page.waitForURL(/\/signin/);
+  // The legacy /shoebox path redirects home, which redirects to sign-in.
   await page.goto("/shoebox");
   await page.waitForURL(/\/signin/);
 
@@ -17,7 +18,7 @@ test("users cannot see or fetch each other's data (multi-tenant isolation)", asy
   // Alice uploads a receipt and creates a claim.
   const alice = await (await browser.newContext()).newPage();
   await signInAs(alice, `alice-${testInfo.project.name}@example.com`, "Alice");
-  await alice.goto("/shoebox");
+  await alice.goto("/");
   await uploadReceipts(alice, [await makeReceiptFixture("alice-receipt.jpg")]);
   const aliceReceipts = (await (await alice.request.get("/api/receipts")).json()).receipts;
   expect(aliceReceipts).toHaveLength(1);
@@ -49,6 +50,13 @@ test("users cannot see or fetch each other's data (multi-tenant isolation)", asy
   expect(
     (await bob.request.delete(`/api/reimbursements/${claimId}/receipts/${receiptId}`)).status()
   ).toBe(404);
+  expect(
+    (
+      await bob.request.post(`/api/reimbursements/${claimId}/receipts`, {
+        data: { receiptIds: [receiptId] },
+      })
+    ).status()
+  ).toBe(404);
   expect((await bob.request.post(`/api/reimbursements/${claimId}/revert`)).status()).toBe(404);
   // Bob cannot build a claim from Alice's receipt either.
   expect((await bob.request.post("/api/reimbursements", { data: { receiptIds: [receiptId] } })).status()).toBe(404);
@@ -57,7 +65,7 @@ test("users cannot see or fetch each other's data (multi-tenant isolation)", asy
 test("shoebox housekeeping: deleting receipts and discarding drafts", async ({ page }, testInfo) => {
   page.on("dialog", (d) => d.accept());
   await signInAs(page, `keeper-${testInfo.project.name}@example.com`, "Keeper");
-  await page.goto("/shoebox");
+  await page.goto("/");
   await uploadReceipts(page, [
     await makeReceiptFixture("keep-1.jpg"),
     await makeReceiptFixture("keep-2.jpg"),
@@ -73,7 +81,7 @@ test("shoebox housekeeping: deleting receipts and discarding drafts", async ({ p
   await page.getByTestId("generate-claim").click();
   await page.waitForURL(/\/claims\/[^/]+$/, { timeout: 30_000 });
   await page.getByTestId("discard-claim").click();
-  await page.waitForURL(/\/shoebox/);
+  await page.waitForURL("/");
   await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(1);
 
   // A receipt inside a draft claim cannot be deleted.
@@ -88,7 +96,7 @@ test("shoebox housekeeping: deleting receipts and discarding drafts", async ({ p
 test("removing a receipt from a draft claim returns it to the shoebox", async ({ page }, testInfo) => {
   page.on("dialog", (d) => d.accept());
   await signInAs(page, `remover-${testInfo.project.name}@example.com`, "Remover");
-  await page.goto("/shoebox");
+  await page.goto("/");
   await uploadReceipts(page, [
     await makeReceiptFixture("rm-1.jpg"),
     await makeReceiptFixture("rm-2.jpg"),
@@ -132,7 +140,6 @@ test("removing a receipt from a draft claim returns it to the shoebox", async ({
 
 test("receipt notes are visible everywhere and receipts can go on multiple claims", async ({ page }, testInfo) => {
   await signInAs(page, `reuse-${testInfo.project.name}@example.com`, "Reuser");
-  await page.goto("/shoebox");
 
   // Upload happens immediately; the describe dialog then shows the uploaded
   // receipt's PREVIEW next to the description field. (Driven manually here
@@ -191,7 +198,7 @@ test("receipt notes are visible everywhere and receipts can go on multiple claim
   const claim2 = (await res2.json()).reimbursement.id;
 
   // The shoebox card links to both claims.
-  await page.goto("/shoebox");
+  await page.goto("/");
   await expect(page.locator(`[data-testid^="claim-link-${receipt.id}-"]`)).toHaveCount(2);
 
   // Generate claim 2, then revert claim 1: the receipt stays processed
@@ -213,7 +220,7 @@ test("receipt notes are visible everywhere and receipts can go on multiple claim
 test("revert to draft unfreezes a generated claim and its receipts", async ({ page }, testInfo) => {
   page.on("dialog", (d) => d.accept());
   await signInAs(page, `reverter-${testInfo.project.name}@example.com`, "Reverter");
-  await page.goto("/shoebox");
+  await page.goto("/");
   await uploadReceipts(page, [await makeReceiptFixture("revert-me.jpg")]);
   await page.locator('[data-testid^="receipt-card-"]').first().click();
   await page.getByTestId("generate-claim").click();
@@ -272,7 +279,7 @@ test("revert to draft unfreezes a generated claim and its receipts", async ({ pa
 
 test("PDF endpoint refuses while any active row is unverified", async ({ page }, testInfo) => {
   await signInAs(page, `strict-${testInfo.project.name}@example.com`, "Strict");
-  await page.goto("/shoebox");
+  await page.goto("/");
   await uploadReceipts(page, [await makeReceiptFixture("strict.jpg")]);
   await page.locator('[data-testid^="receipt-card-"]').first().click();
   await page.getByTestId("generate-claim").click();

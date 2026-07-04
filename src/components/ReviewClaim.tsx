@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { MINISTRY_GROUPS, isKnownMinistry } from "@/lib/ministries";
 import { centsToDollarString, formatCents, parseDollarsToCents, subtotalCents } from "@/lib/money";
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
+import AddReceiptsDialog from "@/components/AddReceiptsDialog";
 
 interface LineItem {
   id: string;
@@ -58,6 +59,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const [splitItem, setSplitItem] = useState<LineItem | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [editingReceiptId, setEditingReceiptId] = useState<string | null>(null);
+  const [addingReceipts, setAddingReceipts] = useState(false);
   // Bumped after a rotate/crop so the <img> cache-busts past the file route's max-age.
   const [fileVersions, setFileVersions] = useState<Record<string, number>>({});
   // Row whose confirm button is pulsing after a click on the gated PDF button.
@@ -245,7 +247,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   async function deleteClaim() {
     if (!confirm("Discard this draft claim? Receipts return to your Shoebox.")) return;
     const res = await fetch(`/api/reimbursements/${claim!.id}`, { method: "DELETE" });
-    if (res.ok) router.push("/shoebox");
+    if (res.ok) router.push("/");
     else setError((await res.json()).error ?? "Delete failed");
   }
 
@@ -417,6 +419,15 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         )}
         <div className="ml-auto flex items-center gap-3">
           {isDraft && (
+            <button
+              className="btn-secondary"
+              onClick={() => setAddingReceipts(true)}
+              data-testid="add-receipts"
+            >
+              ＋ Add receipts
+            </button>
+          )}
+          {isDraft && (
             <button className="btn-secondary" onClick={deleteClaim} data-testid="discard-claim">
               Discard
             </button>
@@ -446,6 +457,18 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           </span>
         </div>
       </div>
+
+      {addingReceipts && (
+        <AddReceiptsDialog
+          claimId={claim.id}
+          excludeReceiptIds={claim.receipts.map((ref) => ref.receiptId)}
+          onClose={() => setAddingReceipts(false)}
+          onAdded={async () => {
+            setAddingReceipts(false);
+            await load();
+          }}
+        />
+      )}
 
       {editingReceiptId && (
         <ReceiptImageEditor
