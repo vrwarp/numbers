@@ -30,6 +30,14 @@ export function previewCachePath(filePath: string): string {
   return filePath.replace(/\.[^.]+$/, "") + ".preview.jpg";
 }
 
+/** DATA_DIR-relative path of the pristine-original sidecar that sits beside a
+ *  receipt's working file, e.g. uploads/<userId>/<id>.jpg → …/<id>.orig.jpg.
+ *  Image uploads write it with the exact uploaded bytes (which may not be JPEG
+ *  despite the extension — sharp and browsers sniff the real format). */
+export function originalSidecarPath(filePath: string): string {
+  return filePath.replace(/(\.[^.]+)$/, ".orig$1");
+}
+
 export async function deleteStoredFile(relPath: string): Promise<void> {
   const abs = path.resolve(dataDir(), relPath);
   if (!abs.startsWith(dataDir() + path.sep)) {

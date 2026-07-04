@@ -96,6 +96,27 @@ describe("transformReceiptImage", () => {
     expect(stats.channels[2].mean).toBeLessThan(60); // no blue
   });
 
+  it("honors EXIF orientation before rotating/cropping (raw uploads)", async () => {
+    // Stored 400×200 with orientation 6 ("rotate 90° CW to display") — every
+    // viewer shows it as 200×400 with the red (left) half on TOP. The crop
+    // fractions were drawn on that displayed frame, so cropping the top half
+    // must return a red 200×200 image, not a slice of the un-oriented pixels.
+    const oriented = await sharp(await twoTone(400, 200))
+      .jpeg({ quality: 95 })
+      .withMetadata({ orientation: 6 })
+      .toBuffer();
+    const out = await transformReceiptImage(oriented, {
+      rotate: 0,
+      crop: { left: 0, top: 0, width: 1, height: 0.5 },
+    });
+    const meta = await sharp(out.data).metadata();
+    expect(meta.width).toBe(200);
+    expect(meta.height).toBe(200);
+    const stats = await sharp(out.data).stats();
+    expect(stats.channels[0].mean).toBeGreaterThan(180); // red
+    expect(stats.channels[2].mean).toBeLessThan(60); // no blue
+  });
+
   it("rejects crop regions too small to stay legible", async () => {
     const input = await twoTone(400, 600);
     await expect(

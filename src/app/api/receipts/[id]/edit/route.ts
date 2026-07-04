@@ -3,8 +3,8 @@ import path from "path";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
-import { readStoredFile, saveReceiptFile } from "@/lib/storage";
-import { ImageTransformError, transformReceiptImage } from "@/lib/image";
+import { originalSidecarPath, readStoredFile, saveReceiptFile } from "@/lib/storage";
+import { compressReceiptImage, ImageTransformError, transformReceiptImage } from "@/lib/image";
 
 export const runtime = "nodejs";
 
@@ -31,14 +31,6 @@ const BodySchema = z.object({
   reimbursementId: z.string().optional(),
 });
 
-/** DATA_DIR-relative path of the pristine-original sidecar, e.g.
- *  uploads/<userId>/<id>.orig.jpg alongside <id>.jpg. */
-function originalSidecarName(filePath: string): string {
-  const base = path.basename(filePath);
-  const ext = path.extname(base);
-  return `${base.slice(0, base.length - ext.length)}.orig${ext}`;
-}
-
 /** Report whether an earlier (pristine) version exists to restore. */
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   return handleApi(async () => {
@@ -54,13 +46,16 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 }
 
 /**
- * Rotate/crop a receipt image. The first edit copies the current file to a
- * sidecar so the pristine upload stays restorable; later edits keep pointing at
- * that same copy. With `restore` the transform reads the sidecar instead of the
- * current file (rotate/crop still apply on top), so `{restore:true}` with no
- * transform is a plain "put the original back". Overwriting the stored file is
- * refused while any GENERATED claim holds the receipt: its frozen PDF packet
- * must keep re-downloading with the appendix images it was filed with.
+ * Rotate/crop a receipt image. The first edit reads the full-resolution
+ * pristine sidecar written at upload (fallback for older receipts: copy the
+ * current file to the sidecar now), so the crop is cut from the original
+ * before the ~100 KB compression; later edits stack on the current file. With
+ * `restore` the transform reads the sidecar instead of the current file
+ * (rotate/crop still apply on top), so `{restore:true}` with no transform is a
+ * plain "put the original back" (re-compressed to the working budget).
+ * Overwriting the stored file is refused while any GENERATED claim holds the
+ * receipt: its frozen PDF packet must keep re-downloading with the appendix
+ * images it was filed with.
  */
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   return handleApi(async () => {
@@ -96,31 +91,46 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       claimIdForAudit = claim.id;
     }
 
-    // A reset transforms the pristine upload; a normal edit transforms the
-    // current file. Any rotate/crop applies on top of whichever source.
-    const sourcePath = restore ? receipt.originalFilePath! : receipt.filePath;
-    const source = await readStoredFile(sourcePath);
-
-    let output = source;
-    if (hasTransform) {
-      try {
-        output = (await transformReceiptImage(source, { rotate, crop })).data;
-      } catch (err) {
-        if (err instanceof ImageTransformError) throw new ApiError(400, err.message);
-        throw err;
-      }
+    // A reset transforms the pristine upload; a later edit transforms the
+    // current file. The FIRST edit also prefers the pristine sidecar (written
+    // at upload time): the stored file is a pure downscale of it, so the crop
+    // fractions map 1:1 while the extraction keeps the full upload resolution.
+    // Receipts uploaded before the sidecar existed fall back to the current
+    // file, exactly as before.
+    const sidecarPath = originalSidecarPath(receipt.filePath);
+    let source: Buffer;
+    let uploadSidecarUsed = false;
+    if (restore) {
+      source = await readStoredFile(receipt.originalFilePath!);
+    } else if (receipt.originalFilePath) {
+      source = await readStoredFile(receipt.filePath);
+    } else {
+      const pristine = await readStoredFile(sidecarPath).catch(() => null);
+      uploadSidecarUsed = pristine != null;
+      source = pristine ?? (await readStoredFile(receipt.filePath));
     }
 
-    // Preserve the pristine upload the first time a normal edit overwrites it,
-    // so it stays restorable no matter how many edits pile up on top. A reset
-    // already has its sidecar.
+    let output: Buffer;
+    try {
+      // A pure restore still re-compresses: the sidecar may hold the raw
+      // full-resolution upload, and the working file must stay ~100 KB.
+      output = hasTransform
+        ? (await transformReceiptImage(source, { rotate, crop })).data
+        : (await compressReceiptImage(source)).data;
+    } catch (err) {
+      if (err instanceof ImageTransformError) throw new ApiError(400, err.message);
+      throw err;
+    }
+
+    // Register the pristine upload the first time an edit overwrites the
+    // stored file, so it stays restorable no matter how many edits pile up on
+    // top. Upload-time sidecars already hold it; legacy receipts copy the
+    // current file now. A reset already has its sidecar.
     let originalFilePath = receipt.originalFilePath;
     if (!restore && !originalFilePath) {
-      originalFilePath = await saveReceiptFile(
-        userId,
-        originalSidecarName(receipt.filePath),
-        source
-      );
+      originalFilePath = uploadSidecarUsed
+        ? sidecarPath
+        : await saveReceiptFile(userId, path.basename(sidecarPath), source);
     }
 
     await saveReceiptFile(userId, path.basename(receipt.filePath), output);

@@ -44,12 +44,17 @@ merchant, purchaseDate, extractedTotalCents?, extractedRefundCents?, createdAt`
   the PDF appendix page label.
 - `filePath` is RELATIVE to `DATA_DIR` (e.g. `uploads/<userId>/<id>.jpg`). Resolve/read only
   through `src/lib/storage.ts` (traversal guard).
-- `originalFilePath` is NULL until the rotate/crop tool first overwrites `filePath`, at which
-  point the pristine upload is copied to a sidecar (`<id>.orig.<ext>`) so the editor's "Restore
-  original" can put it back. Stays set across further edits (it always points at the first
-  upload); deleted alongside the receipt.
+- `originalFilePath` is NULL until the rotate/crop tool first overwrites `filePath`. The
+  sidecar file itself (`<id>.orig.<ext>`, exact uploaded bytes at full resolution) is written
+  at upload time for every image; the first edit sources its transform from it (max fidelity —
+  the crop is cut BEFORE the ~100 KB compression) and registers it here so the editor's
+  "Restore original" can put it back (re-compressed). NULL therefore still means "never
+  edited" — later edits stack on the current file, whose frame the crop fractions refer to.
+  Receipts uploaded before the sidecar existed copy the current file into it on first edit.
+  Deleted alongside the receipt (even when never registered).
 - `mimeType` after upload is only `image/jpeg` (everything raster is converted) or
-  `application/pdf`.
+  `application/pdf`. The sidecar keeps the original format regardless of its `.orig.jpg`-style
+  name (sharp and browsers sniff bytes, not extensions).
 - `merchant`/`purchaseDate`/`extracted*Cents` are stamped by AI extraction at claim creation
   (empty/null until then; overwritten if the receipt is re-extracted into a new draft).
   `purchaseDate` is a transcription string ("YYYY-MM-DD" or "") — never arithmetic.

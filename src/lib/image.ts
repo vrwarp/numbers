@@ -73,8 +73,15 @@ export async function transformReceiptImage(
   input: Buffer,
   transform: ReceiptTransform
 ): Promise<CompressedImage> {
+  // autoOrient first: the input may be a pristine upload whose EXIF Orientation
+  // an explicit rotate(angle) would otherwise ignore — the fractions were drawn
+  // on the oriented image the browser showed.
   // Lossless PNG intermediates: the only JPEG re-encode is the final ladder.
-  let working = await sharp(input, { failOn: "truncated" }).rotate(transform.rotate).png().toBuffer();
+  let working = await sharp(input, { failOn: "truncated" })
+    .autoOrient()
+    .rotate(transform.rotate)
+    .png()
+    .toBuffer();
 
   if (transform.crop) {
     const { width = 0, height = 0 } = await sharp(working).metadata();
