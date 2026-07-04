@@ -296,47 +296,30 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
       <div className="space-y-4">
         {groups.map((group, gi) => (
           <div key={group.receipt.id} className="card overflow-hidden" data-testid={`group-${group.receipt.id}`}>
-            {/* Wraps to two lines on phones: title first, subtotal + actions below. */}
-            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-b border-stone-100 bg-stone-50 px-4 py-2">
-              <span className="w-full min-w-0 text-sm font-semibold text-stone-700 sm:w-auto">
+            {/* Header carries only the receipt's identity plus its one card-level
+                action; image and money controls live next to what they act on. */}
+            <div className="flex items-center justify-between gap-2 border-b border-stone-100 bg-stone-50 px-4 py-2">
+              <span className="min-w-0 text-sm font-semibold text-stone-700">
                 Receipt {gi + 1}: {receiptLabel(group.receipt)}
                 {group.receipt.note && (
                   <span className="ml-1 font-normal text-stone-500">· {group.receipt.note}</span>
                 )}
               </span>
-              <span className="ml-auto flex items-center gap-2">
-                <span
-                  className="whitespace-nowrap text-sm font-bold"
-                  data-testid={`subtotal-${group.receipt.id}`}
+              {isDraft && (
+                <button
+                  className="whitespace-nowrap rounded px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+                  disabled={claim.receipts.length === 1}
+                  title={
+                    claim.receipts.length === 1
+                      ? "This is the only receipt — discard the claim instead"
+                      : "Remove receipt from claim (returns to Shoebox)"
+                  }
+                  onClick={() => removeReceipt(group.receipt.id)}
+                  data-testid={`remove-receipt-${group.receipt.id}`}
                 >
-                  Subtotal: {formatCents(subtotalCents(group.items))}
-                </span>
-                {isDraft && group.receipt.mimeType !== "application/pdf" && (
-                  <button
-                    className="whitespace-nowrap rounded px-2 py-1 text-xs font-normal text-stone-500 hover:bg-stone-100 hover:text-stone-700"
-                    onClick={() => setEditingReceiptId(group.receipt.id)}
-                    title="Rotate or crop this receipt photo"
-                    data-testid={`edit-image-${group.receipt.id}`}
-                  >
-                    ✂ Rotate / crop
-                  </button>
-                )}
-                {isDraft && (
-                  <button
-                    className="whitespace-nowrap rounded px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
-                    disabled={claim.receipts.length === 1}
-                    title={
-                      claim.receipts.length === 1
-                        ? "This is the only receipt — discard the claim instead"
-                        : "Remove receipt from claim (returns to Shoebox)"
-                    }
-                    onClick={() => removeReceipt(group.receipt.id)}
-                    data-testid={`remove-receipt-${group.receipt.id}`}
-                  >
-                    ✕ Remove
-                  </button>
-                )}
-              </span>
+                  ✕ Remove
+                </button>
+              )}
             </div>
             {(group.receipt.extractedRefundCents ?? 0) > 0 && (
               <div
@@ -349,27 +332,42 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               </div>
             )}
             <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-              <div className="max-h-[75vh] overflow-y-auto border-b border-stone-100 bg-stone-50/50 lg:border-b-0 lg:border-r">
-                {group.receipt.mimeType === "application/pdf" ? (
-                  <object
-                    data={`/api/receipts/${group.receipt.id}/file`}
-                    type="application/pdf"
-                    className="h-[480px] w-full"
-                  >
-                    <a
-                      href={`/api/receipts/${group.receipt.id}/file`}
-                      className="block p-4 text-indigo-600 underline"
+              {/* The relative wrapper matches the clamped scroll viewport, so the
+                  floating edit button stays centered over the visible part of a
+                  tall receipt photo rather than its full scroll height. */}
+              <div className="relative border-b border-stone-100 lg:border-b-0 lg:border-r">
+                <div className="max-h-[75vh] overflow-y-auto bg-stone-50/50">
+                  {group.receipt.mimeType === "application/pdf" ? (
+                    <object
+                      data={`/api/receipts/${group.receipt.id}/file`}
+                      type="application/pdf"
+                      className="h-[480px] w-full"
                     >
-                      Open PDF receipt
-                    </a>
-                  </object>
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={fileUrl(group.receipt.id)}
-                    alt={group.receipt.originalName}
-                    className="w-full"
-                  />
+                      <a
+                        href={`/api/receipts/${group.receipt.id}/file`}
+                        className="block p-4 text-indigo-600 underline"
+                      >
+                        Open PDF receipt
+                      </a>
+                    </object>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={fileUrl(group.receipt.id)}
+                      alt={group.receipt.originalName}
+                      className="w-full"
+                    />
+                  )}
+                </div>
+                {isDraft && group.receipt.mimeType !== "application/pdf" && (
+                  <button
+                    className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-stone-900/60 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-stone-900/80"
+                    onClick={() => setEditingReceiptId(group.receipt.id)}
+                    title="Rotate or crop this receipt photo"
+                    data-testid={`edit-image-${group.receipt.id}`}
+                  >
+                    ✂ Rotate / crop
+                  </button>
                 )}
               </div>
               {/* Sticky so the fields stay beside a tall receipt photo while it scrolls. */}
@@ -388,6 +386,17 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                     />
                   ))}
                 </ul>
+                {/* Receipt-style total line directly under the amounts it sums.
+                    Kept as one text run — e2e matches getByText("Subtotal: $…"). */}
+                <div
+                  className="border-t border-stone-200 bg-stone-50 px-4 py-2 text-right"
+                  data-testid={`subtotal-${group.receipt.id}`}
+                >
+                  <span className="text-sm text-stone-500">Subtotal:</span>{" "}
+                  <span className="text-sm font-bold text-stone-800">
+                    {formatCents(subtotalCents(group.items))}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
