@@ -36,7 +36,7 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   await shot(page, "03-profile");
 
   // --- Phase 1: the Shoebox (capture) ---
-  await page.goto("/shoebox");
+  await page.goto("/");
   const purchase = await makeReceiptFixture("costco.jpg");
   const refund = await makeReceiptFixture("amazon-refund.jpg");
   const pureReturn = await makeReceiptFixture("costco-return.jpg", { refund: true });
@@ -233,7 +233,7 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   expect(exclusion).toBeTruthy();
 
   // --- Phase 5 prep: receipts are consumed, claim is frozen ---
-  await page.goto("/shoebox");
+  await page.goto("/");
   await expect(page.getByText("Processed receipts (3)")).toBeVisible();
   await page.goto("/claims");
   await expect(page.getByText("Generated", { exact: true })).toBeVisible();
@@ -242,7 +242,7 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
 
 test("claim with more receipts than the 13-row form paginates onto two form pages", async ({ page }, testInfo) => {
   await signInAs(page, `manyitems-${testInfo.project.name}-r${testInfo.retry}@example.com`);
-  await page.goto("/shoebox");
+  await page.goto("/");
   const fixtures = [];
   for (let i = 0; i < 14; i++) fixtures.push(await makeReceiptFixture(`bulk-${i}.jpg`));
   await uploadReceipts(page, fixtures);

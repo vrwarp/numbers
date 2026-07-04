@@ -69,11 +69,13 @@ src/components/ReceiptImageEditor.tsx  rotate/crop dialog (image receipts, from 
                                 <img> after
 src/components/ProfileForm.tsx  name + mailing address form
 src/app/layout.tsx              shell; reads session; renders NavBar
-src/app/page.tsx                dashboard (server component, direct Prisma)
+src/app/page.tsx                home = the Shoebox (server component: auth check + profile
+                                nudge via direct Prisma, then renders Shoebox)
+src/app/shoebox/page.tsx        legacy path — unconditional redirect("/")
 src/app/signin/page.tsx         server shell for SignInCard (passes firebase config + test flag)
 src/components/SignInCard.tsx   client: Firebase Google popup → POST idToken to
                                 /api/auth/session; dev-login form → /api/auth/test-login
-src/app/shoebox|claims|profile  thin server components: currentUserId() → redirect("/signin")
+src/app/claims|profile          thin server components: currentUserId() → redirect("/signin")
                                 → render client component
 assets/cfcc-form-template.pdf   the real church AcroForm — DO NOT regenerate or optimize
 prisma/schema.prisma            data model (see DATA_MODEL.md)

@@ -66,7 +66,7 @@ export async function signInAs(page: Page, email: string, name = "Test User"): P
   await page.getByTestId("dev-name").fill(name);
   await page.getByTestId("dev-signin").click();
   await page.waitForURL("/");
-  await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Shoebox" })).toBeVisible();
 }
 
 /** Upload fixture files through the Shoebox file input. The upload happens
