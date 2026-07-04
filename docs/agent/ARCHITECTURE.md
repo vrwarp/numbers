@@ -80,8 +80,11 @@ src/components/ReviewClaim.tsx  the review screen (largest component): groups, L
                                 SplitDialog, optimistic PATCH, PDF download
 src/components/ReceiptImageEditor.tsx  rotate/crop dialog (image receipts, from draft-claim
                                 review or the Shoebox viewer): CSS-rotated preview + draggable
-                                crop box → POST /api/receipts/[id]/edit; parent cache-busts the
-                                <img> after
+                                crop box → POST /api/receipts/[id]/edit; Reset clears the unsaved
+                                rotate/crop and, when an earlier edit exists, STAGES a restore
+                                that previews the read-only original (file?original=1) — nothing
+                                is written until Save (POST {restore:true}), Cancel discards it;
+                                parent cache-busts the <img> after
 src/components/ProfileForm.tsx  name + mailing address form
 src/app/layout.tsx              shell; reads session; renders NavBar
 src/app/page.tsx                home = the Shoebox (server component: auth check + profile
@@ -111,9 +114,10 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/receipts` | GET | list own receipts (+ `claims: {id,status,createdAt}[]` each receipt is on); `?status=` filter |
 | | POST | multipart field `files` (+ optional `note` text stored on every receipt in the batch — API convenience; the UI's describe step applies notes per receipt via PATCH after upload); images → compressReceiptImage, pdf → as-is; creates Receipt(unassigned); 415 unsupported, 400 empty |
 | `/api/receipts/[id]` | PATCH | `{note}` (≤300 chars) — user metadata, editable in any state, no AuditEvent (not part of the claim trail) |
-| | DELETE | only if not in any claim (409 otherwise); removes file |
-| `/api/receipts/[id]/file` | GET | serve stored bytes, owner only |
-| `/api/receipts/[id]/edit` | POST | `{rotate: 0|90|180|270, crop?: {left,top,width,height} fractions of the ROTATED frame, reimbursementId?}` → sharp rotate→crop → compression ladder → overwrite stored file + sizeBytes; AuditEvent(edit-receipt-image). 400 PDFs/no-op/too-small crop; 409 while receipt is `processed` (a generated claim's packet must re-download unchanged) |
+| | DELETE | only if not in any claim (409 otherwise); removes file + preserved original |
+| `/api/receipts/[id]/file` | GET | serve stored bytes, owner only; `?original=1` serves the preserved pristine upload (sidecar), falling back to the current file |
+| `/api/receipts/[id]/edit` | GET | `→ {hasOriginal}` — whether a pristine upload is preserved to restore |
+| | POST | `{rotate: 0|90|180|270, crop?: {left,top,width,height} fractions of the ROTATED frame, restore?, reimbursementId?}` → sharp rotate→crop → compression ladder → overwrite stored file + sizeBytes. Source is the current file, or the preserved original when `restore:true` (rotate/crop still apply on top). A normal first edit copies the pristine upload to `<id>.orig.<ext>` (`originalFilePath`); `{restore:true}` with no transform is a plain restore. AuditEvent(edit-receipt-image / restore-receipt-image). 400 PDFs/no-op/too-small crop/nothing-to-restore; 409 while receipt is `processed` (a generated claim's packet must re-download unchanged) |
 | `/api/reimbursements` | GET | list own claims with counts |
 | | POST | `{receiptIds[], manual?}` → validates ownership (404 else; ANY status is allowed — a receipt may go on many claims and is re-extracted each time) → extractReceipts (one call per receipt) → create draft + ONE line item per receipt (composed description, amount = total − refunds, original* snapshot) + stamp Receipt merchant/purchaseDate/extracted*Cents + one ExtractionLog per call. A read failure degrades to a BLANK manual-entry row (no receiptUpdate, original* NULL) instead of failing the batch; only a quota/rate-limit error is all-or-nothing (log ALL + 429, no claim). `manual:true` skips AI entirely → all-blank rows, no ExtractionLogs (the rate-limit escape hatch) |
 | `/api/reimbursements/[id]` | GET | claim + lineItems(sortOrder asc) + receipts join |

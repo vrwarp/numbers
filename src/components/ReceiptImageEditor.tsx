@@ -76,7 +76,15 @@ export default function ReceiptImageEditor({
   const [crop, setCrop] = useState<Crop>(FULL_CROP);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasOriginal, setHasOriginal] = useState(false);
+  // Staged (not yet saved) intent to reset to the pristine upload. While set,
+  // the editor previews the original (read-only) and Save commits it; Cancel
+  // discards it like any other unsaved change.
+  const [restoring, setRestoring] = useState(false);
   const drag = useRef<{ mode: DragMode; x: number; y: number; crop: Crop } | null>(null);
+
+  // Preview the read-only original from its sidecar while a reset is staged.
+  const displaySrc = restoring ? `/api/receipts/${receiptId}/file?original=1` : src;
 
   useEffect(() => {
     const measure = () => setStageMaxWidth(measureRef.current?.clientWidth ?? 0);
@@ -84,6 +92,17 @@ export default function ReceiptImageEditor({
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
   }, []);
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/receipts/${receiptId}/edit`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => alive && setHasOriginal(Boolean(d?.hasOriginal)))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [receiptId]);
 
   const rotatedW = natural ? (rotate % 180 === 0 ? natural.w : natural.h) : 0;
   const rotatedH = natural ? (rotate % 180 === 0 ? natural.h : natural.w) : 0;
@@ -93,11 +112,23 @@ export default function ReceiptImageEditor({
   const dispH = Math.round(rotatedH * scale);
 
   const isFullCrop = crop.width > 0.999 && crop.height > 0.999;
-  const hasChanges = rotate !== 0 || !isFullCrop;
+  const hasChanges = rotate !== 0 || !isFullCrop || restoring;
 
   function turn(delta: 90 | 270) {
     setRotate((r) => ((r + delta) % 360) as 0 | 90 | 180 | 270);
     setCrop(FULL_CROP); // the crop box is meaningless in the new frame
+  }
+
+  // Reset to the originally uploaded image. Nothing is written until Save: it
+  // just clears the unsaved rotate/crop and, when an earlier edit exists,
+  // stages a restore that previews the original in place.
+  function reset() {
+    setRotate(0);
+    setCrop(FULL_CROP);
+    if (hasOriginal && !restoring) {
+      setRestoring(true);
+      setNatural(null); // the original has the upload's dimensions — re-probe
+    }
   }
 
   function startDrag(mode: DragMode) {
@@ -129,7 +160,10 @@ export default function ReceiptImageEditor({
       body: JSON.stringify({
         rotate,
         crop: isFullCrop ? undefined : crop,
-        // undefined is dropped by JSON.stringify; an empty string would 404.
+        // With a reset staged, the server transforms the original instead of the
+        // current file (rotate/crop still apply on top). undefined is dropped by
+        // JSON.stringify; an empty string would 404.
+        restore: restoring || undefined,
         reimbursementId: reimbursementId || undefined,
       }),
     });
@@ -146,8 +180,9 @@ export default function ReceiptImageEditor({
       <div className="card w-full max-w-2xl p-6">
         <h2 className="font-bold">Rotate &amp; crop receipt</h2>
         <p className="mt-1 text-sm text-stone-500">
-          Straighten the photo and drag the box to trim away the background. Saving replaces the
-          stored image.
+          {restoring
+            ? "Showing the originally uploaded image. Save to keep it, or Cancel to leave the current one."
+            : "Straighten the photo and drag the box to trim away the background. Saving replaces the stored image."}
         </p>
 
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -159,12 +194,10 @@ export default function ReceiptImageEditor({
           </button>
           <button
             className="btn-secondary"
-            onClick={() => {
-              setRotate(0);
-              setCrop(FULL_CROP);
-            }}
-            disabled={busy || !hasChanges}
+            onClick={reset}
+            disabled={busy || (!hasChanges && !hasOriginal)}
             data-testid="crop-reset"
+            title="Reset to the originally uploaded image"
           >
             Reset
           </button>
@@ -175,7 +208,7 @@ export default function ReceiptImageEditor({
           {!natural && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={src}
+              src={displaySrc}
               alt=""
               className="hidden"
               onLoad={(e) =>
@@ -195,7 +228,7 @@ export default function ReceiptImageEditor({
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={src}
+                src={displaySrc}
                 alt="Receipt being edited"
                 draggable={false}
                 className="absolute left-1/2 top-1/2 max-w-none"

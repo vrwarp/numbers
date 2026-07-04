@@ -38,6 +38,7 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
     if (inUse > 0) throw new ApiError(409, "Receipt is part of a claim and cannot be deleted");
     await prisma.receipt.delete({ where: { id } });
     await deleteStoredFile(receipt.filePath);
+    if (receipt.originalFilePath) await deleteStoredFile(receipt.originalFilePath);
     return NextResponse.json({ ok: true });
   });
 }
