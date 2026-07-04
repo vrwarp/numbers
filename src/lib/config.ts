@@ -1,6 +1,6 @@
 import path from "path";
 
-export { MINISTRIES } from "./ministries";
+export { MINISTRIES, MINISTRY_GROUPS } from "./ministries";
 
 /** Line-item rows on one page of the official CFCC form (13-row table). */
 export const FORM_ROWS_PER_PAGE = 13;

@@ -42,6 +42,9 @@ test("users cannot see or fetch each other's data (multi-tenant isolation)", asy
   expect(bobLogs).toHaveLength(0);
   expect((await bob.request.get(`/api/extraction-logs/${aliceLogs[0].id}`)).status()).toBe(404);
   expect((await bob.request.delete(`/api/receipts/${receiptId}`)).status()).toBe(404);
+  expect(
+    (await bob.request.post(`/api/receipts/${receiptId}/edit`, { data: { rotate: 90 } })).status()
+  ).toBe(404);
   expect((await bob.request.post(`/api/reimbursements/${claimId}/pdf`)).status()).toBe(404);
   expect(
     (await bob.request.delete(`/api/reimbursements/${claimId}/receipts/${receiptId}`)).status()

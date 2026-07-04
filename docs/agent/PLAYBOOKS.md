@@ -4,11 +4,11 @@ Each recipe lists every file that must move together. Finish every recipe with:
 `npm run build && npm test`, then
 `E2E_BROWSERS=chromium E2E_FORCE_BUILD=1 npm run test:e2e` if UI/API behavior changed.
 
-## Add or rename a ministry
+## Add or rename a ministry / budget category
 
-1. Edit the array in `src/lib/ministries.ts` (single source; config.ts re-exports it).
-2. Nothing else — prompt, dropdown, and PDF all read it. Existing rows keep their old string
-   (PATCH allows arbitrary strings; the dropdown shows a legacy value as an extra option).
+1. Edit `MINISTRY_GROUPS` in `src/lib/ministries.ts` (single source; config.ts re-exports it).
+2. Nothing else — dropdown and PDF all read it. Existing rows keep their old string
+   (PATCH allows arbitrary strings; the dropdown shows a legacy/custom value under "Other…").
 
 ## Add a field to LineItem (e.g. `notes`)
 

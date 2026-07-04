@@ -19,13 +19,17 @@ src/lib/api.ts                  ApiError, requireUserId(), handleApi() — wrap 
 src/lib/config.ts               server config: dataDir()/uploadsDir() (imports node:path —
                                 SERVER ONLY), FORM_ROWS_PER_PAGE=13, IMAGE_TARGET_BYTES,
                                 isAiMock(), isAuthTestMode(); re-exports MINISTRIES
-src/lib/ministries.ts           MINISTRIES list — dependency-free, safe for client components
+src/lib/ministries.ts           MINISTRY_GROUPS budget categories (+ flat MINISTRIES,
+                                isKnownMinistry, formatMinistryEvent) — dependency-free,
+                                safe for client components
 src/lib/money.ts                parseDollarsToCents, centsToDollarString, formatCents,
                                 subtotalCents — the ONLY money conversion code
 src/lib/storage.ts              saveReceiptFile/readStoredFile/deleteStoredFile; blocks path
                                 traversal outside DATA_DIR
 src/lib/image.ts                compressReceiptImage: rotate() → ≤1600px → jpeg q80→40 ladder
-                                → 1100px fallback; target ~100 KB. isSupportedUpload()
+                                → 1100px fallback; target ~100 KB. isSupportedUpload().
+                                transformReceiptImage: 90° rotation + fractional crop (post-
+                                rotation frame) → same ladder; ImageTransformError → 400
 src/lib/audit.ts                computeLineItemChanges(before, patch) → {field:{from,to}}
 src/lib/ai/prompt.ts            buildExtractionPrompt() — THE prompt being tuned (one receipt
                                 per call; TRANSCRIPTION only: merchant/date/printed totals/
@@ -55,6 +59,9 @@ src/components/NavBar.tsx       top nav (client); hidden when signed out
 src/components/Shoebox.tsx      upload input, receipt grid, selection bar, generate-claim POST
 src/components/ReviewClaim.tsx  the review screen (largest component): groups, LineItemRow,
                                 SplitDialog, optimistic PATCH, PDF download
+src/components/ReceiptImageEditor.tsx  rotate/crop dialog (draft claims, image receipts):
+                                CSS-rotated preview + draggable crop box → POST
+                                /api/receipts/[id]/edit; parent cache-busts the <img> after
 src/components/ProfileForm.tsx  name + mailing address form
 src/app/layout.tsx              shell; reads session; renders NavBar
 src/app/page.tsx                dashboard (server component, direct Prisma)
@@ -84,6 +91,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/receipts/[id]` | PATCH | `{note}` (≤300 chars) — user metadata, editable in any state, no AuditEvent (not part of the claim trail) |
 | | DELETE | only if not in any claim (409 otherwise); removes file |
 | `/api/receipts/[id]/file` | GET | serve stored bytes, owner only |
+| `/api/receipts/[id]/edit` | POST | `{rotate: 0|90|180|270, crop?: {left,top,width,height} fractions of the ROTATED frame, reimbursementId?}` → sharp rotate→crop → compression ladder → overwrite stored file + sizeBytes; AuditEvent(edit-receipt-image). 400 PDFs/no-op/too-small crop; 409 while receipt is `processed` (a generated claim's packet must re-download unchanged) |
 | `/api/reimbursements` | GET | list own claims with counts |
 | | POST | `{receiptIds[]}` → validates ownership (404 else; ANY status is allowed — a receipt may go on many claims and is re-extracted each time) → extractReceipts (one call per receipt) → any failure: log ALL calls + 502, no claim; else create draft + ONE line item per receipt (composed description, amount = total − refunds, original* snapshot) + stamp Receipt merchant/purchaseDate/extracted*Cents + one ExtractionLog per call |
 | `/api/reimbursements/[id]` | GET | claim + lineItems(sortOrder asc) + receipts join |
@@ -91,7 +99,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/reimbursements/[id]/pdf` | POST | gate: ≥1 active row, all active verified (400 else) → generateClaimPdf (packet appends only receipts with ≥1 non-excluded row) → claim=generated, receipts=processed → returns application/pdf. Re-POST on generated claim re-downloads |
 | `/api/reimbursements/[id]/receipts/[receiptId]` | DELETE | draft only (409); refuses the last receipt (409 — discard the claim instead); deletes the receipt's line items + join row (receipt returns to Shoebox — status never left `unassigned`); AuditEvent(remove-receipt); recomputes totalCents |
 | `/api/reimbursements/[id]/revert` | POST | generated only (409 else); claim → draft; receipts → unassigned unless another GENERATED claim still holds them; AuditEvent(revert-to-draft). Rows keep isVerified (values were frozen; edits still revoke) |
-| `/api/line-items/[id]` | PATCH | zod partial {description,amountCents,ministry,isVerified,isExcluded}; draft only (409); isVerified:true refused (400) while ministry is empty; content change ⇒ isVerified=false unless patch sets it; writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
+| `/api/line-items/[id]` | PATCH | zod partial {description,amountCents,ministry,event,isVerified,isExcluded}; draft only (409); isVerified:true refused (400) while ministry is empty (event is always optional); content change ⇒ isVerified=false unless patch sets it; writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
 | `/api/line-items/[id]/split` | POST | `{firstAmountCents?}` default even split; both halves unverified; new row original*=NULL; AuditEvent(split); renumbers sortOrder so new half follows original |
 | `/api/profile` | GET PATCH | fullName, mailingAddress (printed on the form) |
 | `/api/extraction-logs` | GET | own logs, `?reimbursementId=`, newest first, summaries |
@@ -123,7 +131,7 @@ Per row n = 1..13 (⚠ literal double space in the ministry field name):
 - `Description QuantityRow{n}` — description
 - `Description QuantityRow{n}_2` — quantity (left blank — rows are whole receipts)
 - `AmountRow{n}` — amount (plain `centsToDollarString`, e.g. `-27.98`)
-- `For Ministry  EventRow{n}` — ministry
+- `For Ministry  EventRow{n}` — `formatMinistryEvent(ministry, event)` (`"<ministry> — <event>"`, ministry alone when no event)
 
 Header/footer fields: `Make check payable to`, `Mail check to address`,
 `Make check to address 2` (sic — that's the real name), `TotalAmount` (grand total on last

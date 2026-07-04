@@ -52,6 +52,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           description: item.description,
           amountCents: second,
           ministry: item.ministry,
+          event: item.event,
           isVerified: false,
           isExcluded: item.isExcluded,
           sortOrder: item.sortOrder, // renumbered below to slot in right after the original

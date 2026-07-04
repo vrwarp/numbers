@@ -11,6 +11,7 @@ const PatchSchema = z
     description: z.string().min(1).max(300),
     amountCents: z.number().int(),
     ministry: z.string().max(100),
+    event: z.string().max(100),
     isVerified: z.boolean(),
     isExcluded: z.boolean(),
   })
@@ -44,7 +45,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     }
 
     const changes = computeLineItemChanges(item, patch);
-    const contentChanged = ["description", "amountCents", "ministry"].some(
+    const contentChanged = ["description", "amountCents", "ministry", "event"].some(
       (f) => f in changes
     );
 

@@ -102,8 +102,13 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   const amazonRows = rowByDesc("Amazon 06/04");
   await expect(amazonRows).toHaveCount(2);
   await expect(page.getByTestId("claim-total")).toHaveText("$120.95"); // split conserves the total
-  // Assign the second half to a different ministry.
-  await amazonRows.nth(1).getByLabel("Ministry").selectOption("Footprints");
+  // Assign the second half to a different ministry, with an event label.
+  await amazonRows
+    .nth(1)
+    .getByLabel("Ministry", { exact: true })
+    .selectOption("440 Youth Fellowship (aka Footprint)");
+  await amazonRows.nth(1).getByLabel("Event", { exact: true }).fill("Summer Retreat");
+  await amazonRows.nth(1).getByLabel("Event", { exact: true }).blur();
 
   // Verify every active row; the button unlocks only at 3/3.
   await expect(page.getByTestId("verify-progress")).toContainText("0 / 3 verified");
@@ -113,9 +118,18 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   // Rows arrive with no ministry — the AI never suggests one, and approving
   // is blocked until the user explicitly picks.
   await expect(approveButtons.first()).toBeDisabled();
-  for (const sel of await page.getByLabel("Ministry").all()) {
+
+  // The Costco run doesn't fit the budget list: "Other…" reveals a free-text
+  // box, and the row stays unverifiable until the custom text is typed.
+  await costcoRow.getByLabel("Ministry", { exact: true }).selectOption("Other…");
+  await expect(costcoRow.getByRole("button", { name: "Approve row" })).toBeDisabled();
+  await costcoRow.getByLabel("Custom ministry").fill("Pastor Appreciation");
+  await costcoRow.getByLabel("Custom ministry").blur();
+  await expect(costcoRow.getByRole("button", { name: "Approve row" })).toBeEnabled();
+
+  for (const sel of await page.getByLabel("Ministry", { exact: true }).all()) {
     if (await sel.isDisabled()) continue; // excluded row
-    if (!(await sel.inputValue())) await sel.selectOption("General Fund");
+    if (!(await sel.inputValue())) await sel.selectOption("237 Office Supplies");
   }
   // Approving a row renames its button to "Mark unverified", so always click
   // the first remaining "Approve row".
@@ -218,8 +232,8 @@ test("claim with more receipts than the 13-row form paginates onto two form page
   // 14 receipts x 1 row each = 14 rows.
   const rows = page.locator('li[data-testid^="row-"]');
   await expect(rows).toHaveCount(14);
-  for (const sel of await page.getByLabel("Ministry").all()) {
-    await sel.selectOption("General Fund");
+  for (const sel of await page.getByLabel("Ministry", { exact: true }).all()) {
+    await sel.selectOption("237 Office Supplies");
   }
   const approve = page.getByRole("button", { name: "Approve row" });
   for (let i = 0; i < 14; i++) {
