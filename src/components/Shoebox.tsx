@@ -21,6 +21,14 @@ interface Receipt {
   claims: ClaimRef[];
 }
 
+// NDJSON progress lines streamed by POST /api/reimbursements (see the route).
+type StreamMessage =
+  | { type: "status"; phase: "extracting"; total: number }
+  | { type: "receipt-done"; receiptId: string; receiptName: string; ok: boolean; completed: number; total: number }
+  | { type: "quota-wait"; receiptId: string; receiptName: string; attempt: number; maxRetries: number; cooldownMs: number; message: string }
+  | { type: "done"; reimbursementId: string }
+  | { type: "error"; status: number; message: string };
+
 export default function Shoebox() {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -29,6 +37,8 @@ export default function Shoebox() {
   const [uploadNote, setUploadNote] = useState("");
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -93,19 +103,69 @@ export default function Shoebox() {
 
   async function generateClaim() {
     setGenerating(true);
+    setWaiting(false);
     setError(null);
+    setStatus("Reading receipts with AI…");
     try {
       const res = await fetch("/api/reimbursements", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        // Ask for streamed progress so quota waits show up live.
+        headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
         body: JSON.stringify({ receiptIds: Array.from(selected) }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Claim generation failed");
-      router.push(`/claims/${json.reimbursement.id}`);
+      // A pre-stream failure (auth/validation) comes back as plain JSON.
+      if (!res.ok || !res.body) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error ?? "Claim generation failed");
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let claimId: string | null = null;
+
+      const handle = (ev: StreamMessage) => {
+        switch (ev.type) {
+          case "status":
+            setStatus(`Reading ${ev.total} receipt${ev.total > 1 ? "s" : ""} with AI…`);
+            break;
+          case "receipt-done":
+            setWaiting(false);
+            setStatus(`Read ${ev.completed} of ${ev.total} receipts…`);
+            break;
+          case "quota-wait":
+            setWaiting(true);
+            setStatus(ev.message);
+            break;
+          case "done":
+            claimId = ev.reimbursementId;
+            break;
+          case "error":
+            throw new Error(ev.message);
+        }
+      };
+
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buffer.indexOf("\n")) >= 0) {
+          const line = buffer.slice(0, nl).trim();
+          buffer = buffer.slice(nl + 1);
+          if (line) handle(JSON.parse(line) as StreamMessage);
+        }
+      }
+      const tail = buffer.trim();
+      if (tail) handle(JSON.parse(tail) as StreamMessage);
+
+      if (!claimId) throw new Error("Claim generation ended unexpectedly");
+      router.push(`/claims/${claimId}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Claim generation failed");
       setGenerating(false);
+      setWaiting(false);
+      setStatus(null);
     }
   }
 
@@ -158,13 +218,26 @@ export default function Shoebox() {
       )}
 
       {selected.size > 0 && (
-        <div className="card sticky top-16 z-30 flex items-center justify-between border-indigo-200 bg-indigo-50 p-3">
-          <span className="text-sm font-medium text-indigo-900">
-            {selected.size} receipt{selected.size > 1 ? "s" : ""} selected
-          </span>
-          <button className="btn-primary" onClick={generateClaim} disabled={generating} data-testid="generate-claim">
-            {generating ? "Reading receipts with AI…" : "✨ Generate Claim"}
-          </button>
+        <div className="card sticky top-16 z-30 border-indigo-200 bg-indigo-50 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-indigo-900">
+              {selected.size} receipt{selected.size > 1 ? "s" : ""} selected
+            </span>
+            <button className="btn-primary" onClick={generateClaim} disabled={generating} data-testid="generate-claim">
+              {generating ? (waiting ? "Waiting on rate limit…" : "Reading receipts…") : "✨ Generate Claim"}
+            </button>
+          </div>
+          {generating && status && (
+            <p
+              className={`mt-2 text-xs ${waiting ? "font-medium text-amber-700" : "text-indigo-700"}`}
+              role="status"
+              aria-live="polite"
+              data-testid="generate-status"
+            >
+              {waiting ? "⏳ " : ""}
+              {status}
+            </p>
+          )}
         </div>
       )}
 

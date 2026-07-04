@@ -23,9 +23,15 @@ export interface ProviderDocument {
 }
 
 /** Provider misconfiguration or a failed HTTP call; rawResponse (when present)
- *  is the response body, capped for logging. */
+ *  is the response body, capped for logging. status is the HTTP status code
+ *  when the call reached the provider (null for network/config failures) so
+ *  callers can single out quota errors (429). */
 export class ProviderCallError extends Error {
-  constructor(message: string, public rawResponse: string | null = null) {
+  constructor(
+    message: string,
+    public rawResponse: string | null = null,
+    public status: number | null = null
+  ) {
     super(message);
   }
 }
@@ -111,7 +117,8 @@ async function callOpenRouter(
     const body = await res.text().catch(() => "");
     throw new ProviderCallError(
       `OpenRouter API error ${res.status}: ${body.slice(0, 500)}`,
-      body.slice(0, 10_000)
+      body.slice(0, 10_000),
+      res.status
     );
   }
 
@@ -169,7 +176,8 @@ async function callGoogle(
     const body = await res.text().catch(() => "");
     throw new ProviderCallError(
       `Google AI Studio API error ${res.status}: ${body.slice(0, 500)}`,
-      body.slice(0, 10_000)
+      body.slice(0, 10_000),
+      res.status
     );
   }
 

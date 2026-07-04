@@ -1,5 +1,5 @@
 import { readStoredFile } from "@/lib/storage";
-import { isAiMock } from "@/lib/config";
+import { isAiMock, quotaCooldownMs, quotaMaxRetries } from "@/lib/config";
 import { buildExtractionPrompt } from "./prompt";
 import { parseExtractionResponse } from "./parse";
 import { mockExtract } from "./mock";
@@ -10,7 +10,9 @@ import {
   providerModel,
   ProviderCallError,
   type AiProvider,
+  type ProviderDocument,
 } from "./providers";
+import { acquireRateSlot, withQuotaRetry } from "./throttle";
 import type { ExtractedReceipt } from "./schema";
 
 export interface ReceiptInput {
@@ -46,9 +48,74 @@ export class ExtractionError extends Error {
   }
 }
 
+/** Progress events emitted while extracting a batch (for live UI streaming). */
+export type ExtractionEvent =
+  | {
+      type: "quota-wait";
+      receiptId: string;
+      receiptName: string;
+      attempt: number;
+      maxRetries: number;
+      cooldownMs: number;
+      message: string;
+    }
+  | {
+      type: "receipt-done";
+      receiptId: string;
+      receiptName: string;
+      ok: boolean;
+      completed: number;
+      total: number;
+    };
+
+export type ExtractionEventHandler = (event: ExtractionEvent) => void;
+
 // Per-receipt calls in flight at once; keeps a big claim fast without
 // tripping provider rate limits.
 export const EXTRACTION_CONCURRENCY = 3;
+
+/**
+ * Make one provider call, but first wait for a slot in the process-wide RPM
+ * budget, and on a quota/rate-limit rejection wait out the cooldown and retry.
+ * Every wait is surfaced through onEvent (and logged) so the user learns why a
+ * claim is taking longer.
+ */
+function callProviderThrottled(
+  provider: AiProvider,
+  apiKey: string,
+  model: string,
+  prompt: string,
+  doc: ProviderDocument,
+  receipt: ReceiptInput,
+  onEvent?: ExtractionEventHandler
+): Promise<string> {
+  return withQuotaRetry(
+    async () => {
+      await acquireRateSlot();
+      return callProvider(provider, apiKey, model, prompt, doc);
+    },
+    {
+      maxRetries: quotaMaxRetries(),
+      cooldownMs: quotaCooldownMs(),
+      onWait: ({ attempt, maxRetries, cooldownMs, error }) => {
+        const seconds = Math.round(cooldownMs / 1000);
+        const message = `Rate limit reached — waiting ${seconds}s before retrying (${attempt}/${maxRetries})…`;
+        console.warn(
+          `[extract] ${receipt.originalName}: ${message} Provider said: ${error}`
+        );
+        onEvent?.({
+          type: "quota-wait",
+          receiptId: receipt.id,
+          receiptName: receipt.originalName,
+          attempt,
+          maxRetries,
+          cooldownMs,
+          message,
+        });
+      },
+    }
+  );
+}
 
 function currentModel(): string {
   if (isAiMock()) return "mock";
@@ -74,7 +141,8 @@ function receiptMetaJson(receipt: ReceiptInput): string {
  * deterministic data without any network call (logged with model "mock").
  */
 export async function extractReceipt(
-  receipt: ReceiptInput
+  receipt: ReceiptInput,
+  onEvent?: ExtractionEventHandler
 ): Promise<{ result: ExtractedReceipt; meta: ExtractionMeta }> {
   const prompt = buildExtractionPrompt();
   const receiptsJson = receiptMetaJson(receipt);
@@ -124,11 +192,19 @@ export async function extractReceipt(
 
   let text: string;
   try {
-    text = await callProvider(provider, apiKey, model, prompt, {
-      mimeType: receipt.mimeType,
-      originalName: receipt.originalName,
-      base64: data.toString("base64"),
-    });
+    text = await callProviderThrottled(
+      provider,
+      apiKey,
+      model,
+      prompt,
+      {
+        mimeType: receipt.mimeType,
+        originalName: receipt.originalName,
+        base64: data.toString("base64"),
+      },
+      receipt,
+      onEvent
+    );
   } catch (err) {
     if (err instanceof ProviderCallError) {
       throw new ExtractionError(err.message, failMeta(err.rawResponse));
@@ -157,12 +233,18 @@ export async function extractReceipt(
  * (error) and always carries meta, so the caller can telemetry-log every
  * call — including the ones that failed.
  */
-export async function extractReceipts(receipts: ReceiptInput[]): Promise<ReceiptExtraction[]> {
+export async function extractReceipts(
+  receipts: ReceiptInput[],
+  onEvent?: ExtractionEventHandler
+): Promise<ReceiptExtraction[]> {
   if (receipts.length === 0) throw new Error("No receipts to extract");
+  const total = receipts.length;
+  let completed = 0;
   return mapWithConcurrency(receipts, EXTRACTION_CONCURRENCY, async (receipt) => {
+    let outcome: ReceiptExtraction;
     try {
-      const { result, meta } = await extractReceipt(receipt);
-      return { receipt, result, error: null, meta };
+      const { result, meta } = await extractReceipt(receipt, onEvent);
+      outcome = { receipt, result, error: null, meta };
     } catch (err) {
       const message = err instanceof Error ? err.message : "extraction failed";
       const meta: ExtractionMeta =
@@ -175,8 +257,18 @@ export async function extractReceipts(receipts: ReceiptInput[]): Promise<Receipt
               rawResponse: null,
               durationMs: 0,
             };
-      return { receipt, result: null, error: message, meta };
+      outcome = { receipt, result: null, error: message, meta };
     }
+    completed += 1;
+    onEvent?.({
+      type: "receipt-done",
+      receiptId: receipt.id,
+      receiptName: receipt.originalName,
+      ok: outcome.result !== null,
+      completed,
+      total,
+    });
+    return outcome;
   });
 }
 
