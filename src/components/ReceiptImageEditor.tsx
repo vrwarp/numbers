@@ -150,6 +150,26 @@ export default function ReceiptImageEditor({
           stored image.
         </p>
 
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <button className="btn-secondary" onClick={() => turn(270)} disabled={busy} data-testid="rotate-left" aria-label="Rotate left" title="Rotate left">
+            ↺
+          </button>
+          <button className="btn-secondary" onClick={() => turn(90)} disabled={busy} data-testid="rotate-right" aria-label="Rotate right" title="Rotate right">
+            ↻
+          </button>
+          <button
+            className="btn-secondary"
+            onClick={() => {
+              setRotate(0);
+              setCrop(FULL_CROP);
+            }}
+            disabled={busy || !hasChanges}
+            data-testid="crop-reset"
+          >
+            Reset
+          </button>
+        </div>
+
         <div ref={measureRef} className="mt-4 w-full">
           {/* Hidden probe: we need the natural dimensions before laying out the stage. */}
           {!natural && (
@@ -217,41 +237,19 @@ export default function ReceiptImageEditor({
           </p>
         )}
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <button className="btn-secondary" onClick={() => turn(270)} disabled={busy} data-testid="rotate-left" aria-label="Rotate left" title="Rotate left">
-              ↺
-            </button>
-            <button className="btn-secondary" onClick={() => turn(90)} disabled={busy} data-testid="rotate-right" aria-label="Rotate right" title="Rotate right">
-              ↻
-            </button>
-            <button
-              className="btn-secondary"
-              onClick={() => {
-                setRotate(0);
-                setCrop(FULL_CROP);
-              }}
-              disabled={busy || !hasChanges}
-              data-testid="crop-reset"
-            >
-              Reset
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button className="btn-secondary" onClick={onClose} disabled={busy} data-testid="image-editor-cancel">
-              Cancel
-            </button>
-            <button
-              className="btn-primary"
-              onClick={save}
-              disabled={busy || !hasChanges}
-              title={!hasChanges ? "Rotate or draw a crop first" : undefined}
-              data-testid="image-editor-save"
-            >
-              {busy ? "Saving…" : "Save"}
-            </button>
-          </div>
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <button className="btn-secondary" onClick={onClose} disabled={busy} data-testid="image-editor-cancel">
+            Cancel
+          </button>
+          <button
+            className="btn-primary"
+            onClick={save}
+            disabled={busy || !hasChanges}
+            title={!hasChanges ? "Rotate or draw a crop first" : undefined}
+            data-testid="image-editor-save"
+          >
+            {busy ? "Saving…" : "Save"}
+          </button>
         </div>
       </div>
     </div>
