@@ -113,7 +113,7 @@ export default function Shoebox() {
   const processed = (receipts ?? []).filter((r) => r.status !== "unassigned");
 
   return (
-    <div className={`space-y-6 transition-[padding] duration-200 ${selected.size > 0 ? "pb-20" : "pb-0"}`}>
+    <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Shoebox</h1>
@@ -158,19 +158,27 @@ export default function Shoebox() {
       )}
 
       <div
-        className={`pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-4 transition-transform duration-200 ease-out ${
-          selected.size > 0 ? "translate-y-0" : "translate-y-[calc(100%+1rem)]"
+        className={`card sticky top-16 z-30 flex min-h-16 items-center justify-between gap-3 p-3 transition-colors ${
+          selected.size > 0 ? "border-indigo-200 bg-indigo-50" : ""
         }`}
-        aria-hidden={selected.size === 0}
       >
-        <div className="card pointer-events-auto flex w-full max-w-2xl items-center justify-between border-indigo-200 bg-indigo-50 p-3 shadow-lg">
-          <span className="text-sm font-medium text-indigo-900">
-            {selected.size} receipt{selected.size > 1 ? "s" : ""} selected
-          </span>
-          <button className="btn-primary" onClick={generateClaim} disabled={generating} data-testid="generate-claim">
+        <span
+          className={`truncate text-sm font-medium ${selected.size > 0 ? "text-indigo-900" : "text-stone-500"}`}
+        >
+          {selected.size > 0
+            ? `${selected.size} receipt${selected.size > 1 ? "s" : ""} selected`
+            : "Select receipts to claim"}
+        </span>
+        {selected.size > 0 && (
+          <button
+            className="btn-primary shrink-0 whitespace-nowrap"
+            onClick={generateClaim}
+            disabled={generating}
+            data-testid="generate-claim"
+          >
             {generating ? "Reading receipts with AI…" : "✨ Generate Claim"}
           </button>
-        </div>
+        )}
       </div>
 
       {receipts === null ? (
