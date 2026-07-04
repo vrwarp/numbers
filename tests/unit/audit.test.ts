@@ -5,6 +5,7 @@ const item = {
   description: "Costco Wholesale 06/21 — paper towels",
   amountCents: 10210,
   ministry: "General Fund",
+  event: "",
   isVerified: false,
   isExcluded: false,
 };
@@ -20,16 +21,19 @@ describe("computeLineItemChanges", () => {
       description: "Costco Wholesale 06/21 — paper towels (less personal items)",
       amountCents: 999,
       ministry: "Facilities",
+      event: "Summer Retreat",
       isVerified: true,
       isExcluded: true,
     });
     expect(Object.keys(changes).sort()).toEqual([
       "amountCents",
       "description",
+      "event",
       "isExcluded",
       "isVerified",
       "ministry",
     ]);
+    expect(changes.event).toEqual({ from: "", to: "Summer Retreat" });
     expect(changes.ministry).toEqual({ from: "General Fund", to: "Facilities" });
   });
 

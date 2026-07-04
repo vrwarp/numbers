@@ -11,6 +11,7 @@ const TRACKED_FIELDS = [
   "description",
   "amountCents",
   "ministry",
+  "event",
   "isVerified",
   "isExcluded",
 ] as const;

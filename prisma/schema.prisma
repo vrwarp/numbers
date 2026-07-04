@@ -82,7 +82,12 @@ model LineItem {
   amountCents     Int
   // The user's explicit choice, made during review; empty until picked (the
   // AI never assigns ministries, and a row cannot be verified without one).
+  // Usually a budget category from MINISTRY_GROUPS but free text is allowed
+  // ("Other" in the UI).
   ministry        String        @default("")
+  // Optional event label ("Summer Retreat", "Christmas Party"); combined with
+  // ministry on the PDF's "For Ministry / Event" column. Never required.
+  event           String        @default("")
   isVerified      Boolean       @default(false)
   isExcluded      Boolean       @default(false)
   sortOrder       Int           @default(0)

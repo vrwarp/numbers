@@ -50,7 +50,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 - Every interactive element tests touch gets `data-testid`:
   `upload-button, file-input, generate-claim, generate-pdf, discard-claim, claim-status,
   claim-total, verify-progress, row-<id>, verify-<id>, desc-<id>, ministry-<id>,
-  amount-<id>, split-<id>, exclude-<id>, subtotal-<receiptId>, group-<receiptId>,
+  ministry-other-<id>, event-<id>, amount-<id>, split-<id>, exclude-<id>,
+  subtotal-<receiptId>, group-<receiptId>,
   derivation-<receiptId>, remove-receipt-<receiptId>, revert-claim, upload-note,
   receipt-note-<receiptId>, claim-link-<receiptId>-<claimId>, split-first-amount,
   split-confirm, profile-name, profile-address, profile-save, dev-email, dev-name,
