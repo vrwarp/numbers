@@ -87,19 +87,21 @@ Reimbursement:  draft ──(all rows verified, PDF generated)──▶ generate
 
 Upload accepts images and PDFs. Images are downscaled client-side to the same 1600 px cap
 the server enforces, then compressed server-side to **~100 KB** JPEG (EXIF-rotation
-normalized, quality-ladder 80→40, with a dimension-shrink fallback); PDFs are stored as-is.
-The full-resolution photo never leaves the phone. Files land in
+normalized, quality-ladder 80→40, with a dimension-shrink fallback); PDFs upload as picked
+and are stored as-is. The full-resolution photo never leaves the phone. Files land in
 `DATA_DIR/uploads/<userId>/<receiptId>.<ext>` and a `receipts` row is created with status
 `unassigned`.
 
-Picking files opens a small **describe** step per file — before anything uploads — showing
-the actual image and asking for an optional free-text description (skippable, editable on
-the card later) — "VBS craft supplies" written in the parking lot, with the photo on screen,
-beats a mystery JPEG a month later. The same step offers the rotate/crop tool, which runs
-on-device against the original photo: the crop is cut at native resolution (maximum detail
+Picking files opens a small **describe** step per file, showing the actual receipt and
+asking for an optional free-text description (skippable, editable on the card later) —
+"VBS craft supplies" written in the parking lot, with the photo on screen, beats a mystery
+JPEG a month later. For photos this step runs *before* the upload and offers the rotate/crop
+tool on-device against the original: the crop is cut at native resolution (maximum detail
 for the human and the LLM) and only the edited, downscaled result is uploaded when the step
-is saved or skipped. Sideways or cluttered photos get fixed the moment they're taken rather
-than at claim time.
+is saved or skipped — sideways or cluttered photos get fixed the moment they're taken rather
+than at claim time. PDFs are the pragmatic exception: browsers can't thumbnail a local PDF,
+so they upload immediately and the step previews the server-rendered raster while collecting
+the note.
 It follows the receipt everywhere: the Shoebox card, the review headers, and the label above
 the receipt image in the final PDF packet. Each card also links to every claim the receipt is
 on. Deliberately, **no AI runs here**. Capture must be instant and free; deferring the LLM

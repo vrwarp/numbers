@@ -4,20 +4,33 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import ReceiptViewer from "./ReceiptViewer";
+import PdfReceiptPreview from "@/components/PdfReceiptPreview";
 import ReceiptGrid, { type ReceiptSummary as Receipt } from "./ReceiptGrid";
 import { prepareImageUpload, renderTransformedImage } from "@/lib/image-client";
 import { readNdjsonStream } from "@/lib/ndjson";
 import type { ClaimStreamMessage } from "@/lib/claim-stream";
 
-/** A picked file waiting in the prepare step — nothing is uploaded yet.
+/** A picked image waiting in the prepare step — nothing is uploaded yet.
  *  `edited` holds the client-side rotate/crop render (native resolution);
  *  the upload payload is derived from it (or the file) at Save/Skip time. */
-interface PendingUpload {
+interface LocalPending {
+  kind: "local";
   key: number;
   file: File;
   edited: Blob | null;
   previewUrl: string;
 }
+
+/** A PDF that was uploaded the moment it was picked: browsers can't thumbnail
+ *  a local PDF, so it goes up first and the dialog previews the server-side
+ *  raster. Dismissing its dialog only saves the optional note. */
+interface UploadedPending {
+  kind: "uploaded";
+  key: number;
+  receipt: Receipt;
+}
+
+type PendingItem = LocalPending | UploadedPending;
 
 export default function Shoebox() {
   const router = useRouter();
@@ -25,10 +38,11 @@ export default function Shoebox() {
   const [receipts, setReceipts] = useState<Receipt[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // Picked files awaiting the prepare step (describe + optional rotate/crop),
-  // front = current. Each is uploaded as its dialog is dismissed, so the
+  // front = current. Images upload as their dialog is dismissed, so the
   // full-resolution original never leaves the device — the rotate/crop runs
-  // client-side on it and only the downscaled result is sent.
-  const [pending, setPending] = useState<PendingUpload[]>([]);
+  // client-side on it and only the downscaled result is sent. PDFs are already
+  // uploaded (their dialog shows the server preview and just collects a note).
+  const [pending, setPending] = useState<PendingItem[]>([]);
   const pendingKey = useRef(0);
   const [uploadNote, setUploadNote] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -69,46 +83,76 @@ export default function Shoebox() {
 
   function onFilesPicked(files: FileList | null) {
     if (!files || files.length === 0) return;
-    // Nothing is uploaded yet: the prepare dialog steps through each picked
-    // file first so any rotate/crop happens client-side on the full-resolution
-    // original. Save/Skip then uploads the (downscaled) result.
+    // Images are NOT uploaded yet: their prepare dialog comes first so any
+    // rotate/crop happens client-side on the full-resolution original, and
+    // Save/Skip uploads the (downscaled) result. PDFs upload immediately —
+    // browsers can't thumbnail a local PDF, so the server-rendered preview
+    // needs the file up first (function over purity).
     setError(null);
     setUploadNote("");
-    const items = Array.from(files).map((file) => ({
-      key: pendingKey.current++,
-      file,
-      edited: null,
-      previewUrl: URL.createObjectURL(file),
-    }));
-    setPending((q) => [...q, ...items]);
+    const picked = Array.from(files);
+    const images = picked.filter((f) => f.type !== "application/pdf");
+    const pdfs = picked.filter((f) => f.type === "application/pdf");
+    if (images.length > 0) {
+      const items = images.map((file) => ({
+        kind: "local" as const,
+        key: pendingKey.current++,
+        file,
+        edited: null,
+        previewUrl: URL.createObjectURL(file),
+      }));
+      setPending((q) => [...q, ...items]);
+    }
+    if (pdfs.length > 0) void uploadPdfsNow(pdfs);
     if (fileInput.current) fileInput.current.value = "";
   }
 
+  /** Upload picked PDFs right away and queue them for the note-only dialog. */
+  async function uploadPdfsNow(files: File[]) {
+    setUploading(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      for (const f of files) form.append("files", f);
+      const res = await fetch("/api/receipts", { method: "POST", body: form });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Upload failed");
+      const { receipts: created } = (await res.json()) as { receipts: Receipt[] };
+      setPending((q) => [
+        ...q,
+        ...created.map((receipt) => ({
+          kind: "uploaded" as const,
+          key: pendingKey.current++,
+          receipt,
+        })),
+      ]);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   // Picked photos exist only in this tab until their dialog is dismissed —
-  // warn before a navigation throws them away.
-  const hasPending = pending.length > 0;
+  // warn before a navigation throws them away. (Uploaded PDFs are safe.)
+  const hasLocalPending = pending.some((i) => i.kind === "local");
   useEffect(() => {
-    if (!hasPending) return;
+    if (!hasLocalPending) return;
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [hasPending]);
+  }, [hasLocalPending]);
 
-  /** Upload some pending files (front item or, for skip-all, the whole queue).
-   *  Images are downscaled to the server's 1600px cap client-side; PDFs go
-   *  as-is. Returns whether the upload succeeded (failures keep the queue). */
-  async function uploadPending(items: PendingUpload[], note?: string): Promise<boolean> {
+  /** Upload pending images (front item or, for skip-all, all remaining),
+   *  downscaled to the server's 1600px cap client-side. Returns whether the
+   *  upload succeeded (failures keep the queue so the user can retry). */
+  async function uploadPending(items: LocalPending[], note?: string): Promise<boolean> {
     setUploading(true);
     setError(null);
     try {
       const form = new FormData();
       for (const item of items) {
-        form.append(
-          "files",
-          item.file.type === "application/pdf"
-            ? item.file
-            : await prepareImageUpload(item.file, item.edited)
-        );
+        form.append("files", await prepareImageUpload(item.file, item.edited));
       }
       if (note) form.append("note", note);
       const res = await fetch("/api/receipts", { method: "POST", body: form });
@@ -159,18 +203,34 @@ export default function Shoebox() {
     onFilesPicked(e.dataTransfer.files);
   }
 
-  const preparing: PendingUpload | null = pending[0] ?? null;
+  const preparing: PendingItem | null = pending[0] ?? null;
 
   async function skipPrepare(all = false) {
     if (!preparing) return;
     setEditingUpload(false);
-    await uploadPending(all ? pending : [preparing]);
+    const items = all ? pending : [preparing];
+    // Already-uploaded PDFs just leave the queue (their note is skipped) …
+    const done = new Set(items.filter((i) => i.kind === "uploaded").map((i) => i.key));
+    if (done.size > 0) {
+      setUploadNote("");
+      setPending((q) => q.filter((i) => !done.has(i.key)));
+    }
+    // … while local images upload now.
+    const locals = items.filter((i): i is LocalPending => i.kind === "local");
+    if (locals.length > 0) await uploadPending(locals);
   }
 
   async function savePrepare() {
     if (!preparing) return;
     setEditingUpload(false);
-    await uploadPending([preparing], uploadNote.trim() || undefined);
+    const note = uploadNote.trim() || undefined;
+    if (preparing.kind === "uploaded") {
+      if (note) await saveNote(preparing.receipt.id, note);
+      setUploadNote("");
+      setPending((q) => q.slice(1));
+    } else {
+      await uploadPending([preparing], note);
+    }
   }
 
   function toggle(id: string) {
@@ -467,8 +527,10 @@ export default function Shoebox() {
               )}
             </h2>
             <div className="mt-1 flex items-center justify-between gap-2">
-              <p className="truncate text-sm text-stone-500">{preparing.file.name}</p>
-              {preparing.file.type !== "application/pdf" && (
+              <p className="truncate text-sm text-stone-500">
+                {preparing.kind === "local" ? preparing.file.name : preparing.receipt.originalName}
+              </p>
+              {preparing.kind === "local" && (
                 <button
                   className="shrink-0 rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700"
                   onClick={() => setEditingUpload(true)}
@@ -484,10 +546,12 @@ export default function Shoebox() {
               className="mt-3 flex max-h-72 items-center justify-center overflow-hidden rounded-lg bg-stone-100"
               data-testid="upload-preview"
             >
-              {preparing.file.type === "application/pdf" ? (
-                <div className="flex flex-col items-center gap-1 p-8 text-stone-400">
-                  <div className="text-4xl">📄</div>
-                  <p className="text-xs">PDF receipt — preview appears after upload</p>
+              {preparing.kind === "uploaded" ? (
+                <div className="max-h-72 w-full overflow-y-auto">
+                  <PdfReceiptPreview
+                    receiptId={preparing.receipt.id}
+                    fileHref={fileUrl(preparing.receipt.id)}
+                  />
                 </div>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -516,7 +580,9 @@ export default function Shoebox() {
               />
             </label>
             <p className="mt-2 text-xs text-stone-400">
-              Uploads when you save or skip. You can edit the description on the card later.
+              {preparing.kind === "local"
+                ? "Uploads when you save or skip. You can edit the description on the card later."
+                : "You can edit the description on the card later."}
             </p>
             <div className="mt-5 flex items-center justify-end gap-2">
               {pending.length > 1 && (
@@ -550,7 +616,7 @@ export default function Shoebox() {
         </div>
       )}
 
-      {editingUpload && preparing && (
+      {editingUpload && preparing?.kind === "local" && (
         <ReceiptImageEditor
           src={preparing.previewUrl}
           onClose={() => setEditingUpload(false)}

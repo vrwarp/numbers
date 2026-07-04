@@ -167,14 +167,38 @@ test("upload-time crop happens on-device at full resolution; the original never 
   ).toBe(false);
 });
 
+const MINIMAL_PDF = Buffer.from(
+  "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n" +
+    "2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n" +
+    "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\n" +
+    "trailer<</Size 4/Root 1 0 R>>\n%%EOF"
+);
+
+test("picked PDFs upload immediately so the describe dialog can show the server preview", async ({
+  page,
+}, testInfo) => {
+  await signInAs(page, `pdfprep-${testInfo.project.name}@example.com`, "PdfPrep");
+  await page
+    .getByTestId("file-input")
+    .setInputFiles({ name: "invoice.pdf", mimeType: "application/pdf", buffer: MINIMAL_PDF });
+
+  // Unlike images, the PDF is on the server BEFORE its dialog is dismissed —
+  // the card exists and the preview is the server-backed raster component.
+  await expect(page.getByTestId("upload-note")).toBeVisible();
+  await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(1, { timeout: 20_000 });
+  await expect(page.getByTestId("upload-preview").getByText("Open PDF receipt ↗")).toBeVisible();
+  await expect(page.locator('[data-testid^="edit-image-pending-"]')).toHaveCount(0); // no crop for PDFs
+
+  // Saving just attaches the note to the already-uploaded receipt.
+  await page.getByTestId("upload-note").fill("church van insurance");
+  await page.getByTestId("upload-note-confirm").click();
+  await expect(page.getByTestId("upload-note")).toBeHidden();
+  await expect(page.locator('[data-testid^="receipt-note-"]')).toHaveValue("church van insurance");
+});
+
 test("PDF receipts cannot be rotated or cropped", async ({ page }, testInfo) => {
   await signInAs(page, `pdfer-${testInfo.project.name}@example.com`, "Pdfer");
-  const pdfBytes = Buffer.from(
-    "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n" +
-      "2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n" +
-      "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\n" +
-      "trailer<</Size 4/Root 1 0 R>>\n%%EOF"
-  );
+  const pdfBytes = MINIMAL_PDF;
   const upload = await page.request.post("/api/receipts", {
     multipart: { files: { name: "invoice.pdf", mimeType: "application/pdf", buffer: pdfBytes } },
   });

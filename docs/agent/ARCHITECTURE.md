@@ -74,12 +74,14 @@ src/lib/image-client.ts         DOM-only canvas helpers for the pre-upload prepa
                                 the 1600px cap; undecodable files fall through untouched)
 src/components/NavBar.tsx       top nav (client); hidden when signed out
 src/components/Shoebox.tsx      upload input, selection bar, generate-claim POST;
-                                per-card expand button opens ReceiptViewer. Picked files
+                                per-card expand button opens ReceiptViewer. Picked images
                                 queue through a PREPARE dialog (local preview + optional
                                 note + client-side rotate/crop on the full-res original);
                                 Save/Skip uploads the downscaled result — the original
                                 photo never leaves the device (beforeunload warns while
-                                the queue is non-empty)
+                                un-uploaded images are queued). Picked PDFs upload
+                                IMMEDIATELY instead (no local thumbnail possible) and
+                                their dialog shows the server raster + note-only
 src/components/ReceiptGrid.tsx  the selectable receipt-card grid (Shoebox + AddReceiptsDialog);
                                 exports ReceiptSummary (the GET /api/receipts row shape)
 src/components/AddReceiptsDialog.tsx  review-screen modal: pick Shoebox receipts / upload new
@@ -156,9 +158,10 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 
 ## Request flows (condensed)
 
-**Upload**: pick files → Shoebox prepare dialog per file (client-side: optional rotate/crop
-rendered from the full-res original, then downscale to ≤1600px — the original never uploads)
-→ Save/Skip POSTs FormData → isSupportedUpload → (image? compress to jpeg) → saveReceiptFile
+**Upload**: pick files → images wait in the Shoebox prepare dialog (client-side: optional
+rotate/crop rendered from the full-res original, then downscale to ≤1600px — the original
+never uploads; Save/Skip POSTs), while PDFs POST immediately so their dialog can preview the
+server raster → FormData → isSupportedUpload → (image? compress to jpeg) → saveReceiptFile
 `uploads/<userId>/<cuid>.<jpg|pdf>` → prisma.receipt.create.
 
 **Claim creation**: receiptIds → ownership/status checks → `extractReceipts` (mock if

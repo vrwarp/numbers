@@ -61,16 +61,18 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   crop-reset, image-editor-save, image-editor-cancel, add-receipts, add-receipts-dialog,
   add-receipts-file-input, add-receipts-upload, add-receipts-status, add-receipts-confirm,
   add-receipts-cancel`.
-- Picking files does NOT upload immediately: a prepare dialog steps through each picked file
+- Picking IMAGES does NOT upload immediately: a prepare dialog steps through each picked file
   first (local preview + `upload-note` + Save/Skip/Skip-all, testids `upload-note-confirm` /
   `upload-note-cancel` / `upload-note-skip-all` / `upload-preview`), and dismissing it is
   what uploads that file (note rides along in the POST). Image files get the
   `edit-image-pending-<n>` rotate/crop button, reusing ReceiptImageEditor in local mode
   (`onApply`, no receiptId): the transform renders on-device from the full-resolution
   original (`src/lib/image-client.ts`) and the upload is downscaled to the server's 1600px
-  cap — the original photo never leaves the device. Tests must go through `uploadReceipts()`
-  in `tests/e2e/helpers.ts`, which drains the queue (optional note on the first file) and
-  then waits for the cards.
+  cap — the original photo never leaves the device. PDFs are the deliberate exception:
+  browsers can't thumbnail a local PDF, so they upload the moment they're picked and their
+  dialog shows the server raster (PdfReceiptPreview) and only collects the note (saved via
+  PATCH). Tests must go through `uploadReceipts()` in `tests/e2e/helpers.ts`, which drains
+  the queue (optional note on the first file) and then waits for the cards.
 - Review rows also carry `data-description={item.description}` — e2e matches rows by it
   because descriptions live in `<textarea>`/`<input>` values, which Playwright `hasText`
   CANNOT see. Composed descriptions are long, so match with the substring attribute selector
