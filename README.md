@@ -148,6 +148,9 @@ running deployment can be reconfigured (swap the AI provider, rotate a key) by e
 itself, and `DATABASE_URL` is read directly by Prisma. Since the file can hold secrets, it lives on
 the same volume as the database and receipts — keep it out of version control.
 
+See [`config.json.example`](config.json.example) for a full template (`cp config.json.example
+/data/config.json` and fill in your values).
+
 | Variable | Purpose |
 | :-- | :-- |
 | `AUTH_SECRET` | Session-cookie signing secret (`openssl rand -base64 32`) — required |
