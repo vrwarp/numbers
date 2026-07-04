@@ -19,17 +19,17 @@ describe("per-receipt extraction metadata (for the tuning log)", () => {
     for (const [i, outcome] of outcomes.entries()) {
       expect(outcome.receipt.id).toBe(receipts[i].id);
       expect(outcome.error).toBeNull();
-      expect(outcome.items!.length).toBeGreaterThan(0);
-      // Every item is stamped with its own receipt's id.
-      expect(outcome.items!.every((it) => it.receiptId === receipts[i].id)).toBe(true);
+      // The result is stamped with its own receipt's id.
+      expect(outcome.result!.receiptId).toBe(receipts[i].id);
+      expect(outcome.result!.merchant).toBeTruthy();
       expect(outcome.meta.model).toBe("mock");
       expect(outcome.meta.prompt).toContain("one receipt document");
       expect(JSON.parse(outcome.meta.receiptsJson)).toEqual([
         { id: receipts[i].id, name: receipts[i].originalName, mimeType: receipts[i].mimeType },
       ]);
       expect(outcome.meta.durationMs).toBeGreaterThanOrEqual(0);
-      // The raw response must parse back to the same items (what gets logged).
-      expect(JSON.parse(outcome.meta.rawResponse!)).toEqual(outcome.items);
+      // The raw response must parse back to the same result (what gets logged).
+      expect(JSON.parse(outcome.meta.rawResponse!)).toEqual(outcome.result);
     }
   });
 
@@ -54,7 +54,7 @@ describe("per-receipt extraction metadata (for the tuning log)", () => {
     const outcomes = await extractReceipts(receipts);
     expect(outcomes).toHaveLength(2);
     for (const outcome of outcomes) {
-      expect(outcome.items).toBeNull();
+      expect(outcome.result).toBeNull();
       expect(outcome.error).toMatch(/OPENROUTER_API_KEY/);
       expect(outcome.meta.prompt).toBeTruthy();
       expect(outcome.meta.rawResponse).toBeNull();

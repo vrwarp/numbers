@@ -59,7 +59,6 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       dateString,
       items: active.map((it) => ({
         description: it.description,
-        quantity: it.quantity,
         amountCents: it.amountCents,
         ministry: it.ministry,
       })),

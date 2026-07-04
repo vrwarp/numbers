@@ -16,9 +16,10 @@ Numbers splits the workflow in two:
 
 1. **Capture now.** The moment you buy something, photograph the receipt into your "Shoebox."
    Ten seconds on your phone; no data entry.
-2. **File later.** Once a month, select receipts, let an LLM draft the line items, verify each
-   row against the receipt image, and print a filled-out copy of the official church form with
-   all receipts attached.
+2. **File later.** Once a month, select receipts, let an LLM draft one line per receipt
+   (merchant, date, total, and a summary of what was bought), verify each row against the
+   receipt image, and print a filled-out copy of the official church form with all receipts
+   attached.
 
 The treasurer receives exactly what they've always received — the official
 *Invoice Payment / Expense Reimbursement Form* with physical signatures and receipts stapled
@@ -98,40 +99,52 @@ The user selects receipts and hits *Generate Claim*. The server sends **one mode
 per receipt** (a few in flight at a time; via OpenRouter, images go as base64 `image_url` parts
 and PDFs as file parts; via Google AI Studio both go as `inline_data` parts). Small vision
 models attribute items unreliably when several documents share a context,
-so each call sees exactly one document and the server stamps the receipt id on every extracted
-item — the model never outputs ids. If any receipt fails, no claim is created (but every call is
-still logged). The prompt (see `src/lib/ai/prompt.ts`) demands:
+so each call sees exactly one document and the server stamps the receipt id on the extracted
+result — the model never outputs ids. If any receipt fails, no claim is created (but every call
+is still logged).
 
-- line items extracted verbatim,
-- taxes and fees as their own dedicated rows,
-- returns/refunds as **negative** quantities and amounts,
-- raw JSON array output.
+Extraction is **totals-first**: the model transcribes receipt-level facts, it never
+reconstructs an itemization. Per-merchant formats made per-item extraction chronically finicky
+(Amazon lists a refunded item at its positive price under a "Refunded" header; tax is pooled;
+shipping is charged then rebated), and itemized rows only ever mattered for the rare
+multi-ministry receipt — which the Split operation already covers. The prompt (see
+`src/lib/ai/prompt.ts`) demands a single JSON object:
 
-The model is never asked to pick a ministry — there is nothing on a receipt it could reasonably
-infer that from, so assigning one is an explicit human step during review. The response is
-parsed defensively (markdown fences stripped, prose tolerated), validated with zod, and each
-item is stamped with its receipt id server-side (ids in model output are ignored). On success a
-`draft` reimbursement is created with one unverified, ministry-less line item per extracted
-row.
+- `merchant` and `purchaseDate` as printed (date may be null),
+- `totalAmount`: the grand total **as printed** — transcribed, never computed,
+- `refundAmount`: the total refunded as a positive number (0 if none),
+- `summary`: a one-line list of the notable items purchased.
+
+The model's item-reading ability is spent on the *description*, not the amounts. The model is
+never asked to pick a ministry — there is nothing on a receipt it could reasonably infer that
+from, so assigning one is an explicit human step during review. The response is parsed
+defensively (markdown fences stripped, prose tolerated), validated with zod, and stamped with
+its receipt id server-side (ids in model output are ignored). On success a `draft`
+reimbursement is created with **one unverified, ministry-less line item per receipt**:
+description composed as `"Amazon 06/04 — rulers, duct tape, clothespins"`, amount = total −
+refunds. The printed totals behind that derivation are stamped onto the receipt
+(`extractedTotalCents`/`extractedRefundCents`) so the review screen can show its work.
 
 ### Phase 3 — Review & validate (the heart of the app)
 
 A side-by-side screen: original receipts on the left, an editable grid on the right, **grouped
-by source receipt**, each group showing a live subtotal to eyeball against the printed receipt
-total.
+by source receipt** (headers show the extracted merchant + date), each group showing a live
+subtotal to eyeball against the printed receipt total. When a receipt had refunds, the group
+shows the derivation — *"Charged $36.31 − refunded $5.36 → suggested $30.95"* — so the human
+verifies two printed numbers and a subtraction, not a bare figure.
 
 Row operations and their exact semantics:
 
 | Operation | Semantics |
 | :-- | :-- |
 | **Approve** (checkmark) | Sets `isVerified`. Refused (server-side) until the row has a ministry — choosing one is part of the human sign-off. The PDF button is enabled only when *every non-excluded row* is verified. |
-| **Edit** (description, qty, amount, ministry) | Persists immediately and **revokes `isVerified`** — a changed row must be re-checked by a human. Enforced server-side. |
+| **Edit** (description, amount, ministry) | Persists immediately and **revokes `isVerified`** — a changed row must be re-checked by a human. Enforced server-side. |
 | **Exclude** (trash) | Strikes the row out and removes it from all totals. Excluded rows don't need verification and don't reach the PDF. Reversible (Restore). |
-| **Split** | Divides one row's amount into two rows (default even split, odd cent stays on the first). Both halves come back **unverified**. The second half is marked human-created in telemetry. |
-| **Adjust tax** | Not a special feature — because tax is its own row, excluding a personal item just means editing the tax row's amount. This is why the prompt demands dedicated tax rows. |
+| **Split** | Divides one row's amount into two rows (default even split, odd cent stays on the first). Both halves come back **unverified**. The second half is marked human-created in telemetry. **This is the multi-ministry mechanism** — real splits rarely align with line items anyway ("$40 of this Costco run was youth group"). |
+| **Remove personal items** | Not a special feature — edit the row's amount down and note it in the description ("less $12.50 personal items"), exactly as one would on paper. The edit-revokes-verification rule forces a re-check. |
 
-Refund rows (negative amounts) render red with a REFUND badge so a `-$27.98` line is impossible
-to misread.
+Net-refund rows (negative amounts) render red with a REFUND badge so a `-$27.98` line is
+impossible to misread.
 
 **The validation rule is the product.** The disabled *Generate PDF* button is the UI expression;
 the API enforces the same rule independently (`400` with a count of unverified rows), so no
@@ -186,8 +199,9 @@ Notable decisions:
   the UI/LLM boundary, converted through `src/lib/money.ts`. No floats touch arithmetic.
 - **`totalCents` is denormalized** on the reimbursement and recomputed server-side after every
   line-item mutation — the client never computes an authoritative total.
-- **Negative is a first-class value.** Refunds are just negative quantities/amounts; subtotals,
-  grand totals, and the PDF all handle them with no special cases beyond red styling.
+- **Negative is a first-class value.** A receipt refunded past zero is just a negative row
+  amount; subtotals, grand totals, and the PDF all handle it with no special cases beyond red
+  styling.
 - **The join table** (`reimbursement_receipts`) exists because a claim bundles several receipts
   and, until generation, a receipt could in principle appear in more than one draft.
 
@@ -198,16 +212,17 @@ Three layers record "what the AI said" vs. "what the human accepted":
 1. **`extraction_logs`** — one row per extraction call, *including failures*: the model id, the exact
    prompt, receipt metadata (never image bytes), the raw response, parsed items, error message,
    and duration. Survives claim deletion (`reimbursementId` nulls out).
-2. **`line_items.original*`** — the AI-extracted description/quantity/amount frozen at
-   claim creation. Original-vs-final diffs are computable at any time without replaying events.
-   `NULL` originals mark human-created rows (the second half of a split).
+2. **`line_items.original*`** — the AI-extracted description/amount frozen at claim creation
+   (plus the printed totals on `receipts.extracted*Cents`). Original-vs-final diffs are
+   computable at any time without replaying events. `NULL` originals mark human-created rows
+   (the second half of a split).
 3. **`audit_events`** — the chronological trail: every edit with field-level `{from, to}`
    diffs, plus split events.
 
 `GET /api/extraction-logs/:id` assembles the full tuning record (prompt, raw response, final
 rows with per-field `corrections`, audit trail). The intended workflow: periodically export
-success logs where `corrections` is non-empty, look for systematic model errors (wrong tax
-handling, missed refunds), and tighten the prompt.
+success logs where `corrections` is non-empty, look for systematic model errors (misread
+grand totals, missed refund lines, bad dates), and tighten the prompt.
 
 ---
 
@@ -234,27 +249,28 @@ handling, missed refunds), and tighten the prompt.
 
 Three layers, each catching what the layer below can't:
 
-1. **Unit (Vitest, 47 tests)** — pure logic: money parsing/formatting round-trips, 13-row
-   pagination, LLM response parsing (fences, prose, refunds, hallucinated ids, garbage), image
-   compression against a deliberately noisy synthetic photo, audit diffs, and PDF generation.
-   The PDF tests decompress the output's content streams and decode pdf-lib's hex-encoded
-   strings to assert that names, dates, and totals are *actually drawn*, not just that pages
-   exist.
+1. **Unit (Vitest, 62 tests)** — pure logic: money parsing/formatting round-trips, 13-row
+   pagination, LLM response parsing (fences, prose, refund defaults, bad dates, hallucinated
+   ids, garbage), description composition, image compression against a deliberately noisy
+   synthetic photo, audit diffs, and PDF generation. The PDF tests decompress the output's
+   content streams and decode pdf-lib's hex-encoded strings to assert that names, dates, and
+   totals are *actually drawn*, not just that pages exist.
 2. **E2E (Playwright, 7 scenarios × browser matrix)** — a production build served against an
    isolated database with mocked AI (`AI_MOCK=1`) and dev login. The flagship test walks the
-   entire journey with exact dollar assertions after every operation (exclude → $56.04,
-   tax-adjust → $54.65, split conserves totals…) and validates the downloaded PDF's page count
-   and the telemetry records. Additional scenarios cover pagination, multi-tenant isolation,
-   the API-level verification gate, housekeeping, and the mobile capture flow. The matrix is
+   entire journey with exact dollar assertions after every operation (exclude the return →
+   $133.05, trim personal items → $120.95, split conserves totals…) and validates the
+   refund-derivation note, the downloaded PDF's page count and the telemetry records.
+   Additional scenarios cover pagination, multi-tenant isolation, the API-level verification
+   gate, housekeeping, and the mobile capture flow. The matrix is
    **(desktop, mobile) × (chromium, webkit)**; test users are namespaced per project so engines
    share one server.
 3. **Visual verification** — the e2e run screenshots every screen, and `scripts/render-pdf.mjs`
    rasterizes generated packets so a human (or agent) can eyeball the filled form against the
    real template.
 
-The deterministic AI mock is what makes the e2e suite possible: it returns a fixed Costco-style
-basket (with a refund variant triggered by "refund" in the filename), so every downstream number
-is predictable to the cent.
+The deterministic AI mock is what makes the e2e suite possible: it returns fixed receipt-level
+results (a Costco purchase; an Amazon partial refund triggered by "refund" in the filename; a
+pure return triggered by "return"), so every downstream number is predictable to the cent.
 
 ---
 
@@ -289,6 +305,7 @@ is predictable to the cent.
 | 8 | AI mock + dev login baked in (env-gated) | Test-only stubs outside the app | The whole journey becomes testable offline and in CI with zero secrets; the mock doubles as an offline dev mode. |
 | 9 | Telemetry as snapshot + event log | Event log only | `original*` columns answer "what did the human fix" with a single query; events add the *how/when*. Failed calls are logged too — bad model output is tuning gold. |
 | 10 | 13 rows per form page | Blueprint said ~8 | The real form has a 13-row table; the form wins over the spec. |
+| 11 | Totals-first extraction: one line item per receipt | Per-item extraction (the original design) | Itemization was chronically finicky across merchant formats (Amazon refund sections, pooled tax, shipping rebates) and every wrong penny cost a human correction. Itemized rows only mattered for the rare multi-ministry receipt, which Split already covers — and real splits rarely align with line items anyway. The model now *transcribes* two printed numbers (total, refund total) and spends its item-reading on the description; the UI shows the net derivation so the human verifies a subtraction, not a bare figure. |
 
 ---
 

@@ -17,7 +17,6 @@ beforeAll(async () => {
 const items = (n: number): PdfLineItem[] =>
   Array.from({ length: n }, (_, i) => ({
     description: `Item ${i + 1}`,
-    quantity: 1,
     amountCents: 1000 + i,
     ministry: "General Fund",
   }));
@@ -120,8 +119,12 @@ describe("generateClaimPdf (official CFCC AcroForm template)", () => {
     const bytes = await generateClaimPdf({
       ...baseInput(),
       items: [
-        { description: "Paper towels", quantity: 2, amountCents: 2798, ministry: "Facilities" },
-        { description: "Sales Tax", quantity: 1, amountCents: 259, ministry: "Facilities" },
+        {
+          description: "Costco Wholesale 06/21 — paper towels, snacks",
+          amountCents: 10210,
+          ministry: "Facilities",
+        },
+        { description: "Amazon 06/04 — rulers, duct tape", amountCents: 3095, ministry: "Facilities" },
       ],
       receipts: [],
     });
@@ -129,10 +132,10 @@ describe("generateClaimPdf (official CFCC AcroForm template)", () => {
     expect(text).toContain("Grace Chen"); // payable-to + requestor name
     expect(text).toContain("123 Main St,");
     expect(text).toContain("07/03/2026");
-    expect(text).toContain("Paper towels");
+    expect(text).toContain("Costco Wholesale 06/21");
     expect(text).toContain("Facilities");
-    expect(text).toContain("27.98");
-    expect(text).toContain("30.57"); // grand total 27.98 + 2.59
+    expect(text).toContain("102.10");
+    expect(text).toContain("133.05"); // grand total 102.10 + 30.95
 
     // Flattening must remove the interactive fields.
     const doc = await PDFDocument.load(bytes);
@@ -143,8 +146,8 @@ describe("generateClaimPdf (official CFCC AcroForm template)", () => {
     const bytes = await generateClaimPdf({
       ...baseInput(),
       items: [
-        { description: "RETURN", quantity: -2, amountCents: -2798, ministry: "General Fund" },
-        { description: "Small item", quantity: 1, amountCents: 500, ministry: "General Fund" },
+        { description: "Costco 06/28 — paper towel (refunded)", amountCents: -2798, ministry: "General Fund" },
+        { description: "Small item", amountCents: 500, ministry: "General Fund" },
       ],
       receipts: [],
     });

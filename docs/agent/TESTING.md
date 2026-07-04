@@ -20,7 +20,7 @@ npx playwright test tests/e2e/journey.spec.ts --project=chromium-desktop   # one
 | :-- | :-- |
 | `money.test.ts` | parse/format round-trips, refunds, garbage rejection, subtotals |
 | `paginate.test.ts` | 13-row page splits, order preservation, `[] → [[]]` |
-| `ai-parse.test.ts` | fence/prose-tolerant JSON parsing, refund negatives, unknown-receipt-id guard, mock behavior |
+| `ai-parse.test.ts` | fence/prose-tolerant JSON object parsing, refund default/negative rejection, date format, unknown-receipt-id guard, mock fixtures, composeDescription |
 | `image.test.ts` | ~100 KB compression of a synthetic noisy photo, no-upscale, garbage rejection |
 | `pdf.test.ts` | page counts (13/page, receipts appended, pdf-merge), field values actually drawn (via `pdfVisibleText`), flatten removes fields, splitAddress |
 | `audit.test.ts` | field-diff computation |
@@ -46,21 +46,24 @@ hex strings so you can assert on rendered PDF text. pdf tests load the real temp
 
 **Helpers** (`tests/e2e/helpers.ts`):
 - `makeReceiptFixture(name, {refund?})` — renders a realistic receipt JPEG (sharp+SVG) into
-  `tests/e2e/.fixtures/`; "refund" in the filename triggers the mock's negative items.
+  `tests/e2e/.fixtures/`; the MOCK keys on the FILENAME ("refund" → partial-refund fixture,
+  "return" → pure return), not the image content.
 - `signInAs(page, email, name)` — dev-login form; waits for the dashboard.
 - `uploadReceipts(page, paths)` — sets the hidden file input, waits for card count += n.
 
-**Mock arithmetic the journey test depends on** (from `src/lib/ai/mock.ts`):
-purchase receipt → PAPER TOWEL 27.98 + SNACK 15.49 + TABLE 49.99 + TAX 8.64 = **102.10**;
-refund receipt → −27.98 − 2.59 = **−30.57**; 4 items purchase + 2 refund = 6 rows.
-The test then: exclude snack (**56.04**), tax → 7.25 (**54.65**), split table 25.00/24.99,
-edit paper 27.98→27.99, verify 6/6, download → 3 pages (1 form + 2 receipts), then asserts
-telemetry (`corrections.amountCents {from:864,to:725}`, split `humanCreated`, exclusion event).
-If you change mock values, update these expectations coherently.
+**Mock arithmetic the journey test depends on** (from `src/lib/ai/mock.ts`, ONE row per
+receipt): `costco.jpg` → Costco Wholesale 06/21, net **102.10**; `*refund*.jpg` → Amazon
+06/04, charged 36.31 − refunded 5.36 = net **30.95** (derivation note shown);
+`*return*.jpg` → net **−27.98** (REFUND badge). Initial claim total **105.07**.
+The test then: exclude the return (**133.05**), trim Costco to 90.00 (**120.95**), split the
+Amazon row 15.00/15.95, verify 3/3, edit-revokes-verify round-trip, download → 4 pages
+(1 form + 3 receipts), then asserts telemetry (`corrections.amountCents
+{from:10210,to:9000}`, split `humanCreated`, exclusion event). If you change mock values,
+update these expectations coherently.
 
 **Spec inventory**:
-- `journey.spec.ts` — full happy path + telemetry + a 16-item claim → 2 form pages + 4
-  receipts = 6 PDF pages. Saves screenshots to `screenshots/` (gitignored).
+- `journey.spec.ts` — full happy path + telemetry + a 14-receipt claim → 2 form pages + 14
+  receipts = 16 PDF pages. Saves screenshots to `screenshots/` (gitignored).
 - `security.spec.ts` — 401s when signed out; full cross-tenant 404 sweep (receipts, claims,
   files, PDFs, extraction logs, claim-from-foreign-receipt); delete/discard housekeeping;
   API-level PDF verification gate.

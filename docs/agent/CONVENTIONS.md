@@ -49,12 +49,14 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   class or use comma-grouped selectors like globals.css does.
 - Every interactive element tests touch gets `data-testid`:
   `upload-button, file-input, generate-claim, generate-pdf, discard-claim, claim-status,
-  claim-total, verify-progress, row-<id>, verify-<id>, desc-<id>, ministry-<id>, qty-<id>,
+  claim-total, verify-progress, row-<id>, verify-<id>, desc-<id>, ministry-<id>,
   amount-<id>, split-<id>, exclude-<id>, subtotal-<receiptId>, group-<receiptId>,
-  split-first-amount, split-confirm, profile-name, profile-address, profile-save, dev-email,
-  dev-name, dev-signin`.
+  derivation-<receiptId>, split-first-amount, split-confirm, profile-name, profile-address,
+  profile-save, dev-email, dev-name, dev-signin`.
 - Review rows also carry `data-description={item.description}` — e2e matches rows by it
-  because descriptions live in `<input>` values, which Playwright `hasText` CANNOT see.
+  because descriptions live in `<textarea>`/`<input>` values, which Playwright `hasText`
+  CANNOT see. Composed descriptions are long, so match with the substring attribute selector
+  `[data-description*="Amazon 06/04"]`.
 - Editable inputs are uncontrolled with `key={field+value}` to re-sync after server responses;
   commit on blur; revert on parse failure.
 - Accessible names matter to tests: the approve button's aria-label flips between

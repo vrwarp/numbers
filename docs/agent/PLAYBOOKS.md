@@ -32,9 +32,10 @@ Add a security assertion (foreign-user 404) to `tests/e2e/security.spec.ts`.
 
 ## Change the extraction prompt
 
-1. Edit `src/lib/ai/prompt.ts` only. The response contract (JSON array of
-   `{description, quantity, amount}`; the receipt id is stamped server-side) is enforced
-   by `src/lib/ai/schema.ts` — change both together or neither.
+1. Edit `src/lib/ai/prompt.ts` only. The response contract (one JSON object
+   `{merchant, purchaseDate, totalAmount, refundAmount, summary}`; the receipt id is stamped
+   server-side) is enforced by `src/lib/ai/schema.ts` — change both together or neither.
+   Keep the model transcribing (totals as printed), never computing or itemizing.
 2. Consult telemetry first: `sqlite3 data/numbers.db "SELECT prompt, rawResponse, parsedJson
    FROM ExtractionLog WHERE status='error'"` and the `corrections` output of
    `/api/extraction-logs/:id` show what the current prompt gets wrong.

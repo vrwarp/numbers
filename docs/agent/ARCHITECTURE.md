@@ -28,14 +28,19 @@ src/lib/image.ts                compressReceiptImage: rotate() → ≤1600px →
                                 → 1100px fallback; target ~100 KB. isSupportedUpload()
 src/lib/audit.ts                computeLineItemChanges(before, patch) → {field:{from,to}}
 src/lib/ai/prompt.ts            buildExtractionPrompt() — THE prompt being tuned (one receipt
-                                per call; extraction only, ministries are a human choice)
-src/lib/ai/schema.ts            zod ModelItemSchema {description, quantity, amount(dollars)};
-                                ExtractedItem = model item + server-stamped receiptId
+                                per call; TRANSCRIPTION only: merchant/date/printed totals/
+                                summary — no itemizing, no computed totals, no ministries)
+src/lib/ai/schema.ts            zod ModelReceiptSchema {merchant, purchaseDate("YYYY-MM-DD"|
+                                null), totalAmount, refundAmount(≥0, default 0), summary}
+                                (dollars); ExtractedReceipt = result + server-stamped receiptId
 src/lib/ai/parse.ts             parseExtractionResponse(text, receiptId): strips fences/prose,
-                                zod-validates, stamps receiptId (model output ids are ignored)
+                                zod-validates the object, stamps receiptId (model ids ignored)
+src/lib/ai/compose.ts           composeDescription(result) → "Amazon 06/04 — rulers, duct
+                                tape…" (the initial editable line-item description)
 src/lib/ai/mock.ts              deterministic extraction for AI_MOCK=1; "refund" in filename →
-                                all-negative items. E2E math depends on these exact numbers
-src/lib/ai/extract.ts           extractReceipt(receipt) → {items, meta} (throws ExtractionError
+                                partial-refund fixture (net 30.95), "return" → pure return
+                                (net −27.98). E2E math depends on these exact numbers
+src/lib/ai/extract.ts           extractReceipt(receipt) → {result, meta} (throws ExtractionError
                                 carrying meta); extractReceipts(receipts) → per-receipt outcomes
                                 (never rejects), one provider HTTP call each, concurrency 3
 src/lib/ai/providers.ts         AI_PROVIDER dispatch (openrouter | google) + the two HTTP
@@ -79,11 +84,11 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/receipts/[id]` | DELETE | only if not in any claim (409 otherwise); removes file |
 | `/api/receipts/[id]/file` | GET | serve stored bytes, owner only |
 | `/api/reimbursements` | GET | list own claims with counts |
-| | POST | `{receiptIds[]}` → validates ownership + all `unassigned` (409 else) → extractReceipts (one call per receipt) → any failure: log ALL calls + 502, no claim; else create draft + line items (with original* snapshot) + one ExtractionLog per call |
+| | POST | `{receiptIds[]}` → validates ownership + all `unassigned` (409 else) → extractReceipts (one call per receipt) → any failure: log ALL calls + 502, no claim; else create draft + ONE line item per receipt (composed description, amount = total − refunds, original* snapshot) + stamp Receipt merchant/purchaseDate/extracted*Cents + one ExtractionLog per call |
 | `/api/reimbursements/[id]` | GET | claim + lineItems(sortOrder asc) + receipts join |
 | | DELETE | draft only (409 else); receipts return to shoebox |
 | `/api/reimbursements/[id]/pdf` | POST | gate: ≥1 active row, all active verified (400 else) → generateClaimPdf → claim=generated, receipts=processed → returns application/pdf. Re-POST on generated claim re-downloads |
-| `/api/line-items/[id]` | PATCH | zod partial {description,quantity,amountCents,ministry,isVerified,isExcluded}; draft only (409); isVerified:true refused (400) while ministry is empty; content change ⇒ isVerified=false unless patch sets it; writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
+| `/api/line-items/[id]` | PATCH | zod partial {description,amountCents,ministry,isVerified,isExcluded}; draft only (409); isVerified:true refused (400) while ministry is empty; content change ⇒ isVerified=false unless patch sets it; writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
 | `/api/line-items/[id]/split` | POST | `{firstAmountCents?}` default even split; both halves unverified; new row original*=NULL; AuditEvent(split); renumbers sortOrder so new half follows original |
 | `/api/profile` | GET PATCH | fullName, mailingAddress (printed on the form) |
 | `/api/extraction-logs` | GET | own logs, `?reimbursementId=`, newest first, summaries |
@@ -97,9 +102,12 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 **Claim creation**: receiptIds → ownership/status checks → `extractReceipts` (mock if
 AI_MOCK=1; else one provider call PER receipt — OpenRouter chat/completions with the image/PDF
 inline as data-URI, or Google AI Studio generateContent with inline_data;
-receipt id stamped server-side) → parse+validate → create Reimbursement + LineItems
-(ministry starts empty — the user must pick one per row during review; amount dollars→cents;
-original*=extracted values) → ExtractionLog.
+receipt id stamped server-side) → parse+validate → create Reimbursement + ONE LineItem per
+receipt (description = composeDescription(merchant/date/summary); amountCents = totalAmount −
+refundAmount in cents; ministry starts empty — the user must pick one per row during review;
+original*=composed/net values) + stamp Receipt.merchant/purchaseDate/extracted*Cents in the
+same transaction → ExtractionLog. The review UI shows the net-amount derivation ("charged X −
+refunded Y") from the Receipt columns; Split divides a row for multi-ministry receipts.
 
 **PDF**: gate check → read receipt files → `generateClaimPdf({requesterName, requesterAddress,
 dateString(MM/DD/YYYY), items(active only), receipts, templateBytes})` → transaction: claim
@@ -110,7 +118,7 @@ generated + receipts processed → stream bytes.
 Per row n = 1..13 (⚠ literal double space in the ministry field name):
 
 - `Description QuantityRow{n}` — description
-- `Description QuantityRow{n}_2` — quantity
+- `Description QuantityRow{n}_2` — quantity (left blank — rows are whole receipts)
 - `AmountRow{n}` — amount (plain `centsToDollarString`, e.g. `-27.98`)
 - `For Ministry  EventRow{n}` — ministry
 

@@ -40,9 +40,6 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       if (it.originalDescription !== null && it.originalDescription !== it.description) {
         corrections.description = { from: it.originalDescription, to: it.description };
       }
-      if (it.originalQuantity !== null && it.originalQuantity !== it.quantity) {
-        corrections.quantity = { from: it.originalQuantity, to: it.quantity };
-      }
       if (it.originalAmountCents !== null && it.originalAmountCents !== it.amountCents) {
         corrections.amountCents = { from: it.originalAmountCents, to: it.amountCents };
       }

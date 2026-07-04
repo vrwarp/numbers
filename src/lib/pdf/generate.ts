@@ -14,7 +14,7 @@ import { centsToDollarString } from "@/lib/money";
  *   "Mail check to address"        address line 1
  *   "Make check to address 2"      address line 2
  *   "Description QuantityRow{n}"   description, rows 1..13
- *   "Description QuantityRow{n}_2" quantity
+ *   "Description QuantityRow{n}_2" quantity (left blank — one row per receipt)
  *   "AmountRow{n}"                 amount
  *   "For Ministry  EventRow{n}"    ministry / event  (note the double space)
  *   "TotalAmount"                  grand total cell
@@ -25,7 +25,6 @@ const PAGE = { width: 612, height: 792 } as const;
 
 export interface PdfLineItem {
   description: string;
-  quantity: number;
   amountCents: number;
   ministry: string;
 }
@@ -100,8 +99,10 @@ async function fillFormPage(
 
   items.forEach((item, i) => {
     const row = i + 1;
-    setText(`Description QuantityRow${row}`, item.description, 8);
-    setText(`Description QuantityRow${row}_2`, formatQty(item.quantity), 9);
+    // Composed descriptions ("Merchant MM/DD — summary") often exceed one
+    // line at 8pt; drop to 6pt so the wrapped second line stays inside the
+    // row instead of being clipped by the field rect.
+    setText(`Description QuantityRow${row}`, item.description, item.description.length > 55 ? 6 : 8);
     setText(`AmountRow${row}`, centsToDollarString(item.amountCents), 9);
     setText(`For Ministry  EventRow${row}`, item.ministry, 8);
   });
@@ -119,10 +120,6 @@ async function fillFormPage(
   form.updateFieldAppearances(helv);
   form.flatten();
   return tpl;
-}
-
-function formatQty(qty: number): string {
-  return Number.isInteger(qty) ? String(qty) : qty.toFixed(2);
 }
 
 /** Split a one-line mailing address across the form's two address lines. */
