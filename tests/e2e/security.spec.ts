@@ -43,6 +43,10 @@ test("users cannot see or fetch each other's data (multi-tenant isolation)", asy
   expect((await bob.request.get(`/api/extraction-logs/${aliceLogs[0].id}`)).status()).toBe(404);
   expect((await bob.request.delete(`/api/receipts/${receiptId}`)).status()).toBe(404);
   expect((await bob.request.post(`/api/reimbursements/${claimId}/pdf`)).status()).toBe(404);
+  expect(
+    (await bob.request.delete(`/api/reimbursements/${claimId}/receipts/${receiptId}`)).status()
+  ).toBe(404);
+  expect((await bob.request.post(`/api/reimbursements/${claimId}/revert`)).status()).toBe(404);
   // Bob cannot build a claim from Alice's receipt either.
   expect((await bob.request.post("/api/reimbursements", { data: { receiptIds: [receiptId] } })).status()).toBe(404);
 });
@@ -76,6 +80,175 @@ test("shoebox housekeeping: deleting receipts and discarding drafts", async ({ p
   const receipts = (await (await page.request.get("/api/receipts")).json()).receipts;
   const res = await page.request.delete(`/api/receipts/${receipts[0].id}`);
   expect(res.status()).toBe(409);
+});
+
+test("removing a receipt from a draft claim returns it to the shoebox", async ({ page }, testInfo) => {
+  page.on("dialog", (d) => d.accept());
+  await signInAs(page, `remover-${testInfo.project.name}@example.com`, "Remover");
+  await page.goto("/shoebox");
+  await uploadReceipts(page, [
+    await makeReceiptFixture("rm-1.jpg"),
+    await makeReceiptFixture("rm-2.jpg"),
+  ]);
+  for (const card of await page.locator('[data-testid^="receipt-card-"]').all()) await card.click();
+  await page.getByTestId("generate-claim").click();
+  await page.waitForURL(/\/claims\/[^/]+$/, { timeout: 30_000 });
+  const claimId = page.url().match(/claims\/([^/]+)/)![1];
+
+  // Two receipt rows; remove one — its row disappears and the total halves.
+  const rows = page.locator('li[data-testid^="row-"]');
+  await expect(rows).toHaveCount(2);
+  await expect(page.getByTestId("claim-total")).toHaveText("$204.20");
+  await page.locator('[data-testid^="remove-receipt-"]').first().click();
+  await expect(rows).toHaveCount(1);
+  await expect(page.getByTestId("claim-total")).toHaveText("$102.10");
+
+  // The removed receipt is fully released: deletable again, while the one
+  // still in the draft stays delete-blocked.
+  const all = (await (await page.request.get("/api/receipts")).json()).receipts;
+  const kept = (await (await page.request.get(`/api/reimbursements/${claimId}`)).json())
+    .reimbursement.receipts[0].receiptId;
+  const removed = all.find((r: { id: string }) => r.id !== kept)!;
+  expect((await page.request.delete(`/api/receipts/${removed.id}`)).status()).toBe(200);
+  expect((await page.request.delete(`/api/receipts/${kept}`)).status()).toBe(409);
+
+  // Removing the last receipt is refused — discard the claim instead.
+  await page.goto(`/claims/${claimId}`);
+  const remaining = page.locator('[data-testid^="remove-receipt-"]');
+  await expect(remaining).toBeDisabled();
+  const res = await page.request.delete(`/api/reimbursements/${claimId}/receipts/${kept}`);
+  expect(res.status()).toBe(409);
+
+  // The removal left an audit trail (telemetry duty for mutation routes).
+  const { logs } = await (
+    await page.request.get(`/api/extraction-logs?reimbursementId=${claimId}`)
+  ).json();
+  const detail = await (await page.request.get(`/api/extraction-logs/${logs[0].id}`)).json();
+  expect(detail.auditEvents.map((e: { action: string }) => e.action)).toContain("remove-receipt");
+});
+
+test("receipt notes are visible everywhere and receipts can go on multiple claims", async ({ page }, testInfo) => {
+  await signInAs(page, `reuse-${testInfo.project.name}@example.com`, "Reuser");
+  await page.goto("/shoebox");
+
+  // Upload with an optional description — stored and shown on the card.
+  await page.getByTestId("upload-note").fill("VBS craft supplies");
+  await uploadReceipts(page, [await makeReceiptFixture("note-me.jpg")]);
+  await expect(page.getByTestId("upload-note")).toHaveValue(""); // cleared after upload
+  const noteInput = page.locator('[data-testid^="receipt-note-"]');
+  await expect(noteInput).toHaveValue("VBS craft supplies");
+
+  // The note is editable from the card.
+  await noteInput.fill("VBS craft supplies (June)");
+  await noteInput.blur();
+  await expect(page.locator('[data-testid^="receipt-note-"]')).toHaveValue(
+    "VBS craft supplies (June)"
+  );
+
+  // Claim 1: the note travels to the review screen.
+  await page.locator('[data-testid^="receipt-card-"]').first().click();
+  await page.getByTestId("generate-claim").click();
+  await page.waitForURL(/\/claims\/[^/]+$/, { timeout: 30_000 });
+  const claim1 = page.url().match(/claims\/([^/]+)/)![1];
+  await expect(page.getByText("VBS craft supplies (June)").first()).toBeVisible();
+
+  // Verify + generate via API.
+  const item1 = (await (await page.request.get(`/api/reimbursements/${claim1}`)).json())
+    .reimbursement.lineItems[0];
+  await page.request.patch(`/api/line-items/${item1.id}`, {
+    data: { ministry: "General Fund", isVerified: true },
+  });
+  expect((await page.request.post(`/api/reimbursements/${claim1}/pdf`)).status()).toBe(200);
+
+  // The processed receipt can go on a SECOND claim (e.g. the purchase is
+  // split across two filings).
+  const receipt = (await (await page.request.get("/api/receipts")).json()).receipts[0];
+  expect(receipt.status).toBe("processed");
+  expect(receipt.claims).toHaveLength(1); // link data for the shoebox card
+  const res2 = await page.request.post("/api/reimbursements", {
+    data: { receiptIds: [receipt.id] },
+  });
+  expect(res2.status()).toBe(201);
+  const claim2 = (await res2.json()).reimbursement.id;
+
+  // The shoebox card links to both claims.
+  await page.goto("/shoebox");
+  await expect(page.locator(`[data-testid^="claim-link-${receipt.id}-"]`)).toHaveCount(2);
+
+  // Generate claim 2, then revert claim 1: the receipt stays processed
+  // because claim 2 (generated) still holds it; reverting claim 2 releases it.
+  const item2 = (await (await page.request.get(`/api/reimbursements/${claim2}`)).json())
+    .reimbursement.lineItems[0];
+  await page.request.patch(`/api/line-items/${item2.id}`, {
+    data: { ministry: "Footprints", isVerified: true },
+  });
+  expect((await page.request.post(`/api/reimbursements/${claim2}/pdf`)).status()).toBe(200);
+  expect((await page.request.post(`/api/reimbursements/${claim1}/revert`)).status()).toBe(200);
+  let status = (await (await page.request.get("/api/receipts")).json()).receipts[0].status;
+  expect(status).toBe("processed");
+  expect((await page.request.post(`/api/reimbursements/${claim2}/revert`)).status()).toBe(200);
+  status = (await (await page.request.get("/api/receipts")).json()).receipts[0].status;
+  expect(status).toBe("unassigned");
+});
+
+test("revert to draft unfreezes a generated claim and its receipts", async ({ page }, testInfo) => {
+  page.on("dialog", (d) => d.accept());
+  await signInAs(page, `reverter-${testInfo.project.name}@example.com`, "Reverter");
+  await page.goto("/shoebox");
+  await uploadReceipts(page, [await makeReceiptFixture("revert-me.jpg")]);
+  await page.locator('[data-testid^="receipt-card-"]').first().click();
+  await page.getByTestId("generate-claim").click();
+  await page.waitForURL(/\/claims\/[^/]+$/, { timeout: 30_000 });
+  const claimId = page.url().match(/claims\/([^/]+)/)![1];
+
+  // Reverting a draft is refused — only generated claims revert.
+  expect((await page.request.post(`/api/reimbursements/${claimId}/revert`)).status()).toBe(409);
+
+  // Verify the single row and generate the PDF via the API.
+  const item = (await (await page.request.get(`/api/reimbursements/${claimId}`)).json())
+    .reimbursement.lineItems[0];
+  expect(
+    (
+      await page.request.patch(`/api/line-items/${item.id}`, {
+        data: { ministry: "General Fund", isVerified: true },
+      })
+    ).status()
+  ).toBe(200);
+  expect((await page.request.post(`/api/reimbursements/${claimId}/pdf`)).status()).toBe(200);
+
+  // Generated: frozen rows, processed receipt.
+  expect(
+    (await page.request.patch(`/api/line-items/${item.id}`, { data: { amountCents: 1 } })).status()
+  ).toBe(409);
+
+  // Revert through the UI.
+  await page.goto(`/claims/${claimId}`);
+  await expect(page.getByTestId("claim-status")).toHaveText("Generated");
+  await page.getByTestId("revert-claim").click();
+  await expect(page.getByTestId("claim-status")).toHaveText("Draft");
+
+  // Receipt is back to unassigned; rows are editable again (edit revokes the
+  // checkmark as usual), and the revert left an audit trail.
+  const receipts = (await (await page.request.get("/api/receipts")).json()).receipts;
+  expect(receipts.every((r: { status: string }) => r.status === "unassigned")).toBe(true);
+  expect(
+    (
+      await page.request.patch(`/api/line-items/${item.id}`, {
+        data: { description: "edited after revert" },
+      })
+    ).status()
+  ).toBe(200);
+  const { logs } = await (
+    await page.request.get(`/api/extraction-logs?reimbursementId=${claimId}`)
+  ).json();
+  const detail = await (await page.request.get(`/api/extraction-logs/${logs[0].id}`)).json();
+  expect(detail.auditEvents.map((e: { action: string }) => e.action)).toContain("revert-to-draft");
+
+  // The round trip completes: re-verify and regenerate.
+  expect(
+    (await page.request.patch(`/api/line-items/${item.id}`, { data: { isVerified: true } })).status()
+  ).toBe(200);
+  expect((await page.request.post(`/api/reimbursements/${claimId}/pdf`)).status()).toBe(200);
 });
 
 test("PDF endpoint refuses while any active row is unverified", async ({ page }, testInfo) => {

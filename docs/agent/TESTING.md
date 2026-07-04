@@ -56,10 +56,10 @@ receipt): `costco.jpg` → Costco Wholesale 06/21, net **102.10**; `*refund*.jpg
 06/04, charged 36.31 − refunded 5.36 = net **30.95** (derivation note shown);
 `*return*.jpg` → net **−27.98** (REFUND badge). Initial claim total **105.07**.
 The test then: exclude the return (**133.05**), trim Costco to 90.00 (**120.95**), split the
-Amazon row 15.00/15.95, verify 3/3, edit-revokes-verify round-trip, download → 4 pages
-(1 form + 3 receipts), then asserts telemetry (`corrections.amountCents
-{from:10210,to:9000}`, split `humanCreated`, exclusion event). If you change mock values,
-update these expectations coherently.
+Amazon row 15.00/15.95, verify 3/3, edit-revokes-verify round-trip, download → 3 pages
+(1 form + 2 receipts — the fully-excluded return receipt is left out of the packet), then
+asserts telemetry (`corrections.amountCents {from:10210,to:9000}`, split `humanCreated`,
+exclusion event). If you change mock values, update these expectations coherently.
 
 **Spec inventory**:
 - `journey.spec.ts` — full happy path + telemetry + a 14-receipt claim → 2 form pages + 14

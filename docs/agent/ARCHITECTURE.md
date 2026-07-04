@@ -79,15 +79,18 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/auth/session` | POST | `{idToken}` → verifyFirebaseIdToken (verified email required) → upsert User by email (stores firebaseUid) → set session cookie. No requireUserId (this IS login) |
 | | DELETE | clear session cookie (sign out) |
 | `/api/auth/test-login` | POST | `{email,name}` → upsert + cookie; 404 unless AUTH_TEST_MODE=1 |
-| `/api/receipts` | GET | list own receipts; `?status=` filter |
-| | POST | multipart field `files`; images → compressReceiptImage, pdf → as-is; creates Receipt(unassigned); 415 unsupported, 400 empty |
-| `/api/receipts/[id]` | DELETE | only if not in any claim (409 otherwise); removes file |
+| `/api/receipts` | GET | list own receipts (+ `claims: {id,status,createdAt}[]` each receipt is on); `?status=` filter |
+| | POST | multipart field `files` (+ optional `note` text stored on every receipt in the batch); images → compressReceiptImage, pdf → as-is; creates Receipt(unassigned); 415 unsupported, 400 empty |
+| `/api/receipts/[id]` | PATCH | `{note}` (≤300 chars) — user metadata, editable in any state, no AuditEvent (not part of the claim trail) |
+| | DELETE | only if not in any claim (409 otherwise); removes file |
 | `/api/receipts/[id]/file` | GET | serve stored bytes, owner only |
 | `/api/reimbursements` | GET | list own claims with counts |
-| | POST | `{receiptIds[]}` → validates ownership + all `unassigned` (409 else) → extractReceipts (one call per receipt) → any failure: log ALL calls + 502, no claim; else create draft + ONE line item per receipt (composed description, amount = total − refunds, original* snapshot) + stamp Receipt merchant/purchaseDate/extracted*Cents + one ExtractionLog per call |
+| | POST | `{receiptIds[]}` → validates ownership (404 else; ANY status is allowed — a receipt may go on many claims and is re-extracted each time) → extractReceipts (one call per receipt) → any failure: log ALL calls + 502, no claim; else create draft + ONE line item per receipt (composed description, amount = total − refunds, original* snapshot) + stamp Receipt merchant/purchaseDate/extracted*Cents + one ExtractionLog per call |
 | `/api/reimbursements/[id]` | GET | claim + lineItems(sortOrder asc) + receipts join |
 | | DELETE | draft only (409 else); receipts return to shoebox |
-| `/api/reimbursements/[id]/pdf` | POST | gate: ≥1 active row, all active verified (400 else) → generateClaimPdf → claim=generated, receipts=processed → returns application/pdf. Re-POST on generated claim re-downloads |
+| `/api/reimbursements/[id]/pdf` | POST | gate: ≥1 active row, all active verified (400 else) → generateClaimPdf (packet appends only receipts with ≥1 non-excluded row) → claim=generated, receipts=processed → returns application/pdf. Re-POST on generated claim re-downloads |
+| `/api/reimbursements/[id]/receipts/[receiptId]` | DELETE | draft only (409); refuses the last receipt (409 — discard the claim instead); deletes the receipt's line items + join row (receipt returns to Shoebox — status never left `unassigned`); AuditEvent(remove-receipt); recomputes totalCents |
+| `/api/reimbursements/[id]/revert` | POST | generated only (409 else); claim → draft; receipts → unassigned unless another GENERATED claim still holds them; AuditEvent(revert-to-draft). Rows keep isVerified (values were frozen; edits still revoke) |
 | `/api/line-items/[id]` | PATCH | zod partial {description,amountCents,ministry,isVerified,isExcluded}; draft only (409); isVerified:true refused (400) while ministry is empty; content change ⇒ isVerified=false unless patch sets it; writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
 | `/api/line-items/[id]/split` | POST | `{firstAmountCents?}` default even split; both halves unverified; new row original*=NULL; AuditEvent(split); renumbers sortOrder so new half follows original |
 | `/api/profile` | GET PATCH | fullName, mailingAddress (printed on the form) |

@@ -33,6 +33,8 @@ export interface PdfReceipt {
   data: Buffer | Uint8Array;
   mimeType: string;
   originalName: string;
+  /** Optional user-written description, appended to the page label. */
+  note?: string;
 }
 
 export interface ClaimPdfInput {
@@ -261,9 +263,14 @@ async function appendReceipt(
   const scale = Math.min(maxW / image.width, maxH / image.height, 1);
   const w = image.width * scale;
   const h = image.height * scale;
-  // drawText has no clipping — a long original file name would run past the
+  // drawText has no clipping — a long file name or note would run past the
   // page edge, so shrink a little and then truncate with an ellipsis.
-  let label = toEncodableText(`Receipt ${index} of ${total} — ${receipt.originalName}`, font);
+  let label = toEncodableText(
+    `Receipt ${index} of ${total} — ${receipt.originalName}${
+      receipt.note ? ` — ${receipt.note}` : ""
+    }`,
+    font
+  );
   let labelSize = 9;
   while (labelSize > 7 && font.widthOfTextAtSize(label, labelSize) > maxW) labelSize--;
   if (font.widthOfTextAtSize(label, labelSize) > maxW) {

@@ -148,8 +148,9 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   const bytes = await fs.readFile(pdfPath);
   expect(bytes.subarray(0, 5).toString()).toBe("%PDF-");
   const doc = await PDFDocument.load(new Uint8Array(bytes));
-  // 3 active rows -> 1 form page, plus the 3 receipt images.
-  expect(doc.getPageCount()).toBe(4);
+  // 3 active rows -> 1 form page + 2 receipt images; the fully-excluded
+  // return receipt is left out of the packet.
+  expect(doc.getPageCount()).toBe(3);
 
   await expect(page.getByTestId("claim-status")).toHaveText("Generated", { timeout: 15_000 });
   await shot(page, "07-claim-generated");

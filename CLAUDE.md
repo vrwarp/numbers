@@ -37,8 +37,11 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    sets `isVerified=false` unless the patch explicitly sets it (see line-items PATCH route).
 5. **`totalCents` is recomputed server-side** after every line-item mutation. Never trust a
    client-provided total.
-6. **Status machines**: Receipt `unassigned → processed`; Reimbursement `draft → generated`.
-   Generated claims are frozen (line-item routes reject with 409).
+6. **Status machines**: Receipt `unassigned ⇄ processed` ("processed" = on ≥1 GENERATED
+   claim — a receipt may join any number of claims); Reimbursement `draft ⇄ generated`.
+   Generated claims are frozen (line-item routes reject with 409). The escape hatch is
+   POST `/api/reimbursements/[id]/revert` (claim → draft; receipts released unless another
+   generated claim holds them).
 7. **Telemetry**: every extraction call (success AND failure) writes an `ExtractionLog`; every
    manual edit writes an `AuditEvent` with field diffs; `LineItem.original*` freezes AI values
    at creation (NULL = human-created row, e.g. a split half); the printed totals behind the
