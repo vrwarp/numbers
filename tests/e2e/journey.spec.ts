@@ -64,9 +64,10 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   await expect(page.getByText("REFUND", { exact: true })).toHaveCount(1); // the pure return
   await shot(page, "05-review-initial");
 
-  // Merchant + date extracted onto the receipt group headers.
-  await expect(page.getByText("Costco Wholesale — 06/21/2026")).toHaveCount(2); // receipt pane + group
-  await expect(page.getByText("Amazon — 06/04/2026")).toHaveCount(2);
+  // Merchant + date extracted onto the receipt card headers (one unified card
+  // per receipt: image + rows together).
+  await expect(page.getByText("Costco Wholesale — 06/21/2026")).toHaveCount(1);
+  await expect(page.getByText("Amazon — 06/04/2026")).toHaveCount(1);
 
   // Row amounts are net totals; the refund receipt shows its derivation.
   await expect(page.getByText("Subtotal: $102.10")).toBeVisible();
@@ -102,6 +103,24 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   const amazonRows = rowByDesc("Amazon 06/04");
   await expect(amazonRows).toHaveCount(2);
   await expect(page.getByTestId("claim-total")).toHaveText("$120.95"); // split conserves the total
+
+  // Unsplit: the second half folds back into the row above; only rows with a
+  // same-receipt row above them offer the merge.
+  await expect(
+    amazonRows.nth(0).getByTitle("Merge back into the row above (undo split)")
+  ).toHaveCount(0);
+  await amazonRows.nth(1).getByTitle("Merge back into the row above (undo split)").click();
+  await expect(rows).toHaveCount(3);
+  await expect(amazonRows).toHaveCount(1);
+  await expect(page.getByTestId("claim-total")).toHaveText("$120.95"); // merge conserves the total
+
+  // Split again for the two-ministry flow below.
+  await amazonRow.getByTitle("Split into two rows").click();
+  await page.getByTestId("split-first-amount").fill("15.00");
+  await page.getByTestId("split-confirm").click();
+  await expect(rows).toHaveCount(4);
+  await expect(amazonRows).toHaveCount(2);
+
   // Assign the second half to a different ministry, with an event label.
   await amazonRows
     .nth(1)
@@ -112,8 +131,8 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
 
   // Verify every active row; the button unlocks only at 3/3.
   await expect(page.getByTestId("verify-progress")).toContainText("0 / 3 verified");
-  const approveButtons = page.getByRole("button", { name: "Approve row" });
-  await expect(approveButtons).toHaveCount(3); // excluded row has no visible check
+  const approveButtons = page.getByRole("button", { name: /Confirm \$/ });
+  await expect(approveButtons).toHaveCount(3); // excluded row has no confirm button
 
   // Rows arrive with no ministry — the AI never suggests one, and approving
   // is blocked until the user explicitly picks.
@@ -122,17 +141,17 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   // The Costco run doesn't fit the budget list: "Other…" reveals a free-text
   // box, and the row stays unverifiable until the custom text is typed.
   await costcoRow.getByLabel("Ministry", { exact: true }).selectOption("Other…");
-  await expect(costcoRow.getByRole("button", { name: "Approve row" })).toBeDisabled();
+  await expect(costcoRow.getByRole("button", { name: /Confirm \$/ })).toBeDisabled();
   await costcoRow.getByLabel("Custom ministry").fill("Pastor Appreciation");
   await costcoRow.getByLabel("Custom ministry").blur();
-  await expect(costcoRow.getByRole("button", { name: "Approve row" })).toBeEnabled();
+  await expect(costcoRow.getByRole("button", { name: /Confirm \$/ })).toBeEnabled();
 
   for (const sel of await page.getByLabel("Ministry", { exact: true }).all()) {
     if (await sel.isDisabled()) continue; // excluded row
     if (!(await sel.inputValue())) await sel.selectOption("237 Office Supplies");
   }
-  // Approving a row renames its button to "Mark unverified", so always click
-  // the first remaining "Approve row".
+  // Confirming a row turns its button into a "Verified · Undo" pill, so always
+  // click the first remaining "Confirm $…" button.
   for (let i = 0; i < 3; i++) {
     if (i < 2) await expect(page.getByTestId("generate-pdf")).toBeDisabled();
     await approveButtons.first().click();
@@ -148,7 +167,7 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   await expect(page.getByTestId("generate-pdf")).toBeDisabled();
   await costcoRow.getByLabel("Amount").fill("90.00");
   await costcoRow.getByLabel("Amount").blur();
-  await costcoRow.getByRole("button", { name: "Approve row" }).click();
+  await costcoRow.getByRole("button", { name: /Confirm \$/ }).click();
   await expect(page.getByTestId("generate-pdf")).toBeEnabled();
   await shot(page, "06-review-verified");
 
@@ -235,7 +254,7 @@ test("claim with more receipts than the 13-row form paginates onto two form page
   for (const sel of await page.getByLabel("Ministry", { exact: true }).all()) {
     await sel.selectOption("237 Office Supplies");
   }
-  const approve = page.getByRole("button", { name: "Approve row" });
+  const approve = page.getByRole("button", { name: /Confirm \$/ });
   for (let i = 0; i < 14; i++) {
     await approve.first().click();
     await expect(page.getByTestId("verify-progress")).toContainText(`${i + 1} / 14 verified`);

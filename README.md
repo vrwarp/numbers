@@ -22,11 +22,11 @@ just a copy of the `/data` folder.
    vision model via OpenRouter or Google AI Studio (one call per receipt) with a strict prompt:
    line items extracted verbatim, taxes/fees as their own rows, returns/refunds as negative
    quantities and amounts.
-3. **Review & validate.** A side-by-side screen shows the original receipts next to an editable
-   grid grouped by receipt, each group with a live subtotal to match against the printed total.
-   Fix descriptions, change ministries, **exclude** personal items, **split** bulk items across
-   ministries, adjust the tax row. Refund rows are highlighted red. *Generate PDF* stays locked
-   until **every** row has been explicitly check-marked — and editing a verified row revokes its
+3. **Review & validate.** One card per receipt shows the original image beside its editable
+   rows, with a live subtotal to match against the printed total. Fix descriptions, change
+   ministries, **exclude** personal items, **split** bulk items across ministries (and **merge**
+   them back), adjust the tax row. Refund rows are highlighted red. *Generate PDF* stays locked
+   until **every** row has been explicitly confirmed — and editing a confirmed row revokes its
    check.
 4. **PDF generation.** The backend fills the official form's AcroForm fields (name, address,
    date, line items, total), flattens it, paginates onto extra form pages when a claim exceeds

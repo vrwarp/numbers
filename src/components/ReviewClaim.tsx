@@ -112,6 +112,18 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     [load]
   );
 
+  const mergeUp = useCallback(
+    async (itemId: string) => {
+      const res = await fetch(`/api/line-items/${itemId}/merge`, { method: "POST" });
+      if (!res.ok) {
+        setError((await res.json()).error ?? "Merge failed");
+        return;
+      }
+      await load();
+    },
+    [load]
+  );
+
   const groups = useMemo(() => {
     if (!claim) return [];
     return claim.receipts.map((ref) => ({
@@ -254,113 +266,110 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Left: original receipts */}
-        <div className="space-y-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-1">
-          {claim.receipts.map((ref, i) => (
-            <div key={ref.receiptId} className="card overflow-hidden">
-              <div className="flex items-center justify-between gap-2 border-b border-stone-100 px-3 py-2 text-xs font-semibold text-stone-500">
-                <span className="min-w-0">
-                  Receipt {i + 1}: {receiptLabel(ref.receipt)}
-                  {ref.receipt.note && (
-                    <span className="ml-1 font-normal text-stone-400">· {ref.receipt.note}</span>
-                  )}
+      {/* One card per receipt: the image and its digitized rows travel together
+          (rows are 1:1 with receipts; splitting is the only multiplier), so
+          there are no independently scrolling columns to keep in sync. */}
+      <div className="space-y-4">
+        {groups.map((group, gi) => (
+          <div key={group.receipt.id} className="card overflow-hidden" data-testid={`group-${group.receipt.id}`}>
+            <div className="flex items-center justify-between gap-2 border-b border-stone-100 bg-stone-50 px-4 py-2">
+              <span className="min-w-0 text-sm font-semibold text-stone-700">
+                Receipt {gi + 1}: {receiptLabel(group.receipt)}
+                {group.receipt.note && (
+                  <span className="ml-1 font-normal text-stone-500">· {group.receipt.note}</span>
+                )}
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="text-sm font-bold" data-testid={`subtotal-${group.receipt.id}`}>
+                  Subtotal: {formatCents(subtotalCents(group.items))}
                 </span>
-                {isDraft && ref.receipt.mimeType !== "application/pdf" && (
+                {isDraft && group.receipt.mimeType !== "application/pdf" && (
                   <button
-                    className="shrink-0 rounded px-2 py-1 font-normal text-stone-500 hover:bg-stone-100 hover:text-stone-700"
-                    onClick={() => setEditingReceiptId(ref.receipt.id)}
+                    className="rounded px-2 py-1 text-xs font-normal text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+                    onClick={() => setEditingReceiptId(group.receipt.id)}
                     title="Rotate or crop this receipt photo"
-                    data-testid={`edit-image-${ref.receipt.id}`}
+                    data-testid={`edit-image-${group.receipt.id}`}
                   >
                     ✂ Rotate / crop
                   </button>
                 )}
-              </div>
-              {ref.receipt.mimeType === "application/pdf" ? (
-                <object
-                  data={`/api/receipts/${ref.receipt.id}/file`}
-                  type="application/pdf"
-                  className="h-[480px] w-full"
-                >
-                  <a href={`/api/receipts/${ref.receipt.id}/file`} className="block p-4 text-indigo-600 underline">
-                    Open PDF receipt
-                  </a>
-                </object>
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={fileUrl(ref.receipt.id)}
-                  alt={ref.receipt.originalName}
-                  className="w-full"
-                />
-              )}
+                {isDraft && (
+                  <button
+                    className="rounded px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+                    disabled={claim.receipts.length === 1}
+                    title={
+                      claim.receipts.length === 1
+                        ? "This is the only receipt — discard the claim instead"
+                        : "Remove receipt from claim (returns to Shoebox)"
+                    }
+                    onClick={() => removeReceipt(group.receipt.id)}
+                    data-testid={`remove-receipt-${group.receipt.id}`}
+                  >
+                    ✕ Remove
+                  </button>
+                )}
+              </span>
             </div>
-          ))}
-        </div>
-
-        {/* Right: line items grouped by receipt */}
-        <div className="space-y-4">
-          {groups.map((group, gi) => (
-            <div key={group.receipt.id} className="card overflow-hidden" data-testid={`group-${group.receipt.id}`}>
-              <div className="flex items-center justify-between gap-2 border-b border-stone-100 bg-stone-50 px-4 py-2">
-                <span className="min-w-0 text-sm font-semibold text-stone-700">
-                  Receipt {gi + 1}: {receiptLabel(group.receipt)}
-                  {group.receipt.note && (
-                    <span className="ml-1 font-normal text-stone-500">· {group.receipt.note}</span>
-                  )}
-                </span>
-                <span className="flex items-center gap-2">
-                  <span className="text-sm font-bold" data-testid={`subtotal-${group.receipt.id}`}>
-                    Subtotal: {formatCents(subtotalCents(group.items))}
-                  </span>
-                  {isDraft && (
-                    <button
-                      className="rounded px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
-                      disabled={claim.receipts.length === 1}
-                      title={
-                        claim.receipts.length === 1
-                          ? "This is the only receipt — discard the claim instead"
-                          : "Remove receipt from claim (returns to Shoebox)"
-                      }
-                      onClick={() => removeReceipt(group.receipt.id)}
-                      data-testid={`remove-receipt-${group.receipt.id}`}
+            {(group.receipt.extractedRefundCents ?? 0) > 0 && (
+              <div
+                className="border-b border-stone-100 bg-amber-50 px-4 py-2 text-xs text-amber-900"
+                data-testid={`derivation-${group.receipt.id}`}
+              >
+                Charged {formatCents(group.receipt.extractedTotalCents ?? 0)} − refunded{" "}
+                {formatCents(group.receipt.extractedRefundCents!)} → suggested{" "}
+                {formatCents((group.receipt.extractedTotalCents ?? 0) - group.receipt.extractedRefundCents!)}
+              </div>
+            )}
+            <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+              <div className="max-h-[75vh] overflow-y-auto border-b border-stone-100 bg-stone-50/50 lg:border-b-0 lg:border-r">
+                {group.receipt.mimeType === "application/pdf" ? (
+                  <object
+                    data={`/api/receipts/${group.receipt.id}/file`}
+                    type="application/pdf"
+                    className="h-[480px] w-full"
+                  >
+                    <a
+                      href={`/api/receipts/${group.receipt.id}/file`}
+                      className="block p-4 text-indigo-600 underline"
                     >
-                      ✕ Remove
-                    </button>
-                  )}
-                </span>
-              </div>
-              {(group.receipt.extractedRefundCents ?? 0) > 0 && (
-                <div
-                  className="border-b border-stone-100 bg-amber-50 px-4 py-2 text-xs text-amber-900"
-                  data-testid={`derivation-${group.receipt.id}`}
-                >
-                  Charged {formatCents(group.receipt.extractedTotalCents ?? 0)} − refunded{" "}
-                  {formatCents(group.receipt.extractedRefundCents!)} → suggested{" "}
-                  {formatCents((group.receipt.extractedTotalCents ?? 0) - group.receipt.extractedRefundCents!)}
-                </div>
-              )}
-              <ul className="divide-y divide-stone-100">
-                {group.items.map((item) => (
-                  <LineItemRow
-                    key={item.id}
-                    item={item}
-                    readOnly={!isDraft}
-                    onPatch={patchItem}
-                    onSplit={() => setSplitItem(item)}
+                      Open PDF receipt
+                    </a>
+                  </object>
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={fileUrl(group.receipt.id)}
+                    alt={group.receipt.originalName}
+                    className="w-full"
                   />
-                ))}
-              </ul>
+                )}
+              </div>
+              {/* Sticky so the fields stay beside a tall receipt photo while it scrolls. */}
+              <div className="lg:sticky lg:top-20 lg:self-start">
+                <ul className="divide-y divide-stone-100">
+                  {group.items.map((item, idx) => (
+                    <LineItemRow
+                      key={item.id}
+                      item={item}
+                      readOnly={!isDraft}
+                      onPatch={patchItem}
+                      onSplit={() => setSplitItem(item)}
+                      canMergeUp={idx > 0}
+                      mergeUpBlocked={idx > 0 && group.items[idx - 1].isExcluded}
+                      onMergeUp={() => mergeUp(item.id)}
+                    />
+                  ))}
+                </ul>
+              </div>
             </div>
-          ))}
-
-          <div className="card flex items-center justify-between bg-indigo-50 p-4">
-            <span className="font-semibold text-indigo-900">Claim total</span>
-            <span className="text-xl font-bold text-indigo-900" data-testid="claim-total">
-              {formatCents(claim.totalCents)}
-            </span>
           </div>
+        ))}
+
+        <div className="card flex items-center justify-between bg-indigo-50 p-4">
+          <span className="font-semibold text-indigo-900">Claim total</span>
+          <span className="text-xl font-bold text-indigo-900" data-testid="claim-total">
+            {formatCents(claim.totalCents)}
+          </span>
         </div>
       </div>
 
@@ -402,11 +411,19 @@ function LineItemRow({
   readOnly,
   onPatch,
   onSplit,
+  canMergeUp,
+  mergeUpBlocked,
+  onMergeUp,
 }: {
   item: LineItem;
   readOnly: boolean;
   onPatch: (id: string, patch: Partial<LineItem>) => Promise<void>;
   onSplit: () => void;
+  /** True when a row from the same receipt sits directly above this one. */
+  canMergeUp: boolean;
+  /** True when the row above is excluded (server refuses the merge). */
+  mergeUpBlocked: boolean;
+  onMergeUp: () => void;
 }) {
   const negative = item.amountCents < 0;
   const excluded = item.isExcluded;
@@ -422,25 +439,6 @@ function LineItemRow({
       data-description={item.description}
     >
       <div className="flex items-start gap-3">
-        {/* Verify checkmark */}
-        <button
-          className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold transition-colors ${
-            item.isVerified
-              ? "border-emerald-600 bg-emerald-600 text-white"
-              : "border-stone-300 bg-white text-transparent hover:border-emerald-400"
-          } ${excluded || readOnly ? "invisible" : ""} disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-stone-300`}
-          // Cosmetic: the line-items PATCH route is what actually refuses to
-          // verify a row without a ministry.
-          disabled={!item.isVerified && !item.ministry}
-          title={!item.isVerified && !item.ministry ? "Choose a ministry first" : undefined}
-          onClick={() => onPatch(item.id, { isVerified: !item.isVerified })}
-          aria-label={item.isVerified ? "Mark unverified" : "Approve row"}
-          aria-pressed={item.isVerified}
-          data-testid={`verify-${item.id}`}
-        >
-          ✓
-        </button>
-
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-center gap-2">
             <textarea
@@ -541,6 +539,28 @@ function LineItemRow({
               </span>
             )}
           </div>
+          {!excluded && !readOnly && (
+            <div className="flex justify-end pt-1">
+              <button
+                className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
+                  item.isVerified
+                    ? "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100"
+                    : "bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-400"
+                }`}
+                // Cosmetic: the line-items PATCH route is what actually refuses to
+                // verify a row without a ministry.
+                disabled={!item.isVerified && !item.ministry}
+                title={!item.isVerified && !item.ministry ? "Choose a ministry first" : undefined}
+                onClick={() => onPatch(item.id, { isVerified: !item.isVerified })}
+                aria-pressed={item.isVerified}
+                data-testid={`verify-${item.id}`}
+              >
+                {item.isVerified
+                  ? "✓ Verified · Undo"
+                  : `✓ Confirm ${formatCents(item.amountCents)}`}
+              </button>
+            </div>
+          )}
         </div>
 
         {!readOnly && (
@@ -554,6 +574,21 @@ function LineItemRow({
             >
               ⑂ Split
             </button>
+            {canMergeUp && (
+              <button
+                className="rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 disabled:opacity-30"
+                onClick={onMergeUp}
+                disabled={excluded || mergeUpBlocked}
+                title={
+                  excluded || mergeUpBlocked
+                    ? "Restore the excluded row before merging"
+                    : "Merge back into the row above (undo split)"
+                }
+                data-testid={`merge-${item.id}`}
+              >
+                ⤴ Merge up
+              </button>
+            )}
             <button
               className="rounded px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600"
               onClick={() => onPatch(item.id, { isExcluded: !excluded, isVerified: false })}
