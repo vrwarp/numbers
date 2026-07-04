@@ -39,8 +39,10 @@ export function extractionLogRow(
 }
 
 export interface ClaimExtraction {
-  /** Extraction fields to stamp onto the Receipt row. */
-  receiptUpdate: {
+  /** Extraction fields to stamp onto the Receipt row. Absent when extraction
+   *  failed and the row is a manual-entry placeholder — the receipt keeps
+   *  whatever metadata it already had. */
+  receiptUpdate?: {
     id: string;
     merchant: string;
     purchaseDate: string;
@@ -48,26 +50,41 @@ export interface ClaimExtraction {
     extractedRefundCents: number;
   };
   /** LineItem create data; sortOrder is the batch index — offset it when
-   *  appending to a claim that already has rows. */
+   *  appending to a claim that already has rows. original* are null on a
+   *  manual-entry row (the AI produced nothing to freeze), matching the
+   *  "human-created row" convention used by splits. */
   item: {
     receiptId: string;
     description: string;
     amountCents: number;
     ministry: string;
     sortOrder: number;
-    originalDescription: string;
-    originalAmountCents: number;
+    originalDescription: string | null;
+    originalAmountCents: number | null;
   };
 }
 
 /**
  * Run each receipt through the LLM (one call per receipt, throttled to the RPM
  * target with quota-error retries) and map the results to row data.
- * All-or-nothing: if any receipt fails to extract, every call is
- * telemetry-logged and the matching ApiError is thrown — no rows for the
- * caller to write. On success the outcomes are returned UNlogged so the caller
- * can log them with the claim id after its transaction commits. onEvent
- * forwards live extraction progress (per-receipt completion and quota waits).
+ *
+ * A receipt the model can't read (a blurry photo, or something that isn't a
+ * receipt at all) does NOT block the batch: its outcome becomes a blank
+ * MANUAL-ENTRY row (empty description, $0, no ministry, null original*) with no
+ * receiptUpdate, which the user completes in review via the manual-entry
+ * dialog. The human-in-the-loop gate still holds — the row is unverified with
+ * no ministry, so it can't reach the PDF untouched.
+ *
+ * The exception is a quota / rate-limit failure: it is transient and
+ * batch-wide, so those stay all-or-nothing — every call is telemetry-logged
+ * and a 429 is thrown so the caller can retry the whole batch, rather than
+ * littering the claim with manual rows for receipts that would have read fine a
+ * minute later.
+ *
+ * On the success/partial path the outcomes are returned UNlogged so the caller
+ * can log them (successes AND failures) with the claim id after its transaction
+ * commits. onEvent forwards live extraction progress (per-receipt completion
+ * and quota waits).
  */
 export async function extractClaimRows(
   userId: string,
@@ -76,29 +93,45 @@ export async function extractClaimRows(
 ): Promise<{ outcomes: ReceiptExtraction[]; extractions: ClaimExtraction[] }> {
   const outcomes = await extractReceipts(receipts, onEvent);
 
-  const failed = outcomes.filter((o) => o.result === null);
-  if (failed.length > 0) {
-    // Failed calls are logged too — bad model output is prompt-tuning gold.
+  // Quota / rate-limit failures are transient and batch-wide — keep them
+  // all-or-nothing so the user retries rather than getting manual rows for
+  // receipts that would have read fine. Log every call first: we throw here
+  // before the caller gets a chance to.
+  const quotaFailed = outcomes.filter(
+    (o) =>
+      o.result === null &&
+      (isQuotaErrorMessage(o.error) || isQuotaErrorMessage(o.meta.rawResponse))
+  );
+  if (quotaFailed.length > 0) {
     await prisma.extractionLog.createMany({
       data: outcomes.map((o) => extractionLogRow(userId, o)),
     });
-    const names = failed.map((f) => f.receipt.originalName).join(", ");
-    const quota = failed.some(
-      (f) => isQuotaErrorMessage(f.error) || isQuotaErrorMessage(f.meta.rawResponse)
+    const names = quotaFailed.map((f) => f.receipt.originalName).join(", ");
+    throw new ApiError(
+      429,
+      `AI provider rate limit / quota exhausted (target ${rpmTarget()} requests/minute). ` +
+        `The server waited and retried but the quota hasn't cleared — please wait a minute ` +
+        `and try again. Affected: ${names}`
     );
-    if (quota) {
-      throw new ApiError(
-        429,
-        `AI provider rate limit / quota exhausted (target ${rpmTarget()} requests/minute). ` +
-          `The server waited and retried but the quota hasn't cleared — please wait a minute ` +
-          `and try again. Affected: ${names}`
-      );
-    }
-    throw new ApiError(502, `AI extraction failed for ${names}: ${failed[0].error}`);
   }
 
-  const extractions = outcomes.map((o, i) => {
-    const r = o.result!;
+  const extractions = outcomes.map((o, i): ClaimExtraction => {
+    // Non-quota failure → a manual-entry placeholder the user fills in during
+    // review. No receiptUpdate: the receipt keeps whatever metadata it had.
+    if (o.result === null) {
+      return {
+        item: {
+          receiptId: o.receipt.id,
+          description: "",
+          amountCents: 0,
+          ministry: "",
+          sortOrder: i,
+          originalDescription: null,
+          originalAmountCents: null,
+        },
+      };
+    }
+    const r = o.result;
     const totalCents = parseDollarsToCents(r.totalAmount);
     const refundCents = parseDollarsToCents(r.refundAmount);
     const description = composeDescription(r);
@@ -129,6 +162,27 @@ export async function extractClaimRows(
   });
 
   return { outcomes, extractions };
+}
+
+/**
+ * Rows for a claim built WITHOUT any AI extraction — the manual escape hatch
+ * for when the user would rather type receipts in than wait out a provider
+ * rate-limit (or when extraction keeps failing). Every receipt gets the same
+ * blank placeholder row a failed extraction produces, to fill in during review.
+ * No provider calls are made, so there are no outcomes to telemetry-log.
+ */
+export function manualClaimRows(receipts: Receipt[]): ClaimExtraction[] {
+  return receipts.map((r, i) => ({
+    item: {
+      receiptId: r.id,
+      description: "",
+      amountCents: 0,
+      ministry: "",
+      sortOrder: i,
+      originalDescription: null,
+      originalAmountCents: null,
+    },
+  }));
 }
 
 /** Pre-stream (auth/validation) failures still return plain JSON — the client

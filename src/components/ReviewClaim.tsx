@@ -7,6 +7,7 @@ import { MINISTRY_GROUPS, isKnownMinistry } from "@/lib/ministries";
 import { centsToDollarString, formatCents, parseDollarsToCents, subtotalCents } from "@/lib/money";
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import AddReceiptsDialog from "@/components/AddReceiptsDialog";
+import ManualEntryDialog from "@/components/ManualEntryDialog";
 
 interface LineItem {
   id: string;
@@ -60,6 +61,10 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const [downloading, setDownloading] = useState(false);
   const [editingReceiptId, setEditingReceiptId] = useState<string | null>(null);
   const [addingReceipts, setAddingReceipts] = useState(false);
+  // Receipt whose failed-extraction placeholder is being filled in by hand, and
+  // the set the user chose to defer (so the modal doesn't reopen on them).
+  const [manualEntryReceiptId, setManualEntryReceiptId] = useState<string | null>(null);
+  const [deferredManual, setDeferredManual] = useState<Set<string>>(new Set());
   // Bumped after a rotate/crop so the <img> cache-busts past the file route's max-age.
   const [fileVersions, setFileVersions] = useState<Record<string, number>>({});
   // Row whose confirm button is pulsing after a click on the gated PDF button.
@@ -167,6 +172,35 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         .sort((a, b) => a.sortOrder - b.sortOrder),
     }));
   }, [claim]);
+
+  // A receipt whose extraction failed shows up as a single empty placeholder
+  // row — that's the manual-entry prompt (a real extraction, split or edit all
+  // give the row a description).
+  const needsManualEntry = useCallback(
+    (items: LineItem[]) => items.length === 1 && !items[0].description && !items[0].isExcluded,
+    []
+  );
+
+  // Walk the user straight into filling a failed receipt as soon as the claim
+  // loads — this fires for both the create and add-receipts flows, which both
+  // land here — unless they deferred it or another dialog is already open.
+  useEffect(() => {
+    if (!claim || claim.status !== "draft") return;
+    if (manualEntryReceiptId || splitItem || editingReceiptId || addingReceipts) return;
+    const pending = groups.find(
+      (g) => needsManualEntry(g.items) && !deferredManual.has(g.receipt.id)
+    );
+    if (pending) setManualEntryReceiptId(pending.receipt.id);
+  }, [
+    claim,
+    groups,
+    needsManualEntry,
+    deferredManual,
+    manualEntryReceiptId,
+    splitItem,
+    editingReceiptId,
+    addingReceipts,
+  ]);
 
   if (error && !claim) {
     return (
@@ -358,6 +392,21 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               </div>
               {/* Sticky so the fields stay beside a tall receipt photo while it scrolls. */}
               <div className="lg:sticky lg:top-20 lg:self-start">
+                {isDraft && needsManualEntry(group.items) && (
+                  <div
+                    className="flex items-center justify-between gap-2 border-b border-amber-100 bg-amber-50 px-4 py-2 text-xs text-amber-900"
+                    data-testid={`manual-entry-banner-${group.receipt.id}`}
+                  >
+                    <span>⚠ The AI couldn&apos;t read this receipt.</span>
+                    <button
+                      className="whitespace-nowrap rounded bg-amber-600 px-2 py-1 font-semibold text-white hover:bg-amber-700"
+                      onClick={() => setManualEntryReceiptId(group.receipt.id)}
+                      data-testid={`manual-entry-open-${group.receipt.id}`}
+                    >
+                      Enter details
+                    </button>
+                  </div>
+                )}
                 <ul className="divide-y divide-stone-100">
                   {group.items.map((item, idx) => (
                     <LineItemRow
@@ -470,6 +519,30 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         />
       )}
 
+      {manualEntryReceiptId &&
+        (() => {
+          const group = groups.find((g) => g.receipt.id === manualEntryReceiptId);
+          if (!group) return null;
+          return (
+            <ManualEntryDialog
+              claimId={claim.id}
+              receipt={group.receipt}
+              imageUrl={fileUrl(group.receipt.id)}
+              onSaved={async () => {
+                // Mark it handled so the auto-open effect doesn't race the
+                // reload and reopen the row we just filled.
+                setDeferredManual((prev) => new Set(prev).add(manualEntryReceiptId));
+                setManualEntryReceiptId(null);
+                await load();
+              }}
+              onSkip={() => {
+                setDeferredManual((prev) => new Set(prev).add(manualEntryReceiptId));
+                setManualEntryReceiptId(null);
+              }}
+            />
+          );
+        })()}
+
       {editingReceiptId && (
         <ReceiptImageEditor
           receiptId={editingReceiptId}
@@ -547,6 +620,7 @@ function LineItemRow({
             // field-sizing auto-grows to the content where supported; rows=2 is the fallback.
             className={`input flex-1 resize-y field-sizing-content ${excluded ? "line-through" : ""} ${negative ? "text-red-700" : ""}`}
             defaultValue={item.description}
+            placeholder="Describe what was purchased"
             disabled={excluded || readOnly}
             onBlur={(e) => {
               const v = e.target.value.trim();

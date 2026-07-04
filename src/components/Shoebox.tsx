@@ -29,6 +29,10 @@ export default function Shoebox() {
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
+  // Aborts the in-flight extraction stream when the user bails to manual entry;
+  // the ref flag tells the stream's catch that the abort was intentional.
+  const generateAbort = useRef<AbortController | null>(null);
+  const bailingToManual = useRef(false);
   const [waitCooldownMs, setWaitCooldownMs] = useState(0);
   // Bumped on each quota wait so the countdown ring remounts and restarts.
   const [waitKey, setWaitKey] = useState(0);
@@ -112,17 +116,45 @@ export default function Shoebox() {
     await load();
   }
 
+  // Skip AI extraction and go straight to a claim of blank rows the user fills
+  // in — the escape hatch when the provider is rate-limited. Aborts the running
+  // extraction stream first so it stops waiting out the cooldown.
+  async function generateManualClaim() {
+    bailingToManual.current = true;
+    generateAbort.current?.abort();
+    setWaiting(false);
+    setStatus("Setting up manual entry…");
+    try {
+      const res = await fetch("/api/reimbursements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ receiptIds: Array.from(selected), manual: true }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Could not start manual entry");
+      const { reimbursement } = await res.json();
+      router.push(`/claims/${reimbursement.id}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not start manual entry");
+      setGenerating(false);
+      setStatus(null);
+    }
+  }
+
   async function generateClaim() {
     setGenerating(true);
     setWaiting(false);
     setError(null);
     setStatus("Reading receipts with AI…");
+    bailingToManual.current = false;
+    const abort = new AbortController();
+    generateAbort.current = abort;
     try {
       const res = await fetch("/api/reimbursements", {
         method: "POST",
         // Ask for streamed progress so quota waits show up live.
         headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
         body: JSON.stringify({ receiptIds: Array.from(selected) }),
+        signal: abort.signal,
       });
       // A pre-stream failure (auth/validation) comes back as plain JSON.
       if (!res.ok || !res.body) {
@@ -160,6 +192,8 @@ export default function Shoebox() {
       if (!claimId) throw new Error("Claim generation ended unexpectedly");
       router.push(`/claims/${claimId}`);
     } catch (e) {
+      // The user bailed to manual entry — generateManualClaim now owns the UI.
+      if (bailingToManual.current) return;
       setError(e instanceof Error ? e.message : "Claim generation failed");
       setGenerating(false);
       setWaiting(false);
@@ -247,6 +281,15 @@ export default function Shoebox() {
             <span className={`text-xs ${waiting ? "font-medium text-amber-700" : "text-indigo-700"}`}>
               {status}
             </span>
+            {waiting && (
+              <button
+                className="ml-1 rounded px-2 py-1 text-xs font-semibold text-amber-800 underline underline-offset-2 hover:bg-amber-100"
+                onClick={generateManualClaim}
+                data-testid="generate-claim-manual"
+              >
+                Enter manually instead
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -29,7 +29,11 @@ export default function AddReceiptsDialog({
   const [uploading, setUploading] = useState(false);
   const [adding, setAdding] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Aborts the in-flight extraction stream when the user bails to manual entry.
+  const addAbort = useRef<AbortController | null>(null);
+  const bailingToManual = useRef(false);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/receipts");
@@ -82,16 +86,43 @@ export default function AddReceiptsDialog({
     }
   }
 
+  // Skip AI extraction and add the receipts as blank rows to fill in later —
+  // the escape hatch when the provider is rate-limited. Aborts the running
+  // stream first so it stops waiting out the cooldown.
+  async function addManually() {
+    bailingToManual.current = true;
+    addAbort.current?.abort();
+    setWaiting(false);
+    setStatus("Adding for manual entry…");
+    try {
+      const res = await fetch(`/api/reimbursements/${claimId}/receipts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ receiptIds: Array.from(selected), manual: true }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Adding receipts failed");
+      await onAdded();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Adding receipts failed");
+      setAdding(false);
+      setStatus(null);
+    }
+  }
+
   async function addToClaim() {
     setAdding(true);
     setError(null);
     setStatus("Reading receipts with AI…");
+    bailingToManual.current = false;
+    const abort = new AbortController();
+    addAbort.current = abort;
     try {
       const res = await fetch(`/api/reimbursements/${claimId}/receipts`, {
         method: "POST",
         // Ask for streamed progress so quota waits show up live.
         headers: { "Content-Type": "application/json", Accept: "application/x-ndjson" },
         body: JSON.stringify({ receiptIds: Array.from(selected) }),
+        signal: abort.signal,
       });
       // A pre-stream failure (auth/validation) comes back as plain JSON.
       if (!res.ok || !res.body) {
@@ -103,12 +134,15 @@ export default function AddReceiptsDialog({
       await readNdjsonStream<ClaimStreamMessage>(res.body, (ev) => {
         switch (ev.type) {
           case "status":
+            setWaiting(false);
             setStatus(`Reading ${ev.total} receipt${ev.total > 1 ? "s" : ""} with AI…`);
             break;
           case "receipt-done":
+            setWaiting(false);
             setStatus(`Read ${ev.completed} of ${ev.total} receipts…`);
             break;
           case "quota-wait":
+            setWaiting(true);
             setStatus(ev.message);
             break;
           case "done":
@@ -122,6 +156,8 @@ export default function AddReceiptsDialog({
       if (!ok) throw new Error("Adding receipts ended unexpectedly");
       await onAdded();
     } catch (e) {
+      // The user bailed to manual entry — addManually now owns the UI.
+      if (bailingToManual.current) return;
       setError(e instanceof Error ? e.message : "Adding receipts failed");
       setAdding(false);
       setStatus(null);
@@ -185,12 +221,21 @@ export default function AddReceiptsDialog({
         <div className="mt-5 flex items-center justify-end gap-2">
           {adding && status && (
             <span
-              className="mr-auto text-xs text-indigo-700"
+              className={`mr-auto text-xs ${waiting ? "font-medium text-amber-700" : "text-indigo-700"}`}
               role="status"
               aria-live="polite"
               data-testid="add-receipts-status"
             >
               {status}
+              {waiting && (
+                <button
+                  className="ml-2 rounded px-1.5 py-0.5 font-semibold text-amber-800 underline underline-offset-2 hover:bg-amber-100"
+                  onClick={addManually}
+                  data-testid="add-receipts-manual"
+                >
+                  Enter manually instead
+                </button>
+              )}
             </span>
           )}
           <button
