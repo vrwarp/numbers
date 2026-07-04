@@ -48,6 +48,90 @@ export interface ClaimPdfInput {
   templateBytes: Uint8Array;
 }
 
+/** Usable text box inside a field widget, after pdf-lib's border+padding inset. */
+interface FieldBounds {
+  width: number;
+  height: number;
+}
+
+// pdf-lib refuses to auto-size below 4pt; same floor for our best-effort fallback.
+const MIN_FONT_SIZE = 4;
+
+/**
+ * Largest font size ≤ maxSize at which `text` stays inside `bounds`.
+ * Mirrors pdf-lib's field appearance layout — multiline fields wrap greedily
+ * by measured word width with 1.2 × font height per line; single-line fields
+ * clip anything wider than the box — so the size we pick matches what the
+ * renderer will actually clip against. A plain character-count cutoff
+ * mis-sizes ALL-CAPS text, whose glyphs are far wider per character.
+ */
+export function fittingFontSize(
+  text: string,
+  font: PDFFont,
+  bounds: FieldBounds,
+  maxSize: number,
+  multiline = true
+): number {
+  for (let size = maxSize; size > MIN_FONT_SIZE; size--) {
+    if (textFits(text, font, bounds, size, multiline)) return size;
+  }
+  return MIN_FONT_SIZE;
+}
+
+function textFits(
+  text: string,
+  font: PDFFont,
+  bounds: FieldBounds,
+  size: number,
+  multiline: boolean
+): boolean {
+  if (!multiline) {
+    return (
+      font.widthOfTextAtSize(text, size) <= bounds.width &&
+      font.heightAtSize(size) <= bounds.height
+    );
+  }
+  let lines = 0;
+  for (const paragraph of text.split(/[\n\f\r]/)) {
+    lines += 1;
+    const words = paragraph.split(" ");
+    let remaining = bounds.width;
+    for (let i = 0; i < words.length; i++) {
+      const word = i < words.length - 1 ? `${words[i]} ` : words[i];
+      const wordWidth = font.widthOfTextAtSize(word, size);
+      remaining -= wordWidth;
+      if (remaining <= 0) {
+        lines += 1;
+        remaining = bounds.width - wordWidth;
+      }
+    }
+  }
+  return font.heightAtSize(size) * 1.2 * lines <= bounds.height;
+}
+
+/**
+ * Standard Helvetica only encodes WinAnsi (Latin-ish) characters; pdf-lib
+ * renders a field containing anything else (e.g. a CJK merchant name) as a
+ * completely BLANK appearance — the entire value vanishes from the printed
+ * form. Keep the encodable part and mark each dropped run with a single "…"
+ * so the omission stays visible next to the attached receipt.
+ */
+export function toEncodableText(text: string, font: PDFFont): string {
+  const charset = new Set(font.getCharacterSet());
+  let out = "";
+  let inDroppedRun = false;
+  for (const ch of text) {
+    if (/\s/.test(ch) || charset.has(ch.codePointAt(0)!)) {
+      out += ch;
+      inDroppedRun = false;
+    } else if (!inDroppedRun) {
+      out += "…";
+      inDroppedRun = true;
+    }
+  }
+  return out === text ? text : out.replace(/[^\S\n\f\r]+/g, " ").trim();
+}
+
 export async function generateClaimPdf(input: ClaimPdfInput): Promise<Uint8Array> {
   if (!input.templateBytes?.length) {
     throw new Error("CFCC form template PDF is missing");
@@ -83,10 +167,27 @@ async function fillFormPage(
   const form = tpl.getForm();
   const helv = await tpl.embedFont(StandardFonts.Helvetica);
 
-  const setText = (fieldName: string, value: string, fontSize?: number) => {
+  // Values that don't fit their field at the design size (wide ALL-CAPS
+  // descriptions, long ministry names, long addresses) shrink just enough to
+  // stay inside the field rect instead of being clipped by it.
+  const setText = (fieldName: string, rawValue: string, maxFontSize: number) => {
     try {
+      const value = toEncodableText(rawValue, helv);
       const field = form.getTextField(fieldName);
-      if (fontSize) field.setFontSize(fontSize);
+      const widget = field.acroField.getWidgets()[0];
+      let size = maxFontSize;
+      if (widget) {
+        const rect = widget.getRectangle();
+        const inset = ((widget.getBorderStyle()?.getWidth() ?? 0) + 1) * 2;
+        size = fittingFontSize(
+          value,
+          helv,
+          { width: rect.width - inset, height: rect.height - inset },
+          maxFontSize,
+          field.isMultiline()
+        );
+      }
+      field.setFontSize(size);
       field.setText(value);
     } catch {
       // Field missing on a customized template — value is simply omitted.
@@ -101,10 +202,7 @@ async function fillFormPage(
 
   items.forEach((item, i) => {
     const row = i + 1;
-    // Composed descriptions ("Merchant MM/DD — summary") often exceed one
-    // line at 8pt; drop to 6pt so the wrapped second line stays inside the
-    // row instead of being clipped by the field rect.
-    setText(`Description QuantityRow${row}`, item.description, item.description.length > 55 ? 6 : 8);
+    setText(`Description QuantityRow${row}`, item.description, 8);
     setText(`AmountRow${row}`, centsToDollarString(item.amountCents), 9);
     setText(`For Ministry  EventRow${row}`, item.ministry, 8);
   });
@@ -165,13 +263,26 @@ async function appendReceipt(
   const scale = Math.min(maxW / image.width, maxH / image.height, 1);
   const w = image.width * scale;
   const h = image.height * scale;
-  const label = `Receipt ${index} of ${total} — ${receipt.originalName}${
-    receipt.note ? ` — ${receipt.note}` : ""
-  }`;
-  page.drawText(label.slice(0, 120), {
+  // drawText has no clipping — a long file name or note would run past the
+  // page edge, so shrink a little and then truncate with an ellipsis.
+  let label = toEncodableText(
+    `Receipt ${index} of ${total} — ${receipt.originalName}${
+      receipt.note ? ` — ${receipt.note}` : ""
+    }`,
+    font
+  );
+  let labelSize = 9;
+  while (labelSize > 7 && font.widthOfTextAtSize(label, labelSize) > maxW) labelSize--;
+  if (font.widthOfTextAtSize(label, labelSize) > maxW) {
+    while (label.length > 0 && font.widthOfTextAtSize(`${label}…`, labelSize) > maxW) {
+      label = label.slice(0, -1);
+    }
+    label += "…";
+  }
+  page.drawText(label, {
     x: margin,
     y: PAGE.height - margin + 6,
-    size: 9,
+    size: labelSize,
     font,
     color: rgb(0.3, 0.3, 0.3),
   });
