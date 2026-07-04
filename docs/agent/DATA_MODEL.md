@@ -15,7 +15,7 @@ Reimbursement.status:  "draft"      ──(PDF generated)───────�
   feature); `processed` only records that ≥1 generated claim holds it.
 - Deleting a draft claim cascades its line items and join rows; receipts revert to being
   selectable (their status never left `unassigned` — status changes only at PDF generation).
-- `generated` claims: line-item PATCH/split → 409; DELETE claim → 409; PDF re-download allowed.
+- `generated` claims: line-item PATCH/split/merge → 409; DELETE claim → 409; PDF re-download allowed.
 - POST `/api/reimbursements/[id]/revert` (generated only, 409 else) is the escape hatch for
   mistakes noticed before the printed form is filed: claim → draft, its receipts →
   unassigned, AuditEvent(revert-to-draft). Rows keep `isVerified` — values were frozen at
@@ -63,7 +63,8 @@ purchaseDate, extractedTotalCents?, extractedRefundCents?, createdAt`
 isVerified, isExcluded, sortOrder, originalDescription?, originalAmountCents?`
 - ONE row per receipt at claim creation (`description` composed as
   "Merchant MM/DD — summary"; `amountCents` = printed total − refunds). More rows per receipt
-  exist only via Split — the multi-ministry mechanism. There is no quantity column.
+  exist only via Split — the multi-ministry mechanism (Merge up is the undo). There is no
+  quantity column.
 - `amountCents` is the ROW TOTAL. Negative ⇒ net refund (UI renders red + REFUND badge; PDF
   prints minus values; no other special-casing).
 - `ministry` starts `""` — the AI never assigns one; the user must pick during review.
@@ -83,7 +84,7 @@ isVerified, isExcluded, sortOrder, originalDescription?, originalAmountCents?`
 - **original\* columns**: frozen copy of the AI extraction at claim creation. NULL ⇒ row was
   human-created (currently: the second half of a split). Never update them after creation —
   they are the baseline for the corrections diff.
-- `sortOrder`: unique-ish ints per claim, renumbered contiguously after splits. Display order
+- `sortOrder`: unique-ish ints per claim, renumbered contiguously after splits/merges. Display order
   = `sortOrder asc` within receipt groups.
 
 ### ReimbursementReceipt (join)
@@ -107,6 +108,9 @@ status("success"|"error"), errorMessage?, durationMs, createdAt`
   only actually-changed fields, includes isVerified/isExcluded toggles.
 - `action="split"`: detail `{description, totalCents, firstAmountCents, secondAmountCents,
   newLineItemId}`.
+- `action="merge"`: detail `{description, mergedLineItemId, mergedDescription,
+  mergedAmountCents, targetAmountCents, resultAmountCents}` — undo-split; the merged row is
+  deleted, so this is its only record (`lineItemId` points at the surviving row).
 - `action="remove-receipt"`: detail `{receiptId, originalName, removedLineItems[]}` — a
   receipt pulled out of a draft claim (its rows are deleted, so this is their only record).
 - `action="revert-to-draft"`: detail `{receiptIds}` — a generated claim unfrozen.

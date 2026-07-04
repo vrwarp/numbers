@@ -50,7 +50,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 - Every interactive element tests touch gets `data-testid`:
   `upload-button, file-input, generate-claim, generate-pdf, discard-claim, claim-status,
   claim-total, verify-progress, row-<id>, verify-<id>, desc-<id>, ministry-<id>,
-  ministry-other-<id>, event-<id>, amount-<id>, split-<id>, exclude-<id>,
+  ministry-other-<id>, event-<id>, amount-<id>, split-<id>, merge-<id>, exclude-<id>,
   subtotal-<receiptId>, group-<receiptId>,
   derivation-<receiptId>, remove-receipt-<receiptId>, revert-claim, upload-note,
   upload-note-confirm, upload-note-cancel, receipt-note-<receiptId>,
@@ -70,8 +70,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   `[data-description*="Amazon 06/04"]`.
 - Editable inputs are uncontrolled with `key={field+value}` to re-sync after server responses;
   commit on blur; revert on parse failure.
-- Accessible names matter to tests: the approve button's aria-label flips between
-  `"Approve row"` and `"Mark unverified"`; exclude button's `title` flips between
+- Accessible names matter to tests: the confirm button's visible label flips between
+  `"✓ Confirm $<amount>"` and `"✓ Verified · Undo"` (e2e matches `/Confirm \$/`, which also
+  drops verified rows out of the locator); exclude button's `title` flips between
   `"Exclude item (personal / not reimbursable)"` and `"Restore item"`. Renaming these breaks
   the e2e suite.
 
@@ -91,7 +92,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 7. **Clicking all approve buttons**: the accessible name changes after each click, so
    `.all()`+`nth(i)` goes stale — click `.first()` in a counted loop and assert progress text.
 8. **E2E users must be unique per Playwright project** (`grace-${testInfo.project.name}@…`) —
-   desktop chromium and webkit share one server+db per run.
+   desktop chromium and webkit share one server+db per run. Tests that count receipts/rows
+   also suffix `-r${testInfo.retry}` so a CI retry doesn't inherit the first attempt's data.
 9. **PDF text assertions**: pdf-lib flate-compresses streams and hex-encodes drawn text. Use
    the `pdfVisibleText` helper in `tests/unit/pdf.test.ts` (regex `stream\r?\n` scan +
    `inflateSync` + `<hex>` decode). Raw `bytes.includes("text")` will silently fail.

@@ -134,9 +134,10 @@ refunds. The printed totals behind that derivation are stamped onto the receipt
 
 ### Phase 3 — Review & validate (the heart of the app)
 
-A side-by-side screen: original receipts on the left, an editable grid on the right, **grouped
-by source receipt** (headers show the extracted merchant + date), each group showing a live
-subtotal to eyeball against the printed receipt total. When a receipt had refunds, the group
+One card per receipt: the original image/PDF sits directly beside that receipt's editable
+rows (the pairing is 1:1 — splitting is the only thing that multiplies rows), with headers
+showing the extracted merchant + date and a live subtotal to eyeball against the printed
+receipt total. When a receipt had refunds, the group
 shows the derivation — *"Charged $36.31 − refunded $5.36 → suggested $30.95"* — so the human
 verifies two printed numbers and a subtraction, not a bare figure.
 
@@ -144,11 +145,12 @@ Row operations and their exact semantics:
 
 | Operation | Semantics |
 | :-- | :-- |
-| **Approve** (checkmark) | Sets `isVerified`. Refused (server-side) until the row has a ministry — choosing one is part of the human sign-off. The PDF button is enabled only when *every non-excluded row* is verified. |
+| **Confirm** (labeled button, "✓ Confirm $12.34") | Sets `isVerified`; becomes a "Verified · Undo" pill. Refused (server-side) until the row has a ministry — choosing one is part of the human sign-off. The PDF button is enabled only when *every non-excluded row* is verified. |
 | **Edit** (description, amount, ministry) | Persists immediately and **revokes `isVerified`** — a changed row must be re-checked by a human. Enforced server-side. |
 | **Exclude** (trash) | Strikes the row out and removes it from all totals. Excluded rows don't need verification and don't reach the PDF; a receipt whose every row is excluded is also left out of the appended packet. Reversible (Restore). |
 | **Remove receipt** | Pulls an accidentally-added receipt out of a draft claim entirely: its rows are deleted (recorded in the audit trail) and the receipt returns to the Shoebox. Refused for the last receipt — discard the claim instead. |
 | **Split** | Divides one row's amount into two rows (default even split, odd cent stays on the first). Both halves come back **unverified**. The second half is marked human-created in telemetry. **This is the multi-ministry mechanism** — real splits rarely align with line items anyway ("$40 of this Costco run was youth group"). |
+| **Merge up** | Undo of Split: folds a row back into the same-receipt row directly above it. Amounts are summed onto the survivor, which keeps its own description/ministry/event but comes back **unverified**. Refused while either row is excluded. |
 | **Remove personal items** | Not a special feature — edit the row's amount down and note it in the description ("less $12.50 personal items"), exactly as one would on paper. The edit-revokes-verification rule forces a re-check. |
 
 Net-refund rows (negative amounts) render red with a REFUND badge so a `-$27.98` line is
