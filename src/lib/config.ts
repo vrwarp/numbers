@@ -1,4 +1,5 @@
 import path from "path";
+import { configValue } from "./config-file";
 
 export { MINISTRIES, MINISTRY_GROUPS } from "./ministries";
 
@@ -18,7 +19,7 @@ export function uploadsDir(): string {
 }
 
 export function isAiMock(): boolean {
-  return process.env.AI_MOCK === "1";
+  return configValue("AI_MOCK") === "1";
 }
 
 // --- AI rate limiting -------------------------------------------------------
@@ -34,7 +35,7 @@ export const DEFAULT_QUOTA_COOLDOWN_MS = 60_000;
 export const DEFAULT_QUOTA_MAX_RETRIES = 3;
 
 function intEnv(name: string, fallback: number, min: number): number {
-  const raw = process.env[name];
+  const raw = configValue(name);
   if (raw === undefined || raw === "") return fallback;
   const n = Number(raw);
   if (!Number.isFinite(n) || n < min) return fallback;
@@ -57,5 +58,5 @@ export function quotaMaxRetries(): number {
 }
 
 export function isAuthTestMode(): boolean {
-  return process.env.AUTH_TEST_MODE === "1";
+  return configValue("AUTH_TEST_MODE") === "1";
 }

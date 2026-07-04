@@ -20,6 +20,11 @@ src/lib/api.ts                  ApiError, requireUserId(), handleApi() — wrap 
 src/lib/config.ts               server config: dataDir()/uploadsDir() (imports node:path —
                                 SERVER ONLY), FORM_ROWS_PER_PAGE=13, IMAGE_TARGET_BYTES,
                                 isAiMock(), isAuthTestMode(); re-exports MINISTRIES
+src/lib/config-file.ts          configValue(name): env setting resolved from
+                                <DATA_DIR>/config.json (JSON of NAME→value) first, else
+                                process.env (SERVER ONLY, fs). All server env reads go through
+                                this so a deployment is reconfigurable via a data-volume file;
+                                DATA_DIR itself is exempt (it locates the file)
 src/lib/ministries.ts           MINISTRY_GROUPS budget categories (+ flat MINISTRIES,
                                 isKnownMinistry, formatMinistryEvent) — dependency-free,
                                 safe for client components
@@ -190,10 +195,20 @@ reclaimed width given to Description). Field names and the 13-row layout are unc
 
 ## Environment variables
 
+Every setting below (except `DATABASE_URL`, which Prisma reads directly, and
+`DATA_DIR`, which locates the file itself) can also be supplied by a JSON file
+at `<DATA_DIR>/config.json` — see `src/lib/config-file.ts`. The file maps the
+same variable names to string values, e.g. `{"AI_PROVIDER":"google",
+"GEMINI_API_KEY":"…","AI_RPM_TARGET":"10"}`. **File values win over
+`process.env`**, and edits are picked up on the next read (mtime-cached, no
+restart). This lets a deployment be reconfigured by editing a file on the
+`/data` volume instead of relaunching the container. All server env reads go
+through `configValue()`; add new ones the same way.
+
 | Var | Notes |
 | :-- | :-- |
-| `DATABASE_URL` | `file:./data/numbers.db` dev; `file:/data/numbers.db` in image |
-| `DATA_DIR` | upload root; `./data` dev, `/data` in image |
+| `DATABASE_URL` | `file:./data/numbers.db` dev; `file:/data/numbers.db` in image (read by Prisma, not overridable via config.json) |
+| `DATA_DIR` | upload root; `./data` dev, `/data` in image. Bootstrap-only (locates `config.json`), so it must come from the real environment |
 | `AUTH_SECRET` | signs the session cookie — required |
 | `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID` (+optional `FIREBASE_APP_ID`) | Firebase web config; Google button rendered only if all three present. Client-safe values, relayed at runtime (not NEXT_PUBLIC_*, so one Docker image works everywhere) |
 | `AI_PROVIDER` (`openrouter` default, or `google`) | which extraction backend to call |
