@@ -8,6 +8,7 @@ import { centsToDollarString, formatCents, parseDollarsToCents, subtotalCents } 
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import AddReceiptsDialog from "@/components/AddReceiptsDialog";
 import ManualEntryDialog from "@/components/ManualEntryDialog";
+import PdfReceiptPreview from "@/components/PdfReceiptPreview";
 
 interface LineItem {
   id: string;
@@ -357,19 +358,11 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                   tall receipt photo rather than its full scroll height. */}
               <div className="relative border-b border-stone-100 lg:border-b-0 lg:border-r">
                 <div className="max-h-[75vh] overflow-y-auto bg-stone-50/50">
+                  {/* Keep the PDF arm separate from the image path: a PDF stays a
+                      PDF (packet append, "open original", no crop/rotate) — this
+                      shows a raster preview inline, it does not reclassify it. */}
                   {group.receipt.mimeType === "application/pdf" ? (
-                    <object
-                      data={`/api/receipts/${group.receipt.id}/file`}
-                      type="application/pdf"
-                      className="h-[480px] w-full"
-                    >
-                      <a
-                        href={`/api/receipts/${group.receipt.id}/file`}
-                        className="block p-4 text-indigo-600 underline"
-                      >
-                        Open PDF receipt
-                      </a>
-                    </object>
+                    <PdfReceiptPreview receiptId={group.receipt.id} />
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
