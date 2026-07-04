@@ -59,7 +59,7 @@ purchaseDate, extractedTotalCents?, extractedRefundCents?, createdAt`
   the line-items PATCH route and at PDF generation. If you add a mutation path, recompute.
 
 ### LineItem
-`id, reimbursementId, receiptId, description, amountCents(Int), ministry,
+`id, reimbursementId, receiptId, description, amountCents(Int), ministry, event,
 isVerified, isExcluded, sortOrder, originalDescription?, originalAmountCents?`
 - ONE row per receipt at claim creation (`description` composed as
   "Merchant MM/DD — summary"; `amountCents` = printed total − refunds). More rows per receipt
@@ -67,12 +67,16 @@ isVerified, isExcluded, sortOrder, originalDescription?, originalAmountCents?`
 - `amountCents` is the ROW TOTAL. Negative ⇒ net refund (UI renders red + REFUND badge; PDF
   prints minus values; no other special-casing).
 - `ministry` starts `""` — the AI never assigns one; the user must pick during review.
-  Should be one of `MINISTRIES` (`src/lib/ministries.ts`); PATCH accepts any string ≤100 chars
-  (UI only offers the list) but refuses `isVerified:true` while it is empty.
+  Usually one of the budget categories in `MINISTRY_GROUPS` (`src/lib/ministries.ts`), but
+  PATCH accepts any string ≤100 chars (the UI's "Other…" option) and refuses
+  `isVerified:true` while it is empty.
+- `event` is optional free text (default `""`, ≤100 chars, never required). Printed with
+  the ministry on the PDF's "For Ministry / Event" column via `formatMinistryEvent`
+  (`"<ministry> — <event>"`).
 - **Verification semantics** (the core product rule):
   - PDF gate: every row with `isExcluded=false` must have `isVerified=true` and a
     non-empty `ministry`.
-  - Any content change (description/amountCents/ministry) resets `isVerified=false`
+  - Any content change (description/amountCents/ministry/event) resets `isVerified=false`
     unless the same patch explicitly sets `isVerified`.
   - Excluding sets the row aside entirely (no verification needed, not on the PDF, out of all
     totals). UI also sets `isVerified:false` when toggling exclusion.
@@ -106,6 +110,9 @@ status("success"|"error"), errorMessage?, durationMs, createdAt`
 - `action="remove-receipt"`: detail `{receiptId, originalName, removedLineItems[]}` — a
   receipt pulled out of a draft claim (its rows are deleted, so this is their only record).
 - `action="revert-to-draft"`: detail `{receiptIds}` — a generated claim unfrozen.
+- `action="edit-receipt-image"`: detail `{receiptId, originalName, rotate, crop}` — the stored
+  image was rotated/cropped in place (`/api/receipts/[id]/edit`); `reimbursementId` is set when
+  the edit was made from a claim's review screen.
 - `lineItemId` is a plain string (no FK) so events survive line-item deletion;
   `reimbursementId` is `SetNull`.
 - If you add a new mutation route, emit an AuditEvent — the tuning pipeline assumes the trail

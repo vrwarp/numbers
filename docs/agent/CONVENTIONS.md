@@ -50,11 +50,14 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 - Every interactive element tests touch gets `data-testid`:
   `upload-button, file-input, generate-claim, generate-pdf, discard-claim, claim-status,
   claim-total, verify-progress, row-<id>, verify-<id>, desc-<id>, ministry-<id>,
-  amount-<id>, split-<id>, exclude-<id>, subtotal-<receiptId>, group-<receiptId>,
+  ministry-other-<id>, event-<id>, amount-<id>, split-<id>, exclude-<id>,
+  subtotal-<receiptId>, group-<receiptId>,
   derivation-<receiptId>, remove-receipt-<receiptId>, revert-claim, upload-note,
   upload-note-confirm, upload-note-cancel, receipt-note-<receiptId>,
   claim-link-<receiptId>-<claimId>, split-first-amount, split-confirm, profile-name,
-  profile-address, profile-save, dev-email, dev-name, dev-signin`.
+  profile-address, profile-save, dev-email, dev-name, dev-signin,
+  edit-image-<receiptId>, image-editor-stage, crop-box, rotate-left, rotate-right,
+  crop-reset, image-editor-save, image-editor-cancel`.
 - Picking files does NOT upload directly — it opens the describe-and-upload dialog
   (`upload-note` + confirm/cancel). Tests must go through `uploadReceipts()` in
   `tests/e2e/helpers.ts`, which drives the dialog and takes an optional note.

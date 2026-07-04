@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MINISTRIES } from "@/lib/ministries";
+import { MINISTRY_GROUPS, isKnownMinistry } from "@/lib/ministries";
 import { centsToDollarString, formatCents, parseDollarsToCents, subtotalCents } from "@/lib/money";
+import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 
 interface LineItem {
   id: string;
@@ -12,6 +13,7 @@ interface LineItem {
   description: string;
   amountCents: number;
   ministry: string;
+  event: string;
   isVerified: boolean;
   isExcluded: boolean;
   sortOrder: number;
@@ -55,6 +57,15 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [splitItem, setSplitItem] = useState<LineItem | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [editingReceiptId, setEditingReceiptId] = useState<string | null>(null);
+  // Bumped after a rotate/crop so the <img> cache-busts past the file route's max-age.
+  const [fileVersions, setFileVersions] = useState<Record<string, number>>({});
+
+  const fileUrl = useCallback(
+    (receiptId: string) =>
+      `/api/receipts/${receiptId}/file${fileVersions[receiptId] ? `?v=${fileVersions[receiptId]}` : ""}`,
+    [fileVersions]
+  );
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/reimbursements/${claimId}`);
@@ -248,10 +259,22 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         <div className="space-y-4 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:pr-1">
           {claim.receipts.map((ref, i) => (
             <div key={ref.receiptId} className="card overflow-hidden">
-              <div className="border-b border-stone-100 px-3 py-2 text-xs font-semibold text-stone-500">
-                Receipt {i + 1}: {receiptLabel(ref.receipt)}
-                {ref.receipt.note && (
-                  <span className="ml-1 font-normal text-stone-400">· {ref.receipt.note}</span>
+              <div className="flex items-center justify-between gap-2 border-b border-stone-100 px-3 py-2 text-xs font-semibold text-stone-500">
+                <span className="min-w-0">
+                  Receipt {i + 1}: {receiptLabel(ref.receipt)}
+                  {ref.receipt.note && (
+                    <span className="ml-1 font-normal text-stone-400">· {ref.receipt.note}</span>
+                  )}
+                </span>
+                {isDraft && ref.receipt.mimeType !== "application/pdf" && (
+                  <button
+                    className="shrink-0 rounded px-2 py-1 font-normal text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+                    onClick={() => setEditingReceiptId(ref.receipt.id)}
+                    title="Rotate or crop this receipt photo"
+                    data-testid={`edit-image-${ref.receipt.id}`}
+                  >
+                    ✂ Rotate / crop
+                  </button>
                 )}
               </div>
               {ref.receipt.mimeType === "application/pdf" ? (
@@ -267,7 +290,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={`/api/receipts/${ref.receipt.id}/file`}
+                  src={fileUrl(ref.receipt.id)}
                   alt={ref.receipt.originalName}
                   className="w-full"
                 />
@@ -341,6 +364,22 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         </div>
       </div>
 
+      {editingReceiptId && (
+        <ReceiptImageEditor
+          receiptId={editingReceiptId}
+          reimbursementId={claim.id}
+          src={fileUrl(editingReceiptId)}
+          onClose={() => setEditingReceiptId(null)}
+          onSaved={() => {
+            setFileVersions((prev) => ({
+              ...prev,
+              [editingReceiptId]: (prev[editingReceiptId] ?? 0) + 1,
+            }));
+            setEditingReceiptId(null);
+          }}
+        />
+      )}
+
       {splitItem && (
         <SplitDialog
           item={splitItem}
@@ -355,6 +394,9 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   );
 }
 
+// Sentinel select value for the free-text ministry escape hatch; never stored.
+const OTHER_MINISTRY = "__other__";
+
 function LineItemRow({
   item,
   readOnly,
@@ -368,6 +410,10 @@ function LineItemRow({
 }) {
   const negative = item.amountCents < 0;
   const excluded = item.isExcluded;
+  // "Other…" stays selected while the custom text box is still empty; a saved
+  // value that isn't in the budget list (custom or legacy) also renders as Other.
+  const [otherPicked, setOtherPicked] = useState(false);
+  const showOtherInput = otherPicked || (!!item.ministry && !isKnownMinistry(item.ministry));
 
   return (
     <li
@@ -413,22 +459,63 @@ function LineItemRow({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select
-              className="input w-auto"
-              value={item.ministry}
+              className="input w-auto max-w-full"
+              value={showOtherInput ? OTHER_MINISTRY : item.ministry}
               disabled={excluded || readOnly}
-              onChange={(e) => onPatch(item.id, { ministry: e.target.value })}
+              onChange={(e) => {
+                if (e.target.value === OTHER_MINISTRY) {
+                  setOtherPicked(true);
+                  // Clear the stored category so the verify gate stays honest
+                  // until the custom text is actually typed.
+                  if (item.ministry) onPatch(item.id, { ministry: "" });
+                } else {
+                  setOtherPicked(false);
+                  onPatch(item.id, { ministry: e.target.value });
+                }
+              }}
               aria-label="Ministry"
               data-testid={`ministry-${item.id}`}
             >
-              {!MINISTRIES.includes(item.ministry as (typeof MINISTRIES)[number]) && (
-                <option value={item.ministry}>{item.ministry || "— pick ministry —"}</option>
-              )}
-              {MINISTRIES.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
+              <option value="">— pick ministry —</option>
+              {MINISTRY_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
+              <option value={OTHER_MINISTRY}>Other…</option>
             </select>
+            {showOtherInput && (
+              <input
+                key={`other-${item.id}-${item.ministry}`}
+                className="input w-44"
+                defaultValue={isKnownMinistry(item.ministry) ? "" : item.ministry}
+                placeholder="Custom ministry"
+                disabled={excluded || readOnly}
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if (v !== item.ministry) onPatch(item.id, { ministry: v });
+                }}
+                aria-label="Custom ministry"
+                data-testid={`ministry-other-${item.id}`}
+              />
+            )}
+            <input
+              key={`event-${item.id}-${item.event}`}
+              className="input w-40"
+              defaultValue={item.event}
+              placeholder="Event (optional)"
+              disabled={excluded || readOnly}
+              onBlur={(e) => {
+                const v = e.target.value.trim();
+                if (v !== item.event) onPatch(item.id, { event: v });
+              }}
+              aria-label="Event"
+              data-testid={`event-${item.id}`}
+            />
             <label className="flex items-center gap-1 text-xs text-stone-500">
               $
               <input
