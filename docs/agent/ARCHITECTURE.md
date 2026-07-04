@@ -87,7 +87,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | | DELETE | clear session cookie (sign out) |
 | `/api/auth/test-login` | POST | `{email,name}` → upsert + cookie; 404 unless AUTH_TEST_MODE=1 |
 | `/api/receipts` | GET | list own receipts (+ `claims: {id,status,createdAt}[]` each receipt is on); `?status=` filter |
-| | POST | multipart field `files` (+ optional `note` text stored on every receipt in the batch); images → compressReceiptImage, pdf → as-is; creates Receipt(unassigned); 415 unsupported, 400 empty |
+| | POST | multipart field `files` (+ optional `note` text stored on every receipt in the batch — API convenience; the UI's describe step applies notes per receipt via PATCH after upload); images → compressReceiptImage, pdf → as-is; creates Receipt(unassigned); 415 unsupported, 400 empty |
 | `/api/receipts/[id]` | PATCH | `{note}` (≤300 chars) — user metadata, editable in any state, no AuditEvent (not part of the claim trail) |
 | | DELETE | only if not in any claim (409 otherwise); removes file |
 | `/api/receipts/[id]/file` | GET | serve stored bytes, owner only |

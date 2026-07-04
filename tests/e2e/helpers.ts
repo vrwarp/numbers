@@ -69,16 +69,24 @@ export async function signInAs(page: Page, email: string, name = "Test User"): P
   await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
 }
 
-/** Upload fixture files through the Shoebox file input, driving the
- *  describe-and-upload dialog (optionally filling the description), and wait
- *  for the cards. */
+/** Upload fixture files through the Shoebox file input. The upload happens
+ *  immediately; the describe dialog then opens once per uploaded receipt —
+ *  fill the optional note on the first and dismiss the rest. */
 export async function uploadReceipts(page: Page, filePaths: string[], note?: string): Promise<void> {
   const before = await page.locator('[data-testid^="receipt-card-"]').count();
   await page.getByTestId("file-input").setInputFiles(filePaths);
-  await expect(page.getByTestId("upload-note")).toBeVisible();
-  if (note) await page.getByTestId("upload-note").fill(note);
-  await page.getByTestId("upload-note-confirm").click();
   await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(before + filePaths.length, {
     timeout: 20_000,
   });
+  const noteInput = page.getByTestId("upload-note");
+  if (note) {
+    await expect(noteInput).toBeVisible();
+    await noteInput.fill(note);
+    await page.getByTestId("upload-note-confirm").click();
+  }
+  for (let remaining = filePaths.length - (note ? 1 : 0); remaining > 0; remaining--) {
+    await expect(noteInput).toBeVisible();
+    await page.getByTestId("upload-note-cancel").click();
+  }
+  await expect(noteInput).toBeHidden();
 }

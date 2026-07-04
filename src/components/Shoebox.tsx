@@ -26,8 +26,8 @@ export default function Shoebox() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [receipts, setReceipts] = useState<Receipt[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  // Files picked but not yet uploaded — the describe-and-upload dialog is open.
-  const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
+  // Just-uploaded receipts awaiting the optional describe step (front = current).
+  const [describeQueue, setDescribeQueue] = useState<Receipt[]>([]);
   const [uploadNote, setUploadNote] = useState("");
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -42,34 +42,40 @@ export default function Shoebox() {
     load();
   }, [load]);
 
-  function onFilesPicked(files: FileList | null) {
+  async function onFilesPicked(files: FileList | null) {
     if (!files || files.length === 0) return;
-    // Stash the picked files and ask for an optional description first —
-    // the upload happens when the dialog is confirmed.
-    setPendingFiles(Array.from(files));
-    setUploadNote("");
-    setError(null);
-    if (fileInput.current) fileInput.current.value = "";
-  }
-
-  async function confirmUpload() {
-    if (!pendingFiles || pendingFiles.length === 0) return;
+    // Upload immediately (capture must be instant), then step through the
+    // uploaded receipts asking for an optional description with the actual
+    // image on screen.
     setUploading(true);
     setError(null);
     try {
       const form = new FormData();
-      for (const f of pendingFiles) form.append("files", f);
-      if (uploadNote.trim()) form.append("note", uploadNote.trim());
+      for (const f of Array.from(files)) form.append("files", f);
       const res = await fetch("/api/receipts", { method: "POST", body: form });
       if (!res.ok) throw new Error((await res.json()).error ?? "Upload failed");
-      setPendingFiles(null);
-      setUploadNote("");
+      const { receipts: created } = await res.json();
       await load();
+      setUploadNote("");
+      setDescribeQueue(created);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setUploading(false);
+      if (fileInput.current) fileInput.current.value = "";
     }
+  }
+
+  const describing: Receipt | null = describeQueue[0] ?? null;
+
+  function skipDescribe(all = false) {
+    setUploadNote("");
+    setDescribeQueue((q) => (all ? [] : q.slice(1)));
+  }
+
+  async function saveDescribe() {
+    if (describing && uploadNote.trim()) await saveNote(describing.id, uploadNote.trim());
+    skipDescribe();
   }
 
   function toggle(id: string) {
@@ -213,54 +219,82 @@ export default function Shoebox() {
         </>
       )}
 
-      {pendingFiles && (
+      {describing && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           role="dialog"
           aria-modal
         >
-          <div className="card w-full max-w-sm p-6">
+          <div className="card w-full max-w-md p-6">
             <h2 className="font-bold">
-              Upload {pendingFiles.length} receipt{pendingFiles.length > 1 ? "s" : ""}
+              Describe this receipt
+              {describeQueue.length > 1 && (
+                <span className="ml-1 font-normal text-stone-400">
+                  ({describeQueue.length} left)
+                </span>
+              )}
             </h2>
-            <p className="mt-1 truncate text-sm text-stone-500">
-              {pendingFiles.map((f) => f.name).join(", ")}
-            </p>
+            <p className="mt-1 truncate text-sm text-stone-500">{describing.originalName}</p>
+            <div
+              className="mt-3 flex max-h-72 items-center justify-center overflow-hidden rounded-lg bg-stone-100"
+              data-testid="upload-preview"
+            >
+              {describing.mimeType === "application/pdf" ? (
+                <object
+                  data={`/api/receipts/${describing.id}/file`}
+                  type="application/pdf"
+                  className="h-72 w-full"
+                >
+                  <div className="p-8 text-center text-stone-400">
+                    <div className="text-4xl">📄</div>
+                    <div className="text-xs font-semibold">PDF</div>
+                  </div>
+                </object>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`/api/receipts/${describing.id}/file`}
+                  alt={describing.originalName}
+                  className="max-h-72 w-auto"
+                />
+              )}
+            </div>
             <label className="mt-4 block text-sm font-medium">
               Description (optional)
               <input
+                key={describing.id}
                 className="input mt-1"
                 placeholder="e.g. VBS craft supplies"
                 value={uploadNote}
                 onChange={(e) => setUploadNote(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") confirmUpload();
+                  if (e.key === "Enter") saveDescribe();
                 }}
                 maxLength={300}
                 autoFocus
                 data-testid="upload-note"
               />
             </label>
-            <p className="mt-2 text-xs text-stone-400">
-              {pendingFiles.length > 1 ? "Applies to all files in this upload; you" : "You"} can
-              edit it on the card later.
-            </p>
-            <div className="mt-5 flex justify-end gap-2">
+            <p className="mt-2 text-xs text-stone-400">You can edit it on the card later.</p>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              {describeQueue.length > 1 && (
+                <button
+                  className="mr-auto rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100"
+                  onClick={() => skipDescribe(true)}
+                  data-testid="upload-note-skip-all"
+                >
+                  Skip all
+                </button>
+              )}
               <button
                 className="btn-secondary"
-                onClick={() => setPendingFiles(null)}
-                disabled={uploading}
+                onClick={() => skipDescribe()}
                 data-testid="upload-note-cancel"
               >
-                Cancel
+                Skip
               </button>
-              <button
-                className="btn-primary"
-                onClick={confirmUpload}
-                disabled={uploading}
-                data-testid="upload-note-confirm"
-              >
-                {uploading ? "Uploading…" : "⬆ Upload"}
+              <button className="btn-primary" onClick={saveDescribe} data-testid="upload-note-confirm">
+                Save
               </button>
             </div>
           </div>
