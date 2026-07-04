@@ -32,7 +32,12 @@ model Receipt {
   mimeType       String // image/jpeg | application/pdf
   originalName   String
   sizeBytes      Int
+  // "processed" = appears on ≥1 GENERATED claim (a cache maintained at PDF
+  // generation and revert). Any receipt may join any number of claims.
   status         String                 @default("unassigned") // unassigned | processed
+  // Optional user-written description, set at upload or edited on the card;
+  // shown everywhere the receipt is shown (Shoebox, review, PDF appendix).
+  note           String                 @default("")
   // Stamped by AI extraction at claim creation; empty/null until then.
   // purchaseDate is a transcription of what is printed ("YYYY-MM-DD"), never
   // used for arithmetic. extracted*Cents feed the review UI's net-amount
@@ -124,7 +129,7 @@ model AuditEvent {
   reimbursementId String?
   reimbursement   Reimbursement? @relation(fields: [reimbursementId], references: [id], onDelete: SetNull)
   lineItemId      String? // plain string on purpose: survives line-item deletion
-  action          String // update | split | create-claim | generate-pdf
+  action          String // update | split | remove-receipt | revert-to-draft | create-claim | generate-pdf
   detail          String // JSON, e.g. {"changes":{"amountCents":{"from":864,"to":725}}}
   createdAt       DateTime       @default(now())
 

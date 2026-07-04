@@ -90,8 +90,12 @@ Upload accepts images and PDFs. Images are compressed server-side to **~100 KB**
 fallback); PDFs are stored as-is. Files land in `DATA_DIR/uploads/<userId>/<receiptId>.<ext>`
 and a `receipts` row is created with status `unassigned`.
 
-Deliberately, **no AI runs here**. Capture must be instant and free; deferring the LLM work to
-claim time means receipts that never make it into a claim never cost an API call.
+An optional free-text **description** can be attached at upload (or added/edited on the card
+later) — "VBS craft supplies" written in the parking lot beats a mystery JPEG a month later.
+It follows the receipt everywhere: the Shoebox card, the review headers, and the label above
+the receipt image in the final PDF packet. Each card also links to every claim the receipt is
+on. Deliberately, **no AI runs here**. Capture must be instant and free; deferring the LLM
+work to claim time means receipts that never make it into a claim never cost an API call.
 
 ### Phase 2 — Batch & generate
 
@@ -139,7 +143,8 @@ Row operations and their exact semantics:
 | :-- | :-- |
 | **Approve** (checkmark) | Sets `isVerified`. Refused (server-side) until the row has a ministry — choosing one is part of the human sign-off. The PDF button is enabled only when *every non-excluded row* is verified. |
 | **Edit** (description, amount, ministry) | Persists immediately and **revokes `isVerified`** — a changed row must be re-checked by a human. Enforced server-side. |
-| **Exclude** (trash) | Strikes the row out and removes it from all totals. Excluded rows don't need verification and don't reach the PDF. Reversible (Restore). |
+| **Exclude** (trash) | Strikes the row out and removes it from all totals. Excluded rows don't need verification and don't reach the PDF; a receipt whose every row is excluded is also left out of the appended packet. Reversible (Restore). |
+| **Remove receipt** | Pulls an accidentally-added receipt out of a draft claim entirely: its rows are deleted (recorded in the audit trail) and the receipt returns to the Shoebox. Refused for the last receipt — discard the claim instead. |
 | **Split** | Divides one row's amount into two rows (default even split, odd cent stays on the first). Both halves come back **unverified**. The second half is marked human-created in telemetry. **This is the multi-ministry mechanism** — real splits rarely align with line items anyway ("$40 of this Costco run was youth group"). |
 | **Remove personal items** | Not a special feature — edit the row's amount down and note it in the description ("less $12.50 personal items"), exactly as one would on paper. The edit-revokes-verification rule forces a re-check. |
 
@@ -168,6 +173,12 @@ fields and **flatten** each page, so alignment with the printed form is exact by
 Generating the PDF transitions the claim to `generated` (frozen — line items can no longer be
 edited) and its receipts to `processed`. The PDF can be re-downloaded at any time; it is
 regenerated deterministically from the stored data.
+
+Mistakes noticed after generation but **before the printed form is filed** have an escape
+hatch: *Revert to draft* unfreezes the claim and returns its receipts from `processed`. Rows
+keep their checkmarks (the values were frozen, so the attestations still hold), and any edit
+revokes them as usual. Once the paper packet is in the treasurer's inbox, reverting is a
+process question, not a software one — the button just asks you to be sure.
 
 ### Phase 5 — Physical signatures
 

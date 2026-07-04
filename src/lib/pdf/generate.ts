@@ -33,6 +33,8 @@ export interface PdfReceipt {
   data: Buffer | Uint8Array;
   mimeType: string;
   originalName: string;
+  /** Optional user-written description, appended to the page label. */
+  note?: string;
 }
 
 export interface ClaimPdfInput {
@@ -163,7 +165,10 @@ async function appendReceipt(
   const scale = Math.min(maxW / image.width, maxH / image.height, 1);
   const w = image.width * scale;
   const h = image.height * scale;
-  page.drawText(`Receipt ${index} of ${total} — ${receipt.originalName}`, {
+  const label = `Receipt ${index} of ${total} — ${receipt.originalName}${
+    receipt.note ? ` — ${receipt.note}` : ""
+  }`;
+  page.drawText(label.slice(0, 120), {
     x: margin,
     y: PAGE.height - margin + 6,
     size: 9,

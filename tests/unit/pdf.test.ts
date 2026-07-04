@@ -72,14 +72,24 @@ const baseInput = () => ({
 });
 
 describe("generateClaimPdf (official CFCC AcroForm template)", () => {
-  it("produces one filled form page + one page per image receipt", async () => {
+  it("produces one filled form page + one page per image receipt (label carries the note)", async () => {
     const bytes = await generateClaimPdf({
       ...baseInput(),
       items: items(3),
-      receipts: [{ data: await jpegReceipt(), mimeType: "image/jpeg", originalName: "costco.jpg" }],
+      receipts: [
+        {
+          data: await jpegReceipt(),
+          mimeType: "image/jpeg",
+          originalName: "costco.jpg",
+          note: "VBS craft supplies",
+        },
+      ],
     });
     const doc = await PDFDocument.load(bytes);
     expect(doc.getPageCount()).toBe(2);
+    const text = pdfVisibleText(bytes);
+    expect(text).toContain("costco.jpg");
+    expect(text).toContain("VBS craft supplies");
   });
 
   it("fits up to 13 items on a single form page", async () => {

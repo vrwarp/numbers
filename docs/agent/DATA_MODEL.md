@@ -8,12 +8,18 @@ and commit the generated migration. IDs are cuid strings.
 ```
 Receipt.status:        "unassigned" ──(claim PDF generated)──▶ "processed"
 Reimbursement.status:  "draft"      ──(PDF generated)────────▶ "generated"   (frozen)
+                          ◀──────────(revert to draft)──────────┘  (both transitions reversed)
 ```
 
-- Only `unassigned` receipts can join a new claim (POST /api/reimbursements 409s otherwise).
+- Any owned receipt can join a new claim regardless of status (multi-claim receipts are a
+  feature); `processed` only records that ≥1 generated claim holds it.
 - Deleting a draft claim cascades its line items and join rows; receipts revert to being
   selectable (their status never left `unassigned` — status changes only at PDF generation).
 - `generated` claims: line-item PATCH/split → 409; DELETE claim → 409; PDF re-download allowed.
+- POST `/api/reimbursements/[id]/revert` (generated only, 409 else) is the escape hatch for
+  mistakes noticed before the printed form is filed: claim → draft, its receipts →
+  unassigned, AuditEvent(revert-to-draft). Rows keep `isVerified` — values were frozen at
+  generation, so the attestations hold until edited.
 
 ## Tables
 
@@ -26,8 +32,16 @@ Reimbursement.status:  "draft"      ──(PDF generated)───────�
   blank), dashboard nudges the user.
 
 ### Receipt
-`id, userId, filePath, mimeType, originalName, sizeBytes, status, merchant, purchaseDate,
-extractedTotalCents?, extractedRefundCents?, createdAt`
+`id, userId, filePath, mimeType, originalName, sizeBytes, status, note, merchant,
+purchaseDate, extractedTotalCents?, extractedRefundCents?, createdAt`
+- A receipt may join ANY number of claims (a purchase split across filings).
+  `status="processed"` is a cache meaning "on ≥1 GENERATED claim", maintained at PDF
+  generation and revert (revert releases a receipt only if no other generated claim holds
+  it). Processed receipts stay selectable in the Shoebox; each new claim re-extracts and
+  overwrites the extraction metadata below.
+- `note` is the user's optional description (set at upload, editable via PATCH any time,
+  never touched by the AI). Shown on the Shoebox card, both review headers, and appended to
+  the PDF appendix page label.
 - `filePath` is RELATIVE to `DATA_DIR` (e.g. `uploads/<userId>/<id>.jpg`). Resolve/read only
   through `src/lib/storage.ts` (traversal guard).
 - `mimeType` after upload is only `image/jpeg` (everything raster is converted) or
@@ -89,6 +103,9 @@ status("success"|"error"), errorMessage?, durationMs, createdAt`
   only actually-changed fields, includes isVerified/isExcluded toggles.
 - `action="split"`: detail `{description, totalCents, firstAmountCents, secondAmountCents,
   newLineItemId}`.
+- `action="remove-receipt"`: detail `{receiptId, originalName, removedLineItems[]}` — a
+  receipt pulled out of a draft claim (its rows are deleted, so this is their only record).
+- `action="revert-to-draft"`: detail `{receiptIds}` — a generated claim unfrozen.
 - `lineItemId` is a plain string (no FK) so events survive line-item deletion;
   `reimbursementId` is `SetNull`.
 - If you add a new mutation route, emit an AuditEvent — the tuning pipeline assumes the trail

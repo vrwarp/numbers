@@ -57,10 +57,9 @@ export async function POST(req: NextRequest) {
     if (receipts.length !== receiptIds.length) {
       throw new ApiError(404, "One or more receipts were not found");
     }
-    const alreadyUsed = receipts.filter((r) => r.status !== "unassigned");
-    if (alreadyUsed.length > 0) {
-      throw new ApiError(409, `Already used in a claim: ${alreadyUsed.map((r) => r.originalName).join(", ")}`);
-    }
+    // A receipt may go on any number of claims (e.g. one purchase split
+    // across two filings) — processed receipts are deliberately allowed.
+    // Each claim re-extracts, overwriting the receipt's extraction metadata.
 
     const outcomes = await extractReceipts(receipts);
 
