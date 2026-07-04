@@ -54,12 +54,13 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 }
 
 /**
- * Rotate/crop a receipt image, or (with `restore`) put the pristine uploaded
- * image back. The first edit copies the current file to a sidecar so it can be
- * restored; later edits keep pointing at that same pristine copy. Overwriting
- * the stored file is refused while any GENERATED claim holds the receipt: its
- * frozen PDF packet must keep re-downloading with the appendix images it was
- * filed with.
+ * Rotate/crop a receipt image. The first edit copies the current file to a
+ * sidecar so the pristine upload stays restorable; later edits keep pointing at
+ * that same copy. With `restore` the transform reads the sidecar instead of the
+ * current file (rotate/crop still apply on top), so `{restore:true}` with no
+ * transform is a plain "put the original back". Overwriting the stored file is
+ * refused while any GENERATED claim holds the receipt: its frozen PDF packet
+ * must keep re-downloading with the appendix images it was filed with.
  */
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   return handleApi(async () => {
@@ -68,7 +69,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const parsed = BodySchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new ApiError(400, "Invalid image edit");
     const { rotate, crop, restore, reimbursementId } = parsed.data;
-    if (!restore && rotate === 0 && !crop) throw new ApiError(400, "Nothing to change");
+    const hasTransform = rotate !== 0 || !!crop;
+    if (!restore && !hasTransform) throw new ApiError(400, "Nothing to change");
 
     const receipt = await prisma.receipt.findFirst({ where: { id, userId } });
     if (!receipt) throw new ApiError(404, "Receipt not found");
@@ -81,6 +83,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         "This receipt is on a generated claim — revert that claim before editing the image"
       );
     }
+    if (restore && !receipt.originalFilePath) {
+      throw new ApiError(400, "This receipt has no earlier version to restore");
+    }
 
     let claimIdForAudit: string | null = null;
     if (reimbursementId) {
@@ -91,66 +96,57 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       claimIdForAudit = claim.id;
     }
 
-    if (restore) {
-      if (!receipt.originalFilePath) {
-        throw new ApiError(400, "This receipt has no earlier version to restore");
+    // A reset transforms the pristine upload; a normal edit transforms the
+    // current file. Any rotate/crop applies on top of whichever source.
+    const sourcePath = restore ? receipt.originalFilePath! : receipt.filePath;
+    const source = await readStoredFile(sourcePath);
+
+    let output = source;
+    if (hasTransform) {
+      try {
+        output = (await transformReceiptImage(source, { rotate, crop })).data;
+      } catch (err) {
+        if (err instanceof ImageTransformError) throw new ApiError(400, err.message);
+        throw err;
       }
-      const originalBytes = await readStoredFile(receipt.originalFilePath);
-      await saveReceiptFile(userId, path.basename(receipt.filePath), originalBytes);
-      const updated = await prisma.receipt.update({
-        where: { id },
-        data: { sizeBytes: originalBytes.length },
-        select: { id: true, sizeBytes: true },
-      });
-      await prisma.auditEvent.create({
-        data: {
-          userId,
-          reimbursementId: claimIdForAudit,
-          action: "restore-receipt-image",
-          detail: JSON.stringify({ receiptId: id, originalName: receipt.originalName }),
-        },
-      });
-      return NextResponse.json({ receipt: updated });
     }
 
-    const original = await readStoredFile(receipt.filePath);
-    let edited;
-    try {
-      edited = await transformReceiptImage(original, { rotate, crop });
-    } catch (err) {
-      if (err instanceof ImageTransformError) throw new ApiError(400, err.message);
-      throw err;
-    }
-
-    // Preserve the pristine upload the first time we overwrite it, so it stays
-    // restorable no matter how many edits pile up on top.
+    // Preserve the pristine upload the first time a normal edit overwrites it,
+    // so it stays restorable no matter how many edits pile up on top. A reset
+    // already has its sidecar.
     let originalFilePath = receipt.originalFilePath;
-    if (!originalFilePath) {
+    if (!restore && !originalFilePath) {
       originalFilePath = await saveReceiptFile(
         userId,
         originalSidecarName(receipt.filePath),
-        original
+        source
       );
     }
 
-    await saveReceiptFile(userId, path.basename(receipt.filePath), edited.data);
+    await saveReceiptFile(userId, path.basename(receipt.filePath), output);
     const updated = await prisma.receipt.update({
       where: { id },
-      data: { sizeBytes: edited.data.length, originalFilePath },
+      data: { sizeBytes: output.length, originalFilePath },
       select: { id: true, sizeBytes: true },
     });
 
+    const pureRestore = restore && !hasTransform;
     await prisma.auditEvent.create({
       data: {
         userId,
         reimbursementId: claimIdForAudit,
-        action: "edit-receipt-image",
-        detail: JSON.stringify({
-          receiptId: id,
-          originalName: receipt.originalName,
-          rotate,
-          crop: crop ?? null,
-        }),
+        action: pureRestore ? "restore-receipt-image" : "edit-receipt-image",
+        detail: JSON.stringify(
+          pureRestore
+            ? { receiptId: id, originalName: receipt.originalName }
+            : {
+                receiptId: id,
+                originalName: receipt.originalName,
+                rotate,
+                crop: crop ?? null,
+                ...(restore ? { fromOriginal: true } : {}),
+              }
+        ),
       },
     });
 

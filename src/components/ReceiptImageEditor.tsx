@@ -77,13 +77,14 @@ export default function ReceiptImageEditor({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasOriginal, setHasOriginal] = useState(false);
-  // Bumped to cache-bust the <img> after a server-side restore swaps the stored
-  // file for the original; `replaced` tells the parent to refresh on close.
-  const [imgVersion, setImgVersion] = useState(0);
-  const [replaced, setReplaced] = useState(false);
+  // Staged (not yet saved) intent to reset to the pristine upload. While set,
+  // the editor previews the original (read-only) and Save commits it; Cancel
+  // discards it like any other unsaved change.
+  const [restoring, setRestoring] = useState(false);
   const drag = useRef<{ mode: DragMode; x: number; y: number; crop: Crop } | null>(null);
 
-  const displaySrc = imgVersion === 0 ? src : `${src}${src.includes("?") ? "&" : "?"}v=${imgVersion}`;
+  // Preview the read-only original from its sidecar while a reset is staged.
+  const displaySrc = restoring ? `/api/receipts/${receiptId}/file?original=1` : src;
 
   useEffect(() => {
     const measure = () => setStageMaxWidth(measureRef.current?.clientWidth ?? 0);
@@ -111,21 +112,23 @@ export default function ReceiptImageEditor({
   const dispH = Math.round(rotatedH * scale);
 
   const isFullCrop = crop.width > 0.999 && crop.height > 0.999;
-  const hasChanges = rotate !== 0 || !isFullCrop;
+  const hasChanges = rotate !== 0 || !isFullCrop || restoring;
 
   function turn(delta: 90 | 270) {
     setRotate((r) => ((r + delta) % 360) as 0 | 90 | 180 | 270);
     setCrop(FULL_CROP); // the crop box is meaningless in the new frame
   }
 
-  // Reset to the originally uploaded image. Always clears the unsaved
-  // rotate/crop; if an earlier edit was saved, it also swaps the stored file
-  // back to the original and reloads it inline — the dialog stays open, so it
-  // feels the same whether or not there was a prior edit.
+  // Reset to the originally uploaded image. Nothing is written until Save: it
+  // just clears the unsaved rotate/crop and, when an earlier edit exists,
+  // stages a restore that previews the original in place.
   function reset() {
     setRotate(0);
     setCrop(FULL_CROP);
-    if (hasOriginal) void restoreOriginal();
+    if (hasOriginal && !restoring) {
+      setRestoring(true);
+      setNatural(null); // the original has the upload's dimensions — re-probe
+    }
   }
 
   function startDrag(mode: DragMode) {
@@ -157,7 +160,10 @@ export default function ReceiptImageEditor({
       body: JSON.stringify({
         rotate,
         crop: isFullCrop ? undefined : crop,
-        // undefined is dropped by JSON.stringify; an empty string would 404.
+        // With a reset staged, the server transforms the original instead of the
+        // current file (rotate/crop still apply on top). undefined is dropped by
+        // JSON.stringify; an empty string would 404.
+        restore: restoring || undefined,
         reimbursementId: reimbursementId || undefined,
       }),
     });
@@ -169,41 +175,14 @@ export default function ReceiptImageEditor({
     onSaved();
   }
 
-  async function restoreOriginal() {
-    setBusy(true);
-    setError(null);
-    const res = await fetch(`/api/receipts/${receiptId}/edit`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ restore: true, reimbursementId: reimbursementId || undefined }),
-    });
-    if (!res.ok) {
-      setError((await res.json()).error ?? "Restore failed");
-      setBusy(false);
-      return;
-    }
-    // Swap the restored original in place: re-probe its (upload) dimensions and
-    // cache-bust the <img> so the browser fetches the new bytes.
-    setReplaced(true);
-    setNatural(null);
-    setImgVersion((v) => v + 1);
-    setBusy(false);
-  }
-
-  function close() {
-    // A restore already rewrote the stored file; onSaved lets the parent
-    // refresh its thumbnail. Otherwise nothing changed — just dismiss.
-    if (replaced) onSaved();
-    else onClose();
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal>
       <div className="card w-full max-w-2xl p-6">
         <h2 className="font-bold">Rotate &amp; crop receipt</h2>
         <p className="mt-1 text-sm text-stone-500">
-          Straighten the photo and drag the box to trim away the background. Saving replaces the
-          stored image.
+          {restoring
+            ? "Showing the originally uploaded image. Save to keep it, or Cancel to leave the current one."
+            : "Straighten the photo and drag the box to trim away the background. Saving replaces the stored image."}
         </p>
 
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -292,8 +271,8 @@ export default function ReceiptImageEditor({
         )}
 
         <div className="mt-4 flex items-center justify-center gap-2">
-          <button className="btn-secondary" onClick={close} disabled={busy} data-testid="image-editor-cancel">
-            {replaced ? "Done" : "Cancel"}
+          <button className="btn-secondary" onClick={onClose} disabled={busy} data-testid="image-editor-cancel">
+            Cancel
           </button>
           <button
             className="btn-primary"

@@ -45,26 +45,40 @@ test("rotate and crop a receipt image from the claim review screen", async ({ pa
     (await page.request.post(`/api/receipts/${receiptId}/edit`, { data: { rotate: 0 } })).status()
   ).toBe(400);
 
-  // The pristine upload was preserved on the first edit, so a restore is
-  // available even with no unsaved changes.
+  // The pristine upload was preserved on the first edit, so a reset is offered
+  // even with no unsaved changes — but it takes effect only on Save.
   expect(
     (await (await page.request.get(`/api/receipts/${receiptId}/edit`)).json()).hasOriginal
   ).toBe(true);
+  const edited = await storedImageMeta(page, receiptId); // current rotated+cropped file
 
-  // Reset restores it INLINE: the dialog stays open and the editor reloads the
-  // original image (no close/refresh), and the stored file reverts to the
-  // pre-rotate/crop upload dimensions.
+  // Reset only STAGES the restore: the dialog stays open, Save turns on, Cancel
+  // still reads "Cancel", and nothing is written to disk yet.
   await page.getByTestId(`edit-image-${receiptId}`).click();
   await expect(page.getByTestId("crop-reset")).toBeEnabled();
   await page.getByTestId("crop-reset").click();
-  await expect(page.getByTestId("image-editor-cancel")).toHaveText("Done"); // restore finished
-  await expect(page.getByTestId("image-editor-save")).toBeVisible(); // dialog stayed open
-  await expect(page.getByTestId("image-editor-save")).toBeDisabled(); // changes cleared
+  await expect(page.getByTestId("image-editor-save")).toBeEnabled();
+  await expect(page.getByTestId("image-editor-cancel")).toHaveText("Cancel");
+  const staged = await storedImageMeta(page, receiptId);
+  expect(staged.width).toBe(edited.width); // stored file untouched
+  expect(staged.height).toBe(edited.height);
+
+  // Cancel discards the staged reset — the stored file is still the edited one.
+  await page.getByTestId("image-editor-cancel").click();
+  await expect(page.getByTestId("image-editor-save")).toHaveCount(0);
+  const cancelled = await storedImageMeta(page, receiptId);
+  expect(cancelled.width).toBe(edited.width);
+  expect(cancelled.height).toBe(edited.height);
+
+  // Staging the reset and Saving commits it: the stored file reverts to the
+  // pristine upload's dimensions.
+  await page.getByTestId(`edit-image-${receiptId}`).click();
+  await page.getByTestId("crop-reset").click();
+  await page.getByTestId("image-editor-save").click();
+  await expect(page.getByTestId("image-editor-save")).toHaveCount(0); // dialog closed
   const restored = await storedImageMeta(page, receiptId);
   expect(restored.width).toBe(before.width);
   expect(restored.height).toBe(before.height);
-  await page.getByTestId("image-editor-cancel").click(); // dismiss
-  await expect(page.getByTestId("image-editor-save")).toHaveCount(0);
 
   // Both edits landed in the claim's audit trail (telemetry duty).
   const { logs } = await (

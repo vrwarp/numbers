@@ -128,9 +128,10 @@ status("success"|"error"), errorMessage?, durationMs, createdAt`
   receipt pulled out of a draft claim (its rows are deleted, so this is their only record).
 - `action="revert-to-draft"`: detail `{receiptIds}` — a generated claim unfrozen.
 - `action="restore-receipt-image"`: detail `{receiptId, originalName}` — the stored image was
-  reset to the pristine upload (`/api/receipts/[id]/edit` with `{restore:true}`).
-- `action="edit-receipt-image"`: detail `{receiptId, originalName, rotate, crop}` — the stored
-  image was rotated/cropped in place (`/api/receipts/[id]/edit`); `reimbursementId` is set when
+  reset to the pristine upload (`/api/receipts/[id]/edit` with `{restore:true}` and no transform).
+- `action="edit-receipt-image"`: detail `{receiptId, originalName, rotate, crop}` (plus
+  `fromOriginal:true` when the transform was applied to a staged reset) — the stored image was
+  rotated/cropped (`/api/receipts/[id]/edit`); `reimbursementId` is set when
   the edit was made from a claim's review screen.
 - `lineItemId` is a plain string (no FK) so events survive line-item deletion;
   `reimbursementId` is `SetNull`.
