@@ -104,7 +104,11 @@ still logged). The prompt (see `src/lib/ai/prompt.ts`) demands:
 
 - line items extracted verbatim,
 - taxes and fees as their own dedicated rows,
-- returns/refunds as **negative** quantities and amounts,
+- returns/refunds as **negative** quantities and amounts — except an item that is marked
+  refunded while its price still counts toward the printed subtotal (order-page style, e.g.
+  Amazon "Order Details"): that stays positive and the printed, usually tax-inclusive, refund
+  becomes its own negative row, so a receipt's rows sum to the net amount actually paid,
+- a final self-check that the amounts sum to what was actually paid net of refunds,
 - raw JSON array output.
 
 The model is never asked to pick a ministry — there is nothing on a receipt it could reasonably
