@@ -272,20 +272,24 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
       <div className="space-y-4">
         {groups.map((group, gi) => (
           <div key={group.receipt.id} className="card overflow-hidden" data-testid={`group-${group.receipt.id}`}>
-            <div className="flex items-center justify-between gap-2 border-b border-stone-100 bg-stone-50 px-4 py-2">
-              <span className="min-w-0 text-sm font-semibold text-stone-700">
+            {/* Wraps to two lines on phones: title first, subtotal + actions below. */}
+            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-b border-stone-100 bg-stone-50 px-4 py-2">
+              <span className="w-full min-w-0 text-sm font-semibold text-stone-700 sm:w-auto">
                 Receipt {gi + 1}: {receiptLabel(group.receipt)}
                 {group.receipt.note && (
                   <span className="ml-1 font-normal text-stone-500">· {group.receipt.note}</span>
                 )}
               </span>
-              <span className="flex items-center gap-2">
-                <span className="text-sm font-bold" data-testid={`subtotal-${group.receipt.id}`}>
+              <span className="ml-auto flex items-center gap-2">
+                <span
+                  className="whitespace-nowrap text-sm font-bold"
+                  data-testid={`subtotal-${group.receipt.id}`}
+                >
                   Subtotal: {formatCents(subtotalCents(group.items))}
                 </span>
                 {isDraft && group.receipt.mimeType !== "application/pdf" && (
                   <button
-                    className="rounded px-2 py-1 text-xs font-normal text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+                    className="whitespace-nowrap rounded px-2 py-1 text-xs font-normal text-stone-500 hover:bg-stone-100 hover:text-stone-700"
                     onClick={() => setEditingReceiptId(group.receipt.id)}
                     title="Rotate or crop this receipt photo"
                     data-testid={`edit-image-${group.receipt.id}`}
@@ -295,7 +299,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                 )}
                 {isDraft && (
                   <button
-                    className="rounded px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+                    className="whitespace-nowrap rounded px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
                     disabled={claim.receipts.length === 1}
                     title={
                       claim.receipts.length === 1
@@ -444,7 +448,8 @@ function LineItemRow({
             <textarea
               key={`desc-${item.id}-${item.description}`}
               rows={2}
-              className={`input flex-1 resize-y ${excluded ? "line-through" : ""} ${negative ? "text-red-700" : ""}`}
+              // field-sizing auto-grows to the content where supported; rows=2 is the fallback.
+              className={`input flex-1 resize-y field-sizing-content ${excluded ? "line-through" : ""} ${negative ? "text-red-700" : ""}`}
               defaultValue={item.description}
               disabled={excluded || readOnly}
               onBlur={(e) => {
