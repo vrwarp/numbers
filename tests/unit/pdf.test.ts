@@ -35,6 +35,14 @@ async function jpegReceipt(): Promise<Buffer> {
     .toBuffer();
 }
 
+async function webpReceipt(): Promise<Buffer> {
+  return sharp({
+    create: { width: 600, height: 900, channels: 3, background: { r: 255, g: 255, b: 250 } },
+  })
+    .webp({ quality: 10, effort: 4 })
+    .toBuffer();
+}
+
 async function pdfReceipt(pages: number): Promise<Buffer> {
   const doc = await PDFDocument.create();
   for (let i = 0; i < pages; i++) doc.addPage([612, 792]);
@@ -116,6 +124,17 @@ describe("generateClaimPdf (official CFCC AcroForm template)", () => {
     expect(text).toContain("(continued)"); // page 1 carries the total forward
     expect(text).toContain("Page 1 of 2");
     expect(text).toContain("Page 2 of 2");
+  });
+
+  it("appends WebP receipt images (transcoded — pdf-lib embeds only PNG/JPEG)", async () => {
+    const bytes = await generateClaimPdf({
+      ...baseInput(),
+      items: items(1),
+      receipts: [{ data: await webpReceipt(), mimeType: "image/webp", originalName: "scan.webp" }],
+    });
+    const doc = await PDFDocument.load(bytes);
+    expect(doc.getPageCount()).toBe(2); // 1 form page + 1 receipt page
+    expect(pdfVisibleText(bytes)).toContain("scan.webp");
   });
 
   it("merges multi-page PDF receipts at the end", async () => {

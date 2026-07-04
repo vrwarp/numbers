@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         const compressed = await compressReceiptImage(raw);
         data = compressed.data;
         mimeType = compressed.mimeType;
-        ext = "jpg";
+        ext = "webp";
       }
 
       const id = createId();

@@ -42,10 +42,36 @@ export async function saveGeneratedPdf(
   await fs.writeFile(abs, data);
 }
 
-/** DATA_DIR-relative path of a receipt's cached raster preview (PDF → JPEG).
- *  Sits beside the original, e.g. uploads/<userId>/<id>.pdf → …/<id>.preview.jpg. */
-export function previewCachePath(filePath: string): string {
-  return filePath.replace(/\.[^.]+$/, "") + ".preview.jpg";
+// --- PDF preview cache ------------------------------------------------------
+// A PDF receipt's raster preview is per-page WebP images plus a small JSON
+// manifest, all beside the original: uploads/<userId>/<id>.pdf →
+// …/<id>.preview.json + …/<id>.preview-p1.webp, -p2.webp, …
+
+/** DATA_DIR-relative path of the preview manifest ({pages, omitted}). */
+export function previewManifestPath(filePath: string): string {
+  return filePath.replace(/\.[^.]+$/, "") + ".preview.json";
+}
+
+/** DATA_DIR-relative path of one rendered preview page (1-based). */
+export function previewPagePath(filePath: string, page: number): string {
+  return filePath.replace(/\.[^.]+$/, "") + `.preview-p${page}.webp`;
+}
+
+/** Best-effort removal of a receipt's whole preview cache (manifest, pages,
+ *  and any legacy single-strip .preview.jpg). Never throws. */
+export async function deletePreviewCache(filePath: string): Promise<void> {
+  try {
+    const manifest = JSON.parse(
+      (await readStoredFile(previewManifestPath(filePath))).toString("utf8")
+    ) as { pages?: number };
+    for (let p = 1; p <= (manifest.pages ?? 0); p++) {
+      await deleteStoredFile(previewPagePath(filePath, p)).catch(() => {});
+    }
+  } catch {
+    // No/unreadable manifest — nothing page-wise to clean.
+  }
+  await deleteStoredFile(previewManifestPath(filePath)).catch(() => {});
+  await deleteStoredFile(filePath.replace(/\.[^.]+$/, "") + ".preview.jpg").catch(() => {});
 }
 
 export async function deleteStoredFile(relPath: string): Promise<void> {

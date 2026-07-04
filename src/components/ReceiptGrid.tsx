@@ -18,7 +18,7 @@ function PdfThumb({ id }: { id: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={`/api/receipts/${id}/preview`}
+      src={`/api/receipts/${id}/preview?page=1`}
       alt="PDF receipt"
       loading="lazy"
       onError={() => setFailed(true)}

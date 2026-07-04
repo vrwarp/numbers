@@ -19,22 +19,22 @@ describe("compressReceiptImage", () => {
     const input = await noisyPhoto(2400, 3200);
     expect(input.length).toBeGreaterThan(IMAGE_TARGET_BYTES * 3);
     const out = await compressReceiptImage(input);
-    expect(out.mimeType).toBe("image/jpeg");
+    expect(out.mimeType).toBe("image/webp");
     // "approximately 100kb" — allow 15% headroom over the target.
     expect(out.data.length).toBeLessThanOrEqual(IMAGE_TARGET_BYTES * 1.15);
     const meta = await sharp(out.data).metadata();
-    expect(meta.format).toBe("jpeg");
+    expect(meta.format).toBe("webp");
     expect(Math.max(meta.width!, meta.height!)).toBeLessThanOrEqual(1600);
   }, 30000);
 
-  it("converts small PNG uploads to JPEG without inflating them", async () => {
+  it("converts small PNG uploads to WebP without inflating them", async () => {
     const png = await sharp({
       create: { width: 400, height: 600, channels: 3, background: { r: 250, g: 250, b: 245 } },
     })
       .png()
       .toBuffer();
     const out = await compressReceiptImage(png);
-    expect(out.mimeType).toBe("image/jpeg");
+    expect(out.mimeType).toBe("image/webp");
     expect(out.data.length).toBeLessThanOrEqual(IMAGE_TARGET_BYTES);
     const meta = await sharp(out.data).metadata();
     // Small images must not be upscaled.
@@ -63,7 +63,7 @@ describe("transformReceiptImage", () => {
   it("rotates in 90° steps (dimensions swap)", async () => {
     const input = await twoTone(400, 600);
     const out = await transformReceiptImage(input, { rotate: 90 });
-    expect(out.mimeType).toBe("image/jpeg");
+    expect(out.mimeType).toBe("image/webp");
     const meta = await sharp(out.data).metadata();
     expect(meta.width).toBe(600);
     expect(meta.height).toBe(400);

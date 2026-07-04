@@ -161,7 +161,7 @@ test("upload-time crop happens on-device at full resolution; the original never 
 
   // Only the compressed working file exists server-side — no full-resolution
   // original, no sidecar (that appears only after a post-upload edit).
-  expect(await storedFilesFor(receiptId)).toEqual([`${receiptId}.jpg`]);
+  expect(await storedFilesFor(receiptId)).toEqual([`${receiptId}.webp`]);
   expect(
     (await (await page.request.get(`/api/receipts/${receiptId}/edit`)).json()).hasOriginal
   ).toBe(false);

@@ -39,6 +39,18 @@ function originalSidecarName(filePath: string): string {
   return `${base.slice(0, base.length - ext.length)}.orig${ext}`;
 }
 
+/** Sniff the stored image format from magic bytes. Edits re-encode as WebP
+ *  while a restore puts back the pristine bytes (JPEG on legacy receipts), so
+ *  the DB mimeType must track what the file actually holds. */
+function detectImageMime(bytes: Buffer, fallback: string): string {
+  if (bytes.length >= 12 && bytes.toString("ascii", 0, 4) === "RIFF" && bytes.toString("ascii", 8, 12) === "WEBP") {
+    return "image/webp";
+  }
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
+  if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
+  return fallback;
+}
+
 /** Report whether an earlier (pristine) version exists to restore. */
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   return handleApi(async () => {
@@ -126,7 +138,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     await saveReceiptFile(userId, path.basename(receipt.filePath), output);
     const updated = await prisma.receipt.update({
       where: { id },
-      data: { sizeBytes: output.length, originalFilePath },
+      data: {
+        sizeBytes: output.length,
+        originalFilePath,
+        mimeType: detectImageMime(output, receipt.mimeType),
+      },
       select: { id: true, sizeBytes: true },
     });
 

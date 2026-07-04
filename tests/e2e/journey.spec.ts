@@ -48,7 +48,7 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   expect(receiptsJson.receipts).toHaveLength(3);
   for (const r of receiptsJson.receipts) {
     expect(r.sizeBytes).toBeLessThan(120 * 1024);
-    expect(r.mimeType).toBe("image/jpeg");
+    expect(r.mimeType).toBe("image/webp");
   }
 
   // --- Phase 2: batch & generate ---

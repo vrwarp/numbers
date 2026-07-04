@@ -37,11 +37,11 @@ src/lib/money.ts                parseDollarsToCents, centsToDollarString, format
                                 subtotalCents — the ONLY money conversion code
 src/lib/storage.ts              saveReceiptFile/readStoredFile/deleteStoredFile; blocks path
                                 traversal outside DATA_DIR
-src/lib/image.ts                compressReceiptImage: rotate() → ≤1600px → jpeg q80→40 ladder
-                                → 1100px fallback; target ~100 KB. isSupportedUpload().
-                                transformReceiptImage: autoOrient → 90° rotation + fractional
-                                crop (post-rotation frame) → same ladder; ImageTransformError
-                                → 400
+src/lib/image.ts                compressReceiptImage: rotate() → ≤1600px → WebP q10→5→1
+                                (effort 4) ladder → 1100px fallback; target ~100 KB; output is
+                                image/webp. isSupportedUpload(). transformReceiptImage:
+                                autoOrient → 90° rotation + fractional crop (post-rotation
+                                frame) → same ladder; ImageTransformError → 400
 src/lib/audit.ts                computeLineItemChanges(before, patch) → {field:{from,to}}
 src/lib/claims.ts               shared claim-building machinery (SERVER ONLY): extractClaimRows
                                 (per-receipt extraction → line-item/receipt-update row data; a
@@ -107,9 +107,10 @@ src/components/ReceiptGrid.tsx  the selectable receipt-card grid (Shoebox + AddR
 src/components/AddReceiptsDialog.tsx  review-screen modal: pick Shoebox receipts / upload new
                                 ones → POST /api/reimbursements/[id]/receipts (streamed)
 src/components/ReceiptViewer.tsx  full-screen viewer (client): image zoom/pan (wheel, pinch,
-                                drag, buttons); PDFs show the same zoomable image from the raster
-                                /preview (↗ still opens the real PDF); launches
-                                ReceiptImageEditor for unassigned photos, cache-busts on save
+                                drag, buttons); PDFs show their per-page raster previews in a
+                                natively scrollable column with button zoom (↗ still opens the
+                                real PDF); launches ReceiptImageEditor for unassigned photos,
+                                cache-busts on save
 src/components/ReviewClaim.tsx  the review screen (largest component): groups, LineItemRow,
                                 SplitDialog, optimistic PATCH, PDF download
 src/components/ReceiptImageEditor.tsx  rotate/crop dialog (image receipts): CSS-rotated
@@ -135,13 +136,16 @@ src/app/claims|profile          thin server components: currentUserId() → redi
 assets/cfcc-form-template.pdf   the real church AcroForm — DO NOT regenerate or optimize
 prisma/schema.prisma            data model (see DATA_MODEL.md)
 tests/unit/*.test.ts            Vitest; tests/e2e/*.spec.ts Playwright (see TESTING.md)
-src/lib/pdf/preview.ts          rasterize a PDF receipt to one tall JPEG strip (pdfjs-dist +
-                                @napi-rs/canvas) for inline mobile display; ~300 DPI (scaled down
-                                to a 40 MP ceiling), ~100 KB/page quality ladder, first 10 pages +
-                                a "N more pages" bailout band
-src/components/PdfReceiptPreview.tsx  inline PDF preview <img> (from /preview) + "open original"
-                                link + 📄 fallback; used by ReviewClaim and the Shoebox dialog.
-                                ReceiptGrid shows the same /preview (top slice) as its card thumb
+src/lib/pdf/preview.ts          rasterize a PDF receipt to PER-PAGE WebP images (pdfjs-dist +
+                                @napi-rs/canvas + sharp) for inline mobile display; ~300 DPI,
+                                each page gets its own ~100 KB WebP q10→5→1 ladder; first 10
+                                pages only, omitted count reported in the manifest
+src/components/PdfReceiptPreview.tsx  inline PDF preview: fetches the /preview manifest (spinner
+                                "Rendering preview…" while the server rasterizes), stacks one
+                                <img> per page, "+N more pages" note when truncated, "open
+                                original" link + 📄 fallback; used by ReviewClaim and the Shoebox
+                                dialog (exports usePdfPreviewManifest, reused by ReceiptViewer).
+                                ReceiptGrid shows /preview?page=1 (top slice) as its card thumb
 scripts/render-pdf.mjs          rasterize a PDF to PNGs (pdfjs-dist) for visual checks
 Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migrate deploy
 .github/workflows/ci.yml        unit + e2e matrix (chromium, webkit jobs)
@@ -160,7 +164,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/receipts/[id]` | PATCH | `{note}` (≤300 chars) — user metadata, editable in any state, no AuditEvent (not part of the claim trail) |
 | | DELETE | only if not in any claim (409 otherwise); removes file + preserved original + any cached PDF preview |
 | `/api/receipts/[id]/file` | GET | serve stored bytes, owner only; `?original=1` serves the preserved pristine upload (sidecar), falling back to the current file |
-| `/api/receipts/[id]/preview` | GET | PDF receipts only: serve a raster JPEG of the PDF (mobile browsers won't render an embedded PDF); rendered once via `src/lib/pdf/preview.ts` and cached beside the original as `<id>.preview.jpg`. 400 for non-PDF receipts |
+| `/api/receipts/[id]/preview` | GET | PDF receipts only: raster preview (mobile browsers won't render an embedded PDF). No query → JSON manifest `{pages, omitted}`; `?page=N` → that page as WebP. All pages rendered+cached beside the original on first request (`<id>.preview.json` + `<id>.preview-pN.webp`) via `src/lib/pdf/preview.ts`. 400 for non-PDF receipts or an out-of-range page |
 | `/api/receipts/[id]/edit` | GET | `→ {hasOriginal}` — whether a pristine upload is preserved to restore |
 | | POST | `{rotate: 0|90|180|270, crop?: {left,top,width,height} fractions of the ROTATED frame, restore?, reimbursementId?}` → sharp rotate→crop → compression ladder → overwrite stored file + sizeBytes. Source is the current file, or the preserved original when `restore:true` (rotate/crop still apply on top). A normal first edit copies the pristine upload to `<id>.orig.<ext>` (`originalFilePath`); `{restore:true}` with no transform is a plain restore. AuditEvent(edit-receipt-image / restore-receipt-image). 400 PDFs/no-op/too-small crop/nothing-to-restore; 409 while receipt is `processed` (a generated claim's packet must re-download unchanged) |
 | `/api/reimbursements` | GET | list own claims with counts |

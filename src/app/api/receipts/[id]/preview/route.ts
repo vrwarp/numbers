@@ -1,19 +1,30 @@
 import path from "path";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
-import { readStoredFile, saveReceiptFile, previewCachePath } from "@/lib/storage";
-import { renderPdfToPreviewJpeg } from "@/lib/pdf/preview";
+import {
+  readStoredFile,
+  saveReceiptFile,
+  previewManifestPath,
+  previewPagePath,
+} from "@/lib/storage";
+import { renderPdfPreviewPages } from "@/lib/pdf/preview";
 
 export const runtime = "nodejs";
 
+interface Manifest {
+  pages: number;
+  omitted: number;
+}
+
 /**
- * Serve a raster preview (JPEG) of a PDF receipt for inline display, since
- * mobile browsers won't render an embedded PDF. Rendered once on first request
- * and cached beside the original; the original PDF is never touched, so the
- * cache never goes stale (PDFs can't be rotated/cropped). Auth: owner only.
+ * Raster preview of a PDF receipt for inline display (mobile browsers won't
+ * render an embedded PDF). Without ?page: returns the JSON manifest
+ * {pages, omitted}. With ?page=N (1-based): returns that page as WebP.
+ * Rendered once on first request and cached beside the original; the original
+ * PDF is never touched, so the cache never goes stale. Auth: owner only.
  */
-export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   return handleApi(async () => {
     const userId = await requireUserId();
     const { id } = await ctx.params;
@@ -23,17 +34,43 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       throw new ApiError(400, "Preview is only available for PDF receipts");
     }
 
-    const cacheRel = previewCachePath(receipt.filePath);
-    let jpeg = await readStoredFile(cacheRel).catch(() => null);
-    if (!jpeg) {
+    // Ensure the cache: render all pages + manifest on the first request.
+    let manifest = await readStoredFile(previewManifestPath(receipt.filePath))
+      .then((b) => JSON.parse(b.toString("utf8")) as Manifest)
+      .catch(() => null);
+    if (!manifest) {
       const pdf = await readStoredFile(receipt.filePath);
-      jpeg = await renderPdfToPreviewJpeg(pdf);
-      await saveReceiptFile(userId, path.basename(cacheRel), jpeg);
+      const preview = await renderPdfPreviewPages(pdf);
+      for (let i = 0; i < preview.pages.length; i++) {
+        await saveReceiptFile(
+          userId,
+          path.basename(previewPagePath(receipt.filePath, i + 1)),
+          preview.pages[i]
+        );
+      }
+      manifest = { pages: preview.pages.length, omitted: preview.omitted };
+      // Manifest last: its presence marks the cache complete.
+      await saveReceiptFile(
+        userId,
+        path.basename(previewManifestPath(receipt.filePath)),
+        Buffer.from(JSON.stringify(manifest))
+      );
     }
 
-    return new NextResponse(new Uint8Array(jpeg), {
+    const pageParam = req.nextUrl.searchParams.get("page");
+    if (pageParam === null) {
+      return NextResponse.json(manifest, {
+        headers: { "Cache-Control": "private, max-age=3600" },
+      });
+    }
+    const page = Number(pageParam);
+    if (!Number.isInteger(page) || page < 1 || page > manifest.pages) {
+      throw new ApiError(400, "Invalid preview page");
+    }
+    const webp = await readStoredFile(previewPagePath(receipt.filePath, page));
+    return new NextResponse(new Uint8Array(webp), {
       headers: {
-        "Content-Type": "image/jpeg",
+        "Content-Type": "image/webp",
         "Cache-Control": "private, max-age=3600",
       },
     });

@@ -1,42 +1,43 @@
-// Rasterize a PDF receipt into a single tall JPEG for inline display.
+// Rasterize a PDF receipt into per-page WebP images for inline display.
 //
 // Mobile browsers (notably Chrome on Android) have no inline PDF viewer, so an
-// <object>/<iframe> PDF paints a blank box. We render the pages server-side to
-// one vertical strip that displays as an ordinary <img> everywhere. This is a
-// *derived preview* only — the original PDF stays authoritative (it is what the
-// final packet appends and what the "open original" link serves).
+// <object>/<iframe> PDF paints a blank box. We render the pages server-side and
+// the client stacks them as ordinary <img>s. These are *derived previews* only —
+// the original PDF stays authoritative (it is what the final packet appends and
+// what the "open original" link serves).
 
-/** Render density. Receipt line items are often 7–8pt, so a fixed narrow width
- *  (a Letter page at ~118 DPI) turned them to mush — render at ~300 DPI so the
- *  smallest text is sharp and spends the ~100 KB/page budget below. Long docs
- *  are scaled down to stay within MAX_STRIP_PIXELS. */
+import sharp from "sharp";
+
+/** Render density. Receipt line items are often 7–8pt, so a low density turns
+ *  them to mush — ~300 DPI keeps the smallest text sharp in-card and zoomed.
+ *  Per-page rendering means no whole-document canvas, so no strip ceiling. */
 const PREVIEW_DPI = 300;
-/** Hard cap on a page's rendered width (px) so a large-format page can't blow
- *  up the strip; a Letter page at 300 DPI is ~2550px, under this. */
+/** Hard cap on a page's rendered width (px) so one large-format page can't
+ *  blow up its canvas; a Letter page at 300 DPI is ~2550px, under this. */
 const MAX_PAGE_WIDTH = 2600;
-/** Ceiling on the whole strip's pixel count (~80 MP ≈ a 320 MB RGBA canvas).
- *  Sized so a normal multi-page doc — up to ~9 Letter pages at 300 DPI — renders
- *  at full density; only pages with unusually large dimensions are scaled down
- *  uniformly to fit, rather than exhausting server memory. (At 40 MP a 7-page
- *  doc was forced to ~247 DPI and never approached the quality budget.) */
-const MAX_STRIP_PIXELS = 80_000_000;
 /** Per-page size budget, mirroring the ~100 KB/image target of the photo
- *  pipeline. The strip is JPEG-encoded at the highest quality on the ladder
- *  whose total size stays within this × (rendered page count); crisp vector
- *  text lands near it, photographed pages step down to fit. */
-const PER_PAGE_TARGET_BYTES = 100 * 1024;
-const JPEG_QUALITY_LADDER = [0.92, 0.86, 0.8, 0.74, 0.68];
-/** Only the first this-many pages are rasterized; the rest get a bailout notice
- *  (with the omitted count) at the foot of the strip. */
+ *  pipeline. Each page is WebP-encoded at the highest quality on the ladder
+ *  that fits the budget. (sharp's WebP quality floor is 1, so the requested
+ *  10→5→0 ladder bottoms out at 1.) */
+const PAGE_TARGET_BYTES = 100 * 1024;
+const WEBP_QUALITY_LADDER = [10, 5, 1];
+const WEBP_EFFORT = 4;
+/** Only the first this-many pages are rasterized; the client shows a
+ *  "+N more pages" note (from the manifest's `omitted`) for the rest. */
 export const MAX_PREVIEW_PAGES = 10;
-/** Height (px) of the "N more pages" notice band appended when truncating. */
-const NOTICE_BAND_HEIGHT = 150;
+
+export interface PdfPreview {
+  /** One WebP image per rendered page, in page order. */
+  pages: Buffer[];
+  /** Pages beyond MAX_PREVIEW_PAGES that were not rendered. */
+  omitted: number;
+}
 
 /**
- * Render a PDF into one tall JPEG (pages stacked vertically, white background).
- * Throws if the bytes are not a readable PDF.
+ * Render a PDF into per-page WebP images. Throws if the bytes are not a
+ * readable PDF.
  */
-export async function renderPdfToPreviewJpeg(pdf: Buffer | Uint8Array): Promise<Buffer> {
+export async function renderPdfPreviewPages(pdf: Buffer | Uint8Array): Promise<PdfPreview> {
   // Dynamic import keeps pdfjs (and its native canvas backend) out of any
   // client/edge bundle; this module is only ever reached from a nodejs route.
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
@@ -48,99 +49,51 @@ export async function renderPdfToPreviewJpeg(pdf: Buffer | Uint8Array): Promise<
   const doc = await loadingTask.promise;
   try {
     const canvasFactory = doc.canvasFactory as {
-      create: (w: number, h: number) => { canvas: PreviewCanvas; context: CanvasRenderingContext2D };
-      destroy?: (c: { canvas: PreviewCanvas; context: CanvasRenderingContext2D }) => void;
+      create: (w: number, h: number) => { canvas: unknown; context: CanvasRenderingContext2D };
+      destroy?: (c: { canvas: unknown; context: CanvasRenderingContext2D }) => void;
     };
     const pageCount = Math.min(doc.numPages, MAX_PREVIEW_PAGES);
-    const omittedPages = doc.numPages - pageCount;
+    const omitted = doc.numPages - pageCount;
 
-    // First pass: pick each page's target scale (DPI, capped per-page width) and
-    // measure the total pixel area — getViewport is cheap, no rasterization.
-    const sized = [];
-    let targetArea = 0;
+    const pages: Buffer[] = [];
     for (let i = 1; i <= pageCount; i++) {
       const page = await doc.getPage(i);
       const unscaled = page.getViewport({ scale: 1 });
+      // Scale for the target DPI (PDF user units are 1/72"), capped per page.
       const scale = Math.min(PREVIEW_DPI / 72, MAX_PAGE_WIDTH / unscaled.width);
-      sized.push({ page, scale });
-      targetArea += Math.ceil(unscaled.width * scale) * Math.ceil(unscaled.height * scale);
-    }
-    // Scale the whole strip down uniformly if it would exceed the memory ceiling.
-    const shrink = targetArea > MAX_STRIP_PIXELS ? Math.sqrt(MAX_STRIP_PIXELS / targetArea) : 1;
-
-    // Second pass: final viewports + vertical offsets for the stacked strip.
-    const pages = [];
-    let stripWidth = 0;
-    let contentHeight = 0;
-    for (const { page, scale } of sized) {
-      const viewport = page.getViewport({ scale: scale * shrink });
-      pages.push({ page, viewport, top: contentHeight });
-      stripWidth = Math.max(stripWidth, Math.ceil(viewport.width));
-      contentHeight += Math.ceil(viewport.height);
-    }
-    const noticeHeight = omittedPages > 0 ? NOTICE_BAND_HEIGHT : 0;
-
-    // Composite onto one strip canvas. pdfjs clears the whole target canvas on
-    // every render(), so each page must render to its OWN canvas and then be
-    // drawn onto the strip; we render one page at a time and free it right away
-    // to keep peak memory at ~(strip + one page), not the whole document.
-    const { canvas, context } = canvasFactory.create(stripWidth, contentHeight + noticeHeight);
-    context.fillStyle = "white";
-    context.fillRect(0, 0, stripWidth, contentHeight + noticeHeight);
-    for (const { page, viewport, top } of pages) {
-      const pageCanvas = canvasFactory.create(Math.ceil(viewport.width), Math.ceil(viewport.height));
+      const viewport = page.getViewport({ scale });
+      const width = Math.ceil(viewport.width);
+      const height = Math.ceil(viewport.height);
+      const target = canvasFactory.create(width, height);
+      // White base: pages may carry transparency, and WebP keeps alpha.
+      target.context.fillStyle = "white";
+      target.context.fillRect(0, 0, width, height);
       await page.render({
-        canvas: pageCanvas.canvas as unknown as HTMLCanvasElement,
-        canvasContext: pageCanvas.context,
+        canvas: target.canvas as HTMLCanvasElement,
+        canvasContext: target.context,
         viewport,
       }).promise;
-      context.drawImage(pageCanvas.canvas as unknown as CanvasImageSource, 0, top);
-      canvasFactory.destroy?.(pageCanvas);
+      const raw = target.context.getImageData(0, 0, width, height);
+      canvasFactory.destroy?.(target);
+      pages.push(await encodePage(Buffer.from(raw.data.buffer, 0, raw.data.byteLength), width, height));
     }
-    if (omittedPages > 0) drawTruncationNotice(context, stripWidth, contentHeight, omittedPages);
-
-    // Encode at the highest ladder quality that fits ~100 KB/page.
-    const budget = PER_PAGE_TARGET_BYTES * pageCount;
-    let out = canvas.toBuffer("image/jpeg", JPEG_QUALITY_LADDER[0]);
-    for (const quality of JPEG_QUALITY_LADDER.slice(1)) {
-      if (out.length <= budget) break;
-      out = canvas.toBuffer("image/jpeg", quality);
-    }
-    return out;
+    return { pages, omitted };
   } finally {
     // Release the document's worker/resources.
     await loadingTask.destroy();
   }
 }
 
-/** Draw the "N more pages not shown" band at the foot of the strip. Uses the
- *  DejaVu font shipped in the Docker runtime (see Dockerfile) so it renders even
- *  in a font-less slim image; fontconfig maps the sans-serif fallback locally. */
-function drawTruncationNotice(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  top: number,
-  omitted: number,
-) {
-  ctx.fillStyle = "#f5f5f4";
-  ctx.fillRect(0, top, width, NOTICE_BAND_HEIGHT);
-  ctx.fillStyle = "#d6d3d1";
-  ctx.fillRect(0, top, width, 3); // divider from the last page
-  ctx.fillStyle = "#57534e";
-  ctx.font = '500 40px "DejaVu Sans", sans-serif';
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  const noun = omitted === 1 ? "page" : "pages";
-  const it = omitted === 1 ? "it" : "them";
-  ctx.fillText(
-    `+${omitted} more ${noun} not shown — open the PDF receipt to view ${it}.`,
-    width / 2,
-    top + NOTICE_BAND_HEIGHT / 2,
-  );
-}
-
-// The canvas pdfjs' node canvasFactory hands back (concretely @napi-rs/canvas)
-// adds a Node-only toBuffer() on top of the standard 2D canvas surface.
-interface PreviewCanvas {
-  toBuffer(mime: "image/jpeg", quality: number): Buffer;
+/** Encode one rendered page (raw RGBA) as WebP within the per-page budget. */
+async function encodePage(rgba: Buffer, width: number, height: number): Promise<Buffer> {
+  const base = sharp(rgba, { raw: { width, height, channels: 4 } }).flatten({
+    background: "white",
+  });
+  let out: Buffer | null = null;
+  for (const quality of WEBP_QUALITY_LADDER) {
+    out = await base.clone().webp({ quality, effort: WEBP_EFFORT }).toBuffer();
+    if (out.length <= PAGE_TARGET_BYTES) break;
+  }
+  if (!out) throw new Error("PDF page encoding produced no output");
+  return out;
 }
