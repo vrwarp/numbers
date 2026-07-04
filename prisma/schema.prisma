@@ -28,12 +28,12 @@ model Receipt {
   id             String                 @id @default(cuid())
   userId         String
   user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  filePath       String // relative to DATA_DIR, e.g. uploads/<userId>/<id>.jpg
+  filePath       String // relative to DATA_DIR, e.g. uploads/<userId>/<id>.webp
   // Pristine copy of the uploaded image, written lazily the first time the
   // rotate/crop tool overwrites filePath. NULL until then (the stored file is
   // still the original). Lets the editor restore the original upload.
   originalFilePath String?
-  mimeType       String // image/jpeg | application/pdf
+  mimeType       String // image/webp (image/jpeg on legacy rows) | application/pdf
   originalName   String
   sizeBytes      Int
   // "processed" = appears on ≥1 GENERATED claim (a cache maintained at PDF

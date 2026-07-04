@@ -269,8 +269,16 @@ async function appendReceipt(
     return;
   }
 
-  const image =
-    receipt.mimeType === "image/png" ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+  // pdf-lib embeds only PNG/JPEG; stored receipt images are WebP now — transcode
+  // anything else to JPEG first (dynamic import: sharp is server-only native code).
+  let imageBytes: Uint8Array = bytes;
+  let embedAsPng = receipt.mimeType === "image/png";
+  if (receipt.mimeType !== "image/png" && receipt.mimeType !== "image/jpeg") {
+    const sharp = (await import("sharp")).default;
+    imageBytes = new Uint8Array(await sharp(Buffer.from(bytes)).jpeg({ quality: 85 }).toBuffer());
+    embedAsPng = false;
+  }
+  const image = embedAsPng ? await doc.embedPng(imageBytes) : await doc.embedJpg(imageBytes);
   const page = doc.addPage([PAGE.width, PAGE.height]);
   const margin = 36;
   const maxW = PAGE.width - margin * 2;

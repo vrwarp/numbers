@@ -3,16 +3,22 @@ import { IMAGE_TARGET_BYTES } from "./config";
 
 export interface CompressedImage {
   data: Buffer;
-  mimeType: "image/jpeg";
+  mimeType: "image/webp";
 }
+
+/** WebP encode settings shared by the receipt pipeline: quality 10 at effort 4
+ *  compresses documents far harder than JPEG at similar legibility; the ladder
+ *  steps down for pathological inputs (sharp's quality floor is 1, not 0). */
+export const WEBP_QUALITY_LADDER = [10, 5, 1];
+export const WEBP_EFFORT = 4;
 
 /**
  * Compress a receipt photo to roughly IMAGE_TARGET_BYTES (~100 KB).
  *
  * Strategy: normalize EXIF rotation, cap the long edge at 1600px (plenty for
- * both human review and LLM OCR), then walk JPEG quality down until the
+ * both human review and LLM OCR), then walk WebP quality down until the
  * output fits the budget. Receipts are high-contrast documents, so even
- * quality 40 stays perfectly legible.
+ * these low nominal qualities stay perfectly legible.
  */
 export async function compressReceiptImage(input: Buffer): Promise<CompressedImage> {
   const base = sharp(input, { failOn: "truncated" }).rotate().resize({
@@ -23,8 +29,8 @@ export async function compressReceiptImage(input: Buffer): Promise<CompressedIma
   });
 
   let best: Buffer | null = null;
-  for (const quality of [80, 65, 50, 40]) {
-    best = await base.clone().jpeg({ quality, mozjpeg: true }).toBuffer();
+  for (const quality of WEBP_QUALITY_LADDER) {
+    best = await base.clone().webp({ quality, effort: WEBP_EFFORT }).toBuffer();
     if (best.length <= IMAGE_TARGET_BYTES) break;
   }
 
@@ -32,12 +38,12 @@ export async function compressReceiptImage(input: Buffer): Promise<CompressedIma
   if (best && best.length > IMAGE_TARGET_BYTES) {
     best = await sharp(best)
       .resize({ width: 1100, height: 1100, fit: "inside", withoutEnlargement: true })
-      .jpeg({ quality: 40, mozjpeg: true })
+      .webp({ quality: 1, effort: WEBP_EFFORT })
       .toBuffer();
   }
 
   if (!best) throw new Error("Image compression produced no output");
-  return { data: best, mimeType: "image/jpeg" };
+  return { data: best, mimeType: "image/webp" };
 }
 
 export function isSupportedUpload(mimeType: string): boolean {
@@ -76,7 +82,7 @@ export async function transformReceiptImage(
   // autoOrient first: the input may be a pristine upload whose EXIF Orientation
   // an explicit rotate(angle) would otherwise ignore — the fractions were drawn
   // on the oriented image the browser showed.
-  // Lossless PNG intermediates: the only JPEG re-encode is the final ladder.
+  // Lossless PNG intermediates: the only lossy re-encode is the final ladder.
   let working = await sharp(input, { failOn: "truncated" })
     .autoOrient()
     .rotate(transform.rotate)

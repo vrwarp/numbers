@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReceiptImageEditor from "./ReceiptImageEditor";
+import { usePdfPreviewManifest, pdfPreviewPageUrl } from "./PdfReceiptPreview";
 
 interface ViewerReceipt {
   id: string;
@@ -18,9 +19,10 @@ const distance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
 
 /**
  * Full-screen viewer for a single receipt. Images get custom zoom/pan
- * (wheel, pinch, drag, double-tap, buttons); PDFs use the browser's own
- * zoomable viewer. Zoom math keeps the point under the cursor/pinch-midpoint
- * fixed, treating the container centre as the transform origin.
+ * (wheel, pinch, drag, double-tap, buttons); PDFs show their per-page raster
+ * previews as a natively scrollable column with button zoom (width scaling).
+ * Image zoom math keeps the point under the cursor/pinch-midpoint fixed,
+ * treating the container centre as the transform origin.
  */
 export default function ReceiptViewer({
   receipt,
@@ -42,9 +44,9 @@ export default function ReceiptViewer({
   const editingRef = useRef(editing);
   editingRef.current = editing;
   const src = `/api/receipts/${receipt.id}/file${version ? `?v=${version}` : ""}`;
-  // PDFs display as a server-rasterized image (mobile browsers won't render an
-  // embedded PDF); the ↗ link below still opens the real PDF via `src`.
-  const imgSrc = isPdf ? `/api/receipts/${receipt.id}/preview` : src;
+  // PDFs display as server-rasterized page images (mobile browsers won't render
+  // an embedded PDF); the ↗ link below still opens the real PDF via `src`.
+  const pdfPreview = usePdfPreviewManifest(isPdf ? receipt.id : "");
 
   const [view, setView] = useState({ scale: 1, x: 0, y: 0 });
   const viewRef = useRef(view);
@@ -106,17 +108,18 @@ export default function ReceiptViewer({
     };
   }, [onClose]);
 
-  // Native (non-passive) wheel listener so we can preventDefault the page scroll.
+  // Native (non-passive) wheel listener so we can preventDefault the page
+  // scroll. Images only — a PDF's page column scrolls natively instead.
   useEffect(() => {
     const el = stageRef.current;
-    if (!el) return;
+    if (!el || isPdf) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       zoomAt(viewRef.current.scale * Math.exp(-e.deltaY * 0.0015), e.clientX, e.clientY);
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
-  }, [zoomAt]);
+  }, [isPdf, zoomAt]);
 
   function onPointerDown(e: React.PointerEvent) {
     (e.currentTarget as Element).setPointerCapture(e.pointerId);
@@ -202,31 +205,69 @@ export default function ReceiptViewer({
       <div
         ref={stageRef}
         className="relative flex-1 overflow-hidden"
-        style={{ touchAction: "none" }}
+        style={isPdf ? undefined : { touchAction: "none" }}
         onClick={(e) => {
           if (e.target === e.currentTarget) onClose();
         }}
       >
-        {/* PDFs show the same zoom/pan image as photos, but from the raster
-            preview; only real image receipts can be rotated/cropped (canEdit). */}
-        <div className="pointer-events-none flex h-full w-full items-center justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imgSrc}
-            alt={receipt.originalName}
-            draggable={false}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={endPointer}
-            onPointerCancel={endPointer}
-            onDoubleClick={onDoubleClick}
-            style={{
-              transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
-              cursor: view.scale > 1 ? "grab" : "zoom-in",
-            }}
-            className="pointer-events-auto max-h-full max-w-full touch-none select-none object-contain will-change-transform"
-          />
-        </div>
+        {isPdf ? (
+          // PDFs: per-page raster previews in a natively scrollable column;
+          // the zoom buttons scale the column width (scroll does the panning).
+          pdfPreview.failed ? (
+            <div className="flex h-full flex-col items-center justify-center gap-2 text-stone-400">
+              <div className="text-5xl">📄</div>
+              <div className="text-sm">Preview unavailable — use ↗ to open the PDF</div>
+            </div>
+          ) : !pdfPreview.manifest ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-stone-300">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-500 border-t-white" />
+              <div className="text-sm">Rendering preview…</div>
+            </div>
+          ) : (
+            <div className="h-full w-full overflow-auto">
+              <div className="mx-auto" style={{ width: `${view.scale * 100}%` }}>
+                {Array.from({ length: pdfPreview.manifest.pages }, (_, i) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={i}
+                    src={pdfPreviewPageUrl(receipt.id, i + 1)}
+                    alt={`${receipt.originalName} page ${i + 1}`}
+                    loading="lazy"
+                    className="w-full"
+                  />
+                ))}
+                {pdfPreview.manifest.omitted > 0 && (
+                  <div className="bg-stone-100 px-4 py-3 text-center text-xs text-stone-500">
+                    +{pdfPreview.manifest.omitted} more{" "}
+                    {pdfPreview.manifest.omitted === 1 ? "page" : "pages"} not shown — use ↗ to
+                    open the full PDF.
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        ) : (
+          // Photos: custom zoom/pan; only real image receipts can be
+          // rotated/cropped (canEdit).
+          <div className="pointer-events-none flex h-full w-full items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt={receipt.originalName}
+              draggable={false}
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={endPointer}
+              onPointerCancel={endPointer}
+              onDoubleClick={onDoubleClick}
+              style={{
+                transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
+                cursor: view.scale > 1 ? "grab" : "zoom-in",
+              }}
+              className="pointer-events-auto max-h-full max-w-full touch-none select-none object-contain will-change-transform"
+            />
+          </div>
+        )}
 
         <div className="pointer-events-none absolute inset-x-0 bottom-5 flex flex-col items-center gap-2">
           {canEdit && (
