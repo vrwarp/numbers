@@ -47,6 +47,7 @@ export async function renderPdfToPreviewJpeg(pdf: Buffer | Uint8Array): Promise<
   try {
     const canvasFactory = doc.canvasFactory as {
       create: (w: number, h: number) => { canvas: PreviewCanvas; context: CanvasRenderingContext2D };
+      destroy?: (c: { canvas: PreviewCanvas; context: CanvasRenderingContext2D }) => void;
     };
     const pageCount = Math.min(doc.numPages, MAX_PREVIEW_PAGES);
     const omittedPages = doc.numPages - pageCount;
@@ -77,18 +78,22 @@ export async function renderPdfToPreviewJpeg(pdf: Buffer | Uint8Array): Promise<
     }
     const noticeHeight = omittedPages > 0 ? NOTICE_BAND_HEIGHT : 0;
 
-    // One canvas for the whole strip; each page renders at its vertical offset
-    // via a translate transform (no per-page canvas to hold).
+    // Composite onto one strip canvas. pdfjs clears the whole target canvas on
+    // every render(), so each page must render to its OWN canvas and then be
+    // drawn onto the strip; we render one page at a time and free it right away
+    // to keep peak memory at ~(strip + one page), not the whole document.
     const { canvas, context } = canvasFactory.create(stripWidth, contentHeight + noticeHeight);
     context.fillStyle = "white";
     context.fillRect(0, 0, stripWidth, contentHeight + noticeHeight);
     for (const { page, viewport, top } of pages) {
+      const pageCanvas = canvasFactory.create(Math.ceil(viewport.width), Math.ceil(viewport.height));
       await page.render({
-        canvas: canvas as unknown as HTMLCanvasElement,
-        canvasContext: context,
+        canvas: pageCanvas.canvas as unknown as HTMLCanvasElement,
+        canvasContext: pageCanvas.context,
         viewport,
-        transform: [1, 0, 0, 1, 0, top],
       }).promise;
+      context.drawImage(pageCanvas.canvas as unknown as CanvasImageSource, 0, top);
+      canvasFactory.destroy?.(pageCanvas);
     }
     if (omittedPages > 0) drawTruncationNotice(context, stripWidth, contentHeight, omittedPages);
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import sharp from "sharp";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, StandardFonts } from "pdf-lib";
 import { renderPdfToPreviewJpeg, MAX_PREVIEW_PAGES } from "@/lib/pdf/preview";
 
 /** A PDF with `n` pages, each `w`×`h` points, so height stacking is predictable. */
@@ -8,6 +8,26 @@ async function makePdf(n: number, w = 300, h = 400): Promise<Buffer> {
   const doc = await PDFDocument.create();
   for (let i = 0; i < n; i++) doc.addPage([w, h]);
   return Buffer.from(await doc.save());
+}
+
+/** A PDF whose every page carries text, so we can assert each page renders. */
+async function makePdfWithTextPerPage(n: number): Promise<Buffer> {
+  const doc = await PDFDocument.create();
+  const font = await doc.embedFont(StandardFonts.HelveticaBold);
+  for (let i = 0; i < n; i++) {
+    doc.addPage([300, 400]).drawText(`PAGE ${i + 1}`, { x: 30, y: 200, size: 36, font });
+  }
+  return Buffer.from(await doc.save());
+}
+
+/** Count of dark (inked) pixels in a horizontal band [fromFrac, toFrac) of the image. */
+async function inkInBand(jpeg: Buffer, fromFrac: number, toFrac: number): Promise<number> {
+  const { data, info } = await sharp(jpeg).greyscale().raw().toBuffer({ resolveWithObject: true });
+  const from = Math.floor(info.height * fromFrac) * info.width;
+  const to = Math.floor(info.height * toFrac) * info.width;
+  let ink = 0;
+  for (let i = from; i < to; i++) if (data[i] < 160) ink++;
+  return ink;
 }
 
 describe("renderPdfToPreviewJpeg", () => {
@@ -30,6 +50,16 @@ describe("renderPdfToPreviewJpeg", () => {
     // Three identical pages → roughly triple the height (allow rounding).
     expect(three.height!).toBeGreaterThanOrEqual(one.height! * 3 - 3);
     expect(three.height!).toBeLessThanOrEqual(one.height! * 3 + 3);
+  });
+
+  it("renders content on every page, not just the last", async () => {
+    // Regression: pdfjs clears the target canvas per render(), so a shared-canvas
+    // approach left only the final page and blanked the rest.
+    const jpeg = await renderPdfToPreviewJpeg(await makePdfWithTextPerPage(3));
+    // Each third of the strip is one page; all must carry ink.
+    expect(await inkInBand(jpeg, 0, 1 / 3)).toBeGreaterThan(300);
+    expect(await inkInBand(jpeg, 1 / 3, 2 / 3)).toBeGreaterThan(300);
+    expect(await inkInBand(jpeg, 2 / 3, 1)).toBeGreaterThan(300);
   });
 
   it("caps at MAX_PREVIEW_PAGES and appends a truncation-notice band", async () => {
