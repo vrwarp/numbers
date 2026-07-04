@@ -1,35 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import ReceiptViewer from "./ReceiptViewer";
-
-interface ClaimRef {
-  id: string;
-  status: string;
-  createdAt: string;
-}
-
-interface Receipt {
-  id: string;
-  originalName: string;
-  mimeType: string;
-  sizeBytes: number;
-  status: string;
-  note: string;
-  createdAt: string;
-  claims: ClaimRef[];
-}
-
-// NDJSON progress lines streamed by POST /api/reimbursements (see the route).
-type StreamMessage =
-  | { type: "status"; phase: "extracting"; total: number }
-  | { type: "receipt-done"; receiptId: string; receiptName: string; ok: boolean; completed: number; total: number }
-  | { type: "quota-wait"; receiptId: string; receiptName: string; attempt: number; maxRetries: number; cooldownMs: number; message: string }
-  | { type: "done"; reimbursementId: string }
-  | { type: "error"; status: number; message: string };
+import ReceiptGrid, { type ReceiptSummary as Receipt } from "./ReceiptGrid";
+import { readNdjsonStream } from "@/lib/ndjson";
+import type { ClaimStreamMessage } from "@/lib/claim-stream";
 
 export default function Shoebox() {
   const router = useRouter();
@@ -153,12 +130,9 @@ export default function Shoebox() {
         throw new Error(json.error ?? "Claim generation failed");
       }
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
       let claimId: string | null = null;
 
-      const handle = (ev: StreamMessage) => {
+      const handle = (ev: ClaimStreamMessage) => {
         switch (ev.type) {
           case "status":
             setStatus(`Reading ${ev.total} receipt${ev.total > 1 ? "s" : ""} with AI…`);
@@ -181,19 +155,7 @@ export default function Shoebox() {
         }
       };
 
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        let nl: number;
-        while ((nl = buffer.indexOf("\n")) >= 0) {
-          const line = buffer.slice(0, nl).trim();
-          buffer = buffer.slice(nl + 1);
-          if (line) handle(JSON.parse(line) as StreamMessage);
-        }
-      }
-      const tail = buffer.trim();
-      if (tail) handle(JSON.parse(tail) as StreamMessage);
+      await readNdjsonStream<ClaimStreamMessage>(res.body, handle);
 
       if (!claimId) throw new Error("Claim generation ended unexpectedly");
       router.push(`/claims/${claimId}`);
@@ -528,154 +490,5 @@ function QuotaWaitRing({ durationMs }: { durationMs: number }) {
         {remaining}
       </text>
     </svg>
-  );
-}
-
-function ReceiptGrid({
-  receipts,
-  selectable = false,
-  selected,
-  onToggle,
-  onDelete,
-  onSaveNote,
-  fileUrl,
-  onView,
-}: {
-  receipts: Receipt[];
-  selectable?: boolean;
-  selected?: Set<string>;
-  onToggle?: (id: string) => void;
-  onDelete?: (id: string) => void;
-  onSaveNote?: (id: string, note: string) => void;
-  fileUrl?: (id: string) => string;
-  onView?: (r: Receipt) => void;
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-      {receipts.map((r) => {
-        const isSelected = selected?.has(r.id) ?? false;
-        return (
-          <div
-            key={r.id}
-            data-testid={`receipt-card-${r.id}`}
-            className={`card relative overflow-hidden transition-shadow ${
-              selectable ? "cursor-pointer" : "opacity-70"
-            } ${isSelected ? "ring-2 ring-indigo-500" : ""}`}
-            onClick={selectable ? () => onToggle?.(r.id) : undefined}
-          >
-            {selectable && (
-              <div
-                className={`absolute left-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 text-xs font-bold ${
-                  isSelected
-                    ? "border-indigo-600 bg-indigo-600 text-white"
-                    : "border-stone-300 bg-white text-transparent"
-                }`}
-                aria-checked={isSelected}
-                role="checkbox"
-              >
-                ✓
-              </div>
-            )}
-            {onDelete && (
-              <button
-                className="absolute right-2 top-2 z-10 rounded-full bg-white/90 px-2 py-1 text-xs text-stone-500 shadow hover:text-red-600"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(r.id);
-                }}
-                aria-label={`Delete ${r.originalName}`}
-              >
-                🗑
-              </button>
-            )}
-            <div className="relative flex h-36 items-center justify-center bg-stone-50">
-              {r.mimeType === "application/pdf" ? (
-                <div className="text-center text-stone-400">
-                  <div className="text-4xl">📄</div>
-                  <div className="text-xs font-semibold">PDF</div>
-                </div>
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={fileUrl?.(r.id)}
-                  src={fileUrl ? fileUrl(r.id) : `/api/receipts/${r.id}/file`}
-                  alt={r.originalName}
-                  className="h-full w-full object-cover"
-                />
-              )}
-              {onView && (
-                <button
-                  className="absolute bottom-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-stone-600 shadow hover:text-indigo-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onView(r);
-                  }}
-                  aria-label={`View ${r.originalName} larger`}
-                  title="View larger"
-                  data-testid={`receipt-view-${r.id}`}
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M15 3h6v6" />
-                    <path d="M9 21H3v-6" />
-                    <path d="M21 3l-7 7" />
-                    <path d="M3 21l7-7" />
-                  </svg>
-                </button>
-              )}
-            </div>
-            <div className="space-y-1 p-2">
-              <div className="truncate text-xs font-medium">{r.originalName}</div>
-              {onSaveNote ? (
-                <input
-                  key={`note-${r.id}-${r.note}`}
-                  className="w-full rounded border border-transparent bg-transparent px-1 py-0.5 text-[11px] text-stone-600 placeholder:italic hover:border-stone-200 focus:border-stone-300 focus:outline-none"
-                  defaultValue={r.note}
-                  placeholder="Add description…"
-                  maxLength={300}
-                  onClick={(e) => e.stopPropagation()}
-                  onBlur={(e) => {
-                    const v = e.target.value.trim();
-                    if (v !== r.note) onSaveNote(r.id, v);
-                  }}
-                  aria-label={`Description for ${r.originalName}`}
-                  data-testid={`receipt-note-${r.id}`}
-                />
-              ) : (
-                r.note && <div className="truncate text-[11px] text-stone-600">{r.note}</div>
-              )}
-              <div className="text-[11px] text-stone-400">
-                {new Date(r.createdAt).toLocaleDateString()} · {(r.sizeBytes / 1024).toFixed(0)} KB
-                {r.status !== "unassigned" && " · processed"}
-              </div>
-              {r.claims.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {r.claims.map((c) => (
-                    <Link
-                      key={c.id}
-                      href={`/claims/${c.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] text-indigo-700 hover:bg-indigo-100"
-                      data-testid={`claim-link-${r.id}-${c.id}`}
-                    >
-                      {c.status === "draft" ? "Draft" : "Claim"} {new Date(c.createdAt).toLocaleDateString()}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
   );
 }

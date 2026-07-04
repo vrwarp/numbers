@@ -67,8 +67,11 @@ exclusion event). If you change mock values, update these expectations coherentl
 - `journey.spec.ts` — full happy path + telemetry + a 14-receipt claim → 2 form pages + 14
   receipts = 16 PDF pages. Saves screenshots to `screenshots/` (gitignored).
 - `security.spec.ts` — 401s when signed out; full cross-tenant 404 sweep (receipts, claims,
-  files, PDFs, extraction logs, image edits, claim-from-foreign-receipt); delete/discard
-  housekeeping; API-level PDF verification gate.
+  files, PDFs, extraction logs, image edits, claim-from-foreign-receipt, add-to-foreign-claim);
+  delete/discard housekeeping; API-level PDF verification gate.
+- `add-receipts.spec.ts` — add receipts to a draft from the review screen (Shoebox pick +
+  in-dialog upload), totals/rows/audit-trail assertions, 409 duplicate-add and
+  409-once-generated guards, button hidden on generated claims.
 - `image-edit.spec.ts` — rotate via the review-screen dialog (stored dims swap), crop via the
   API (fractions → pixels), audit trail, 409 freeze once generated, 400 for PDF receipts.
 - `mobile.spec.ts` — phone capture flow + manifest check.

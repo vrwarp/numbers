@@ -49,6 +49,13 @@ test("users cannot see or fetch each other's data (multi-tenant isolation)", asy
   expect(
     (await bob.request.delete(`/api/reimbursements/${claimId}/receipts/${receiptId}`)).status()
   ).toBe(404);
+  expect(
+    (
+      await bob.request.post(`/api/reimbursements/${claimId}/receipts`, {
+        data: { receiptIds: [receiptId] },
+      })
+    ).status()
+  ).toBe(404);
   expect((await bob.request.post(`/api/reimbursements/${claimId}/revert`)).status()).toBe(404);
   // Bob cannot build a claim from Alice's receipt either.
   expect((await bob.request.post("/api/reimbursements", { data: { receiptIds: [receiptId] } })).status()).toBe(404);

@@ -2,7 +2,8 @@
 
 Single Next.js 15 (App Router) process = UI + API + auth. SQLite via Prisma. Files on local
 disk under `DATA_DIR`. No queue, no cache, no other services. External calls: one AI provider
-(OpenRouter or Google AI Studio, per `AI_PROVIDER`), at claim creation only (one call per receipt).
+(OpenRouter or Google AI Studio, per `AI_PROVIDER`), only when a claim is built — creation or
+adding receipts to a draft (one call per receipt).
 
 ## File map (what lives where)
 
@@ -31,6 +32,14 @@ src/lib/image.ts                compressReceiptImage: rotate() → ≤1600px →
                                 transformReceiptImage: 90° rotation + fractional crop (post-
                                 rotation frame) → same ladder; ImageTransformError → 400
 src/lib/audit.ts                computeLineItemChanges(before, patch) → {field:{from,to}}
+src/lib/claims.ts               shared claim-building machinery (SERVER ONLY): extractClaimRows
+                                (per-receipt extraction → line-item/receipt-update row data,
+                                all-or-nothing failure handling), extractionLogRow,
+                                claimProgressStream (NDJSON progress response), apiErrorJson
+src/lib/claim-stream.ts         ClaimStreamMessage — the NDJSON progress-line union shared by
+                                the claim-building routes and their client consumers
+                                (dependency-free, client-safe)
+src/lib/ndjson.ts               readNdjsonStream(body, onLine) — client-side NDJSON reader
 src/lib/ai/prompt.ts            buildExtractionPrompt() — THE prompt being tuned (one receipt
                                 per call; TRANSCRIPTION only: merchant/date/printed totals/
                                 summary — no itemizing, no computed totals, no ministries)
@@ -56,8 +65,12 @@ src/lib/pdf/generate.ts         generateClaimPdf(input): per form page load temp
                                 Also splitAddress()
 src/lib/pdf/loadTemplate.ts     TEMPLATE_PDF env override, else assets/cfcc-form-template.pdf
 src/components/NavBar.tsx       top nav (client); hidden when signed out
-src/components/Shoebox.tsx      upload input, receipt grid, selection bar, generate-claim POST;
+src/components/Shoebox.tsx      upload input, selection bar, generate-claim POST;
                                 per-card expand button opens ReceiptViewer
+src/components/ReceiptGrid.tsx  the selectable receipt-card grid (Shoebox + AddReceiptsDialog);
+                                exports ReceiptSummary (the GET /api/receipts row shape)
+src/components/AddReceiptsDialog.tsx  review-screen modal: pick Shoebox receipts / upload new
+                                ones → POST /api/reimbursements/[id]/receipts (streamed)
 src/components/ReceiptViewer.tsx  full-screen viewer (client): image zoom/pan (wheel, pinch,
                                 drag, buttons) or the browser's native PDF viewer; launches
                                 ReceiptImageEditor for unassigned photos, cache-busts on save
@@ -102,6 +115,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/reimbursements/[id]` | GET | claim + lineItems(sortOrder asc) + receipts join |
 | | DELETE | draft only (409 else); receipts return to shoebox |
 | `/api/reimbursements/[id]/pdf` | POST | gate: ≥1 active row, all active verified (400 else) → generateClaimPdf (packet appends only receipts with ≥1 non-excluded row) → claim=generated, receipts=processed → returns application/pdf. Re-POST on generated claim re-downloads |
+| `/api/reimbursements/[id]/receipts` | POST | `{receiptIds[]}` → add receipts to a DRAFT claim (409 generated; 409 if any receipt is already on it; 404 foreign/unknown) → same extraction pipeline as create (all-or-nothing; ONE line item per receipt appended after existing sortOrders; Receipt extraction fields stamped) → AuditEvent(add-receipt) + ExtractionLog per call + totalCents recompute. Returns `{ok, totalCents}` or NDJSON progress per Accept header |
 | `/api/reimbursements/[id]/receipts/[receiptId]` | DELETE | draft only (409); refuses the last receipt (409 — discard the claim instead); deletes the receipt's line items + join row (receipt returns to Shoebox — status never left `unassigned`); AuditEvent(remove-receipt); recomputes totalCents |
 | `/api/reimbursements/[id]/revert` | POST | generated only (409 else); claim → draft; receipts → unassigned unless another GENERATED claim still holds them; AuditEvent(revert-to-draft). Rows keep isVerified (values were frozen; edits still revoke) |
 | `/api/line-items/[id]` | PATCH | zod partial {description,amountCents,ministry,event,isVerified,isExcluded}; draft only (409); isVerified:true refused (400) while ministry is empty (event is always optional); content change ⇒ isVerified=false unless patch sets it; writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
@@ -129,6 +143,10 @@ UI shows the net-amount derivation ("charged X − refunded Y") from the Receipt
 divides a row for multi-ministry receipts. The POST returns the classic `{reimbursement}` 201 JSON,
 **or** streams newline-delimited progress (per-receipt completion, quota-wait notices) when the
 client sends `Accept: application/x-ndjson` — the Shoebox uses this to show live status.
+Adding receipts to an existing draft (`POST /api/reimbursements/[id]/receipts`, driven by the
+review screen's "＋ Add receipts" dialog) runs the same extraction pipeline via
+`src/lib/claims.ts` and appends the rows, re-checking that the claim is still a draft after
+the (possibly slow) extraction before writing.
 
 **PDF**: gate check → read receipt files → `generateClaimPdf({requesterName, requesterAddress,
 dateString(MM/DD/YYYY), items(active only), receipts, templateBytes})` → transaction: claim
