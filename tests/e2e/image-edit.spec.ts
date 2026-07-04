@@ -1,6 +1,15 @@
 import { test, expect } from "@playwright/test";
+import fs from "fs/promises";
+import path from "path";
 import sharp from "sharp";
 import { makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
+
+/** Basenames of files stored for a receipt id anywhere under the e2e upload dir. */
+async function storedFilesFor(receiptId: string): Promise<string[]> {
+  const uploads = path.join(process.cwd(), ".e2e-data", "uploads");
+  const entries = await fs.readdir(uploads, { recursive: true }).catch(() => [] as string[]);
+  return entries.map((f) => path.basename(String(f))).filter((f) => f.startsWith(receiptId));
+}
 
 async function storedImageMeta(page: import("@playwright/test").Page, receiptId: string) {
   const res = await page.request.get(`/api/receipts/${receiptId}/file`);
@@ -106,14 +115,90 @@ test("rotate and crop a receipt image from the claim review screen", async ({ pa
   ).toBe(409);
 });
 
+test("upload-time crop happens on-device at full resolution; the original never reaches the server", async ({
+  page,
+}, testInfo) => {
+  await signInAs(page, `clientedit-${testInfo.project.name}@example.com`, "ClientEdit");
+
+  // A photo well above the 1600px upload cap: 2000×2600.
+  const big = await sharp({
+    create: { width: 2000, height: 2600, channels: 3, background: { r: 250, g: 250, b: 245 } },
+  })
+    .jpeg({ quality: 90 })
+    .toBuffer();
+  await page
+    .getByTestId("file-input")
+    .setInputFiles({ name: "big.jpg", mimeType: "image/jpeg", buffer: big });
+
+  // The prepare dialog opens before anything uploads; crop the top half by
+  // dragging the bottom-center handle of the crop box up to the middle.
+  await expect(page.getByTestId("upload-note")).toBeVisible();
+  await page.locator('[data-testid^="edit-image-pending-"]').click();
+  const stage = page.getByTestId("image-editor-stage");
+  await expect(stage).toBeVisible();
+  const box = (await page.getByTestId("crop-box").boundingBox())!;
+  const south = page.getByTestId("crop-box").locator("span").nth(5); // "s" handle
+  const hb = (await south.boundingBox())!;
+  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2 - box.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await page.getByTestId("image-editor-save").click();
+  await expect(stage).toBeHidden();
+
+  // Skip the note — this is what actually uploads the (edited) file.
+  await page.getByTestId("upload-note-cancel").click();
+  await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(1, { timeout: 20_000 });
+  const receiptId = (await (await page.request.get("/api/receipts")).json()).receipts[0].id;
+
+  // The crop was cut from the 2000px-wide original on the client, so the
+  // stored image gets the full 1600px upload budget. Cropping an already
+  // stored copy could never exceed its 1231px width (2000×2600 in 1600).
+  const meta = await storedImageMeta(page, receiptId);
+  expect(meta.width).toBe(1600);
+  expect(meta.height).toBeGreaterThan(985); // ≈1040, ± crop-drag slop
+  expect(meta.height).toBeLessThan(1095);
+
+  // Only the compressed working file exists server-side — no full-resolution
+  // original, no sidecar (that appears only after a post-upload edit).
+  expect(await storedFilesFor(receiptId)).toEqual([`${receiptId}.jpg`]);
+  expect(
+    (await (await page.request.get(`/api/receipts/${receiptId}/edit`)).json()).hasOriginal
+  ).toBe(false);
+});
+
+const MINIMAL_PDF = Buffer.from(
+  "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n" +
+    "2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n" +
+    "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\n" +
+    "trailer<</Size 4/Root 1 0 R>>\n%%EOF"
+);
+
+test("picked PDFs upload immediately so the describe dialog can show the server preview", async ({
+  page,
+}, testInfo) => {
+  await signInAs(page, `pdfprep-${testInfo.project.name}@example.com`, "PdfPrep");
+  await page
+    .getByTestId("file-input")
+    .setInputFiles({ name: "invoice.pdf", mimeType: "application/pdf", buffer: MINIMAL_PDF });
+
+  // Unlike images, the PDF is on the server BEFORE its dialog is dismissed —
+  // the card exists and the preview is the server-backed raster component.
+  await expect(page.getByTestId("upload-note")).toBeVisible();
+  await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(1, { timeout: 20_000 });
+  await expect(page.getByTestId("upload-preview").getByText("Open PDF receipt ↗")).toBeVisible();
+  await expect(page.locator('[data-testid^="edit-image-pending-"]')).toHaveCount(0); // no crop for PDFs
+
+  // Saving just attaches the note to the already-uploaded receipt.
+  await page.getByTestId("upload-note").fill("church van insurance");
+  await page.getByTestId("upload-note-confirm").click();
+  await expect(page.getByTestId("upload-note")).toBeHidden();
+  await expect(page.locator('[data-testid^="receipt-note-"]')).toHaveValue("church van insurance");
+});
+
 test("PDF receipts cannot be rotated or cropped", async ({ page }, testInfo) => {
   await signInAs(page, `pdfer-${testInfo.project.name}@example.com`, "Pdfer");
-  const pdfBytes = Buffer.from(
-    "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n" +
-      "2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n" +
-      "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\n" +
-      "trailer<</Size 4/Root 1 0 R>>\n%%EOF"
-  );
+  const pdfBytes = MINIMAL_PDF;
   const upload = await page.request.post("/api/receipts", {
     multipart: { files: { name: "invoice.pdf", mimeType: "application/pdf", buffer: pdfBytes } },
   });

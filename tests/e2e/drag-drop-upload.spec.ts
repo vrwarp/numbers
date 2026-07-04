@@ -28,9 +28,10 @@ test("the shoebox is a whole-page drag-and-drop upload target", async ({ page },
   await dropzone.dispatchEvent("dragenter", { dataTransfer });
   await expect(page.getByTestId("shoebox-drop-overlay")).toBeVisible();
 
-  // …and dropping uploads the receipt, then opens the describe step.
+  // …and dropping opens the prepare step; dismissing it uploads the receipt.
   await dropzone.dispatchEvent("drop", { dataTransfer });
   await expect(page.getByTestId("shoebox-drop-overlay")).toBeHidden();
-  await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(1, { timeout: 20_000 });
   await expect(page.getByTestId("upload-note")).toBeVisible();
+  await page.getByTestId("upload-note-cancel").click();
+  await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(1, { timeout: 20_000 });
 });

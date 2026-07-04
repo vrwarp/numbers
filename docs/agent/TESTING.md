@@ -51,9 +51,9 @@ hex strings so you can assert on rendered PDF text. pdf tests load the real temp
   `tests/e2e/.fixtures/`; the MOCK keys on the FILENAME ("refund" → partial-refund fixture,
   "return" → pure return), not the image content.
 - `signInAs(page, email, name)` — dev-login form; waits for the dashboard.
-- `uploadReceipts(page, paths, note?)` — sets the hidden file input (upload is immediate),
-  waits for card count += n, then drains the per-receipt describe dialog (optional note goes
-  on the first receipt).
+- `uploadReceipts(page, paths, note?)` — sets the hidden file input, drains the per-file
+  prepare dialog (each Save/Skip is what actually uploads that file; optional note goes on
+  the first), then waits for card count += n.
 
 **Mock arithmetic the journey test depends on** (from `src/lib/ai/mock.ts`, ONE row per
 receipt): `costco.jpg` → Costco Wholesale 06/21, net **102.10**; `*refund*.jpg` → Amazon

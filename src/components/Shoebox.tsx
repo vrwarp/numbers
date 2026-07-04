@@ -6,19 +6,47 @@ import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import ReceiptViewer from "./ReceiptViewer";
 import PdfReceiptPreview from "@/components/PdfReceiptPreview";
 import ReceiptGrid, { type ReceiptSummary as Receipt } from "./ReceiptGrid";
+import { prepareImageUpload, renderTransformedImage } from "@/lib/image-client";
 import { readNdjsonStream } from "@/lib/ndjson";
 import type { ClaimStreamMessage } from "@/lib/claim-stream";
+
+/** A picked image waiting in the prepare step — nothing is uploaded yet.
+ *  `edited` holds the client-side rotate/crop render (native resolution);
+ *  the upload payload is derived from it (or the file) at Save/Skip time. */
+interface LocalPending {
+  kind: "local";
+  key: number;
+  file: File;
+  edited: Blob | null;
+  previewUrl: string;
+}
+
+/** A PDF that was uploaded the moment it was picked: browsers can't thumbnail
+ *  a local PDF, so it goes up first and the dialog previews the server-side
+ *  raster. Dismissing its dialog only saves the optional note. */
+interface UploadedPending {
+  kind: "uploaded";
+  key: number;
+  receipt: Receipt;
+}
+
+type PendingItem = LocalPending | UploadedPending;
 
 export default function Shoebox() {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const [receipts, setReceipts] = useState<Receipt[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  // Just-uploaded receipts awaiting the optional describe step (front = current).
-  const [describeQueue, setDescribeQueue] = useState<Receipt[]>([]);
+  // Picked files awaiting the prepare step (describe + optional rotate/crop),
+  // front = current. Images upload as their dialog is dismissed, so the
+  // full-resolution original never leaves the device — the rotate/crop runs
+  // client-side on it and only the downscaled result is sent. PDFs are already
+  // uploaded (their dialog shows the server preview and just collects a note).
+  const [pending, setPending] = useState<PendingItem[]>([]);
+  const pendingKey = useRef(0);
   const [uploadNote, setUploadNote] = useState("");
   const [uploading, setUploading] = useState(false);
-  // Rotate/crop editor open for the receipt currently in the describe step.
+  // Rotate/crop editor open for the file currently in the prepare step.
   const [editingUpload, setEditingUpload] = useState(false);
   // Bumped after a rotate/crop so <img> cache-busts past the file route's max-age.
   const [fileVersions, setFileVersions] = useState<Record<string, number>>({});
@@ -53,27 +81,93 @@ export default function Shoebox() {
     load();
   }, [load]);
 
-  async function onFilesPicked(files: FileList | null) {
+  function onFilesPicked(files: FileList | null) {
     if (!files || files.length === 0) return;
-    // Upload immediately (capture must be instant), then step through the
-    // uploaded receipts asking for an optional description with the actual
-    // image on screen.
+    // Images are NOT uploaded yet: their prepare dialog comes first so any
+    // rotate/crop happens client-side on the full-resolution original, and
+    // Save/Skip uploads the (downscaled) result. PDFs upload immediately —
+    // browsers can't thumbnail a local PDF, so the server-rendered preview
+    // needs the file up first (function over purity).
+    setError(null);
+    setUploadNote("");
+    const picked = Array.from(files);
+    const images = picked.filter((f) => f.type !== "application/pdf");
+    const pdfs = picked.filter((f) => f.type === "application/pdf");
+    if (images.length > 0) {
+      const items = images.map((file) => ({
+        kind: "local" as const,
+        key: pendingKey.current++,
+        file,
+        edited: null,
+        previewUrl: URL.createObjectURL(file),
+      }));
+      setPending((q) => [...q, ...items]);
+    }
+    if (pdfs.length > 0) void uploadPdfsNow(pdfs);
+    if (fileInput.current) fileInput.current.value = "";
+  }
+
+  /** Upload picked PDFs right away and queue them for the note-only dialog. */
+  async function uploadPdfsNow(files: File[]) {
     setUploading(true);
     setError(null);
     try {
       const form = new FormData();
-      for (const f of Array.from(files)) form.append("files", f);
+      for (const f of files) form.append("files", f);
       const res = await fetch("/api/receipts", { method: "POST", body: form });
       if (!res.ok) throw new Error((await res.json()).error ?? "Upload failed");
-      const { receipts: created } = await res.json();
+      const { receipts: created } = (await res.json()) as { receipts: Receipt[] };
+      setPending((q) => [
+        ...q,
+        ...created.map((receipt) => ({
+          kind: "uploaded" as const,
+          key: pendingKey.current++,
+          receipt,
+        })),
+      ]);
       await load();
-      setUploadNote("");
-      setDescribeQueue(created);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setUploading(false);
-      if (fileInput.current) fileInput.current.value = "";
+    }
+  }
+
+  // Picked photos exist only in this tab until their dialog is dismissed —
+  // warn before a navigation throws them away. (Uploaded PDFs are safe.)
+  const hasLocalPending = pending.some((i) => i.kind === "local");
+  useEffect(() => {
+    if (!hasLocalPending) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [hasLocalPending]);
+
+  /** Upload pending images (front item or, for skip-all, all remaining),
+   *  downscaled to the server's 1600px cap client-side. Returns whether the
+   *  upload succeeded (failures keep the queue so the user can retry). */
+  async function uploadPending(items: LocalPending[], note?: string): Promise<boolean> {
+    setUploading(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      for (const item of items) {
+        form.append("files", await prepareImageUpload(item.file, item.edited));
+      }
+      if (note) form.append("note", note);
+      const res = await fetch("/api/receipts", { method: "POST", body: form });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Upload failed");
+      const done = new Set(items.map((i) => i.key));
+      for (const item of items) URL.revokeObjectURL(item.previewUrl);
+      setPending((q) => q.filter((i) => !done.has(i.key)));
+      setUploadNote("");
+      await load();
+      return true;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Upload failed");
+      return false;
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -109,17 +203,34 @@ export default function Shoebox() {
     onFilesPicked(e.dataTransfer.files);
   }
 
-  const describing: Receipt | null = describeQueue[0] ?? null;
+  const preparing: PendingItem | null = pending[0] ?? null;
 
-  function skipDescribe(all = false) {
-    setUploadNote("");
+  async function skipPrepare(all = false) {
+    if (!preparing) return;
     setEditingUpload(false);
-    setDescribeQueue((q) => (all ? [] : q.slice(1)));
+    const items = all ? pending : [preparing];
+    // Already-uploaded PDFs just leave the queue (their note is skipped) …
+    const done = new Set(items.filter((i) => i.kind === "uploaded").map((i) => i.key));
+    if (done.size > 0) {
+      setUploadNote("");
+      setPending((q) => q.filter((i) => !done.has(i.key)));
+    }
+    // … while local images upload now.
+    const locals = items.filter((i): i is LocalPending => i.kind === "local");
+    if (locals.length > 0) await uploadPending(locals);
   }
 
-  async function saveDescribe() {
-    if (describing && uploadNote.trim()) await saveNote(describing.id, uploadNote.trim());
-    skipDescribe();
+  async function savePrepare() {
+    if (!preparing) return;
+    setEditingUpload(false);
+    const note = uploadNote.trim() || undefined;
+    if (preparing.kind === "uploaded") {
+      if (note) await saveNote(preparing.receipt.id, note);
+      setUploadNote("");
+      setPending((q) => q.slice(1));
+    } else {
+      await uploadPending([preparing], note);
+    }
   }
 
   function toggle(id: string) {
@@ -402,7 +513,7 @@ export default function Shoebox() {
         </>
       )}
 
-      {describing && (
+      {preparing && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           role="dialog"
@@ -411,20 +522,21 @@ export default function Shoebox() {
           <div className="card w-full max-w-md p-6">
             <h2 className="font-bold">
               Describe this receipt
-              {describeQueue.length > 1 && (
-                <span className="ml-1 font-normal text-stone-400">
-                  ({describeQueue.length} left)
-                </span>
+              {pending.length > 1 && (
+                <span className="ml-1 font-normal text-stone-400">({pending.length} left)</span>
               )}
             </h2>
             <div className="mt-1 flex items-center justify-between gap-2">
-              <p className="truncate text-sm text-stone-500">{describing.originalName}</p>
-              {describing.mimeType.startsWith("image/") && (
+              <p className="truncate text-sm text-stone-500">
+                {preparing.kind === "local" ? preparing.file.name : preparing.receipt.originalName}
+              </p>
+              {preparing.kind === "local" && (
                 <button
                   className="shrink-0 rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700"
                   onClick={() => setEditingUpload(true)}
+                  disabled={uploading}
                   title="Rotate or crop this receipt photo"
-                  data-testid={`edit-image-${describing.id}`}
+                  data-testid={`edit-image-pending-${preparing.key}`}
                 >
                   ✂ Rotate / crop
                 </button>
@@ -434,16 +546,19 @@ export default function Shoebox() {
               className="mt-3 flex max-h-72 items-center justify-center overflow-hidden rounded-lg bg-stone-100"
               data-testid="upload-preview"
             >
-              {describing.mimeType === "application/pdf" ? (
+              {preparing.kind === "uploaded" ? (
                 <div className="max-h-72 w-full overflow-y-auto">
-                  <PdfReceiptPreview receiptId={describing.id} fileHref={fileUrl(describing.id)} />
+                  <PdfReceiptPreview
+                    receiptId={preparing.receipt.id}
+                    fileHref={fileUrl(preparing.receipt.id)}
+                  />
                 </div>
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  key={fileUrl(describing.id)}
-                  src={fileUrl(describing.id)}
-                  alt={describing.originalName}
+                  key={preparing.previewUrl}
+                  src={preparing.previewUrl}
+                  alt={preparing.file.name}
                   className="max-h-72 w-auto"
                 />
               )}
@@ -451,25 +566,30 @@ export default function Shoebox() {
             <label className="mt-4 block text-sm font-medium">
               Description (optional)
               <input
-                key={describing.id}
+                key={preparing.key}
                 className="input mt-1"
                 placeholder="e.g. VBS craft supplies"
                 value={uploadNote}
                 onChange={(e) => setUploadNote(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") saveDescribe();
+                  if (e.key === "Enter") savePrepare();
                 }}
                 maxLength={300}
                 autoFocus
                 data-testid="upload-note"
               />
             </label>
-            <p className="mt-2 text-xs text-stone-400">You can edit it on the card later.</p>
+            <p className="mt-2 text-xs text-stone-400">
+              {preparing.kind === "local"
+                ? "Uploads when you save or skip. You can edit the description on the card later."
+                : "You can edit the description on the card later."}
+            </p>
             <div className="mt-5 flex items-center justify-end gap-2">
-              {describeQueue.length > 1 && (
+              {pending.length > 1 && (
                 <button
                   className="mr-auto rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100"
-                  onClick={() => skipDescribe(true)}
+                  onClick={() => skipPrepare(true)}
+                  disabled={uploading}
                   data-testid="upload-note-skip-all"
                 >
                   Skip all
@@ -477,31 +597,44 @@ export default function Shoebox() {
               )}
               <button
                 className="btn-secondary"
-                onClick={() => skipDescribe()}
+                onClick={() => skipPrepare()}
+                disabled={uploading}
                 data-testid="upload-note-cancel"
               >
                 Skip
               </button>
-              <button className="btn-primary" onClick={saveDescribe} data-testid="upload-note-confirm">
-                Save
+              <button
+                className="btn-primary"
+                onClick={savePrepare}
+                disabled={uploading}
+                data-testid="upload-note-confirm"
+              >
+                {uploading ? "Uploading…" : "Save"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {editingUpload && describing && (
+      {editingUpload && preparing?.kind === "local" && (
         <ReceiptImageEditor
-          receiptId={describing.id}
-          src={fileUrl(describing.id)}
+          src={preparing.previewUrl}
           onClose={() => setEditingUpload(false)}
-          onSaved={() => {
-            setFileVersions((prev) => ({
-              ...prev,
-              [describing.id]: (prev[describing.id] ?? 0) + 1,
-            }));
-            setEditingUpload(false);
-            load();
+          onSaved={() => setEditingUpload(false)}
+          onApply={async (t) => {
+            // Render the rotate/crop on this device at the photo's native
+            // resolution; the result replaces the pending file's working image.
+            const rendered = await renderTransformedImage(
+              preparing.edited ?? preparing.file,
+              t
+            );
+            const url = URL.createObjectURL(rendered);
+            URL.revokeObjectURL(preparing.previewUrl);
+            setPending((q) =>
+              q.map((i) =>
+                i.key === preparing.key ? { ...i, edited: rendered, previewUrl: url } : i
+              )
+            );
           }}
         />
       )}
