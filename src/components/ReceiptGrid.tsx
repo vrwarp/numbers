@@ -52,9 +52,10 @@ export default function ReceiptGrid({
           <div
             key={r.id}
             data-testid={`receipt-card-${r.id}`}
-            className={`card relative overflow-hidden transition-shadow ${
+            // Selection is shown by the filled checkmark alone — no outline.
+            className={`card relative overflow-hidden ${
               selectable ? "cursor-pointer" : "opacity-70"
-            } ${isSelected ? "ring-2 ring-indigo-500" : ""}`}
+            }`}
             onClick={selectable ? () => onToggle?.(r.id) : undefined}
           >
             {selectable && (
