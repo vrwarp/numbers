@@ -5,6 +5,8 @@
  * can persist it to the ExtractionLog.
  */
 
+import { configValue } from "../config-file";
+
 export type AiProvider = "openrouter" | "google";
 
 export const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
@@ -38,7 +40,7 @@ export class ProviderCallError extends Error {
 
 /** Backend selected by AI_PROVIDER (default openrouter); throws on unknown values. */
 export function currentProvider(): AiProvider {
-  const raw = (process.env.AI_PROVIDER || "openrouter").toLowerCase();
+  const raw = (configValue("AI_PROVIDER") || "openrouter").toLowerCase();
   if (raw !== "openrouter" && raw !== "google") {
     throw new ProviderCallError(
       `Unknown AI_PROVIDER "${raw}" (expected "openrouter" or "google")`
@@ -49,13 +51,13 @@ export function currentProvider(): AiProvider {
 
 export function providerModel(provider: AiProvider): string {
   return provider === "google"
-    ? process.env.GEMINI_MODEL || DEFAULT_GOOGLE_MODEL
-    : process.env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL;
+    ? configValue("GEMINI_MODEL") || DEFAULT_GOOGLE_MODEL
+    : configValue("OPENROUTER_MODEL") || DEFAULT_OPENROUTER_MODEL;
 }
 
 export function providerApiKey(provider: AiProvider): string {
   const envVar = provider === "google" ? "GEMINI_API_KEY" : "OPENROUTER_API_KEY";
-  const key = process.env[envVar];
+  const key = configValue(envVar);
   if (!key) {
     throw new ProviderCallError(
       `${envVar} is not configured (set AI_MOCK=1 for offline use)`

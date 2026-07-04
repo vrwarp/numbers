@@ -1,0 +1,20 @@
+{
+  "AUTH_SECRET": "change-me",
+
+  "FIREBASE_API_KEY": "",
+  "FIREBASE_AUTH_DOMAIN": "your-project.firebaseapp.com",
+  "FIREBASE_PROJECT_ID": "your-project",
+  "FIREBASE_APP_ID": "",
+
+  "AI_PROVIDER": "openrouter",
+  "OPENROUTER_API_KEY": "",
+  "OPENROUTER_MODEL": "google/gemini-3.1-flash-lite",
+  "GEMINI_API_KEY": "",
+  "GEMINI_MODEL": "gemini-3.1-flash-lite",
+
+  "AI_RPM_TARGET": "15",
+  "AI_QUOTA_COOLDOWN_MS": "60000",
+  "AI_QUOTA_MAX_RETRIES": "3",
+
+  "TEMPLATE_PDF": ""
+}

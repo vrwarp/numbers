@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { cookies } from "next/headers";
 import { isAuthTestMode } from "@/lib/config";
+import { configValue } from "@/lib/config-file";
 
 /**
  * Stateless session layer: after Firebase verifies who the user is (once, at
@@ -13,7 +14,7 @@ export const SESSION_COOKIE = "numbers_session";
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
 
 function secret(): Buffer {
-  const s = process.env.AUTH_SECRET;
+  const s = configValue("AUTH_SECRET");
   if (!s) throw new Error("AUTH_SECRET must be set (openssl rand -base64 32)");
   return Buffer.from(s, "utf8");
 }
