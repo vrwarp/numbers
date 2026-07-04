@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import ReceiptImageEditor from "./ReceiptImageEditor";
 
 interface ViewerReceipt {
   id: string;
   originalName: string;
   mimeType: string;
+  status: string;
 }
 
 const MIN_SCALE = 1;
@@ -23,12 +25,23 @@ const distance = (a: { x: number; y: number }, b: { x: number; y: number }) =>
 export default function ReceiptViewer({
   receipt,
   onClose,
+  onEdited,
 }: {
   receipt: ViewerReceipt;
   onClose: () => void;
+  onEdited?: () => void;
 }) {
   const isPdf = receipt.mimeType === "application/pdf";
-  const src = `/api/receipts/${receipt.id}/file`;
+  // Only unassigned photos can be rotated/cropped: the edit route overwrites
+  // the stored file and refuses PDFs and receipts frozen on a generated claim.
+  const canEdit = receipt.mimeType.startsWith("image/") && receipt.status === "unassigned";
+
+  // Bumped after each save so the <img> re-fetches the overwritten file.
+  const [version, setVersion] = useState(0);
+  const [editing, setEditing] = useState(false);
+  const editingRef = useRef(editing);
+  editingRef.current = editing;
+  const src = `/api/receipts/${receipt.id}/file${version ? `?v=${version}` : ""}`;
 
   const [view, setView] = useState({ scale: 1, x: 0, y: 0 });
   const viewRef = useRef(view);
@@ -72,10 +85,13 @@ export default function ReceiptViewer({
     [zoomAt],
   );
 
-  // Escape to close, lock body scroll, focus the close button.
+  // Escape to close, lock body scroll, focus the close button. While the
+  // editor is open, Escape dismisses it first rather than the whole viewer.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      if (editingRef.current) setEditing(false);
+      else onClose();
     };
     document.addEventListener("keydown", onKey);
     const prevOverflow = document.body.style.overflow;
@@ -156,6 +172,17 @@ export default function ReceiptViewer({
           {receipt.originalName}
         </span>
         <div className="flex items-center gap-1">
+          {canEdit && (
+            <button
+              className="flex h-9 items-center justify-center gap-1 rounded-full px-3 text-sm text-white transition-colors hover:bg-white/20"
+              onClick={() => setEditing(true)}
+              aria-label="Rotate or crop this receipt"
+              title="Rotate or crop"
+              data-testid="receipt-viewer-edit"
+            >
+              ✂ Rotate / crop
+            </button>
+          )}
           <a
             href={src}
             target="_blank"
@@ -248,6 +275,20 @@ export default function ReceiptViewer({
           </div>
         )}
       </div>
+
+      {editing && (
+        <ReceiptImageEditor
+          receiptId={receipt.id}
+          src={src}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setVersion((v) => v + 1);
+            setEditing(false);
+            reset();
+            onEdited?.();
+          }}
+        />
+      )}
     </div>
   );
 }

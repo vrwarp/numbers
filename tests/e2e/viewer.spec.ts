@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import sharp from "sharp";
 import { makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
 
 // The zoomable full-screen receipt viewer, opened from each Shoebox card.
@@ -36,4 +37,51 @@ test("receipt viewer opens, zooms, and closes without selecting the card", async
 
   // Opening the viewer must not have toggled the card's selection.
   await expect(page.getByText(/receipt.*selected/i)).toHaveCount(0);
+});
+
+test("receipt viewer can rotate/crop an image, and hides the tool for PDFs", async ({
+  page,
+}, testInfo) => {
+  await signInAs(page, `viewer-edit-${testInfo.project.name}@example.com`, "Editor");
+  await page.goto("/shoebox");
+  await uploadReceipts(page, [await makeReceiptFixture("edit-me.jpg")]);
+
+  const receiptId = (await (await page.request.get("/api/receipts")).json()).receipts[0].id;
+  const before = await sharp(
+    await (await page.request.get(`/api/receipts/${receiptId}/file`)).body(),
+  ).metadata();
+
+  await page.locator('[data-testid^="receipt-view-"]').first().click();
+  await expect(page.getByTestId("receipt-viewer")).toBeVisible();
+
+  // Rotate 90° through the editor launched from the viewer's top bar.
+  await page.getByTestId("receipt-viewer-edit").click();
+  await expect(page.getByTestId("image-editor-stage")).toBeVisible();
+  await page.getByTestId("rotate-right").click();
+  await page.getByTestId("image-editor-save").click();
+  await expect(page.getByTestId("image-editor-save")).toHaveCount(0);
+
+  // Stored dimensions swapped, and the viewer stays open on the edited image.
+  await expect(page.getByTestId("receipt-viewer")).toBeVisible();
+  const after = await sharp(
+    await (await page.request.get(`/api/receipts/${receiptId}/file`)).body(),
+  ).metadata();
+  expect(after.width).toBe(before.height);
+  expect(after.height).toBe(before.width);
+
+  // PDFs open in the viewer but expose no rotate/crop tool.
+  const pdfBytes = Buffer.from(
+    "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n" +
+      "2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n" +
+      "3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\n" +
+      "trailer<</Size 4/Root 1 0 R>>\n%%EOF",
+  );
+  await page.request.post("/api/receipts", {
+    multipart: { files: { name: "invoice.pdf", mimeType: "application/pdf", buffer: pdfBytes } },
+  });
+  await page.reload();
+  const pdfCard = page.locator('[data-testid^="receipt-card-"]', { hasText: "invoice.pdf" });
+  await pdfCard.locator('[data-testid^="receipt-view-"]').click();
+  await expect(page.getByTestId("receipt-viewer")).toBeVisible();
+  await expect(page.getByTestId("receipt-viewer-edit")).toHaveCount(0);
 });

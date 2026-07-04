@@ -214,7 +214,9 @@ export default function Shoebox() {
         </>
       )}
 
-      {viewing && <ReceiptViewer receipt={viewing} onClose={() => setViewing(null)} />}
+      {viewing && (
+        <ReceiptViewer receipt={viewing} onClose={() => setViewing(null)} onEdited={load} />
+      )}
     </div>
   );
 }

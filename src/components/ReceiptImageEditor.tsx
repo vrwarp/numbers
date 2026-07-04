@@ -62,7 +62,7 @@ export default function ReceiptImageEditor({
   onSaved,
 }: {
   receiptId: string;
-  reimbursementId: string;
+  reimbursementId?: string;
   src: string;
   onClose: () => void;
   onSaved: () => void;
