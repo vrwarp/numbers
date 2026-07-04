@@ -211,45 +211,47 @@ export default function ReceiptImageEditor({
           )}
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <button className="btn-secondary" onClick={() => turn(270)} disabled={busy} data-testid="rotate-left" aria-label="Rotate left" title="Rotate left">
-            ↺
-          </button>
-          <button className="btn-secondary" onClick={() => turn(90)} disabled={busy} data-testid="rotate-right" aria-label="Rotate right" title="Rotate right">
-            ↻
-          </button>
-          <button
-            className="btn-secondary"
-            onClick={() => {
-              setRotate(0);
-              setCrop(FULL_CROP);
-            }}
-            disabled={busy || !hasChanges}
-            data-testid="crop-reset"
-          >
-            Reset
-          </button>
-        </div>
-
         {error && (
           <p className="mt-3 text-sm text-red-700" role="alert">
             {error}
           </p>
         )}
 
-        <div className="mt-5 flex justify-end gap-2">
-          <button className="btn-secondary" onClick={onClose} disabled={busy} data-testid="image-editor-cancel">
-            Cancel
-          </button>
-          <button
-            className="btn-primary"
-            onClick={save}
-            disabled={busy || !hasChanges}
-            title={!hasChanges ? "Rotate or draw a crop first" : undefined}
-            data-testid="image-editor-save"
-          >
-            {busy ? "Saving…" : "Save image"}
-          </button>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <button className="btn-secondary" onClick={() => turn(270)} disabled={busy} data-testid="rotate-left" aria-label="Rotate left" title="Rotate left">
+              ↺
+            </button>
+            <button className="btn-secondary" onClick={() => turn(90)} disabled={busy} data-testid="rotate-right" aria-label="Rotate right" title="Rotate right">
+              ↻
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                setRotate(0);
+                setCrop(FULL_CROP);
+              }}
+              disabled={busy || !hasChanges}
+              data-testid="crop-reset"
+            >
+              Reset
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button className="btn-secondary" onClick={onClose} disabled={busy} data-testid="image-editor-cancel">
+              Cancel
+            </button>
+            <button
+              className="btn-primary"
+              onClick={save}
+              disabled={busy || !hasChanges}
+              title={!hasChanges ? "Rotate or draw a crop first" : undefined}
+              data-testid="image-editor-save"
+            >
+              {busy ? "Saving…" : "Save image"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
