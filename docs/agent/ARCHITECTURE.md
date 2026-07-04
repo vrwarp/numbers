@@ -79,9 +79,12 @@ src/lib/ai/suggest.ts           suggestMinistryEvent(description): text-only "wh
                                 AI_MOCK=1. A SUGGESTION only — applying it is the human's click
 src/lib/pdf/paginate.ts         paginateItems(items, 13) → pages; [] → [[]]
 src/lib/pdf/generate.ts         generateClaimPdf(input): per form page load template → fill
-                                AcroForm fields → flatten → copyPages into output; then append
-                                receipts (images on Letter pages w/ label, PDFs merged).
-                                Also splitAddress()
+                                AcroForm fields → flatten → optional QR self-link stamp →
+                                copyPages into output; then append receipts (images on Letter
+                                pages w/ label, PDFs merged). Also splitAddress()
+src/lib/pdf/qr.ts               qrMatrix(url) + drawQrStamp(page, url, font): vector QR of the
+                                /c/<publicToken> capability URL in the form page's blank
+                                top-right corner (geometry constants in QR_STAMP)
 src/lib/pdf/loadTemplate.ts     TEMPLATE_PDF env override, else assets/cfcc-form-template.pdf
 src/lib/image-client.ts         DOM-only canvas helpers for the pre-upload prepare step:
                                 renderTransformedImage (rotate/crop at native resolution,
@@ -162,7 +165,8 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | | PATCH | zod partial {singleMinistry, claimMinistry, claimEvent, claimDescription}; draft only (409). When single mode is on and the mirrored values were touched (or the mode was just enabled), FANS claimMinistry/claimEvent out onto every non-excluded row — each touched row is un-verified and gets its own AuditEvent(update, source:"claim-ministry") — plus one AuditEvent(update-claim) for the settings diff. Multi→single with no explicit claimMinistry adopts `mostCommonMinistryEvent(rows)`. Returns the full refreshed claim (GET shape). Single mode is a mirror, not a lock: row PATCHes stay allowed |
 | | DELETE | draft only (409 else); receipts return to shoebox |
 | `/api/reimbursements/[id]/suggest` | POST | `{description}` (≤300) → draft only (409); persists it as claimDescription (AuditEvent on change) → text-only provider call (mock-aware, RPM-throttled, no cooldown retry — the user is waiting) → `{suggestion: {ministry(null unless verbatim in MINISTRIES), event, rationale}}`; ExtractionLog(kind:"suggestion") success AND failure; 429 quota / 502 unusable answer. Never writes to line items — the human applies via the claim PATCH |
-| `/api/reimbursements/[id]/pdf` | POST | gate: ≥1 active row, all active verified (400 else) → generateClaimPdf (packet appends only receipts with ≥1 non-excluded row) → claim=generated, receipts=processed → returns application/pdf. Re-POST on generated claim re-downloads |
+| `/api/reimbursements/[id]/pdf` | POST | gate: ≥1 active row, all active verified (400 else) → mint `publicToken` if absent (24 random bytes base64url; stable thereafter) → generateClaimPdf (packet appends only receipts with ≥1 non-excluded row; QR self-link stamp on each form page when `PUBLIC_BASE_URL` is set) → packet saved to `generated/<userId>/<claimId>.pdf` → claim=generated (+publicToken), receipts=processed → returns application/pdf. Re-POST on generated claim regenerates + re-downloads |
+| `/c/[token]` | GET | **no auth — the QR capability link.** The unguessable `publicToken` is the credential; serves the LATEST stored packet (`generated/<userId>/<claimId>.pdf`, overwritten on every generation) inline with `Cache-Control: no-store`. Unknown/malformed token or missing file → plain 404. The one deliberate exception to the requireUserId rule |
 | `/api/reimbursements/[id]/receipts` | POST | `{receiptIds[], manual?}` → add receipts to a DRAFT claim (409 generated; 409 if any receipt is already on it; 404 foreign/unknown) → same extraction pipeline as create (read failure → blank manual-entry row; quota all-or-nothing; `manual:true` skips AI; ONE line item per receipt appended after existing sortOrders, inheriting the claim's ministry/event when the claim is in single-ministry mode; Receipt extraction fields stamped) → AuditEvent(add-receipt) + ExtractionLog per call + totalCents recompute. Returns `{ok, totalCents}` or NDJSON progress per Accept header |
 | `/api/reimbursements/[id]/receipts/[receiptId]` | PATCH | manual entry for a failed-extraction placeholder: `{merchant, purchaseDate, totalAmount, refundAmount, summary}` (dollars) → draft only (409); receipt must be on the claim (404) with exactly ONE un-split row (409 else) → stamps Receipt + fills the row (composed description, amount = total − refund; still unverified, original* stay NULL) → AuditEvent(manual-entry) + totalCents recompute |
 | | DELETE | draft only (409); refuses the last receipt (409 — discard the claim instead); deletes the receipt's line items + join row (receipt returns to Shoebox — status never left `unassigned`); AuditEvent(remove-receipt); recomputes totalCents |
@@ -200,9 +204,14 @@ review screen's "＋ Add receipts" dialog) runs the same extraction pipeline via
 `src/lib/claims.ts` and appends the rows, re-checking that the claim is still a draft after
 the (possibly slow) extraction before writing.
 
-**PDF**: gate check → read receipt files → `generateClaimPdf({requesterName, requesterAddress,
-dateString(MM/DD/YYYY), items(active only), receipts, templateBytes})` → transaction: claim
-generated + receipts processed → stream bytes.
+**PDF**: gate check → read receipt files → mint/reuse `publicToken` →
+`generateClaimPdf({requesterName, requesterAddress, dateString(MM/DD/YYYY), items(active only),
+receipts, templateBytes, selfLinkUrl?})` (selfLinkUrl = `<PUBLIC_BASE_URL>/c/<token>`, omitted
+when PUBLIC_BASE_URL unset → no QR stamp) → `saveGeneratedPdf` overwrites
+`generated/<userId>/<claimId>.pdf` → transaction: claim generated (+publicToken) + receipts
+processed → stream bytes. The QR stamp (`src/lib/pdf/qr.ts`) is drawn post-flatten as vector
+rects in the blank top-right corner of every form page (title box ends x≈522pt / y≈738pt;
+stamp is 60pt at 18pt/16pt from the right/top edges, caption beneath).
 
 ## PDF AcroForm field names (the contract with assets/cfcc-form-template.pdf)
 
@@ -242,6 +251,7 @@ through `configValue()`; add new ones the same way.
 | `DATABASE_URL` | `file:./data/numbers.db` dev; `file:/data/numbers.db` in image (read by Prisma, not overridable via config.json) |
 | `DATA_DIR` | upload root; `./data` dev, `/data` in image. Bootstrap-only (locates `config.json`), so it must come from the real environment |
 | `AUTH_SECRET` | signs the session cookie — required |
+| `PUBLIC_BASE_URL` | externally-reachable origin (e.g. `https://numbers.example.org`); enables the QR self-link stamp on generated PDFs (`<base>/c/<publicToken>`). Unset → PDFs carry no stamp (the /c route still works if a token was ever minted) |
 | `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID` (+optional `FIREBASE_APP_ID`) | Firebase web config; Google button rendered only if all three present. Client-safe values, relayed at runtime (not NEXT_PUBLIC_*, so one Docker image works everywhere) |
 | `AI_PROVIDER` (`openrouter` default, or `google`) | which extraction backend to call |
 | `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (default `google/gemini-3.1-flash-lite`) | extraction via OpenRouter |

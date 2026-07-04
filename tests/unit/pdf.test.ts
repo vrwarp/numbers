@@ -189,6 +189,38 @@ describe("generateClaimPdf (official CFCC AcroForm template)", () => {
       generateClaimPdf({ ...baseInput(), templateBytes: new Uint8Array(), items: items(1), receipts: [] })
     ).rejects.toThrow(/template/i);
   });
+
+  it("stamps the QR self-link (with caption) on EVERY form page when selfLinkUrl is set", async () => {
+    const bytes = await generateClaimPdf({
+      ...baseInput(),
+      items: items(15), // two form pages
+      receipts: [],
+      selfLinkUrl: "https://numbers.example.org/c/AbC123xyz_-AbC123xyz_-AbC123xyz_",
+    });
+    const text = pdfVisibleText(bytes);
+    // Caption is drawn text; it appears once per form page.
+    expect(text.match(/Scan for digital copy/g)).toHaveLength(2);
+  });
+
+  it("omits the stamp when selfLinkUrl is not provided", async () => {
+    const bytes = await generateClaimPdf({ ...baseInput(), items: items(1), receipts: [] });
+    expect(pdfVisibleText(bytes)).not.toContain("Scan for digital copy");
+  });
+});
+
+describe("qrMatrix (QR stamp geometry)", () => {
+  it("emits a square matrix with the three finder patterns", async () => {
+    const { qrMatrix } = await import("@/lib/pdf/qr");
+    const m = qrMatrix("https://numbers.example.org/c/AbC123xyz_-AbC123xyz_-AbC123xyz_");
+    const n = m.length;
+    expect(n).toBeGreaterThanOrEqual(21); // ≥ version 1
+    expect(n % 2).toBe(1); // QR sizes are odd (4v+17)
+    for (const row of m) expect(row).toHaveLength(n);
+    // Finder pattern corners (top-left, top-right, bottom-left) are dark.
+    for (const [r, c] of [[0, 0], [0, n - 1], [n - 1, 0]] as const) {
+      expect(m[r][c]).toBe(true);
+    }
+  });
 });
 
 describe("fittingFontSize (description column auto-shrink)", () => {

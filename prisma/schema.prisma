@@ -76,6 +76,12 @@ model Reimbursement {
   // The user's one-sentence "what is this claim for", kept both as the input
   // to the ministry-suggestion AI call and as a human-readable claim note.
   claimDescription String  @default("")
+  // Capability token behind the QR stamp on the generated PDF: GET /c/<token>
+  // serves the latest generated packet with no sign-in (the unguessable token
+  // IS the credential — never expose the claim id in the link). Minted at
+  // first PDF generation and kept stable across revert/re-generate cycles so
+  // a printed QR always resolves to the newest version.
+  publicToken String? @unique
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt
   lineItems   LineItem[]
