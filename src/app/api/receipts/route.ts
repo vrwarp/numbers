@@ -70,13 +70,6 @@ export async function POST(req: NextRequest) {
 
       const id = createId();
       const filePath = await saveReceiptFile(userId, `${id}.${ext}`, data);
-      // Keep the pristine upload beside the compressed working copy: the first
-      // rotate/crop re-derives from it at full resolution instead of the
-      // ~100 KB file, and the editor's Reset restores it. originalFilePath
-      // stays NULL until an edit actually happens (NULL = "never edited").
-      if (ext !== "pdf") {
-        await saveReceiptFile(userId, `${id}.orig.${ext}`, raw);
-      }
       const receipt = await prisma.receipt.create({
         data: { id, userId, filePath, mimeType, originalName: file.name, sizeBytes: data.length, note },
         select: { id: true, originalName: true, mimeType: true, sizeBytes: true, status: true, note: true, createdAt: true },

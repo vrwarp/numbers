@@ -56,16 +56,21 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   upload-note-confirm, upload-note-cancel, receipt-note-<receiptId>,
   claim-link-<receiptId>-<claimId>, split-first-amount, split-confirm, profile-name,
   profile-address, profile-save, dev-email, dev-name, dev-signin,
-  edit-image-<receiptId>, image-editor-stage, crop-box, rotate-left, rotate-right,
+  edit-image-<receiptId>, edit-image-pending-<n>, image-editor-stage, crop-box,
+  rotate-left, rotate-right,
   crop-reset, image-editor-save, image-editor-cancel, add-receipts, add-receipts-dialog,
   add-receipts-file-input, add-receipts-upload, add-receipts-status, add-receipts-confirm,
   add-receipts-cancel`.
-- Uploading is immediate, but a describe dialog then steps through each uploaded receipt
-  (preview + `upload-note` + Save/Skip/Skip-all, testids `upload-note-confirm` /
-  `upload-note-cancel` / `upload-note-skip-all` / `upload-preview`; image receipts also get
-  the `edit-image-<receiptId>` rotate/crop button, reusing ReceiptImageEditor without a
-  reimbursementId). Tests must go through `uploadReceipts()` in `tests/e2e/helpers.ts`,
-  which dismisses the queue and takes an optional note (applied to the first receipt).
+- Picking files does NOT upload immediately: a prepare dialog steps through each picked file
+  first (local preview + `upload-note` + Save/Skip/Skip-all, testids `upload-note-confirm` /
+  `upload-note-cancel` / `upload-note-skip-all` / `upload-preview`), and dismissing it is
+  what uploads that file (note rides along in the POST). Image files get the
+  `edit-image-pending-<n>` rotate/crop button, reusing ReceiptImageEditor in local mode
+  (`onApply`, no receiptId): the transform renders on-device from the full-resolution
+  original (`src/lib/image-client.ts`) and the upload is downscaled to the server's 1600px
+  cap — the original photo never leaves the device. Tests must go through `uploadReceipts()`
+  in `tests/e2e/helpers.ts`, which drains the queue (optional note on the first file) and
+  then waits for the cards.
 - Review rows also carry `data-description={item.description}` — e2e matches rows by it
   because descriptions live in `<textarea>`/`<input>` values, which Playwright `hasText`
   CANNOT see. Composed descriptions are long, so match with the substring attribute selector

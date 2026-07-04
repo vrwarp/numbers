@@ -29,8 +29,9 @@ src/lib/storage.ts              saveReceiptFile/readStoredFile/deleteStoredFile;
                                 traversal outside DATA_DIR
 src/lib/image.ts                compressReceiptImage: rotate() → ≤1600px → jpeg q80→40 ladder
                                 → 1100px fallback; target ~100 KB. isSupportedUpload().
-                                transformReceiptImage: 90° rotation + fractional crop (post-
-                                rotation frame) → same ladder; ImageTransformError → 400
+                                transformReceiptImage: autoOrient → 90° rotation + fractional
+                                crop (post-rotation frame) → same ladder; ImageTransformError
+                                → 400
 src/lib/audit.ts                computeLineItemChanges(before, patch) → {field:{from,to}}
 src/lib/claims.ts               shared claim-building machinery (SERVER ONLY): extractClaimRows
                                 (per-receipt extraction → line-item/receipt-update row data; a
@@ -66,9 +67,19 @@ src/lib/pdf/generate.ts         generateClaimPdf(input): per form page load temp
                                 receipts (images on Letter pages w/ label, PDFs merged).
                                 Also splitAddress()
 src/lib/pdf/loadTemplate.ts     TEMPLATE_PDF env override, else assets/cfcc-form-template.pdf
+src/lib/image-client.ts         DOM-only canvas helpers for the pre-upload prepare step:
+                                renderTransformedImage (rotate/crop at native resolution,
+                                crop fractions on the ROTATED frame — same contract as
+                                transformReceiptImage) and prepareImageUpload (downscale to
+                                the 1600px cap; undecodable files fall through untouched)
 src/components/NavBar.tsx       top nav (client); hidden when signed out
 src/components/Shoebox.tsx      upload input, selection bar, generate-claim POST;
-                                per-card expand button opens ReceiptViewer
+                                per-card expand button opens ReceiptViewer. Picked files
+                                queue through a PREPARE dialog (local preview + optional
+                                note + client-side rotate/crop on the full-res original);
+                                Save/Skip uploads the downscaled result — the original
+                                photo never leaves the device (beforeunload warns while
+                                the queue is non-empty)
 src/components/ReceiptGrid.tsx  the selectable receipt-card grid (Shoebox + AddReceiptsDialog);
                                 exports ReceiptSummary (the GET /api/receipts row shape)
 src/components/AddReceiptsDialog.tsx  review-screen modal: pick Shoebox receipts / upload new
@@ -79,13 +90,16 @@ src/components/ReceiptViewer.tsx  full-screen viewer (client): image zoom/pan (w
                                 ReceiptImageEditor for unassigned photos, cache-busts on save
 src/components/ReviewClaim.tsx  the review screen (largest component): groups, LineItemRow,
                                 SplitDialog, optimistic PATCH, PDF download
-src/components/ReceiptImageEditor.tsx  rotate/crop dialog (image receipts, from draft-claim
-                                review or the Shoebox viewer): CSS-rotated preview + draggable
-                                crop box → POST /api/receipts/[id]/edit; Reset clears the unsaved
-                                rotate/crop and, when an earlier edit exists, STAGES a restore
-                                that previews the read-only original (file?original=1) — nothing
-                                is written until Save (POST {restore:true}), Cancel discards it;
-                                parent cache-busts the <img> after
+src/components/ReceiptImageEditor.tsx  rotate/crop dialog (image receipts): CSS-rotated
+                                preview + draggable crop box. Stored-receipt mode (draft-claim
+                                review, Shoebox viewer) POSTs /api/receipts/[id]/edit; Reset
+                                clears the unsaved rotate/crop and, when an earlier edit
+                                exists, STAGES a restore that previews the read-only original
+                                (file?original=1) — nothing is written until Save (POST
+                                {restore:true}), Cancel discards it; parent cache-busts the
+                                <img> after. Local mode (Shoebox prepare step: onApply, no
+                                receiptId) hands the transform back for an on-device canvas
+                                render instead — no restore UI
 src/components/ProfileForm.tsx  name + mailing address form
 src/app/layout.tsx              shell; reads session; renders NavBar
 src/app/page.tsx                home = the Shoebox (server component: auth check + profile
@@ -117,13 +131,13 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | | DELETE | clear session cookie (sign out) |
 | `/api/auth/test-login` | POST | `{email,name}` → upsert + cookie; 404 unless AUTH_TEST_MODE=1 |
 | `/api/receipts` | GET | list own receipts (+ `claims: {id,status,createdAt}[]` each receipt is on); `?status=` filter |
-| | POST | multipart field `files` (+ optional `note` text stored on every receipt in the batch — API convenience; the UI's describe step applies notes per receipt via PATCH after upload); images → compressReceiptImage AND the pristine upload bytes saved beside it as the `<id>.orig.<ext>` sidecar (`originalFilePath` stays NULL until an edit registers it), pdf → as-is (no sidecar); creates Receipt(unassigned); 415 unsupported, 400 empty |
+| | POST | multipart field `files` (+ optional `note` text stored on every receipt in the batch — the Shoebox prepare step uploads one file per POST with its note); images → compressReceiptImage (the Shoebox client already downscaled to the 1600px cap; the route still enforces its own budget), pdf → as-is; creates Receipt(unassigned); 415 unsupported, 400 empty |
 | `/api/receipts/[id]` | PATCH | `{note}` (≤300 chars) — user metadata, editable in any state, no AuditEvent (not part of the claim trail) |
-| | DELETE | only if not in any claim (409 otherwise); removes file + pristine sidecar (whether or not an edit registered it) + any cached PDF preview |
+| | DELETE | only if not in any claim (409 otherwise); removes file + preserved original + any cached PDF preview |
 | `/api/receipts/[id]/file` | GET | serve stored bytes, owner only; `?original=1` serves the preserved pristine upload (sidecar), falling back to the current file |
 | `/api/receipts/[id]/preview` | GET | PDF receipts only: serve a raster JPEG of the PDF (mobile browsers won't render an embedded PDF); rendered once via `src/lib/pdf/preview.ts` and cached beside the original as `<id>.preview.jpg`. 400 for non-PDF receipts |
 | `/api/receipts/[id]/edit` | GET | `→ {hasOriginal}` — whether a pristine upload is preserved to restore |
-| | POST | `{rotate: 0|90|180|270, crop?: {left,top,width,height} fractions of the ROTATED frame, restore?, reimbursementId?}` → sharp autoOrient→rotate→crop → compression ladder → overwrite stored file + sizeBytes. Source: the FIRST edit prefers the full-resolution pristine sidecar written at upload (fractions map 1:1 — the stored file is a pure downscale; legacy receipts without one fall back to the current file and copy it to `<id>.orig.<ext>` now); later edits stack on the current file; `restore:true` reads the preserved original (rotate/crop still apply on top). Either way `originalFilePath` is registered on the first edit. `{restore:true}` with no transform re-compresses the original back into the working file. AuditEvent(edit-receipt-image / restore-receipt-image). 400 PDFs/no-op/too-small crop/nothing-to-restore; 409 while receipt is `processed` (a generated claim's packet must re-download unchanged) |
+| | POST | `{rotate: 0|90|180|270, crop?: {left,top,width,height} fractions of the ROTATED frame, restore?, reimbursementId?}` → sharp rotate→crop → compression ladder → overwrite stored file + sizeBytes. Source is the current file, or the preserved original when `restore:true` (rotate/crop still apply on top). A normal first edit copies the pristine upload to `<id>.orig.<ext>` (`originalFilePath`); `{restore:true}` with no transform is a plain restore. AuditEvent(edit-receipt-image / restore-receipt-image). 400 PDFs/no-op/too-small crop/nothing-to-restore; 409 while receipt is `processed` (a generated claim's packet must re-download unchanged) |
 | `/api/reimbursements` | GET | list own claims with counts |
 | | POST | `{receiptIds[], manual?}` → validates ownership (404 else; ANY status is allowed — a receipt may go on many claims and is re-extracted each time) → extractReceipts (one call per receipt) → create draft + ONE line item per receipt (composed description, amount = total − refunds, original* snapshot) + stamp Receipt merchant/purchaseDate/extracted*Cents + one ExtractionLog per call. A read failure degrades to a BLANK manual-entry row (no receiptUpdate, original* NULL) instead of failing the batch; only a quota/rate-limit error is all-or-nothing (log ALL + 429, no claim). `manual:true` skips AI entirely → all-blank rows, no ExtractionLogs (the rate-limit escape hatch) |
 | `/api/reimbursements/[id]` | GET | claim + lineItems(sortOrder asc) + receipts join |
@@ -142,7 +156,9 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 
 ## Request flows (condensed)
 
-**Upload**: FormData → isSupportedUpload → (image? compress to jpeg) → saveReceiptFile
+**Upload**: pick files → Shoebox prepare dialog per file (client-side: optional rotate/crop
+rendered from the full-res original, then downscale to ≤1600px — the original never uploads)
+→ Save/Skip POSTs FormData → isSupportedUpload → (image? compress to jpeg) → saveReceiptFile
 `uploads/<userId>/<cuid>.<jpg|pdf>` → prisma.receipt.create.
 
 **Claim creation**: receiptIds → ownership/status checks → `extractReceipts` (mock if

@@ -51,8 +51,9 @@ const HANDLES: { mode: DragMode; className: string }[] = [
 
 /**
  * Rotate / crop dialog for a receipt photo. Rotation previews via CSS; the
- * crop box is drawn on the ROTATED frame, so the fractions sent to the server
- * (which also rotates first) map 1:1 to what the user saw.
+ * crop box is drawn on the ROTATED frame, so the fractions map 1:1 to what the
+ * user saw — whether the transform is applied by the server (stored receipts)
+ * or client-side on the local file (the pre-upload prepare step).
  */
 export default function ReceiptImageEditor({
   receiptId,
@@ -60,14 +61,21 @@ export default function ReceiptImageEditor({
   src,
   onClose,
   onSaved,
+  onApply,
 }: {
-  receiptId: string;
+  /** Stored-receipt mode: Save POSTs the transform to /api/receipts/[id]/edit.
+   *  Omit in local mode (with onApply). */
+  receiptId?: string;
   /** Claim the edit is made from, for the audit trail. Omit outside a claim
-   *  (e.g. the post-upload describe step or the Shoebox viewer). */
+   *  (e.g. the Shoebox viewer). */
   reimbursementId?: string;
   src: string;
   onClose: () => void;
   onSaved: () => void;
+  /** Local mode (pre-upload): Save hands the transform back instead of POSTing —
+   *  the caller renders it client-side. Restore-original is unavailable (nothing
+   *  is stored yet); a thrown error becomes the dialog's error message. */
+  onApply?: (transform: { rotate: 0 | 90 | 180 | 270; crop?: Crop }) => Promise<void> | void;
 }) {
   const measureRef = useRef<HTMLDivElement>(null);
   const [stageMaxWidth, setStageMaxWidth] = useState(0);
@@ -94,6 +102,7 @@ export default function ReceiptImageEditor({
   }, []);
 
   useEffect(() => {
+    if (!receiptId) return; // local mode: nothing stored, nothing to restore
     let alive = true;
     fetch(`/api/receipts/${receiptId}/edit`)
       .then((r) => (r.ok ? r.json() : null))
@@ -154,6 +163,17 @@ export default function ReceiptImageEditor({
   async function save() {
     setBusy(true);
     setError(null);
+    if (onApply) {
+      try {
+        await onApply({ rotate, crop: isFullCrop ? undefined : crop });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Image edit failed");
+        setBusy(false);
+        return;
+      }
+      onSaved();
+      return;
+    }
     const res = await fetch(`/api/receipts/${receiptId}/edit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -182,7 +202,9 @@ export default function ReceiptImageEditor({
         <p className="mt-1 text-sm text-stone-500">
           {restoring
             ? "Showing the originally uploaded image. Save to keep it, or Cancel to leave the current one."
-            : "Straighten the photo and drag the box to trim away the background. Saving replaces the stored image."}
+            : onApply
+              ? "Straighten the photo and drag the box to trim away the background. The edit happens on this device before anything uploads."
+              : "Straighten the photo and drag the box to trim away the background. Saving replaces the stored image."}
         </p>
 
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">

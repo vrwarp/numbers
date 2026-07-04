@@ -4,7 +4,7 @@ import path from "path";
 import sharp from "sharp";
 import { makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
 
-/** Files stored for a receipt id anywhere under the e2e upload dir. */
+/** Basenames of files stored for a receipt id anywhere under the e2e upload dir. */
 async function storedFilesFor(receiptId: string): Promise<string[]> {
   const uploads = path.join(process.cwd(), ".e2e-data", "uploads");
   const entries = await fs.readdir(uploads, { recursive: true }).catch(() => [] as string[]);
@@ -115,63 +115,56 @@ test("rotate and crop a receipt image from the claim review screen", async ({ pa
   ).toBe(409);
 });
 
-test("the first crop is cut from the full-resolution upload, not the compressed copy", async ({
+test("upload-time crop happens on-device at full resolution; the original never reaches the server", async ({
   page,
 }, testInfo) => {
-  await signInAs(page, `hires-${testInfo.project.name}@example.com`, "HiRes");
+  await signInAs(page, `clientedit-${testInfo.project.name}@example.com`, "ClientEdit");
 
-  // A photo well above the 1600px storage cap: 2000×2600.
+  // A photo well above the 1600px upload cap: 2000×2600.
   const big = await sharp({
     create: { width: 2000, height: 2600, channels: 3, background: { r: 250, g: 250, b: 245 } },
   })
     .jpeg({ quality: 90 })
     .toBuffer();
-  const upload = await page.request.post("/api/receipts", {
-    multipart: { files: { name: "big.jpg", mimeType: "image/jpeg", buffer: big } },
-  });
-  expect(upload.status()).toBe(201);
-  const receiptId = (await upload.json()).receipts[0].id;
+  await page
+    .getByTestId("file-input")
+    .setInputFiles({ name: "big.jpg", mimeType: "image/jpeg", buffer: big });
 
-  // The working copy is compressed (long edge capped at 1600) while the
-  // pristine upload sits beside it as a sidecar; the DB flag stays unset
-  // until an edit actually happens, so no reset is offered yet.
-  const stored = await storedImageMeta(page, receiptId);
-  expect(stored.height).toBe(1600);
-  expect(stored.width!).toBeLessThan(1600);
-  expect((await storedFilesFor(receiptId)).sort()).toEqual([
-    `${receiptId}.jpg`,
-    `${receiptId}.orig.jpg`,
-  ]);
+  // The prepare dialog opens before anything uploads; crop the top half by
+  // dragging the bottom-center handle of the crop box up to the middle.
+  await expect(page.getByTestId("upload-note")).toBeVisible();
+  await page.locator('[data-testid^="edit-image-pending-"]').click();
+  const stage = page.getByTestId("image-editor-stage");
+  await expect(stage).toBeVisible();
+  const box = (await page.getByTestId("crop-box").boundingBox())!;
+  const south = page.getByTestId("crop-box").locator("span").nth(5); // "s" handle
+  const hb = (await south.boundingBox())!;
+  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2 - box.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await page.getByTestId("image-editor-save").click();
+  await expect(stage).toBeHidden();
+
+  // Skip the note — this is what actually uploads the (edited) file.
+  await page.getByTestId("upload-note-cancel").click();
+  await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(1, { timeout: 20_000 });
+  const receiptId = (await (await page.request.get("/api/receipts")).json()).receipts[0].id;
+
+  // The crop was cut from the 2000px-wide original on the client, so the
+  // stored image gets the full 1600px upload budget. Cropping an already
+  // stored copy could never exceed its 1231px width (2000×2600 in 1600).
+  const meta = await storedImageMeta(page, receiptId);
+  expect(meta.width).toBe(1600);
+  expect(meta.height).toBeGreaterThan(985); // ≈1040, ± crop-drag slop
+  expect(meta.height).toBeLessThan(1095);
+
+  // Only the compressed working file exists server-side — no full-resolution
+  // original, no sidecar (that appears only after a post-upload edit).
+  expect(await storedFilesFor(receiptId)).toEqual([`${receiptId}.jpg`]);
   expect(
     (await (await page.request.get(`/api/receipts/${receiptId}/edit`)).json()).hasOriginal
   ).toBe(false);
-
-  // Crop the top half. Re-derived from the 2000×2600 original, the 2000×1300
-  // crop gets the full 1600px budget — cropping the stored 1231px-wide file
-  // could never exceed its own width.
-  const cropRes = await page.request.post(`/api/receipts/${receiptId}/edit`, {
-    data: { rotate: 0, crop: { left: 0, top: 0, width: 1, height: 0.5 } },
-  });
-  expect(cropRes.status()).toBe(200);
-  const cropped = await storedImageMeta(page, receiptId);
-  expect(cropped.width).toBe(1600);
-  expect(cropped.height).toBe(1040);
-
-  // The upload-time sidecar now backs the reset; restoring re-compresses the
-  // pristine upload back to the original working dimensions.
-  expect(
-    (await (await page.request.get(`/api/receipts/${receiptId}/edit`)).json()).hasOriginal
-  ).toBe(true);
-  expect(
-    (await page.request.post(`/api/receipts/${receiptId}/edit`, { data: { restore: true } })).status()
-  ).toBe(200);
-  const restored = await storedImageMeta(page, receiptId);
-  expect(restored.width).toBe(stored.width);
-  expect(restored.height).toBe(stored.height);
-
-  // Deleting the receipt removes the working file AND the sidecar.
-  expect((await page.request.delete(`/api/receipts/${receiptId}`)).status()).toBe(200);
-  expect(await storedFilesFor(receiptId)).toEqual([]);
 });
 
 test("PDF receipts cannot be rotated or cropped", async ({ page }, testInfo) => {
