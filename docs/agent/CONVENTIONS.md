@@ -52,9 +52,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   claim-total, verify-progress, row-<id>, verify-<id>, desc-<id>, ministry-<id>,
   amount-<id>, split-<id>, exclude-<id>, subtotal-<receiptId>, group-<receiptId>,
   derivation-<receiptId>, remove-receipt-<receiptId>, revert-claim, upload-note,
-  receipt-note-<receiptId>, claim-link-<receiptId>-<claimId>, split-first-amount,
-  split-confirm, profile-name, profile-address, profile-save, dev-email, dev-name,
-  dev-signin`.
+  upload-note-confirm, upload-note-cancel, receipt-note-<receiptId>,
+  claim-link-<receiptId>-<claimId>, split-first-amount, split-confirm, profile-name,
+  profile-address, profile-save, dev-email, dev-name, dev-signin`.
+- Picking files does NOT upload directly — it opens the describe-and-upload dialog
+  (`upload-note` + confirm/cancel). Tests must go through `uploadReceipts()` in
+  `tests/e2e/helpers.ts`, which drives the dialog and takes an optional note.
 - Review rows also carry `data-description={item.description}` — e2e matches rows by it
   because descriptions live in `<textarea>`/`<input>` values, which Playwright `hasText`
   CANNOT see. Composed descriptions are long, so match with the substring attribute selector

@@ -69,10 +69,15 @@ export async function signInAs(page: Page, email: string, name = "Test User"): P
   await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
 }
 
-/** Upload fixture files through the Shoebox file input and wait for the cards. */
-export async function uploadReceipts(page: Page, filePaths: string[]): Promise<void> {
+/** Upload fixture files through the Shoebox file input, driving the
+ *  describe-and-upload dialog (optionally filling the description), and wait
+ *  for the cards. */
+export async function uploadReceipts(page: Page, filePaths: string[], note?: string): Promise<void> {
   const before = await page.locator('[data-testid^="receipt-card-"]').count();
   await page.getByTestId("file-input").setInputFiles(filePaths);
+  await expect(page.getByTestId("upload-note")).toBeVisible();
+  if (note) await page.getByTestId("upload-note").fill(note);
+  await page.getByTestId("upload-note-confirm").click();
   await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(before + filePaths.length, {
     timeout: 20_000,
   });

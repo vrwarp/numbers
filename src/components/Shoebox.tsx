@@ -26,6 +26,8 @@ export default function Shoebox() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [receipts, setReceipts] = useState<Receipt[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Files picked but not yet uploaded — the describe-and-upload dialog is open.
+  const [pendingFiles, setPendingFiles] = useState<File[] | null>(null);
   const [uploadNote, setUploadNote] = useState("");
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -40,23 +42,33 @@ export default function Shoebox() {
     load();
   }, [load]);
 
-  async function onFilesPicked(files: FileList | null) {
+  function onFilesPicked(files: FileList | null) {
     if (!files || files.length === 0) return;
+    // Stash the picked files and ask for an optional description first —
+    // the upload happens when the dialog is confirmed.
+    setPendingFiles(Array.from(files));
+    setUploadNote("");
+    setError(null);
+    if (fileInput.current) fileInput.current.value = "";
+  }
+
+  async function confirmUpload() {
+    if (!pendingFiles || pendingFiles.length === 0) return;
     setUploading(true);
     setError(null);
     try {
       const form = new FormData();
-      for (const f of Array.from(files)) form.append("files", f);
+      for (const f of pendingFiles) form.append("files", f);
       if (uploadNote.trim()) form.append("note", uploadNote.trim());
       const res = await fetch("/api/receipts", { method: "POST", body: form });
       if (!res.ok) throw new Error((await res.json()).error ?? "Upload failed");
+      setPendingFiles(null);
       setUploadNote("");
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setUploading(false);
-      if (fileInput.current) fileInput.current.value = "";
     }
   }
 
@@ -121,7 +133,7 @@ export default function Shoebox() {
             Drop receipts here as you go. Select some when you&apos;re ready to file a claim.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div>
           <input
             ref={fileInput}
             type="file"
@@ -130,15 +142,6 @@ export default function Shoebox() {
             className="hidden"
             data-testid="file-input"
             onChange={(e) => onFilesPicked(e.target.files)}
-          />
-          <input
-            className="input w-56"
-            placeholder="Optional description…"
-            value={uploadNote}
-            onChange={(e) => setUploadNote(e.target.value)}
-            maxLength={300}
-            aria-label="Optional description for this upload"
-            data-testid="upload-note"
           />
           <button
             className="btn-primary"
@@ -208,6 +211,60 @@ export default function Shoebox() {
             </details>
           )}
         </>
+      )}
+
+      {pendingFiles && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal
+        >
+          <div className="card w-full max-w-sm p-6">
+            <h2 className="font-bold">
+              Upload {pendingFiles.length} receipt{pendingFiles.length > 1 ? "s" : ""}
+            </h2>
+            <p className="mt-1 truncate text-sm text-stone-500">
+              {pendingFiles.map((f) => f.name).join(", ")}
+            </p>
+            <label className="mt-4 block text-sm font-medium">
+              Description (optional)
+              <input
+                className="input mt-1"
+                placeholder="e.g. VBS craft supplies"
+                value={uploadNote}
+                onChange={(e) => setUploadNote(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") confirmUpload();
+                }}
+                maxLength={300}
+                autoFocus
+                data-testid="upload-note"
+              />
+            </label>
+            <p className="mt-2 text-xs text-stone-400">
+              {pendingFiles.length > 1 ? "Applies to all files in this upload; you" : "You"} can
+              edit it on the card later.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                className="btn-secondary"
+                onClick={() => setPendingFiles(null)}
+                disabled={uploading}
+                data-testid="upload-note-cancel"
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                onClick={confirmUpload}
+                disabled={uploading}
+                data-testid="upload-note-confirm"
+              >
+                {uploading ? "Uploading…" : "⬆ Upload"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
