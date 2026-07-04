@@ -60,10 +60,10 @@ export default function ReceiptGrid({
           >
             {selectable && (
               <div
-                className={`absolute left-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 text-xs font-bold ${
+                className={`absolute left-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold shadow ${
                   isSelected
-                    ? "border-indigo-600 bg-indigo-600 text-white"
-                    : "border-stone-300 bg-white text-transparent"
+                    ? "border-indigo-600 bg-indigo-600/80 text-white"
+                    : "border-stone-300 bg-white/80 text-transparent"
                 }`}
                 aria-checked={isSelected}
                 role="checkbox"
@@ -73,7 +73,7 @@ export default function ReceiptGrid({
             )}
             {onDelete && (
               <button
-                className="absolute right-2 top-2 z-10 rounded-full bg-white/90 px-2 py-1 text-xs text-stone-500 shadow hover:text-red-600"
+                className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-xs text-stone-500 shadow hover:text-red-600"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(r.id);
@@ -100,7 +100,7 @@ export default function ReceiptGrid({
               )}
               {onView && (
                 <button
-                  className="absolute bottom-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-stone-600 shadow hover:text-indigo-600"
+                  className="absolute bottom-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-stone-600 shadow hover:text-indigo-600"
                   onClick={(e) => {
                     e.stopPropagation();
                     onView(r);
