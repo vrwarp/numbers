@@ -21,7 +21,7 @@ npx playwright test tests/e2e/journey.spec.ts --project=chromium-desktop   # one
 | `money.test.ts` | parse/format round-trips, refunds, garbage rejection, subtotals |
 | `paginate.test.ts` | 13-row page splits, order preservation, `[] → [[]]` |
 | `ai-parse.test.ts` | fence/prose-tolerant JSON object parsing, refund default/negative rejection, date format, unknown-receipt-id guard, mock fixtures, composeDescription |
-| `image.test.ts` | ~100 KB compression of a synthetic noisy photo, no-upscale, garbage rejection |
+| `image.test.ts` | ~100 KB compression of a synthetic noisy photo, no-upscale, garbage rejection; transformReceiptImage rotation/crop (crop is post-rotation), min-size rejection |
 | `pdf.test.ts` | page counts (13/page, receipts appended, pdf-merge), field values actually drawn (via `pdfVisibleText`), flatten removes fields, splitAddress |
 | `audit.test.ts` | field-diff computation |
 | `extract-meta.test.ts` | extraction metadata for telemetry; ExtractionError carries meta |
@@ -37,9 +37,9 @@ hex strings so you can assert on rendered PDF text. pdf tests load the real temp
 `next start -p 3100` with `AI_MOCK=1 AUTH_TEST_MODE=1`. `workers: 1` (shared SQLite).
 `reuseExistingServer` when not CI.
 
-**Projects** (matrix): `chromium-desktop`, `webkit-desktop` run `journey.spec.ts` +
-`security.spec.ts`; `chromium-mobile` (Pixel 7), `webkit-mobile` (iPhone 14) run
-`mobile.spec.ts` only. Engines filtered by `E2E_BROWSERS`.
+**Projects** (matrix): `chromium-desktop`, `webkit-desktop` run every non-mobile spec
+(`journey.spec.ts`, `security.spec.ts`, `image-edit.spec.ts`); `chromium-mobile` (Pixel 7),
+`webkit-mobile` (iPhone 14) run `mobile.spec.ts` only. Engines filtered by `E2E_BROWSERS`.
 
 **Isolation rule**: all projects share one server+db per run, so every test signs in as
 `` `name-${testInfo.project.name}@example.com` `` — keep doing this in new tests.
@@ -65,8 +65,10 @@ exclusion event). If you change mock values, update these expectations coherentl
 - `journey.spec.ts` — full happy path + telemetry + a 14-receipt claim → 2 form pages + 14
   receipts = 16 PDF pages. Saves screenshots to `screenshots/` (gitignored).
 - `security.spec.ts` — 401s when signed out; full cross-tenant 404 sweep (receipts, claims,
-  files, PDFs, extraction logs, claim-from-foreign-receipt); delete/discard housekeeping;
-  API-level PDF verification gate.
+  files, PDFs, extraction logs, image edits, claim-from-foreign-receipt); delete/discard
+  housekeeping; API-level PDF verification gate.
+- `image-edit.spec.ts` — rotate via the review-screen dialog (stored dims swap), crop via the
+  API (fractions → pixels), audit trail, 409 freeze once generated, 400 for PDF receipts.
 - `mobile.spec.ts` — phone capture flow + manifest check.
 
 ## Failure modes seen before (check these first)

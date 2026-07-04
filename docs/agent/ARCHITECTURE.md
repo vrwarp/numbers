@@ -25,7 +25,9 @@ src/lib/money.ts                parseDollarsToCents, centsToDollarString, format
 src/lib/storage.ts              saveReceiptFile/readStoredFile/deleteStoredFile; blocks path
                                 traversal outside DATA_DIR
 src/lib/image.ts                compressReceiptImage: rotate() → ≤1600px → jpeg q80→40 ladder
-                                → 1100px fallback; target ~100 KB. isSupportedUpload()
+                                → 1100px fallback; target ~100 KB. isSupportedUpload().
+                                transformReceiptImage: 90° rotation + fractional crop (post-
+                                rotation frame) → same ladder; ImageTransformError → 400
 src/lib/audit.ts                computeLineItemChanges(before, patch) → {field:{from,to}}
 src/lib/ai/prompt.ts            buildExtractionPrompt() — THE prompt being tuned (one receipt
                                 per call; TRANSCRIPTION only: merchant/date/printed totals/
@@ -55,6 +57,9 @@ src/components/NavBar.tsx       top nav (client); hidden when signed out
 src/components/Shoebox.tsx      upload input, receipt grid, selection bar, generate-claim POST
 src/components/ReviewClaim.tsx  the review screen (largest component): groups, LineItemRow,
                                 SplitDialog, optimistic PATCH, PDF download
+src/components/ReceiptImageEditor.tsx  rotate/crop dialog (draft claims, image receipts):
+                                CSS-rotated preview + draggable crop box → POST
+                                /api/receipts/[id]/edit; parent cache-busts the <img> after
 src/components/ProfileForm.tsx  name + mailing address form
 src/app/layout.tsx              shell; reads session; renders NavBar
 src/app/page.tsx                dashboard (server component, direct Prisma)
@@ -84,6 +89,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/receipts/[id]` | PATCH | `{note}` (≤300 chars) — user metadata, editable in any state, no AuditEvent (not part of the claim trail) |
 | | DELETE | only if not in any claim (409 otherwise); removes file |
 | `/api/receipts/[id]/file` | GET | serve stored bytes, owner only |
+| `/api/receipts/[id]/edit` | POST | `{rotate: 0|90|180|270, crop?: {left,top,width,height} fractions of the ROTATED frame, reimbursementId?}` → sharp rotate→crop → compression ladder → overwrite stored file + sizeBytes; AuditEvent(edit-receipt-image). 400 PDFs/no-op/too-small crop; 409 while receipt is `processed` (a generated claim's packet must re-download unchanged) |
 | `/api/reimbursements` | GET | list own claims with counts |
 | | POST | `{receiptIds[]}` → validates ownership (404 else; ANY status is allowed — a receipt may go on many claims and is re-extracted each time) → extractReceipts (one call per receipt) → any failure: log ALL calls + 502, no claim; else create draft + ONE line item per receipt (composed description, amount = total − refunds, original* snapshot) + stamp Receipt merchant/purchaseDate/extracted*Cents + one ExtractionLog per call |
 | `/api/reimbursements/[id]` | GET | claim + lineItems(sortOrder asc) + receipts join |
