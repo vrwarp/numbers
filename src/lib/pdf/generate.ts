@@ -46,6 +46,54 @@ export interface ClaimPdfInput {
   templateBytes: Uint8Array;
 }
 
+/** Usable text box inside a field widget, after pdf-lib's border+padding inset. */
+interface FieldBounds {
+  width: number;
+  height: number;
+}
+
+// pdf-lib refuses to auto-size below 4pt; same floor for our best-effort fallback.
+const MIN_DESCRIPTION_FONT_SIZE = 4;
+
+/**
+ * Largest font size ≤ maxSize at which every wrapped line of `text` stays
+ * inside `bounds`. Mirrors pdf-lib's multiline appearance layout (greedy
+ * word wrap by measured width, line height = 1.2 × font height) so the size
+ * we pick matches what the renderer will actually clip against. A plain
+ * character-count cutoff mis-sizes ALL-CAPS descriptions, whose glyphs are
+ * far wider per character.
+ */
+export function fittingFontSize(
+  text: string,
+  font: PDFFont,
+  bounds: FieldBounds,
+  maxSize: number
+): number {
+  for (let size = maxSize; size > MIN_DESCRIPTION_FONT_SIZE; size--) {
+    if (wrappedTextFits(text, font, bounds, size)) return size;
+  }
+  return MIN_DESCRIPTION_FONT_SIZE;
+}
+
+function wrappedTextFits(text: string, font: PDFFont, bounds: FieldBounds, size: number): boolean {
+  let lines = 0;
+  for (const paragraph of text.split(/[\n\f\r]/)) {
+    lines += 1;
+    const words = paragraph.split(" ");
+    let remaining = bounds.width;
+    for (let i = 0; i < words.length; i++) {
+      const word = i < words.length - 1 ? `${words[i]} ` : words[i];
+      const wordWidth = font.widthOfTextAtSize(word, size);
+      remaining -= wordWidth;
+      if (remaining <= 0) {
+        lines += 1;
+        remaining = bounds.width - wordWidth;
+      }
+    }
+  }
+  return font.heightAtSize(size) * 1.2 * lines <= bounds.height;
+}
+
 export async function generateClaimPdf(input: ClaimPdfInput): Promise<Uint8Array> {
   if (!input.templateBytes?.length) {
     throw new Error("CFCC form template PDF is missing");
@@ -97,12 +145,34 @@ async function fillFormPage(
   setText("Mail check to address", addr1, 10);
   setText("Make check to address 2", addr2, 10);
 
+  // Composed descriptions ("Merchant MM/DD — summary") often exceed one line
+  // at 8pt; shrink each one just enough that its wrapped lines stay inside
+  // the row instead of being clipped by the field rect.
+  const setDescription = (fieldName: string, value: string) => {
+    try {
+      const field = form.getTextField(fieldName);
+      const widget = field.acroField.getWidgets()[0];
+      let size = 8;
+      if (widget) {
+        const rect = widget.getRectangle();
+        const inset = ((widget.getBorderStyle()?.getWidth() ?? 0) + 1) * 2;
+        size = fittingFontSize(
+          value,
+          helv,
+          { width: rect.width - inset, height: rect.height - inset },
+          8
+        );
+      }
+      field.setFontSize(size);
+      field.setText(value);
+    } catch {
+      console.warn(`PDF template is missing field "${fieldName}"`);
+    }
+  };
+
   items.forEach((item, i) => {
     const row = i + 1;
-    // Composed descriptions ("Merchant MM/DD — summary") often exceed one
-    // line at 8pt; drop to 6pt so the wrapped second line stays inside the
-    // row instead of being clipped by the field rect.
-    setText(`Description QuantityRow${row}`, item.description, item.description.length > 55 ? 6 : 8);
+    setDescription(`Description QuantityRow${row}`, item.description);
     setText(`AmountRow${row}`, centsToDollarString(item.amountCents), 9);
     setText(`For Ministry  EventRow${row}`, item.ministry, 8);
   });

@@ -4,7 +4,7 @@ import path from "path";
 import zlib from "zlib";
 import { PDFDocument } from "pdf-lib";
 import sharp from "sharp";
-import { generateClaimPdf, splitAddress, type PdfLineItem } from "@/lib/pdf/generate";
+import { fittingFontSize, generateClaimPdf, splitAddress, type PdfLineItem } from "@/lib/pdf/generate";
 
 let templateBytes: Uint8Array;
 
@@ -160,6 +160,39 @@ describe("generateClaimPdf (official CFCC AcroForm template)", () => {
     await expect(
       generateClaimPdf({ ...baseInput(), templateBytes: new Uint8Array(), items: items(1), receipts: [] })
     ).rejects.toThrow(/template/i);
+  });
+});
+
+describe("fittingFontSize (description column auto-shrink)", () => {
+  // Real geometry of "Description QuantityRow{n}" on the CFCC template,
+  // minus pdf-lib's 1pt padding per side (the fields have no border).
+  const DESC_BOUNDS = { width: 157.96, height: 15.76 };
+
+  async function helvetica() {
+    const doc = await PDFDocument.create();
+    const { StandardFonts } = await import("pdf-lib");
+    return doc.embedFont(StandardFonts.Helvetica);
+  }
+
+  it("keeps short descriptions at the 8pt maximum", async () => {
+    const font = await helvetica();
+    expect(fittingFontSize("Costco 06/21 — snacks", font, DESC_BOUNDS, 8)).toBe(8);
+  });
+
+  it("shrinks a wide ALL-CAPS description that a character-count cutoff missed", async () => {
+    // 49 chars — under the old >55 threshold — but too wide for one 8pt line,
+    // and two 8pt lines overflow the row: the second line was clipped.
+    const font = await helvetica();
+    const text = "THE HOME DEPOT 06/16 — HEAVY DUTY LG BOX 26X16X15";
+    const size = fittingFontSize(text, font, DESC_BOUNDS, 8);
+    expect(size).toBeLessThan(8);
+    // Two wrapped lines at the chosen size must fit inside the row height.
+    expect(font.heightAtSize(size) * 1.2 * 2).toBeLessThanOrEqual(DESC_BOUNDS.height);
+  });
+
+  it("never returns below pdf-lib's 4pt floor even for absurd input", async () => {
+    const font = await helvetica();
+    expect(fittingFontSize("WORD ".repeat(400).trim(), font, DESC_BOUNDS, 8)).toBe(4);
   });
 });
 
