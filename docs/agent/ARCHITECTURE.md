@@ -56,12 +56,17 @@ src/lib/pdf/generate.ts         generateClaimPdf(input): per form page load temp
                                 Also splitAddress()
 src/lib/pdf/loadTemplate.ts     TEMPLATE_PDF env override, else assets/cfcc-form-template.pdf
 src/components/NavBar.tsx       top nav (client); hidden when signed out
-src/components/Shoebox.tsx      upload input, receipt grid, selection bar, generate-claim POST
+src/components/Shoebox.tsx      upload input, receipt grid, selection bar, generate-claim POST;
+                                per-card expand button opens ReceiptViewer
+src/components/ReceiptViewer.tsx  full-screen viewer (client): image zoom/pan (wheel, pinch,
+                                drag, buttons) or the browser's native PDF viewer; launches
+                                ReceiptImageEditor for unassigned photos, cache-busts on save
 src/components/ReviewClaim.tsx  the review screen (largest component): groups, LineItemRow,
                                 SplitDialog, optimistic PATCH, PDF download
-src/components/ReceiptImageEditor.tsx  rotate/crop dialog (draft claims, image receipts):
-                                CSS-rotated preview + draggable crop box → POST
-                                /api/receipts/[id]/edit; parent cache-busts the <img> after
+src/components/ReceiptImageEditor.tsx  rotate/crop dialog (image receipts, from draft-claim
+                                review or the Shoebox viewer): CSS-rotated preview + draggable
+                                crop box → POST /api/receipts/[id]/edit; parent cache-busts the
+                                <img> after
 src/components/ProfileForm.tsx  name + mailing address form
 src/app/layout.tsx              shell; reads session; renders NavBar
 src/app/page.tsx                dashboard (server component, direct Prisma)
