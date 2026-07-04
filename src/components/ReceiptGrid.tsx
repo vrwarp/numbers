@@ -63,7 +63,7 @@ export default function ReceiptGrid({
                 className={`absolute left-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold shadow ${
                   isSelected
                     ? "border-indigo-600 bg-indigo-600/80 text-white"
-                    : "border-stone-300 bg-white/80 text-stone-300"
+                    : "border-stone-300 bg-white/80 text-stone-500"
                 }`}
                 aria-checked={isSelected}
                 role="checkbox"
