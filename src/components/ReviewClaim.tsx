@@ -442,134 +442,111 @@ function LineItemRow({
       data-testid={`row-${item.id}`}
       data-description={item.description}
     >
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex items-center gap-2">
-            <textarea
-              key={`desc-${item.id}-${item.description}`}
-              rows={2}
-              // field-sizing auto-grows to the content where supported; rows=2 is the fallback.
-              className={`input flex-1 resize-y field-sizing-content ${excluded ? "line-through" : ""} ${negative ? "text-red-700" : ""}`}
-              defaultValue={item.description}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <textarea
+            key={`desc-${item.id}-${item.description}`}
+            rows={2}
+            // field-sizing auto-grows to the content where supported; rows=2 is the fallback.
+            className={`input flex-1 resize-y field-sizing-content ${excluded ? "line-through" : ""} ${negative ? "text-red-700" : ""}`}
+            defaultValue={item.description}
+            disabled={excluded || readOnly}
+            onBlur={(e) => {
+              const v = e.target.value.trim();
+              if (v && v !== item.description) onPatch(item.id, { description: v });
+            }}
+            aria-label="Description"
+            data-testid={`desc-${item.id}`}
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            className="input w-auto max-w-full"
+            value={showOtherInput ? OTHER_MINISTRY : item.ministry}
+            disabled={excluded || readOnly}
+            onChange={(e) => {
+              if (e.target.value === OTHER_MINISTRY) {
+                setOtherPicked(true);
+                // Clear the stored category so the verify gate stays honest
+                // until the custom text is actually typed.
+                if (item.ministry) onPatch(item.id, { ministry: "" });
+              } else {
+                setOtherPicked(false);
+                onPatch(item.id, { ministry: e.target.value });
+              }
+            }}
+            aria-label="Ministry"
+            data-testid={`ministry-${item.id}`}
+          >
+            <option value="">— pick ministry —</option>
+            {MINISTRY_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+            <option value={OTHER_MINISTRY}>Other…</option>
+          </select>
+          {showOtherInput && (
+            <input
+              key={`other-${item.id}-${item.ministry}`}
+              className="input w-44"
+              defaultValue={isKnownMinistry(item.ministry) ? "" : item.ministry}
+              placeholder="Custom ministry"
               disabled={excluded || readOnly}
               onBlur={(e) => {
                 const v = e.target.value.trim();
-                if (v && v !== item.description) onPatch(item.id, { description: v });
+                if (v !== item.ministry) onPatch(item.id, { ministry: v });
               }}
-              aria-label="Description"
-              data-testid={`desc-${item.id}`}
+              aria-label="Custom ministry"
+              data-testid={`ministry-other-${item.id}`}
             />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <select
-              className="input w-auto max-w-full"
-              value={showOtherInput ? OTHER_MINISTRY : item.ministry}
+          )}
+          <input
+            key={`event-${item.id}-${item.event}`}
+            className="input w-40"
+            defaultValue={item.event}
+            placeholder="Event (optional)"
+            disabled={excluded || readOnly}
+            onBlur={(e) => {
+              const v = e.target.value.trim();
+              if (v !== item.event) onPatch(item.id, { event: v });
+            }}
+            aria-label="Event"
+            data-testid={`event-${item.id}`}
+          />
+          <label className="flex items-center gap-1 text-xs text-stone-500">
+            $
+            <input
+              key={`amt-${item.id}-${item.amountCents}`}
+              className={`input w-24 font-semibold ${negative ? "text-red-700" : ""} ${excluded ? "line-through" : ""}`}
+              defaultValue={centsToDollarString(item.amountCents)}
               disabled={excluded || readOnly}
-              onChange={(e) => {
-                if (e.target.value === OTHER_MINISTRY) {
-                  setOtherPicked(true);
-                  // Clear the stored category so the verify gate stays honest
-                  // until the custom text is actually typed.
-                  if (item.ministry) onPatch(item.id, { ministry: "" });
-                } else {
-                  setOtherPicked(false);
-                  onPatch(item.id, { ministry: e.target.value });
+              onBlur={(e) => {
+                try {
+                  const cents = parseDollarsToCents(e.target.value);
+                  if (cents !== item.amountCents) onPatch(item.id, { amountCents: cents });
+                } catch {
+                  e.target.value = centsToDollarString(item.amountCents);
                 }
               }}
-              aria-label="Ministry"
-              data-testid={`ministry-${item.id}`}
-            >
-              <option value="">— pick ministry —</option>
-              {MINISTRY_GROUPS.map((group) => (
-                <optgroup key={group.label} label={group.label}>
-                  {group.options.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-              <option value={OTHER_MINISTRY}>Other…</option>
-            </select>
-            {showOtherInput && (
-              <input
-                key={`other-${item.id}-${item.ministry}`}
-                className="input w-44"
-                defaultValue={isKnownMinistry(item.ministry) ? "" : item.ministry}
-                placeholder="Custom ministry"
-                disabled={excluded || readOnly}
-                onBlur={(e) => {
-                  const v = e.target.value.trim();
-                  if (v !== item.ministry) onPatch(item.id, { ministry: v });
-                }}
-                aria-label="Custom ministry"
-                data-testid={`ministry-other-${item.id}`}
-              />
-            )}
-            <input
-              key={`event-${item.id}-${item.event}`}
-              className="input w-40"
-              defaultValue={item.event}
-              placeholder="Event (optional)"
-              disabled={excluded || readOnly}
-              onBlur={(e) => {
-                const v = e.target.value.trim();
-                if (v !== item.event) onPatch(item.id, { event: v });
-              }}
-              aria-label="Event"
-              data-testid={`event-${item.id}`}
+              aria-label="Amount"
+              data-testid={`amount-${item.id}`}
             />
-            <label className="flex items-center gap-1 text-xs text-stone-500">
-              $
-              <input
-                key={`amt-${item.id}-${item.amountCents}`}
-                className={`input w-24 font-semibold ${negative ? "text-red-700" : ""} ${excluded ? "line-through" : ""}`}
-                defaultValue={centsToDollarString(item.amountCents)}
-                disabled={excluded || readOnly}
-                onBlur={(e) => {
-                  try {
-                    const cents = parseDollarsToCents(e.target.value);
-                    if (cents !== item.amountCents) onPatch(item.id, { amountCents: cents });
-                  } catch {
-                    e.target.value = centsToDollarString(item.amountCents);
-                  }
-                }}
-                aria-label="Amount"
-                data-testid={`amount-${item.id}`}
-              />
-            </label>
-            {negative && (
-              <span className="rounded bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
-                REFUND
-              </span>
-            )}
-          </div>
-          {!excluded && !readOnly && (
-            <div className="flex justify-end pt-1">
-              <button
-                className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
-                  item.isVerified
-                    ? "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100"
-                    : "bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-400"
-                }`}
-                // Cosmetic: the line-items PATCH route is what actually refuses to
-                // verify a row without a ministry.
-                disabled={!item.isVerified && !item.ministry}
-                title={!item.isVerified && !item.ministry ? "Choose a ministry first" : undefined}
-                onClick={() => onPatch(item.id, { isVerified: !item.isVerified })}
-                aria-pressed={item.isVerified}
-                data-testid={`verify-${item.id}`}
-              >
-                {item.isVerified
-                  ? "✓ Verified · Undo"
-                  : `✓ Confirm ${formatCents(item.amountCents)}`}
-              </button>
-            </div>
+          </label>
+          {negative && (
+            <span className="rounded bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
+              REFUND
+            </span>
           )}
         </div>
-
+        {/* Action line: row operations on the left, confirm on the right —
+            always the last line of the row. */}
         {!readOnly && (
-          <div className="flex shrink-0 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-1 pt-1">
             <button
               className="rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 disabled:opacity-30"
               onClick={onSplit}
@@ -602,6 +579,26 @@ function LineItemRow({
             >
               {excluded ? "↩ Restore" : "🗑 Exclude"}
             </button>
+            {!excluded && (
+              <button
+                className={`ml-auto flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
+                  item.isVerified
+                    ? "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100"
+                    : "bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-400"
+                }`}
+                // Cosmetic: the line-items PATCH route is what actually refuses to
+                // verify a row without a ministry.
+                disabled={!item.isVerified && !item.ministry}
+                title={!item.isVerified && !item.ministry ? "Choose a ministry first" : undefined}
+                onClick={() => onPatch(item.id, { isVerified: !item.isVerified })}
+                aria-pressed={item.isVerified}
+                data-testid={`verify-${item.id}`}
+              >
+                {item.isVerified
+                  ? "✓ Verified · Undo"
+                  : `✓ Confirm ${formatCents(item.amountCents)}`}
+              </button>
+            )}
           </div>
         )}
       </div>
