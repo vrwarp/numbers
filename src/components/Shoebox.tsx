@@ -159,16 +159,29 @@ export default function Shoebox() {
         </div>
       )}
 
-      {selected.size > 0 && (
-        <div className="card sticky top-16 z-30 flex items-center justify-between border-indigo-200 bg-indigo-50 p-3">
-          <span className="text-sm font-medium text-indigo-900">
-            {selected.size} receipt{selected.size > 1 ? "s" : ""} selected
-          </span>
-          <button className="btn-primary" onClick={generateClaim} disabled={generating} data-testid="generate-claim">
+      <div
+        className={`card sticky top-16 z-30 flex min-h-16 items-center justify-between gap-3 p-3 transition-colors ${
+          selected.size > 0 ? "border-indigo-200 bg-indigo-50" : ""
+        }`}
+      >
+        <span
+          className={`truncate text-sm font-medium ${selected.size > 0 ? "text-indigo-900" : "text-stone-500"}`}
+        >
+          {selected.size > 0
+            ? `${selected.size} receipt${selected.size > 1 ? "s" : ""} selected`
+            : "Select receipts to claim"}
+        </span>
+        {selected.size > 0 && (
+          <button
+            className="btn-primary shrink-0 whitespace-nowrap"
+            onClick={generateClaim}
+            disabled={generating}
+            data-testid="generate-claim"
+          >
             {generating ? "Reading receipts with AI…" : "✨ Generate Claim"}
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {receipts === null ? (
         <p className="text-sm text-stone-500">Loading…</p>
