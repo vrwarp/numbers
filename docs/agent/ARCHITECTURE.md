@@ -3,7 +3,8 @@
 Single Next.js 15 (App Router) process = UI + API + auth. SQLite via Prisma. Files on local
 disk under `DATA_DIR`. No queue, no cache, no other services. External calls: one AI provider
 (OpenRouter or Google AI Studio, per `AI_PROVIDER`), only when a claim is built — creation or
-adding receipts to a draft (one call per receipt).
+adding receipts to a draft (one call per receipt) — or when the user clicks "Suggest" on the
+review screen (one text-only ministry/event suggestion call).
 
 ## File map (what lives where)
 
@@ -20,9 +21,18 @@ src/lib/api.ts                  ApiError, requireUserId(), handleApi() — wrap 
 src/lib/config.ts               server config: dataDir()/uploadsDir() (imports node:path —
                                 SERVER ONLY), FORM_ROWS_PER_PAGE=13, IMAGE_TARGET_BYTES,
                                 isAiMock(), isAuthTestMode(); re-exports MINISTRIES
+src/lib/config-file.ts          configValue(name): env setting resolved from
+                                <DATA_DIR>/config.json (JSON of NAME→value) first, else
+                                process.env (SERVER ONLY, fs). All server env reads go through
+                                this so a deployment is reconfigurable via a data-volume file;
+                                DATA_DIR itself is exempt (it locates the file)
 src/lib/ministries.ts           MINISTRY_GROUPS budget categories (+ flat MINISTRIES,
-                                isKnownMinistry, formatMinistryEvent) — dependency-free,
-                                safe for client components
+                                isKnownMinistry, formatMinistryEvent, mostCommonMinistryEvent)
+                                — dependency-free, safe for client components
+src/lib/church-context.ts       loadChurchContext(): operator-authored church vocabulary doc
+                                (CHURCH_CONTEXT_PATH, default <DATA_DIR>/church-context.md;
+                                null when absent; 16 KB cap) fed into suggestion prompts —
+                                SERVER ONLY. Template: docs/church-context.example.md
 src/lib/money.ts                parseDollarsToCents, centsToDollarString, formatCents,
                                 subtotalCents — the ONLY money conversion code
 src/lib/storage.ts              saveReceiptFile/readStoredFile/deleteStoredFile; blocks path
@@ -60,7 +70,13 @@ src/lib/ai/extract.ts           extractReceipt(receipt) → {result, meta} (thro
                                 carrying meta); extractReceipts(receipts) → per-receipt outcomes
                                 (never rejects), one provider HTTP call each, concurrency 3
 src/lib/ai/providers.ts         AI_PROVIDER dispatch (openrouter | google) + the two HTTP
-                                callers; failures throw ProviderCallError carrying the raw body
+                                callers (doc optional — omitted for text-only calls); failures
+                                throw ProviderCallError carrying the raw body
+src/lib/ai/suggest.ts           suggestMinistryEvent(description): text-only "which ministry/
+                                event is this claim for?" call — prompt embeds the chart of
+                                accounts + church context; answer validated against MINISTRIES
+                                (unknown → null, never invented); mockSuggest keyword rules for
+                                AI_MOCK=1. A SUGGESTION only — applying it is the human's click
 src/lib/pdf/paginate.ts         paginateItems(items, 13) → pages; [] → [[]]
 src/lib/pdf/generate.ts         generateClaimPdf(input): per form page load template → fill
                                 AcroForm fields → flatten → copyPages into output; then append
@@ -143,13 +159,15 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/reimbursements` | GET | list own claims with counts |
 | | POST | `{receiptIds[], manual?}` → validates ownership (404 else; ANY status is allowed — a receipt may go on many claims and is re-extracted each time) → extractReceipts (one call per receipt) → create draft + ONE line item per receipt (composed description, amount = total − refunds, original* snapshot) + stamp Receipt merchant/purchaseDate/extracted*Cents + one ExtractionLog per call. A read failure degrades to a BLANK manual-entry row (no receiptUpdate, original* NULL) instead of failing the batch; only a quota/rate-limit error is all-or-nothing (log ALL + 429, no claim). `manual:true` skips AI entirely → all-blank rows, no ExtractionLogs (the rate-limit escape hatch) |
 | `/api/reimbursements/[id]` | GET | claim + lineItems(sortOrder asc) + receipts join |
+| | PATCH | zod partial {singleMinistry, claimMinistry, claimEvent, claimDescription}; draft only (409). When single mode is on and the mirrored values were touched (or the mode was just enabled), FANS claimMinistry/claimEvent out onto every non-excluded row — each touched row is un-verified and gets its own AuditEvent(update, source:"claim-ministry") — plus one AuditEvent(update-claim) for the settings diff. Multi→single with no explicit claimMinistry adopts `mostCommonMinistryEvent(rows)`. Returns the full refreshed claim (GET shape). Single mode is a mirror, not a lock: row PATCHes stay allowed |
 | | DELETE | draft only (409 else); receipts return to shoebox |
+| `/api/reimbursements/[id]/suggest` | POST | `{description}` (≤300) → draft only (409); persists it as claimDescription (AuditEvent on change) → text-only provider call (mock-aware, RPM-throttled, no cooldown retry — the user is waiting) → `{suggestion: {ministry(null unless verbatim in MINISTRIES), event, rationale}}`; ExtractionLog(kind:"suggestion") success AND failure; 429 quota / 502 unusable answer. Never writes to line items — the human applies via the claim PATCH |
 | `/api/reimbursements/[id]/pdf` | POST | gate: ≥1 active row, all active verified (400 else) → generateClaimPdf (packet appends only receipts with ≥1 non-excluded row) → claim=generated, receipts=processed → returns application/pdf. Re-POST on generated claim re-downloads |
-| `/api/reimbursements/[id]/receipts` | POST | `{receiptIds[], manual?}` → add receipts to a DRAFT claim (409 generated; 409 if any receipt is already on it; 404 foreign/unknown) → same extraction pipeline as create (read failure → blank manual-entry row; quota all-or-nothing; `manual:true` skips AI; ONE line item per receipt appended after existing sortOrders; Receipt extraction fields stamped) → AuditEvent(add-receipt) + ExtractionLog per call + totalCents recompute. Returns `{ok, totalCents}` or NDJSON progress per Accept header |
+| `/api/reimbursements/[id]/receipts` | POST | `{receiptIds[], manual?}` → add receipts to a DRAFT claim (409 generated; 409 if any receipt is already on it; 404 foreign/unknown) → same extraction pipeline as create (read failure → blank manual-entry row; quota all-or-nothing; `manual:true` skips AI; ONE line item per receipt appended after existing sortOrders, inheriting the claim's ministry/event when the claim is in single-ministry mode; Receipt extraction fields stamped) → AuditEvent(add-receipt) + ExtractionLog per call + totalCents recompute. Returns `{ok, totalCents}` or NDJSON progress per Accept header |
 | `/api/reimbursements/[id]/receipts/[receiptId]` | PATCH | manual entry for a failed-extraction placeholder: `{merchant, purchaseDate, totalAmount, refundAmount, summary}` (dollars) → draft only (409); receipt must be on the claim (404) with exactly ONE un-split row (409 else) → stamps Receipt + fills the row (composed description, amount = total − refund; still unverified, original* stay NULL) → AuditEvent(manual-entry) + totalCents recompute |
 | | DELETE | draft only (409); refuses the last receipt (409 — discard the claim instead); deletes the receipt's line items + join row (receipt returns to Shoebox — status never left `unassigned`); AuditEvent(remove-receipt); recomputes totalCents |
 | `/api/reimbursements/[id]/revert` | POST | generated only (409 else); claim → draft; receipts → unassigned unless another GENERATED claim still holds them; AuditEvent(revert-to-draft). Rows keep isVerified (values were frozen; edits still revoke) |
-| `/api/line-items/[id]` | PATCH | zod partial {description,amountCents,ministry,event,isVerified,isExcluded}; draft only (409); isVerified:true refused (400) while ministry is empty (event is always optional); content change ⇒ isVerified=false unless patch sets it; writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
+| `/api/line-items/[id]` | PATCH | zod partial {description,amountCents,ministry,event,isVerified,isExcluded}; draft only (409); isVerified:true refused (400) while ministry is empty (event is always optional); content change ⇒ isVerified=false unless patch sets it; un-excluding a row on a single-ministry claim stamps the claim's ministry/event onto it (it missed any fan-outs while excluded); writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
 | `/api/line-items/[id]/split` | POST | `{firstAmountCents?}` default even split; both halves unverified; new row original*=NULL; AuditEvent(split); renumbers sortOrder so new half follows original |
 | `/api/line-items/[id]/merge` | POST | no body; undo-split: folds row into the same-receipt row directly above (400 if none, or if either row excluded); draft only (409); survivor keeps its description/ministry/event/original*, sums amounts, isVerified=false; merged row deleted; AuditEvent(merge); renumbers sortOrder; recomputes totalCents |
 | `/api/profile` | GET PATCH | fullName, mailingAddress (printed on the form) |
@@ -209,10 +227,20 @@ reclaimed width given to Description). Field names and the 13-row layout are unc
 
 ## Environment variables
 
+Every setting below (except `DATABASE_URL`, which Prisma reads directly, and
+`DATA_DIR`, which locates the file itself) can also be supplied by a JSON file
+at `<DATA_DIR>/config.json` — see `src/lib/config-file.ts`. The file maps the
+same variable names to string values, e.g. `{"AI_PROVIDER":"google",
+"GEMINI_API_KEY":"…","AI_RPM_TARGET":"10"}`. **File values win over
+`process.env`**, and edits are picked up on the next read (mtime-cached, no
+restart). This lets a deployment be reconfigured by editing a file on the
+`/data` volume instead of relaunching the container. All server env reads go
+through `configValue()`; add new ones the same way.
+
 | Var | Notes |
 | :-- | :-- |
-| `DATABASE_URL` | `file:./data/numbers.db` dev; `file:/data/numbers.db` in image |
-| `DATA_DIR` | upload root; `./data` dev, `/data` in image |
+| `DATABASE_URL` | `file:./data/numbers.db` dev; `file:/data/numbers.db` in image (read by Prisma, not overridable via config.json) |
+| `DATA_DIR` | upload root; `./data` dev, `/data` in image. Bootstrap-only (locates `config.json`), so it must come from the real environment |
 | `AUTH_SECRET` | signs the session cookie — required |
 | `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID` (+optional `FIREBASE_APP_ID`) | Firebase web config; Google button rendered only if all three present. Client-safe values, relayed at runtime (not NEXT_PUBLIC_*, so one Docker image works everywhere) |
 | `AI_PROVIDER` (`openrouter` default, or `google`) | which extraction backend to call |
@@ -220,7 +248,8 @@ reclaimed width given to Description). Field names and the 13-row layout are unc
 | `GEMINI_API_KEY`, `GEMINI_MODEL` (default `gemini-3.1-flash-lite`) | extraction via Google AI Studio (Gemini API) |
 | `AI_RPM_TARGET` (default `15`) | requests/minute the server paces provider calls to (a shared rolling-window limiter in `src/lib/ai/throttle.ts`; Gemini's free tier is 15/min) |
 | `AI_QUOTA_COOLDOWN_MS` (default `60000`), `AI_QUOTA_MAX_RETRIES` (default `3`) | on a quota/rate-limit error (429) wait this long and retry this many times; each wait is surfaced to the user |
-| `AI_MOCK=1` | deterministic extraction, no network (tests/dev) — bypasses throttle/retry |
+| `AI_MOCK=1` | deterministic extraction + suggestions, no network (tests/dev) — bypasses throttle/retry |
+| `CHURCH_CONTEXT_PATH` | operator-authored church vocabulary markdown fed into suggestion prompts; default `<DATA_DIR>/church-context.md`; feature degrades gracefully when absent. Contents are sent to the AI provider |
 | `AUTH_TEST_MODE=1` | enables dev login (tests/dev only) |
 | `TEMPLATE_PDF` | optional replacement blank form path |
 | `E2E_BROWSERS`, `E2E_FORCE_BUILD`, `PLAYWRIGHT_CHROMIUM_PATH` | test harness (see TESTING.md) |

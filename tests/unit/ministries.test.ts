@@ -4,6 +4,7 @@ import {
   MINISTRY_GROUPS,
   formatMinistryEvent,
   isKnownMinistry,
+  mostCommonMinistryEvent,
 } from "@/lib/ministries";
 
 describe("ministry budget list", () => {
@@ -36,5 +37,50 @@ describe("formatMinistryEvent", () => {
     expect(formatMinistryEvent("Other Ministry", " Christmas Party ")).toBe(
       "Other Ministry — Christmas Party"
     );
+  });
+});
+
+describe("mostCommonMinistryEvent", () => {
+  const row = (ministry: string, event = "", isExcluded = false) => ({ ministry, event, isExcluded });
+
+  it("picks the most frequent (ministry, event) pair", () => {
+    expect(
+      mostCommonMinistryEvent([row("237 Office Supplies"), row("320 VBS"), row("320 VBS")])
+    ).toEqual({ ministry: "320 VBS", event: "" });
+  });
+
+  it("treats the same ministry with different events as different pairs", () => {
+    expect(
+      mostCommonMinistryEvent([
+        row("470 Summer Retreat", "Deposit"),
+        row("470 Summer Retreat", "Deposit"),
+        row("470 Summer Retreat", "Food"),
+      ])
+    ).toEqual({ ministry: "470 Summer Retreat", event: "Deposit" });
+  });
+
+  it("ignores excluded rows and rows without a ministry", () => {
+    expect(
+      mostCommonMinistryEvent([
+        row(""),
+        row("320 VBS", "", true),
+        row("320 VBS", "", true),
+        row("237 Office Supplies"),
+      ])
+    ).toEqual({ ministry: "237 Office Supplies", event: "" });
+  });
+
+  it("breaks ties in favor of the pair seen first", () => {
+    expect(
+      mostCommonMinistryEvent([row("320 VBS"), row("237 Office Supplies")])
+    ).toEqual({ ministry: "320 VBS", event: "" });
+  });
+
+  it("returns empty strings when no active row has a ministry", () => {
+    expect(mostCommonMinistryEvent([row(""), row("320 VBS", "", true)])).toEqual({
+      ministry: "",
+      event: "",
+    });
+    expect(mostCommonMinistryEvent([])).toEqual({ ministry: "", event: "" });
   });
 });

@@ -1,9 +1,12 @@
 /**
- * HTTP backends for receipt extraction. Each caller sends the prompt plus one
- * receipt document and returns the model's raw text response. Failures throw
- * ProviderCallError carrying whatever response body came back, so the caller
- * can persist it to the ExtractionLog.
+ * HTTP backends for the app's AI calls. Each caller sends a prompt — plus one
+ * receipt document for vision extraction, or no document for text-only calls
+ * like the ministry suggestion — and returns the model's raw text response.
+ * Failures throw ProviderCallError carrying whatever response body came back,
+ * so the caller can persist it to the ExtractionLog.
  */
+
+import { configValue } from "../config-file";
 
 export type AiProvider = "openrouter" | "google";
 
@@ -38,7 +41,7 @@ export class ProviderCallError extends Error {
 
 /** Backend selected by AI_PROVIDER (default openrouter); throws on unknown values. */
 export function currentProvider(): AiProvider {
-  const raw = (process.env.AI_PROVIDER || "openrouter").toLowerCase();
+  const raw = (configValue("AI_PROVIDER") || "openrouter").toLowerCase();
   if (raw !== "openrouter" && raw !== "google") {
     throw new ProviderCallError(
       `Unknown AI_PROVIDER "${raw}" (expected "openrouter" or "google")`
@@ -49,13 +52,13 @@ export function currentProvider(): AiProvider {
 
 export function providerModel(provider: AiProvider): string {
   return provider === "google"
-    ? process.env.GEMINI_MODEL || DEFAULT_GOOGLE_MODEL
-    : process.env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL;
+    ? configValue("GEMINI_MODEL") || DEFAULT_GOOGLE_MODEL
+    : configValue("OPENROUTER_MODEL") || DEFAULT_OPENROUTER_MODEL;
 }
 
 export function providerApiKey(provider: AiProvider): string {
   const envVar = provider === "google" ? "GEMINI_API_KEY" : "OPENROUTER_API_KEY";
-  const key = process.env[envVar];
+  const key = configValue(envVar);
   if (!key) {
     throw new ProviderCallError(
       `${envVar} is not configured (set AI_MOCK=1 for offline use)`
@@ -69,7 +72,7 @@ export async function callProvider(
   apiKey: string,
   model: string,
   prompt: string,
-  doc: ProviderDocument
+  doc?: ProviderDocument
 ): Promise<string> {
   return provider === "google"
     ? callGoogle(apiKey, model, prompt, doc)
@@ -80,17 +83,19 @@ async function callOpenRouter(
   apiKey: string,
   model: string,
   prompt: string,
-  doc: ProviderDocument
+  doc?: ProviderDocument
 ): Promise<string> {
-  const dataUri = `data:${doc.mimeType};base64,${doc.base64}`;
   const content: unknown[] = [{ type: "text", text: prompt }];
-  if (doc.mimeType === "application/pdf") {
-    content.push({
-      type: "file",
-      file: { filename: doc.originalName, file_data: dataUri },
-    });
-  } else {
-    content.push({ type: "image_url", image_url: { url: dataUri } });
+  if (doc) {
+    const dataUri = `data:${doc.mimeType};base64,${doc.base64}`;
+    if (doc.mimeType === "application/pdf") {
+      content.push({
+        type: "file",
+        file: { filename: doc.originalName, file_data: dataUri },
+      });
+    } else {
+      content.push({ type: "image_url", image_url: { url: dataUri } });
+    }
   }
 
   let res: Response;
@@ -141,8 +146,10 @@ async function callGoogle(
   apiKey: string,
   model: string,
   prompt: string,
-  doc: ProviderDocument
+  doc?: ProviderDocument
 ): Promise<string> {
+  const parts: unknown[] = [{ text: prompt }];
+  if (doc) parts.push({ inline_data: { mime_type: doc.mimeType, data: doc.base64 } });
   let res: Response;
   try {
     res = await fetch(
@@ -154,15 +161,7 @@ async function callGoogle(
           "x-goog-api-key": apiKey,
         },
         body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [
-                { text: prompt },
-                { inline_data: { mime_type: doc.mimeType, data: doc.base64 } },
-              ],
-            },
-          ],
+          contents: [{ role: "user", parts }],
           generationConfig: { temperature: 0.1 },
         }),
       }

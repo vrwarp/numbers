@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import { configValue } from "../config-file";
 
 /**
  * Load the blank CFCC AcroForm template. The official form ships with the app
@@ -7,7 +8,7 @@ import path from "path";
  * replacement (it must use the same field names).
  */
 export async function loadTemplateBytes(): Promise<Uint8Array> {
-  const configured = process.env.TEMPLATE_PDF;
+  const configured = configValue("TEMPLATE_PDF");
   if (configured) {
     try {
       return new Uint8Array(await fs.readFile(configured));

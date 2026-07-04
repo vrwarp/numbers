@@ -25,6 +25,8 @@ npx playwright test tests/e2e/journey.spec.ts --project=chromium-desktop   # one
 | `pdf.test.ts` | page counts (13/page, receipts appended, pdf-merge), field values actually drawn (via `pdfVisibleText`), flatten removes fields, splitAddress |
 | `audit.test.ts` | field-diff computation |
 | `extract-meta.test.ts` | extraction metadata for telemetry; ExtractionError carries meta |
+| `ministries.test.ts` | budget-list integrity, isKnownMinistry, formatMinistryEvent, mostCommonMinistryEvent (mode-switch adoption) |
+| `suggest.test.ts` | suggestion prompt (chart of accounts + church context), response parsing (unknown ministry → null), account-number fallback matching, mockSuggest keyword rules (e2e depends on them), mock-mode metadata |
 
 Reusable helper: `pdfVisibleText(bytes)` in `pdf.test.ts` — inflates flate streams and decodes
 hex strings so you can assert on rendered PDF text. pdf tests load the real template from
@@ -57,6 +59,9 @@ hex strings so you can assert on rendered PDF text. pdf tests load the real temp
 receipt): `costco.jpg` → Costco Wholesale 06/21, net **102.10**; `*refund*.jpg` → Amazon
 06/04, charged 36.31 − refunded 5.36 = net **30.95** (derivation note shown);
 `*return*.jpg` → net **−27.98** (REFUND badge). Initial claim total **105.07**.
+The journey switches the claim to **Multiple** mode right after landing on the review screen
+(new claims default to single-ministry mode, which hides the per-row ministry selects); the
+14-receipt test stays in single mode and fans one claim-level pick onto all rows.
 The test then: exclude the return (**133.05**), trim Costco to 90.00 (**120.95**), split the
 Amazon row 15.00/15.95, verify 3/3, edit-revokes-verify round-trip, download → 3 pages
 (1 form + 2 receipts — the fully-excluded return receipt is left out of the packet), then
@@ -74,6 +79,12 @@ exclusion event). If you change mock values, update these expectations coherentl
   409-once-generated guards, button hidden on generated claims.
 - `image-edit.spec.ts` — rotate via the review-screen dialog (stored dims swap), crop via the
   API (fractions → pixels), audit trail, 409 freeze once generated, 400 for PDF receipts.
+- `single-ministry.spec.ts` — single-ministry mode (the default for new claims): Suggest →
+  pending banner → apply fans out to all rows (+ suggestion ExtractionLog, persisted
+  claimDescription, PDF gate passes); multi→single adopt-most-common dialog + undo toast
+  restores rows/verification; Split-in-single-mode gate ("Switch & split"); cross-tenant 404s
+  for the claim PATCH and suggest routes. Mock suggestions key on DESCRIPTION KEYWORDS
+  ("youth"+"retreat" → 471, "retreat" → 470, "office" → 237, else null — src/lib/ai/suggest.ts).
 - `mobile.spec.ts` — phone capture flow + manifest check.
 
 ## Failure modes seen before (check these first)

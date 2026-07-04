@@ -17,7 +17,8 @@ export function parseExtractionResponse(text: string, receiptId: string): Extrac
   return { ...result, receiptId };
 }
 
-function extractJsonObject(text: string): string {
+/** Pull the JSON object out of a model response that may wrap it in fences/prose. */
+export function extractJsonObject(text: string): string {
   // Strip markdown fences if present.
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   const candidate = fenced ? fenced[1] : text;

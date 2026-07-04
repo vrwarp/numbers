@@ -1,5 +1,6 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
+import { configValue } from "./config-file";
 
 /**
  * Server-side Firebase: only used to verify ID tokens minted by the client
@@ -8,11 +9,11 @@ import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
  */
 
 export function firebaseWebConfig() {
-  const apiKey = process.env.FIREBASE_API_KEY;
-  const authDomain = process.env.FIREBASE_AUTH_DOMAIN;
-  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const apiKey = configValue("FIREBASE_API_KEY");
+  const authDomain = configValue("FIREBASE_AUTH_DOMAIN");
+  const projectId = configValue("FIREBASE_PROJECT_ID");
   if (!apiKey || !authDomain || !projectId) return null;
-  return { apiKey, authDomain, projectId, appId: process.env.FIREBASE_APP_ID || undefined };
+  return { apiKey, authDomain, projectId, appId: configValue("FIREBASE_APP_ID") || undefined };
 }
 
 export function isFirebaseConfigured(): boolean {
@@ -20,7 +21,7 @@ export function isFirebaseConfigured(): boolean {
 }
 
 export async function verifyFirebaseIdToken(idToken: string): Promise<DecodedIdToken> {
-  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const projectId = configValue("FIREBASE_PROJECT_ID");
   if (!projectId) throw new Error("FIREBASE_PROJECT_ID must be set");
   const app = getApps()[0] ?? initializeApp({ projectId });
   return getAuth(app).verifyIdToken(idToken);
