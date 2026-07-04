@@ -63,7 +63,7 @@ export default function ReceiptImageEditor({
 }: {
   receiptId: string;
   /** Claim the edit is made from, for the audit trail. Omit outside a claim
-   *  (e.g. the post-upload describe step). */
+   *  (e.g. the post-upload describe step or the Shoebox viewer). */
   reimbursementId?: string;
   src: string;
   onClose: () => void;
