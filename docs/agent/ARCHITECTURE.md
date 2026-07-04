@@ -56,12 +56,17 @@ src/lib/pdf/generate.ts         generateClaimPdf(input): per form page load temp
                                 Also splitAddress()
 src/lib/pdf/loadTemplate.ts     TEMPLATE_PDF env override, else assets/cfcc-form-template.pdf
 src/components/NavBar.tsx       top nav (client); hidden when signed out
-src/components/Shoebox.tsx      upload input, receipt grid, selection bar, generate-claim POST
+src/components/Shoebox.tsx      upload input, receipt grid, selection bar, generate-claim POST;
+                                per-card expand button opens ReceiptViewer
+src/components/ReceiptViewer.tsx  full-screen viewer (client): image zoom/pan (wheel, pinch,
+                                drag, buttons) or the browser's native PDF viewer; launches
+                                ReceiptImageEditor for unassigned photos, cache-busts on save
 src/components/ReviewClaim.tsx  the review screen (largest component): groups, LineItemRow,
                                 SplitDialog, optimistic PATCH, PDF download
-src/components/ReceiptImageEditor.tsx  rotate/crop dialog (draft claims, image receipts):
-                                CSS-rotated preview + draggable crop box → POST
-                                /api/receipts/[id]/edit; parent cache-busts the <img> after
+src/components/ReceiptImageEditor.tsx  rotate/crop dialog (image receipts, from draft-claim
+                                review or the Shoebox viewer): CSS-rotated preview + draggable
+                                crop box → POST /api/receipts/[id]/edit; parent cache-busts the
+                                <img> after
 src/components/ProfileForm.tsx  name + mailing address form
 src/app/layout.tsx              shell; reads session; renders NavBar
 src/app/page.tsx                dashboard (server component, direct Prisma)
@@ -87,7 +92,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | | DELETE | clear session cookie (sign out) |
 | `/api/auth/test-login` | POST | `{email,name}` → upsert + cookie; 404 unless AUTH_TEST_MODE=1 |
 | `/api/receipts` | GET | list own receipts (+ `claims: {id,status,createdAt}[]` each receipt is on); `?status=` filter |
-| | POST | multipart field `files` (+ optional `note` text stored on every receipt in the batch); images → compressReceiptImage, pdf → as-is; creates Receipt(unassigned); 415 unsupported, 400 empty |
+| | POST | multipart field `files` (+ optional `note` text stored on every receipt in the batch — API convenience; the UI's describe step applies notes per receipt via PATCH after upload); images → compressReceiptImage, pdf → as-is; creates Receipt(unassigned); 415 unsupported, 400 empty |
 | `/api/receipts/[id]` | PATCH | `{note}` (≤300 chars) — user metadata, editable in any state, no AuditEvent (not part of the claim trail) |
 | | DELETE | only if not in any claim (409 otherwise); removes file |
 | `/api/receipts/[id]/file` | GET | serve stored bytes, owner only |
