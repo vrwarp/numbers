@@ -23,7 +23,9 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   // --- Phase 0: sign in & profile ---
   await page.goto("/signin");
   await shot(page, "01-signin");
-  await signInAs(page, `grace-${testInfo.project.name}@example.com`, "Grace Chen");
+  // testInfo.retry keeps each attempt hermetic: these tests count receipts and
+  // rows, so a retry reusing the first attempt's user would see its leftovers.
+  await signInAs(page, `grace-${testInfo.project.name}-r${testInfo.retry}@example.com`, "Grace Chen");
   await shot(page, "02-dashboard");
 
   await page.goto("/profile");
@@ -239,7 +241,7 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
 });
 
 test("claim with more receipts than the 13-row form paginates onto two form pages", async ({ page }, testInfo) => {
-  await signInAs(page, `manyitems-${testInfo.project.name}@example.com`);
+  await signInAs(page, `manyitems-${testInfo.project.name}-r${testInfo.retry}@example.com`);
   await page.goto("/shoebox");
   const fixtures = [];
   for (let i = 0; i < 14; i++) fixtures.push(await makeReceiptFixture(`bulk-${i}.jpg`));

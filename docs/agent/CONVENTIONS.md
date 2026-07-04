@@ -92,7 +92,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 7. **Clicking all approve buttons**: the accessible name changes after each click, so
    `.all()`+`nth(i)` goes stale — click `.first()` in a counted loop and assert progress text.
 8. **E2E users must be unique per Playwright project** (`grace-${testInfo.project.name}@…`) —
-   desktop chromium and webkit share one server+db per run.
+   desktop chromium and webkit share one server+db per run. Tests that count receipts/rows
+   also suffix `-r${testInfo.retry}` so a CI retry doesn't inherit the first attempt's data.
 9. **PDF text assertions**: pdf-lib flate-compresses streams and hex-encodes drawn text. Use
    the `pdfVisibleText` helper in `tests/unit/pdf.test.ts` (regex `stream\r?\n` scan +
    `inflateSync` + `<hex>` decode). Raw `bytes.includes("text")` will silently fail.

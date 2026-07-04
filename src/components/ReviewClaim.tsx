@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MINISTRY_GROUPS, isKnownMinistry } from "@/lib/ministries";
@@ -80,48 +80,72 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     load();
   }, [load]);
 
+  // Mutations run strictly one at a time. Without this, picking a ministry and
+  // clicking Confirm in quick succession races: the verify PATCH can reach the
+  // server before the ministry PATCH commits (400 "choose a ministry first"),
+  // or the ministry response can land after the verify response and overwrite
+  // the row with a stale isVerified=false.
+  const mutationChain = useRef<Promise<unknown>>(Promise.resolve());
+  const enqueue = useCallback(<T,>(task: () => Promise<T>): Promise<T> => {
+    const next = mutationChain.current.then(task, task);
+    mutationChain.current = next.catch(() => undefined);
+    return next;
+  }, []);
+
   const patchItem = useCallback(
-    async (itemId: string, patch: Partial<LineItem>) => {
-      // Optimistic update; server response is authoritative.
+    (itemId: string, patch: Partial<LineItem>) => {
+      // Optimistic update applies immediately; the queued server response is
+      // authoritative and arrives in call order.
       setClaim((prev) =>
         prev
           ? { ...prev, lineItems: prev.lineItems.map((it) => (it.id === itemId ? { ...it, ...patch } : it)) }
           : prev
       );
-      const res = await fetch(`/api/line-items/${itemId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
+      return enqueue(async () => {
+        try {
+          const res = await fetch(`/api/line-items/${itemId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch),
+          });
+          if (!res.ok) {
+            setError((await res.json()).error ?? "Update failed");
+            await load();
+            return;
+          }
+          const { lineItem, totalCents } = await res.json();
+          setClaim((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  totalCents,
+                  lineItems: prev.lineItems.map((it) => (it.id === itemId ? lineItem : it)),
+                }
+              : prev
+          );
+        } catch {
+          setError("Update failed");
+        }
       });
-      if (!res.ok) {
-        setError((await res.json()).error ?? "Update failed");
-        await load();
-        return;
-      }
-      const { lineItem, totalCents } = await res.json();
-      setClaim((prev) =>
-        prev
-          ? {
-              ...prev,
-              totalCents,
-              lineItems: prev.lineItems.map((it) => (it.id === itemId ? lineItem : it)),
-            }
-          : prev
-      );
     },
-    [load]
+    [enqueue, load]
   );
 
   const mergeUp = useCallback(
-    async (itemId: string) => {
-      const res = await fetch(`/api/line-items/${itemId}/merge`, { method: "POST" });
-      if (!res.ok) {
-        setError((await res.json()).error ?? "Merge failed");
-        return;
-      }
-      await load();
-    },
-    [load]
+    (itemId: string) =>
+      enqueue(async () => {
+        try {
+          const res = await fetch(`/api/line-items/${itemId}/merge`, { method: "POST" });
+          if (!res.ok) {
+            setError((await res.json()).error ?? "Merge failed");
+            return;
+          }
+          await load();
+        } catch {
+          setError("Merge failed");
+        }
+      }),
+    [enqueue, load]
   );
 
   const groups = useMemo(() => {
