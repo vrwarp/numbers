@@ -12,7 +12,8 @@ const receipt = {
   originalName: "costco.jpg",
 };
 
-const itemsJson = '[{"description":"Coffee","quantity":1,"amount":4.5}]';
+const receiptJson =
+  '{"merchant":"Peets Coffee","purchaseDate":"2026-06-20","totalAmount":4.5,"refundAmount":0,"summary":"coffee"}';
 
 function googleResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -33,7 +34,7 @@ describe("AI provider selection (AI_PROVIDER)", () => {
     process.env.AI_PROVIDER = "gemini";
     const outcomes = await extractReceipts([receipt]);
     expect(outcomes).toHaveLength(1);
-    expect(outcomes[0].items).toBeNull();
+    expect(outcomes[0].result).toBeNull();
     expect(outcomes[0].error).toMatch(/Unknown AI_PROVIDER "gemini"/);
     expect(outcomes[0].meta.rawResponse).toBeNull();
   });
@@ -60,17 +61,22 @@ describe("AI provider selection (AI_PROVIDER)", () => {
     process.env.GEMINI_API_KEY = "test-key";
     process.env.GEMINI_MODEL = "gemini-test";
     const fetchMock = vi.fn(async () =>
-      googleResponse({ candidates: [{ content: { parts: [{ text: itemsJson }] } }] })
+      googleResponse({ candidates: [{ content: { parts: [{ text: receiptJson }] } }] })
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const { items, meta } = await extractReceipt(receipt);
+    const { result, meta } = await extractReceipt(receipt);
 
-    expect(items).toEqual([
-      { description: "Coffee", quantity: 1, amount: 4.5, receiptId: "r1" },
-    ]);
+    expect(result).toEqual({
+      merchant: "Peets Coffee",
+      purchaseDate: "2026-06-20",
+      totalAmount: 4.5,
+      refundAmount: 0,
+      summary: "coffee",
+      receiptId: "r1",
+    });
     expect(meta.model).toBe("gemini-test");
-    expect(meta.rawResponse).toBe(itemsJson);
+    expect(meta.rawResponse).toBe(receiptJson);
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
@@ -119,7 +125,7 @@ describe("AI provider selection (AI_PROVIDER)", () => {
     delete process.env.AI_PROVIDER;
     process.env.OPENROUTER_API_KEY = "or-key";
     const fetchMock = vi.fn(async () =>
-      googleResponse({ choices: [{ message: { content: itemsJson } }] })
+      googleResponse({ choices: [{ message: { content: receiptJson } }] })
     );
     vi.stubGlobal("fetch", fetchMock);
 

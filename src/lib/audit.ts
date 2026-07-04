@@ -9,7 +9,6 @@ export type ChangeSet = Record<string, FieldChange>;
 
 const TRACKED_FIELDS = [
   "description",
-  "quantity",
   "amountCents",
   "ministry",
   "isVerified",

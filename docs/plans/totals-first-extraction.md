@@ -1,7 +1,8 @@
 # Migration plan: totals-first extraction
 
-*Status: planned. Backward compatibility is explicitly NOT required — existing dev/prod data
-may be discarded or left partially meaningless; migrations may drop columns.*
+*Status: IMPLEMENTED (migration `20260704004229_totals_first_extraction`). Kept as the design
+rationale record. Backward compatibility was explicitly not required — the migration drops
+`LineItem.quantity`/`originalQuantity`.*
 
 ## Goal
 

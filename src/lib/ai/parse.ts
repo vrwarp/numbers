@@ -1,31 +1,30 @@
-import { ModelResultSchema, type ExtractedItem } from "./schema";
+import { ModelReceiptSchema, type ExtractedReceipt } from "./schema";
 
 /**
- * Parse the LLM's text response for one receipt into validated items, each
- * stamped with the receipt id. Tolerates markdown code fences and stray prose
- * around the JSON array.
+ * Parse the LLM's text response for one receipt into a validated
+ * receipt-level result stamped with the receipt id. Tolerates markdown code
+ * fences and stray prose around the JSON object.
  */
-export function parseExtractionResponse(text: string, receiptId: string): ExtractedItem[] {
-  const jsonText = extractJsonArray(text);
+export function parseExtractionResponse(text: string, receiptId: string): ExtractedReceipt {
+  const jsonText = extractJsonObject(text);
   let raw: unknown;
   try {
     raw = JSON.parse(jsonText);
   } catch {
     throw new Error("AI response did not contain valid JSON");
   }
-  const items = ModelResultSchema.parse(raw);
-  if (items.length === 0) throw new Error("AI response contained no line items");
-  return items.map((item) => ({ ...item, receiptId }));
+  const result = ModelReceiptSchema.parse(raw);
+  return { ...result, receiptId };
 }
 
-function extractJsonArray(text: string): string {
+function extractJsonObject(text: string): string {
   // Strip markdown fences if present.
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   const candidate = fenced ? fenced[1] : text;
-  const start = candidate.indexOf("[");
-  const end = candidate.lastIndexOf("]");
+  const start = candidate.indexOf("{");
+  const end = candidate.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) {
-    throw new Error("AI response did not contain a JSON array");
+    throw new Error("AI response did not contain a JSON object");
   }
   return candidate.slice(start, end + 1);
 }

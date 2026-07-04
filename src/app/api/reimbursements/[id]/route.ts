@@ -15,7 +15,18 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
         lineItems: { orderBy: { sortOrder: "asc" } },
         receipts: {
           include: {
-            receipt: { select: { id: true, originalName: true, mimeType: true, createdAt: true } },
+            receipt: {
+              select: {
+                id: true,
+                originalName: true,
+                mimeType: true,
+                createdAt: true,
+                merchant: true,
+                purchaseDate: true,
+                extractedTotalCents: true,
+                extractedRefundCents: true,
+              },
+            },
           },
         },
       },

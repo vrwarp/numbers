@@ -10,7 +10,6 @@ interface LineItem {
   id: string;
   receiptId: string;
   description: string;
-  quantity: number;
   amountCents: number;
   ministry: string;
   isVerified: boolean;
@@ -18,9 +17,19 @@ interface LineItem {
   sortOrder: number;
 }
 
+interface ReceiptInfo {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  merchant: string;
+  purchaseDate: string; // "YYYY-MM-DD" or ""
+  extractedTotalCents: number | null;
+  extractedRefundCents: number | null;
+}
+
 interface ReceiptRef {
   receiptId: string;
-  receipt: { id: string; originalName: string; mimeType: string };
+  receipt: ReceiptInfo;
 }
 
 interface Claim {
@@ -30,6 +39,13 @@ interface Claim {
   createdAt: string;
   lineItems: LineItem[];
   receipts: ReceiptRef[];
+}
+
+/** "Amazon — 06/04/2026", falling back to the uploaded file name until extraction runs. */
+function receiptLabel(receipt: ReceiptInfo): string {
+  if (!receipt.merchant) return receipt.originalName;
+  const m = receipt.purchaseDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${receipt.merchant} — ${m[2]}/${m[3]}/${m[1]}` : receipt.merchant;
 }
 
 export default function ReviewClaim({ claimId }: { claimId: string }) {
@@ -154,7 +170,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             </span>
           </h1>
           <p className="text-sm text-stone-500">
-            Compare every row against the receipt on the left, then check it off.
+            Check each amount against what you actually paid, pick a ministry, then check it off.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -201,7 +217,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           {claim.receipts.map((ref, i) => (
             <div key={ref.receiptId} className="card overflow-hidden">
               <div className="border-b border-stone-100 px-3 py-2 text-xs font-semibold text-stone-500">
-                Receipt {i + 1}: {ref.receipt.originalName}
+                Receipt {i + 1}: {receiptLabel(ref.receipt)}
               </div>
               {ref.receipt.mimeType === "application/pdf" ? (
                 <object
@@ -231,12 +247,22 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             <div key={group.receipt.id} className="card overflow-hidden" data-testid={`group-${group.receipt.id}`}>
               <div className="flex items-center justify-between border-b border-stone-100 bg-stone-50 px-4 py-2">
                 <span className="text-sm font-semibold text-stone-700">
-                  Receipt {gi + 1}: {group.receipt.originalName}
+                  Receipt {gi + 1}: {receiptLabel(group.receipt)}
                 </span>
                 <span className="text-sm font-bold" data-testid={`subtotal-${group.receipt.id}`}>
                   Subtotal: {formatCents(subtotalCents(group.items))}
                 </span>
               </div>
+              {(group.receipt.extractedRefundCents ?? 0) > 0 && (
+                <div
+                  className="border-b border-stone-100 bg-amber-50 px-4 py-2 text-xs text-amber-900"
+                  data-testid={`derivation-${group.receipt.id}`}
+                >
+                  Charged {formatCents(group.receipt.extractedTotalCents ?? 0)} − refunded{" "}
+                  {formatCents(group.receipt.extractedRefundCents!)} → suggested{" "}
+                  {formatCents((group.receipt.extractedTotalCents ?? 0) - group.receipt.extractedRefundCents!)}
+                </div>
+              )}
               <ul className="divide-y divide-stone-100">
                 {group.items.map((item) => (
                   <LineItemRow
@@ -316,9 +342,10 @@ function LineItemRow({
 
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-center gap-2">
-            <input
+            <textarea
               key={`desc-${item.id}-${item.description}`}
-              className={`input flex-1 ${excluded ? "line-through" : ""} ${negative ? "text-red-700" : ""}`}
+              rows={2}
+              className={`input flex-1 resize-y ${excluded ? "line-through" : ""} ${negative ? "text-red-700" : ""}`}
               defaultValue={item.description}
               disabled={excluded || readOnly}
               onBlur={(e) => {
@@ -347,23 +374,6 @@ function LineItemRow({
                 </option>
               ))}
             </select>
-            <label className="flex items-center gap-1 text-xs text-stone-500">
-              Qty
-              <input
-                key={`qty-${item.id}-${item.quantity}`}
-                type="number"
-                step="any"
-                className={`input w-20 ${negative ? "text-red-700" : ""}`}
-                defaultValue={item.quantity}
-                disabled={excluded || readOnly}
-                onBlur={(e) => {
-                  const v = parseFloat(e.target.value);
-                  if (Number.isFinite(v) && v !== item.quantity) onPatch(item.id, { quantity: v });
-                }}
-                aria-label="Quantity"
-                data-testid={`qty-${item.id}`}
-              />
-            </label>
             <label className="flex items-center gap-1 text-xs text-stone-500">
               $
               <input

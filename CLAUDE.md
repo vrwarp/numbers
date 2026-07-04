@@ -1,10 +1,11 @@
 # Numbers — agent guide
 
-Church reimbursement app: photograph receipts ("Shoebox") → per-receipt LLM extraction
-(OpenRouter or Google AI Studio, per `AI_PROVIDER`) →
-human verifies every row → filled official CFCC PDF form + receipts appended. Next.js 15 App
-Router, SQLite + Prisma, Firebase Auth (+ self-issued session cookie), sharp, pdf-lib. Single
-Docker container, `/data` volume.
+Church reimbursement app: photograph receipts ("Shoebox") → receipt-level LLM extraction
+(merchant, date, printed total, refund total, item summary — ONE line item per receipt;
+OpenRouter or Google AI Studio, per `AI_PROVIDER`) → human verifies every row → filled official
+CFCC PDF form + receipts appended. Splitting a row is the multi-ministry mechanism; there is no
+per-item extraction. Next.js 15 App Router, SQLite + Prisma, Firebase Auth (+ self-issued
+session cookie), sharp, pdf-lib. Single Docker container, `/data` volume.
 
 ## Commands
 
@@ -32,7 +33,7 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    ministry-less row is refused in the line-items PATCH route). Enforced in
    `src/app/api/reimbursements/[id]/pdf/route.ts` — keep it there, the UI's disabled
    button is cosmetic.
-4. **Content edits revoke verification**: changing description/quantity/amountCents/ministry
+4. **Content edits revoke verification**: changing description/amountCents/ministry
    sets `isVerified=false` unless the patch explicitly sets it (see line-items PATCH route).
 5. **`totalCents` is recomputed server-side** after every line-item mutation. Never trust a
    client-provided total.
@@ -40,7 +41,9 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    Generated claims are frozen (line-item routes reject with 409).
 7. **Telemetry**: every extraction call (success AND failure) writes an `ExtractionLog`; every
    manual edit writes an `AuditEvent` with field diffs; `LineItem.original*` freezes AI values
-   at creation (NULL = human-created row). New mutation paths must keep this trail complete.
+   at creation (NULL = human-created row, e.g. a split half); the printed totals behind the
+   AI's net amount live in `Receipt.extractedTotalCents/extractedRefundCents`. New mutation
+   paths must keep this trail complete.
 8. **The PDF is an AcroForm fill** of `assets/cfcc-form-template.pdf` (13 rows/page). Field
    names are the contract — see `docs/agent/ARCHITECTURE.md` for the exact list (note the
    double space in `For Ministry  EventRow{n}`).

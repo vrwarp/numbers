@@ -33,6 +33,14 @@ model Receipt {
   originalName   String
   sizeBytes      Int
   status         String                 @default("unassigned") // unassigned | processed
+  // Stamped by AI extraction at claim creation; empty/null until then.
+  // purchaseDate is a transcription of what is printed ("YYYY-MM-DD"), never
+  // used for arithmetic. extracted*Cents feed the review UI's net-amount
+  // derivation ("charged X − refunded Y"). Overwritten on re-extraction.
+  merchant             String  @default("")
+  purchaseDate         String  @default("")
+  extractedTotalCents  Int?
+  extractedRefundCents Int?
   createdAt      DateTime               @default(now())
   lineItems      LineItem[]
   reimbursements ReimbursementReceipt[]
@@ -64,9 +72,8 @@ model LineItem {
   receiptId       String
   receipt         Receipt       @relation(fields: [receiptId], references: [id], onDelete: Cascade)
   description     String
-  // Negative quantity/amount represents a return or refund.
-  quantity        Float         @default(1)
-  // Line total in cents (integer math avoids floating-point drift).
+  // Row total in cents, negative for a net-refund receipt (integer math
+  // avoids floating-point drift).
   amountCents     Int
   // The user's explicit choice, made during review; empty until picked (the
   // AI never assigns ministries, and a row cannot be verified without one).
@@ -79,7 +86,6 @@ model LineItem {
   // trail) shows exactly what humans had to correct — the raw material for
   // prompt tuning. Null on human-created rows (e.g. the second half of a split).
   originalDescription String?
-  originalQuantity    Float?
   originalAmountCents Int?
 
   @@index([reimbursementId])

@@ -50,7 +50,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           reimbursementId: item.reimbursementId,
           receiptId: item.receiptId,
           description: item.description,
-          quantity: item.quantity,
           amountCents: second,
           ministry: item.ministry,
           isVerified: false,

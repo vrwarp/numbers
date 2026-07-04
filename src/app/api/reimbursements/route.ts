@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { extractReceipts, type ReceiptExtraction } from "@/lib/ai/extract";
+import { composeDescription } from "@/lib/ai/compose";
 import { parseDollarsToCents } from "@/lib/money";
 
 export const runtime = "nodejs";
@@ -31,7 +32,7 @@ function extractionLogRow(userId: string, outcome: ReceiptExtraction, reimbursem
     prompt: outcome.meta.prompt,
     receiptsJson: outcome.meta.receiptsJson,
     rawResponse: outcome.meta.rawResponse,
-    parsedJson: outcome.items ? JSON.stringify(outcome.items) : null,
+    parsedJson: outcome.result ? JSON.stringify(outcome.result) : null,
     status: outcome.error ? "error" : "success",
     errorMessage: outcome.error,
     durationMs: outcome.meta.durationMs,
@@ -40,9 +41,10 @@ function extractionLogRow(userId: string, outcome: ReceiptExtraction, reimbursem
 
 /**
  * "Generate Claim": run each selected shoebox receipt through the LLM (one
- * call per receipt) and create a draft reimbursement with unverified line
- * items. All-or-nothing: if any receipt fails to extract, no claim is
- * created — but every call is still telemetry-logged.
+ * call per receipt) and create a draft reimbursement with ONE unverified
+ * line item per receipt — description composed from merchant/date/summary,
+ * amount = printed total minus refunds. All-or-nothing: if any receipt fails
+ * to extract, no claim is created — but every call is still telemetry-logged.
  */
 export async function POST(req: NextRequest) {
   return handleApi(async () => {
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     const outcomes = await extractReceipts(receipts);
 
-    const failed = outcomes.filter((o) => o.items === null);
+    const failed = outcomes.filter((o) => o.result === null);
     if (failed.length > 0) {
       // Failed calls are logged too — bad model output is prompt-tuning gold.
       await prisma.extractionLog.createMany({
@@ -72,34 +74,53 @@ export async function POST(req: NextRequest) {
       throw new ApiError(502, `AI extraction failed for ${names}: ${failed[0].error}`);
     }
 
-    const items = outcomes.flatMap((o) => o.items!).map((item, i) => {
-      const amountCents = parseDollarsToCents(item.amount);
+    const extractions = outcomes.map((o, i) => {
+      const r = o.result!;
+      const totalCents = parseDollarsToCents(r.totalAmount);
+      const refundCents = parseDollarsToCents(r.refundAmount);
+      const description = composeDescription(r);
       return {
-        receiptId: item.receiptId,
-        description: item.description,
-        quantity: item.quantity,
-        amountCents,
-        // The model never assigns ministries; the user picks one per row
-        // during review (a row cannot be verified without one).
-        ministry: "",
-        sortOrder: i,
-        // Frozen AI snapshot for later original-vs-final comparison.
-        originalDescription: item.description,
-        originalQuantity: item.quantity,
-        originalAmountCents: amountCents,
+        receiptUpdate: {
+          id: r.receiptId,
+          merchant: r.merchant,
+          purchaseDate: r.purchaseDate ?? "",
+          extractedTotalCents: totalCents,
+          extractedRefundCents: refundCents,
+        },
+        item: {
+          receiptId: r.receiptId,
+          description,
+          // The suggested amount is a derivation of two printed numbers; the
+          // review UI shows it ("charged X − refunded Y") for the human to
+          // verify against what they actually paid.
+          amountCents: totalCents - refundCents,
+          // The model never assigns ministries; the user picks one per row
+          // during review (a row cannot be verified without one).
+          ministry: "",
+          sortOrder: i,
+          // Frozen AI snapshot for later original-vs-final comparison.
+          originalDescription: description,
+          originalAmountCents: totalCents - refundCents,
+        },
       };
     });
+    const items = extractions.map((e) => e.item);
     const totalCents = items.reduce((s, it) => s + it.amountCents, 0);
 
-    const reimbursement = await prisma.reimbursement.create({
-      data: {
-        userId,
-        totalCents,
-        receipts: { create: receiptIds.map((receiptId) => ({ receiptId })) },
-        lineItems: { create: items },
-      },
-      include: { lineItems: true },
-    });
+    const [reimbursement] = await prisma.$transaction([
+      prisma.reimbursement.create({
+        data: {
+          userId,
+          totalCents,
+          receipts: { create: receiptIds.map((receiptId) => ({ receiptId })) },
+          lineItems: { create: items },
+        },
+        include: { lineItems: true },
+      }),
+      ...extractions.map(({ receiptUpdate: { id, ...data } }) =>
+        prisma.receipt.update({ where: { id }, data })
+      ),
+    ]);
 
     await prisma.extractionLog.createMany({
       data: outcomes.map((o) => extractionLogRow(userId, o, reimbursement.id)),
