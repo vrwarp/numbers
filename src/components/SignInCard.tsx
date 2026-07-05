@@ -153,12 +153,32 @@ export default function SignInCard({
 
   return (
     <>
+      {firebaseConfig && embedded && (
+        <div
+          className="mt-8 rounded-lg border border-amber-400 bg-amber-100 p-4 text-left text-sm text-amber-900"
+          data-testid="signin-embedded-hint"
+        >
+          <p className="font-semibold">You&apos;re in an in-app browser</p>
+          <p className="mt-1">
+            Google sign-in may not work in in-app browsers. If it doesn&apos;t, open this page in
+            Safari or Chrome — tap the menu (&#8943; or the share icon) and choose &ldquo;Open in
+            Safari&rdquo;.
+          </p>
+        </div>
+      )}
+
       {firebaseConfig && (
         <button
           type="button"
           onClick={signInWithGoogle}
           disabled={busy}
-          className="btn-primary mt-8 w-full py-3 disabled:opacity-60"
+          // In an in-app browser Google will almost certainly reject the flow, but keep the
+          // button as a fallback in case detection is wrong — just visibly de-emphasize it.
+          className={
+            embedded
+              ? "btn-primary mt-4 w-full py-3 opacity-60 saturate-50 transition hover:opacity-100 hover:saturate-100 disabled:opacity-40"
+              : "btn-primary mt-8 w-full py-3 disabled:opacity-60"
+          }
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden>
             <path
@@ -166,15 +186,8 @@ export default function SignInCard({
               d="M21.35 11.1H12v2.9h5.3c-.5 2.5-2.6 4.3-5.3 4.3a5.8 5.8 0 1 1 0-11.6c1.5 0 2.8.5 3.8 1.4l2.2-2.2A8.9 8.9 0 0 0 12 3a9 9 0 1 0 0 18c5.2 0 8.9-3.7 8.9-8.9 0-.3 0-.7-.05-1z"
             />
           </svg>
-          Sign in with Google
+          {embedded ? "Try Google sign-in anyway" : "Sign in with Google"}
         </button>
-      )}
-
-      {firebaseConfig && embedded && (
-        <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800" data-testid="signin-embedded-hint">
-          You&apos;re using an in-app browser. Google sign-in only works in Safari or Chrome — tap
-          the menu (&#8943; or the share icon) and choose &ldquo;Open in Safari&rdquo;.
-        </p>
       )}
 
       {!firebaseConfig && !testMode && (

@@ -89,3 +89,39 @@ export function isAuthTestMode(): boolean {
 export function isFirebaseAuthProxyEnabled(): boolean {
   return configValue("FIREBASE_AUTH_PROXY") === "1";
 }
+
+/** Bare host (`host[:port]`) of a value that may include a scheme/path. */
+function hostOf(raw: string | undefined): string | undefined {
+  const v = raw?.trim();
+  if (!v) return undefined;
+  try {
+    return new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(v) ? v : `https://${v}`).host;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Firebase's `authDomain` as a bare host (`host[:port]`). Firebase configs list
+ * it host-only (`your-project.firebaseapp.com`), but operators routinely paste
+ * a full `https://…` URL; left unnormalized that scheme would corrupt the value.
+ * Only used as the client SDK's authDomain in the default (non-proxy) flow.
+ */
+export function firebaseAuthDomainHost(): string | undefined {
+  return hostOf(configValue("FIREBASE_AUTH_DOMAIN"));
+}
+
+/**
+ * Host the sign-in reverse proxy forwards to. Firebase always serves the
+ * `/__/auth` helper at `<projectId>.firebaseapp.com`, so derive the upstream
+ * from `FIREBASE_PROJECT_ID` rather than `FIREBASE_AUTH_DOMAIN` — once the proxy
+ * is on, operators set `FIREBASE_AUTH_DOMAIN` to their OWN domain, which would
+ * point the proxy back at itself (self-loop, TLS ECONNRESET). An explicit
+ * `FIREBASE_AUTH_UPSTREAM_HOST` overrides for unusual projects.
+ */
+export function firebaseAuthUpstreamHost(): string | undefined {
+  const override = hostOf(configValue("FIREBASE_AUTH_UPSTREAM_HOST"));
+  if (override) return override;
+  const projectId = configValue("FIREBASE_PROJECT_ID")?.trim();
+  return projectId ? `${projectId}.firebaseapp.com` : undefined;
+}

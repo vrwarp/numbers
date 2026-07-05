@@ -1,7 +1,7 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import { configValue } from "./config-file";
-import { isFirebaseAuthProxyEnabled, publicBaseUrl } from "./config";
+import { firebaseAuthDomainHost, isFirebaseAuthProxyEnabled, publicBaseUrl } from "./config";
 
 /**
  * Server-side Firebase: only used to verify ID tokens minted by the client
@@ -11,16 +11,18 @@ import { isFirebaseAuthProxyEnabled, publicBaseUrl } from "./config";
 
 export function firebaseWebConfig() {
   const apiKey = configValue("FIREBASE_API_KEY");
-  const authDomain = configValue("FIREBASE_AUTH_DOMAIN");
   const projectId = configValue("FIREBASE_PROJECT_ID");
-  if (!apiKey || !authDomain || !projectId) return null;
+  // With FIREBASE_AUTH_PROXY on, the client talks to our own origin (which
+  // reverse-proxies /__/auth to <projectId>.firebaseapp.com) so the sign-in
+  // iframe/redirect is first-party — WebKit partitions third-party storage,
+  // which breaks the default *.firebaseapp.com authDomain on iOS. In that mode
+  // the authDomain comes from PUBLIC_BASE_URL, so FIREBASE_AUTH_DOMAIN is not
+  // required; otherwise it is the client authDomain.
+  const authDomain = proxiedAuthDomain() ?? firebaseAuthDomainHost();
+  if (!apiKey || !projectId || !authDomain) return null;
   return {
     apiKey,
-    // With FIREBASE_AUTH_PROXY on, the client talks to our own origin (which
-    // reverse-proxies /__/auth to FIREBASE_AUTH_DOMAIN) so the sign-in
-    // iframe/redirect is first-party — WebKit partitions third-party storage,
-    // which breaks the default *.firebaseapp.com authDomain on iOS.
-    authDomain: proxiedAuthDomain() ?? authDomain,
+    authDomain,
     projectId,
     appId: configValue("FIREBASE_APP_ID") || undefined,
   };
