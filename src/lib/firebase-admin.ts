@@ -1,7 +1,7 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import { configValue } from "./config-file";
-import { isFirebaseAuthProxyEnabled, publicBaseUrl } from "./config";
+import { firebaseAuthDomainHost, isFirebaseAuthProxyEnabled, publicBaseUrl } from "./config";
 
 /**
  * Server-side Firebase: only used to verify ID tokens minted by the client
@@ -11,7 +11,7 @@ import { isFirebaseAuthProxyEnabled, publicBaseUrl } from "./config";
 
 export function firebaseWebConfig() {
   const apiKey = configValue("FIREBASE_API_KEY");
-  const authDomain = configValue("FIREBASE_AUTH_DOMAIN");
+  const authDomain = firebaseAuthDomainHost();
   const projectId = configValue("FIREBASE_PROJECT_ID");
   if (!apiKey || !authDomain || !projectId) return null;
   return {

@@ -89,3 +89,20 @@ export function isAuthTestMode(): boolean {
 export function isFirebaseAuthProxyEnabled(): boolean {
   return configValue("FIREBASE_AUTH_PROXY") === "1";
 }
+
+/**
+ * Firebase's `authDomain` as a bare host (`host[:port]`). Firebase configs list
+ * it host-only (`your-project.firebaseapp.com`), but operators routinely paste
+ * a full `https://…` URL; left unnormalized that scheme turns the sign-in
+ * proxy's upstream into `https://https://…` (host resolves to "https",
+ * ENOTFOUND) and breaks the client SDK. Strip any scheme/path/trailing slash.
+ */
+export function firebaseAuthDomainHost(): string | undefined {
+  const raw = configValue("FIREBASE_AUTH_DOMAIN")?.trim();
+  if (!raw) return undefined;
+  try {
+    return new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`).host;
+  } catch {
+    return undefined;
+  }
+}

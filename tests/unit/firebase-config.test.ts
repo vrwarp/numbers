@@ -33,6 +33,13 @@ describe("firebaseWebConfig", () => {
     expect(firebaseWebConfig()?.authDomain).toBe("proj.firebaseapp.com");
   });
 
+  it("strips a pasted scheme (and path) from FIREBASE_AUTH_DOMAIN", () => {
+    process.env.FIREBASE_AUTH_DOMAIN = "https://proj.firebaseapp.com/";
+    expect(firebaseWebConfig()?.authDomain).toBe("proj.firebaseapp.com");
+    process.env.FIREBASE_AUTH_DOMAIN = "http://proj.firebaseapp.com/__/auth";
+    expect(firebaseWebConfig()?.authDomain).toBe("proj.firebaseapp.com");
+  });
+
   it("points authDomain at PUBLIC_BASE_URL's host when the proxy is enabled", () => {
     process.env.FIREBASE_AUTH_PROXY = "1";
     process.env.PUBLIC_BASE_URL = "https://numbers.example.org/";
