@@ -22,6 +22,16 @@ const nextConfig: NextConfig = {
       "./node_modules/pdfjs-dist/**/*",
     ],
   },
+  // Firebase's sign-in helper lives under /__/auth (and /__/firebase) on the
+  // authDomain. App Router treats "__"-prefixed folders as private (unroutable),
+  // so map those paths onto the /fbauth reverse-proxy route instead. Dormant
+  // unless FIREBASE_AUTH_PROXY points the client authDomain at our own origin.
+  async rewrites() {
+    return [
+      { source: "/__/auth/:path*", destination: "/fbauth/auth/:path*" },
+      { source: "/__/firebase/:path*", destination: "/fbauth/firebase/:path*" },
+    ];
+  },
 };
 
 export default nextConfig;

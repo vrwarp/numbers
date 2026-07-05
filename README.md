@@ -167,6 +167,7 @@ See [`config.json.example`](config.json.example) for a full template (`cp config
 | `PUBLIC_BASE_URL` | The URL users reach the deployment at, e.g. `https://numbers.example.org`. Enables the QR self-link stamp on generated PDFs (the server can't infer its public origin behind Docker/reverse proxies). Unset → PDFs are generated without the stamp |
 | `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID` | Firebase web-app config ([console](https://console.firebase.google.com) → Project settings → Your apps). Enable the **Google** provider under Authentication → Sign-in method and add your app's domain to Authentication → Authorized domains. These values are client-safe |
 | `FIREBASE_APP_ID` | Optional, from the same Firebase web-app config |
+| `FIREBASE_AUTH_PROXY` | Set to `1` to fix Google sign-in on iOS/WebKit by serving Firebase's sign-in helper from this app's own origin (see [iOS / in-app-browser sign-in](#ios--in-app-browser-sign-in) below). Requires `PUBLIC_BASE_URL` plus two console entries |
 | `AI_PROVIDER` | Extraction backend: `openrouter` (default) or `google` (Google AI Studio / Gemini API) |
 | `OPENROUTER_API_KEY` | OpenRouter API key ([openrouter.ai/keys](https://openrouter.ai/keys)) |
 | `OPENROUTER_MODEL` | Vision-capable OpenRouter model id, default `google/gemini-3.1-flash-lite` |
@@ -176,6 +177,33 @@ See [`config.json.example`](config.json.example) for a full template (`cp config
 | `DATA_DIR` / `DATABASE_URL` | Preset in the image (`/data`, `file:/data/numbers.db`) |
 | `TEMPLATE_PDF` | Optional path to a replacement blank form (must keep the same AcroForm field names) |
 | `AI_MOCK`, `AUTH_TEST_MODE` | Dev/test only — never set in production |
+
+### iOS / in-app-browser sign-in
+
+Firebase's default Google sign-in loads a cross-origin iframe (and, for redirects, a
+navigation) from the `*.firebaseapp.com` **authDomain**. On iOS *every* browser is WebKit,
+and WebKit partitions third-party storage — so that cross-origin helper can't reach its own
+`sessionStorage`. The result is Google sign-in failing with `auth/popup-blocked` on the first
+tap, or the redirect landing on `Unable to process request due to missing initial state`.
+
+Setting **`FIREBASE_AUTH_PROXY=1`** fixes this by serving Firebase's sign-in helper from your
+**own** origin instead. The app reverse-proxies `/__/auth/*` and `/__/firebase/*` to your
+`FIREBASE_AUTH_DOMAIN` and points the client `authDomain` at `PUBLIC_BASE_URL`'s host, so the
+sign-in iframe/redirect is first-party and storage partitioning no longer applies.
+
+To enable it:
+
+1. Set `FIREBASE_AUTH_PROXY=1` and make sure `PUBLIC_BASE_URL` is your real public origin
+   (e.g. `https://numbers.example.org`).
+2. **Google Cloud → APIs & Services → Credentials →** your OAuth 2.0 client → add
+   `https://<your-host>/__/auth/handler` to **Authorized redirect URIs**.
+3. **Firebase → Authentication → Settings → Authorized domains →** add `<your-host>`.
+
+Leave `FIREBASE_AUTH_PROXY` unset to keep the default `*.firebaseapp.com` flow (no console
+changes needed). Either way, **in-app browsers** (Messenger, Instagram, …) still can't complete
+Google sign-in — Google [blocks OAuth in embedded webviews](https://developers.googleblog.com/upcoming-security-changes-to-googles-oauth-20-authorization-endpoint-in-embedded-webviews/)
+outright — so the sign-in screen detects them and prompts the user to open the page in Safari or
+Chrome.
 
 ### The church context document
 

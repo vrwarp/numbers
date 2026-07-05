@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { Auth, User } from "firebase/auth";
 
 export type FirebaseWebConfig = {
   apiKey: string;
@@ -9,10 +10,30 @@ export type FirebaseWebConfig = {
   appId?: string;
 };
 
+type FirebaseAuth = typeof import("firebase/auth");
+type LoadedFirebase = { auth: Auth; fb: FirebaseAuth };
+
+// In-app browsers (Messenger, Instagram, etc.) run a sandboxed WebKit view that
+// Google's OAuth refuses to serve and whose storage is partitioned from the
+// system browser — sign-in cannot work there. Detect them so we can point the
+// user at Safari/Chrome instead of failing cryptically.
+function isEmbeddedBrowser(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  return /\bFBAN|\bFBAV|FB_IAB|Messenger|Instagram|Line\/|MicroMessenger|; ?wv\)|\bGSA\//.test(ua);
+}
+
 /**
  * Google sign-in via the Firebase client SDK (loaded lazily — only visitors
  * to /signin pay for the bundle), then the ID token is exchanged for our
  * httpOnly session cookie so the rest of the app never touches Firebase.
+ *
+ * We use signInWithPopup (never signInWithRedirect): on iOS every browser is
+ * WebKit, and storage partitioning breaks the redirect handler's sessionStorage
+ * round-trip ("Unable to process request due to missing initial state"). The
+ * popup keeps its handshake in memory and survives partitioning — provided it
+ * opens inside the click's user gesture, which is why the modules are preloaded
+ * (an await before window.open forfeits the gesture and iOS blocks the popup).
  */
 export default function SignInCard({
   firebaseConfig,
@@ -23,39 +44,87 @@ export default function SignInCard({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [embedded, setEmbedded] = useState(false);
+  const loaded = useRef<LoadedFirebase | null>(null);
+
+  async function loadFirebase(): Promise<LoadedFirebase> {
+    if (loaded.current) return loaded.current;
+    const { initializeApp, getApps } = await import("firebase/app");
+    const fb = await import("firebase/auth");
+    const app = getApps()[0] ?? initializeApp(firebaseConfig!);
+    const auth = fb.getAuth(app);
+    loaded.current = { auth, fb };
+    return loaded.current;
+  }
+
+  async function exchangeSession({ auth, fb }: LoadedFirebase, user: User) {
+    const idToken = await user.getIdToken();
+    const res = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+    });
+    // The server cookie is the session; drop the client-side Firebase state.
+    await fb.signOut(auth).catch(() => {});
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.error ?? "Sign-in failed");
+    }
+    window.location.assign("/");
+  }
+
+  function showError(err: unknown) {
+    // Closing/cancelling the Google popup is not an error worth showing.
+    const code = (err as { code?: string })?.code ?? "";
+    if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+      setBusy(false);
+      return;
+    }
+    if (code === "auth/popup-blocked") {
+      setError(
+        "Your browser blocked the sign-in popup. If you opened this from inside " +
+          "another app, tap the menu and choose “Open in Safari” (or Chrome), then try again.",
+      );
+    } else {
+      setError(err instanceof Error ? err.message : "Sign-in failed");
+    }
+    setBusy(false);
+  }
+
+  // Flag in-app browsers and preload the Firebase modules so the popup can open
+  // synchronously inside the click handler.
+  useEffect(() => {
+    if (!firebaseConfig) return;
+    setEmbedded(isEmbeddedBrowser());
+    loadFirebase().catch(() => {});
+  }, [firebaseConfig]);
 
   async function signInWithGoogle() {
     if (!firebaseConfig) return;
-    setBusy(true);
     setError(null);
+    setBusy(true);
+
+    // Fast path: modules already preloaded, so signInWithPopup is the very first
+    // async call — the browser still counts us as inside the click gesture.
+    const ready = loaded.current;
+    if (ready) {
+      try {
+        const credential = await ready.fb.signInWithPopup(ready.auth, new ready.fb.GoogleAuthProvider());
+        await exchangeSession(ready, credential.user);
+      } catch (err) {
+        showError(err);
+      }
+      return;
+    }
+
+    // Preload hadn't finished (very fast click on a cold load): load, then still
+    // try the popup. Redirect is deliberately avoided — it fails on iOS.
     try {
-      const { initializeApp, getApps } = await import("firebase/app");
-      const { getAuth, GoogleAuthProvider, signInWithPopup, signOut } = await import(
-        "firebase/auth"
-      );
-      const app = getApps()[0] ?? initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const credential = await signInWithPopup(auth, new GoogleAuthProvider());
-      const idToken = await credential.user.getIdToken();
-      const res = await fetch("/api/auth/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken }),
-      });
-      // The server cookie is the session; drop the client-side Firebase state.
-      await signOut(auth).catch(() => {});
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Sign-in failed");
-      }
-      window.location.assign("/");
+      const fresh = await loadFirebase();
+      const credential = await fresh.fb.signInWithPopup(fresh.auth, new fresh.fb.GoogleAuthProvider());
+      await exchangeSession(fresh, credential.user);
     } catch (err) {
-      // Closing the Google popup is not an error worth showing.
-      const code = (err as { code?: string })?.code ?? "";
-      if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request") {
-        setError(err instanceof Error ? err.message : "Sign-in failed");
-      }
-      setBusy(false);
+      showError(err);
     }
   }
 
@@ -99,6 +168,13 @@ export default function SignInCard({
           </svg>
           Sign in with Google
         </button>
+      )}
+
+      {firebaseConfig && embedded && (
+        <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800" data-testid="signin-embedded-hint">
+          You&apos;re using an in-app browser. Google sign-in only works in Safari or Chrome — tap
+          the menu (&#8943; or the share icon) and choose &ldquo;Open in Safari&rdquo;.
+        </p>
       )}
 
       {!firebaseConfig && !testMode && (
