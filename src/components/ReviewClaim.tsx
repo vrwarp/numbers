@@ -290,10 +290,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const verifiedCount = activeItems.filter((it) => it.isVerified).length;
   const allVerified = activeItems.length > 0 && verifiedCount === activeItems.length;
   const isDraft = claim.status === "draft";
-  const pdfButtonEnabled =
-    !isDraft ||
-    allVerified ||
-    (claim.receipts.length === 1 && activeItems.length === 1 && !!activeItems[0].ministry);
+  const pdfButtonEnabled = !isDraft || allVerified;
   // First unverified row in display order — the nudge target when the gated
   // Generate PDF button is clicked while rows remain unverified.
   const firstUnverified = groups
@@ -442,9 +439,6 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     setDownloading(true);
     setError(null);
     try {
-      if (claim && claim.receipts.length === 1 && activeItems.length === 1 && !activeItems[0].isVerified) {
-        await patchItem(activeItems[0].id, { isVerified: true });
-      }
       const res = await fetch(`/api/reimbursements/${claim!.id}/pdf`, { method: "POST" });
       if (!res.ok) throw new Error((await res.json()).error ?? "PDF generation failed");
       const blob = await res.blob();
