@@ -188,8 +188,9 @@ tap, or the redirect landing on `Unable to process request due to missing initia
 
 Setting **`FIREBASE_AUTH_PROXY=1`** fixes this by serving Firebase's sign-in helper from your
 **own** origin instead. The app reverse-proxies `/__/auth/*` and `/__/firebase/*` to your
-`FIREBASE_AUTH_DOMAIN` and points the client `authDomain` at `PUBLIC_BASE_URL`'s host, so the
-sign-in iframe/redirect is first-party and storage partitioning no longer applies.
+project's `<FIREBASE_PROJECT_ID>.firebaseapp.com` handler and points the client `authDomain` at
+`PUBLIC_BASE_URL`'s host, so the sign-in iframe/redirect is first-party and storage partitioning
+no longer applies.
 
 To enable it:
 
@@ -199,8 +200,11 @@ To enable it:
    `https://<your-host>/__/auth/handler` to **Authorized redirect URIs**.
 3. **Firebase → Authentication → Settings → Authorized domains →** add `<your-host>`.
 
-Leave `FIREBASE_AUTH_PROXY` unset to keep the default `*.firebaseapp.com` flow (no console
-changes needed). Either way, **in-app browsers** (Messenger, Instagram, …) still can't complete
+Leave `FIREBASE_AUTH_DOMAIN` as `your-project.firebaseapp.com` — **don't** change it to your own
+domain; the proxy's upstream is derived from `FIREBASE_PROJECT_ID`, so pointing `authDomain` at
+your own host would only make the proxy call itself. (A non-standard project can override the
+upstream with `FIREBASE_AUTH_UPSTREAM_HOST`.) Leave `FIREBASE_AUTH_PROXY` unset to keep the
+default `*.firebaseapp.com` flow (no console changes needed). Either way, **in-app browsers** (Messenger, Instagram, …) still can't complete
 Google sign-in — Google [blocks OAuth in embedded webviews](https://developers.googleblog.com/upcoming-security-changes-to-googles-oauth-20-authorization-endpoint-in-embedded-webviews/)
 outright — so the sign-in screen detects them and prompts the user to open the page in Safari or
 Chrome.

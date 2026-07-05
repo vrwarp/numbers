@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { firebaseAuthDomainHost } from "@/lib/config";
+import { firebaseAuthUpstreamHost } from "@/lib/config";
 
 /**
  * Reverse proxy for Firebase Auth's sign-in helper. next.config.ts rewrites the
@@ -28,9 +28,14 @@ const HOP_BY_HOP = new Set([
 ]);
 
 async function proxy(req: NextRequest, path: string[]): Promise<Response> {
-  const upstreamHost = firebaseAuthDomainHost();
+  const upstreamHost = firebaseAuthUpstreamHost();
   if (!upstreamHost || path.length === 0) {
     return new Response("Not found", { status: 404 });
+  }
+  // Guard against a config that resolves the upstream to our own origin, which
+  // would make the proxy call itself (TLS ECONNRESET / request loop).
+  if (upstreamHost === req.headers.get("host")) {
+    return new Response("Auth proxy upstream resolves to this origin", { status: 500 });
   }
 
   const upstream = new URL(`https://${upstreamHost}/__/${path.join("/")}`);
