@@ -74,3 +74,18 @@ export function quotaMaxRetries(): number {
 export function isAuthTestMode(): boolean {
   return configValue("AUTH_TEST_MODE") === "1";
 }
+
+/**
+ * When enabled, Firebase's sign-in helper (`/__/auth/*`) is served from this
+ * app's own origin via a reverse proxy (see the `/fbauth` route + the
+ * next.config rewrites), and the client SDK's `authDomain` is pointed at
+ * `PUBLIC_BASE_URL`'s host instead of `*.firebaseapp.com`. This makes the
+ * sign-in iframe/redirect first-party, so WebKit storage partitioning (iOS
+ * Safari and every iOS browser, plus Firefox/Chrome) no longer breaks Google
+ * sign-in with "auth/popup-blocked" or "missing initial state". Requires
+ * `PUBLIC_BASE_URL` and, in the Firebase/Google console, the OAuth redirect URI
+ * (`<host>/__/auth/handler`) and authorized domain registered for that host.
+ */
+export function isFirebaseAuthProxyEnabled(): boolean {
+  return configValue("FIREBASE_AUTH_PROXY") === "1";
+}
