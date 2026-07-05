@@ -39,14 +39,14 @@ function applyDrag(c: Crop, mode: DragMode, dx: number, dy: number): Crop {
 }
 
 const HANDLES: { mode: DragMode; className: string }[] = [
-  { mode: "nw", className: "-left-1.5 -top-1.5 cursor-nwse-resize" },
-  { mode: "n", className: "left-1/2 -top-1.5 -translate-x-1/2 cursor-ns-resize" },
-  { mode: "ne", className: "-right-1.5 -top-1.5 cursor-nesw-resize" },
-  { mode: "e", className: "-right-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize" },
-  { mode: "se", className: "-right-1.5 -bottom-1.5 cursor-nwse-resize" },
-  { mode: "s", className: "left-1/2 -bottom-1.5 -translate-x-1/2 cursor-ns-resize" },
-  { mode: "sw", className: "-left-1.5 -bottom-1.5 cursor-nesw-resize" },
-  { mode: "w", className: "-left-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize" },
+  { mode: "nw", className: "absolute w-12 h-12 -left-6 -top-6 flex items-center justify-center cursor-nwse-resize" },
+  { mode: "n", className: "absolute w-12 h-12 left-1/2 -top-6 -translate-x-1/2 flex items-center justify-center cursor-ns-resize" },
+  { mode: "ne", className: "absolute w-12 h-12 -right-6 -top-6 flex items-center justify-center cursor-nesw-resize" },
+  { mode: "e", className: "absolute w-12 h-12 -right-6 top-1/2 -translate-y-1/2 flex items-center justify-center cursor-ew-resize" },
+  { mode: "se", className: "absolute w-12 h-12 -right-6 -bottom-6 flex items-center justify-center cursor-nwse-resize" },
+  { mode: "s", className: "absolute w-12 h-12 left-1/2 -bottom-6 -translate-x-1/2 flex items-center justify-center cursor-ns-resize" },
+  { mode: "sw", className: "absolute w-12 h-12 -left-6 -bottom-6 flex items-center justify-center cursor-nesw-resize" },
+  { mode: "w", className: "absolute w-12 h-12 -left-6 top-1/2 -translate-y-1/2 flex items-center justify-center cursor-ew-resize" },
 ];
 
 /**
@@ -90,6 +90,13 @@ export default function ReceiptImageEditor({
   // discards it like any other unsaved change.
   const [restoring, setRestoring] = useState(false);
   const drag = useRef<{ mode: DragMode; x: number; y: number; crop: Crop } | null>(null);
+  const pointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const pinch = useRef<{
+    initialDx: number;
+    initialDy: number;
+    initialMidpoint: { x: number; y: number };
+    initialCrop: Crop;
+  } | null>(null);
 
   // Preview the read-only original from its sidecar while a reset is staged.
   const displaySrc = restoring ? `/api/receipts/${receiptId}/file?original=1` : src;
@@ -143,21 +150,99 @@ export default function ReceiptImageEditor({
   function startDrag(mode: DragMode) {
     return (e: React.PointerEvent) => {
       e.preventDefault();
-      e.stopPropagation();
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       drag.current = { mode, x: e.clientX, y: e.clientY, crop };
     };
   }
 
-  function onPointerMove(e: React.PointerEvent) {
-    if (!drag.current || !dispW || !dispH) return;
-    const dx = (e.clientX - drag.current.x) / dispW;
-    const dy = (e.clientY - drag.current.y) / dispH;
-    setCrop(applyDrag(drag.current.crop, drag.current.mode, dx, dy));
+  function onStagePointerDown(e: React.PointerEvent) {
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+
+    if (pointers.current.size === 2) {
+      drag.current = null;
+      const pts = Array.from(pointers.current.values());
+      // Track initial X and Y separation between the two touch points.
+      // Use a 20px lower bound to prevent division by zero or extreme scaling sensitivity
+      // when fingers start closely aligned along one of the axes.
+      const dx = Math.max(20, Math.abs(pts[1].x - pts[0].x));
+      const dy = Math.max(20, Math.abs(pts[1].y - pts[0].y));
+      const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+      pinch.current = {
+        initialDx: dx,
+        initialDy: dy,
+        initialMidpoint: mid,
+        initialCrop: { ...crop },
+      };
+    }
   }
 
-  function endDrag() {
+  function onStagePointerMove(e: React.PointerEvent) {
+    if (!pointers.current.has(e.pointerId)) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pointers.current.size === 2 && pinch.current && dispW && dispH) {
+      const pts = Array.from(pointers.current.values());
+      const dx = Math.abs(pts[1].x - pts[0].x);
+      const dy = Math.abs(pts[1].y - pts[0].y);
+      const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+
+      // Calculate horizontal and vertical scale factors independently (rubber-sheet stretch)
+      const scaleX = dx / pinch.current.initialDx;
+      const scaleY = dy / pinch.current.initialDy;
+
+      // Calculate horizontal and vertical slide displacement based on midpoint shift
+      const tx = (mid.x - pinch.current.initialMidpoint.x) / dispW;
+      const ty = (mid.y - pinch.current.initialMidpoint.y) / dispH;
+
+      const initCrop = pinch.current.initialCrop;
+      const newWidth = clamp(initCrop.width * scaleX, MIN_FRACTION, 1);
+      const newHeight = clamp(initCrop.height * scaleY, MIN_FRACTION, 1);
+
+      const initCenter = {
+        x: initCrop.left + initCrop.width / 2,
+        y: initCrop.top + initCrop.height / 2,
+      };
+      const newCenter = {
+        x: initCenter.x + tx,
+        y: initCenter.y + ty,
+      };
+
+      let newLeft = newCenter.x - newWidth / 2;
+      let newTop = newCenter.y - newHeight / 2;
+
+      // Clamp coordinates to keep the crop box within stage bounds [0, 1]
+      if (newLeft < 0) {
+        newLeft = 0;
+      } else if (newLeft + newWidth > 1) {
+        newLeft = 1 - newWidth;
+      }
+
+      if (newTop < 0) {
+        newTop = 0;
+      } else if (newTop + newHeight > 1) {
+        newTop = 1 - newHeight;
+      }
+
+      setCrop({
+        left: newLeft,
+        top: newTop,
+        width: newWidth,
+        height: newHeight,
+      });
+    } else if (pointers.current.size === 1 && drag.current && dispW && dispH) {
+      const dx = (e.clientX - drag.current.x) / dispW;
+      const dy = (e.clientY - drag.current.y) / dispH;
+      setCrop(applyDrag(drag.current.crop, drag.current.mode, dx, dy));
+    }
+  }
+
+  function onStagePointerUp(e: React.PointerEvent) {
+    pointers.current.delete(e.pointerId);
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
     drag.current = null;
+    pinch.current = null;
   }
 
   async function save() {
@@ -207,15 +292,15 @@ export default function ReceiptImageEditor({
               : "Straighten the photo and drag the box to trim away the background. Saving replaces the stored image."}
         </p>
 
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-          <button className="btn-secondary" onClick={() => turn(270)} disabled={busy} data-testid="rotate-left" aria-label="Rotate left" title="Rotate left">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+          <button className="btn-secondary flex h-12 w-12 items-center justify-center rounded-full text-lg" onClick={() => turn(270)} disabled={busy} data-testid="rotate-left" aria-label="Rotate left" title="Rotate left">
             ↺
           </button>
-          <button className="btn-secondary" onClick={() => turn(90)} disabled={busy} data-testid="rotate-right" aria-label="Rotate right" title="Rotate right">
+          <button className="btn-secondary flex h-12 w-12 items-center justify-center rounded-full text-lg" onClick={() => turn(90)} disabled={busy} data-testid="rotate-right" aria-label="Rotate right" title="Rotate right">
             ↻
           </button>
           <button
-            className="btn-secondary"
+            className="btn-secondary flex h-12 items-center justify-center rounded-full px-6 text-sm font-semibold"
             onClick={reset}
             disabled={busy || (!hasChanges && !hasOriginal)}
             data-testid="crop-reset"
@@ -243,9 +328,10 @@ export default function ReceiptImageEditor({
             <div
               className="relative mx-auto touch-none select-none overflow-hidden rounded bg-stone-900"
               style={{ width: dispW, height: dispH }}
-              onPointerMove={onPointerMove}
-              onPointerUp={endDrag}
-              onPointerCancel={endDrag}
+              onPointerDown={onStagePointerDown}
+              onPointerMove={onStagePointerMove}
+              onPointerUp={onStagePointerUp}
+              onPointerCancel={onStagePointerUp}
               data-testid="image-editor-stage"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -269,15 +355,22 @@ export default function ReceiptImageEditor({
                   height: crop.height * dispH,
                   boxShadow: "0 0 0 9999px rgba(0,0,0,0.5)",
                 }}
-                onPointerDown={startDrag("move")}
+                onPointerDown={(e) => {
+                  if (!(e.target as HTMLElement).closest("[data-handle]")) {
+                    startDrag("move")(e);
+                  }
+                }}
                 data-testid="crop-box"
               >
                 {HANDLES.map((h) => (
                   <span
                     key={h.mode}
-                    className={`absolute h-3 w-3 rounded-sm border border-indigo-600 bg-white ${h.className}`}
+                    className={h.className}
+                    data-handle={h.mode}
                     onPointerDown={startDrag(h.mode)}
-                  />
+                  >
+                    <span className="h-3 w-3 rounded-full border border-indigo-600 bg-white shadow-sm" />
+                  </span>
                 ))}
               </div>
             </div>
@@ -292,12 +385,12 @@ export default function ReceiptImageEditor({
           </p>
         )}
 
-        <div className="mt-4 flex items-center justify-center gap-2">
-          <button className="btn-secondary" onClick={onClose} disabled={busy} data-testid="image-editor-cancel">
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <button className="btn-secondary flex h-12 items-center justify-center rounded-full px-8 text-sm font-semibold" onClick={onClose} disabled={busy} data-testid="image-editor-cancel">
             Cancel
           </button>
           <button
-            className="btn-primary"
+            className="btn-primary flex h-12 items-center justify-center rounded-full px-8 text-sm font-semibold"
             onClick={save}
             disabled={busy || !hasChanges}
             title={!hasChanges ? "Rotate or draw a crop first" : undefined}
