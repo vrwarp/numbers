@@ -160,8 +160,9 @@ export default function SignInCard({
         >
           <p className="font-semibold">You&apos;re in an in-app browser</p>
           <p className="mt-1">
-            Google sign-in is blocked here. Open this page in Safari or Chrome — tap the menu
-            (&#8943; or the share icon) and choose &ldquo;Open in Safari&rdquo;.
+            Google sign-in may not work in in-app browsers. If it doesn&apos;t, open this page in
+            Safari or Chrome — tap the menu (&#8943; or the share icon) and choose &ldquo;Open in
+            Safari&rdquo;.
           </p>
         </div>
       )}
