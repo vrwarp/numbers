@@ -290,6 +290,10 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const verifiedCount = activeItems.filter((it) => it.isVerified).length;
   const allVerified = activeItems.length > 0 && verifiedCount === activeItems.length;
   const isDraft = claim.status === "draft";
+  const pdfButtonEnabled =
+    !isDraft ||
+    allVerified ||
+    (claim.receipts.length === 1 && activeItems.length === 1 && !!activeItems[0].ministry);
   // First unverified row in display order — the nudge target when the gated
   // Generate PDF button is clicked while rows remain unverified.
   const firstUnverified = groups
@@ -399,11 +403,15 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     });
   }
 
-  async function runSuggest(input: HTMLInputElement | null) {
+  async function runSuggest(inputOrValue: HTMLInputElement | null | string) {
     if (!claim || suggesting) return;
-    const description = input?.value.trim() ?? "";
+    const description = typeof inputOrValue === "string"
+      ? inputOrValue.trim()
+      : inputOrValue?.value.trim() ?? "";
     if (!description) {
-      input?.focus();
+      if (typeof inputOrValue !== "string") {
+        inputOrValue?.focus();
+      }
       return;
     }
     setSuggesting(true);
@@ -419,9 +427,10 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         return;
       }
       setError(null);
+      const data = await res.json();
       // The route persisted the description as the claim note.
       setClaim((prev) => (prev ? { ...prev, claimDescription: description } : prev));
-      setPendingSuggestion((await res.json()).suggestion);
+      setPendingSuggestion(data.suggestion);
     } catch {
       setError("Suggestion failed");
     } finally {
@@ -433,6 +442,9 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     setDownloading(true);
     setError(null);
     try {
+      if (claim && claim.receipts.length === 1 && activeItems.length === 1 && !activeItems[0].isVerified) {
+        await patchItem(activeItems[0].id, { isVerified: true });
+      }
       const res = await fetch(`/api/reimbursements/${claim!.id}/pdf`, { method: "POST" });
       if (!res.ok) throw new Error((await res.json()).error ?? "PDF generation failed");
       const blob = await res.blob();
@@ -539,29 +551,31 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           <div key={group.receipt.id} className="card overflow-hidden" data-testid={`group-${group.receipt.id}`}>
             {/* Header carries only the receipt's identity plus its one card-level
                 action; image and money controls live next to what they act on. */}
-            <div className="flex items-center justify-between gap-2 border-b border-stone-100 bg-stone-50 px-4 py-2">
-              <span className="min-w-0 text-sm font-semibold text-stone-700">
-                Receipt {gi + 1}: {receiptLabel(group.receipt)}
-                {group.receipt.note && (
-                  <span className="ml-1 font-normal text-stone-500">· {group.receipt.note}</span>
+            {claim.receipts.length > 1 && (
+              <div className="flex items-center justify-between gap-2 border-b border-stone-100 bg-stone-50 px-4 py-2">
+                <span className="min-w-0 text-sm font-semibold text-stone-700">
+                  Receipt {gi + 1}: {receiptLabel(group.receipt)}
+                  {group.receipt.note && (
+                    <span className="ml-1 font-normal text-stone-500">· {group.receipt.note}</span>
+                  )}
+                </span>
+                {isDraft && (
+                  <button
+                    className="whitespace-nowrap rounded px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
+                    disabled={claim.receipts.length === 1}
+                    title={
+                      claim.receipts.length === 1
+                        ? "This is the only receipt — discard the claim instead"
+                        : "Remove receipt from claim (returns to Shoebox)"
+                    }
+                    onClick={() => removeReceipt(group.receipt.id)}
+                    data-testid={`remove-receipt-${group.receipt.id}`}
+                  >
+                    ✕ Remove
+                  </button>
                 )}
-              </span>
-              {isDraft && (
-                <button
-                  className="whitespace-nowrap rounded px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
-                  disabled={claim.receipts.length === 1}
-                  title={
-                    claim.receipts.length === 1
-                      ? "This is the only receipt — discard the claim instead"
-                      : "Remove receipt from claim (returns to Shoebox)"
-                  }
-                  onClick={() => removeReceipt(group.receipt.id)}
-                  data-testid={`remove-receipt-${group.receipt.id}`}
-                >
-                  ✕ Remove
-                </button>
-              )}
-            </div>
+              </div>
+            )}
             {(group.receipt.extractedRefundCents ?? 0) > 0 && (
               <div
                 className="border-b border-stone-100 bg-amber-50 px-4 py-2 text-xs text-amber-900"
@@ -626,11 +640,13 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                       key={item.id}
                       item={item}
                       readOnly={!isDraft}
-                      singleMode={claim.singleMinistry}
+                      singleMode={claim.singleMinistry && claim.receipts.length > 1}
                       nudged={item.id === nudgedItemId}
                       onPatch={patchItem}
                       onSplit={() =>
-                        claim.singleMinistry ? setSplitModeItem(item) : setSplitItem(item)
+                        claim.singleMinistry && claim.receipts.length > 1
+                          ? setSplitModeItem(item)
+                          : setSplitItem(item)
                       }
                       canMergeUp={idx > 0}
                       mergeUpBlocked={idx > 0 && group.items[idx - 1].isExcluded}
@@ -645,7 +661,10 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                   data-testid={`subtotal-${group.receipt.id}`}
                 >
                   <span className="text-sm text-stone-500">Subtotal:</span>{" "}
-                  <span className="text-sm font-bold text-stone-800">
+                  <span
+                    className="text-sm font-bold text-stone-800"
+                    {...(claim.receipts.length === 1 ? { "data-testid": "claim-total" } : {})}
+                  >
                     {formatCents(subtotalCents(group.items))}
                   </span>
                 </div>
@@ -654,18 +673,20 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           </div>
         ))}
 
-        <div className="card flex items-center justify-between bg-indigo-50 p-4">
-          <span className="font-semibold text-indigo-900">Claim total</span>
-          <span className="text-xl font-bold text-indigo-900" data-testid="claim-total">
-            {formatCents(claim.totalCents)}
-          </span>
-        </div>
+        {claim.receipts.length > 1 && (
+          <div className="card flex items-center justify-between bg-indigo-50 p-4">
+            <span className="font-semibold text-indigo-900">Claim total</span>
+            <span className="text-xl font-bold text-indigo-900" data-testid="claim-total">
+              {formatCents(claim.totalCents)}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Floating action bar: verify progress and the claim actions stay in
           reach while scrolling a long claim. */}
       <div className="card sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 bg-white/95 p-3 shadow-lg backdrop-blur">
-        {isDraft ? (
+        {isDraft && claim.receipts.length > 1 ? (
           <div className="flex min-w-48 flex-1 items-center gap-3" data-testid="verify-progress">
             <div className="h-2 flex-1 overflow-hidden rounded-full bg-stone-200">
               <div
@@ -679,7 +700,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               {verifiedCount} / {activeItems.length} verified
             </span>
           </div>
-        ) : (
+        ) : isDraft ? null : (
           <span className="text-sm text-stone-500">Generated — rows are frozen.</span>
         )}
         <div className="ml-auto flex items-center gap-3">
@@ -707,14 +728,14 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               The real gate stays server-side in the PDF route. */}
           <span
             onClick={() => {
-              if (isDraft && !allVerified && !downloading) nudgeFirstUnverified();
+              if (isDraft && !pdfButtonEnabled && !downloading) nudgeFirstUnverified();
             }}
-            title={isDraft && !allVerified ? "Verify every row first" : undefined}
+            title={isDraft && !pdfButtonEnabled ? "Choose a ministry first" : undefined}
           >
             <button
               className="btn-primary disabled:pointer-events-none"
               onClick={generatePdf}
-              disabled={(isDraft && !allVerified) || downloading}
+              disabled={!pdfButtonEnabled || downloading}
               data-testid="generate-pdf"
             >
               {downloading ? "Building PDF…" : isDraft ? "⬇ Generate PDF" : "⬇ Download PDF again"}
@@ -978,24 +999,26 @@ function ClaimMinistryPanel({
         <span className="text-sm font-semibold text-stone-700">
           {single ? "Ministry & event for this claim" : "Ministry & event"}
         </span>
-        <div className="flex rounded-lg border border-stone-200 p-0.5 text-xs">
-          <button
-            className={modeButton(single)}
-            onClick={() => !single && onModeSingle()}
-            aria-pressed={single}
-            data-testid="claim-mode-single"
-          >
-            One ministry
-          </button>
-          <button
-            className={modeButton(!single)}
-            onClick={() => single && onModeMulti()}
-            aria-pressed={!single}
-            data-testid="claim-mode-multi"
-          >
-            Multiple
-          </button>
-        </div>
+        {claim.receipts.length > 1 && (
+          <div className="flex rounded-lg border border-stone-200 p-0.5 text-xs">
+            <button
+              className={modeButton(single)}
+              onClick={() => !single && onModeSingle()}
+              aria-pressed={single}
+              data-testid="claim-mode-single"
+            >
+              One ministry
+            </button>
+            <button
+              className={modeButton(!single)}
+              onClick={() => single && onModeMulti()}
+              aria-pressed={!single}
+              data-testid="claim-mode-multi"
+            >
+              Multiple
+            </button>
+          </div>
+        )}
       </div>
 
       {single ? (
@@ -1054,7 +1077,7 @@ function ClaimMinistryPanel({
                       onClick={() => onApplySuggestion(pendingSuggestion)}
                       data-testid="suggestion-apply"
                     >
-                      Apply to all rows
+                      {claim.receipts.length === 1 ? "Apply" : "Apply to all rows"}
                     </button>
                     <button
                       className="text-xs text-violet-700 hover:underline"
@@ -1089,75 +1112,77 @@ function ClaimMinistryPanel({
               class order (see CONVENTIONS.md). Stacked on mobile (each
               wrapper is a plain block, full width); side by side from `sm:`
               up, with the ministry select taking the remaining room. */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <div className="sm:min-w-56 sm:flex-1">
-              <select
-                className="input"
-                value={showOtherInput ? OTHER_MINISTRY : claim.claimMinistry}
-                onChange={(e) => {
-                  if (e.target.value === OTHER_MINISTRY) {
-                    setOtherPicked(true);
-                    // Clear the stored category (and the rows mirroring it) so
-                    // the verify gate stays honest until custom text is typed.
-                    if (claim.claimMinistry)
-                      onFanOut({ claimMinistry: "", claimEvent: claim.claimEvent });
-                  } else {
-                    setOtherPicked(false);
-                    onFanOut({ claimMinistry: e.target.value, claimEvent: claim.claimEvent });
-                  }
-                }}
-                aria-label="Claim ministry"
-                data-testid="claim-ministry"
-              >
-                <option value="">— pick ministry —</option>
-                {MINISTRY_GROUPS.map((group) => (
-                  <optgroup key={group.label} label={group.label}>
-                    {group.options.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-                <option value={OTHER_MINISTRY}>Other…</option>
-              </select>
-            </div>
-            {showOtherInput && (
-              <div className="sm:w-48 sm:flex-none">
-                <input
-                  key={`claim-other-${claim.claimMinistry}`}
+          {claim.receipts.length > 1 && (
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="sm:w-72 sm:flex-none">
+                <select
                   className="input"
-                  defaultValue={isKnownMinistry(claim.claimMinistry) ? "" : claim.claimMinistry}
-                  placeholder="Custom ministry"
+                  value={showOtherInput ? OTHER_MINISTRY : claim.claimMinistry}
+                  onChange={(e) => {
+                    if (e.target.value === OTHER_MINISTRY) {
+                      setOtherPicked(true);
+                      // Clear the stored category (and the rows mirroring it) so
+                      // the verify gate stays honest until custom text is typed.
+                      if (claim.claimMinistry)
+                        onFanOut({ claimMinistry: "", claimEvent: claim.claimEvent });
+                    } else {
+                      setOtherPicked(false);
+                      onFanOut({ claimMinistry: e.target.value, claimEvent: claim.claimEvent });
+                    }
+                  }}
+                  aria-label="Claim ministry"
+                  data-testid="claim-ministry"
+                >
+                  <option value="">— pick ministry —</option>
+                  {MINISTRY_GROUPS.map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.options.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                  <option value={OTHER_MINISTRY}>Other…</option>
+                </select>
+              </div>
+              {showOtherInput && (
+                <div className="sm:w-48 sm:flex-none">
+                  <input
+                    key={`claim-other-${claim.claimMinistry}`}
+                    className="input"
+                    defaultValue={isKnownMinistry(claim.claimMinistry) ? "" : claim.claimMinistry}
+                    placeholder="Custom ministry"
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (v !== claim.claimMinistry)
+                        onFanOut({ claimMinistry: v, claimEvent: claim.claimEvent });
+                    }}
+                    aria-label="Custom claim ministry"
+                    data-testid="claim-ministry-other"
+                  />
+                </div>
+              )}
+              <div className="sm:min-w-48 sm:flex-1">
+                <input
+                  key={`claim-event-${claim.claimEvent}`}
+                  className="input"
+                  defaultValue={claim.claimEvent}
+                  placeholder="Event (optional)"
                   onBlur={(e) => {
                     const v = e.target.value.trim();
-                    if (v !== claim.claimMinistry)
-                      onFanOut({ claimMinistry: v, claimEvent: claim.claimEvent });
+                    if (v !== claim.claimEvent)
+                      onFanOut({ claimMinistry: claim.claimMinistry, claimEvent: v });
                   }}
-                  aria-label="Custom claim ministry"
-                  data-testid="claim-ministry-other"
+                  aria-label="Claim event"
+                  data-testid="claim-event"
                 />
               </div>
-            )}
-            <div className="sm:w-48 sm:flex-none">
-              <input
-                key={`claim-event-${claim.claimEvent}`}
-                className="input"
-                defaultValue={claim.claimEvent}
-                placeholder="Event (optional)"
-                onBlur={(e) => {
-                  const v = e.target.value.trim();
-                  if (v !== claim.claimEvent)
-                    onFanOut({ claimMinistry: claim.claimMinistry, claimEvent: v });
-                }}
-                aria-label="Claim event"
-                data-testid="claim-event"
-              />
+              <p className="text-xs text-stone-500 sm:basis-full">
+                Applied to every row — you still confirm each amount below.
+              </p>
             </div>
-            <p className="text-xs text-stone-500 sm:basis-full">
-              Applied to every row — you still confirm each amount below.
-            </p>
-          </div>
+          )}
         </>
       ) : (
         <p className="text-xs text-stone-500">
@@ -1181,17 +1206,11 @@ function LineItemRow({
 }: {
   item: LineItem;
   readOnly: boolean;
-  /** Single-ministry claim: the ministry/event are set claim-wide, so the
-      per-row selector collapses to a read-only badge. */
   singleMode: boolean;
-  /** Pulse the confirm button — the gated PDF button was clicked and this is
-      the first row still needing a verify. */
   nudged: boolean;
   onPatch: (id: string, patch: Partial<LineItem>) => Promise<void>;
   onSplit: () => void;
-  /** True when a row from the same receipt sits directly above this one. */
   canMergeUp: boolean;
-  /** True when the row above is excluded (server refuses the merge). */
   mergeUpBlocked: boolean;
   onMergeUp: () => void;
 }) {
