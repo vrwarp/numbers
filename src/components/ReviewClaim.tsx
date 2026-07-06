@@ -74,6 +74,7 @@ interface FanOutUndo {
   restoreClaim: Pick<Claim, "singleMinistry" | "claimMinistry" | "claimEvent">;
   rows: Pick<LineItem, "id" | "ministry" | "event" | "isVerified">[];
   message: string;
+  source: "ai" | "manual";
 }
 
 /** "Amazon — 06/04/2026", falling back to the uploaded file name until extraction runs. */
@@ -119,7 +120,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   }, [nudgedItemId]);
 
   useEffect(() => {
-    if (!fanOutUndo) return;
+    if (!fanOutUndo || fanOutUndo.source !== "manual") return;
     const timer = setTimeout(() => setFanOutUndo(null), 15_000);
     return () => clearTimeout(timer);
   }, [fanOutUndo]);
@@ -157,6 +158,13 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
 
   const patchItem = useCallback(
     (itemId: string, patch: Partial<LineItem>) => {
+      // Clear active suggestion and undo toast if user interacts with a row
+      setFanOutUndo((prev) => {
+        if (prev?.source === "ai") {
+          setPendingSuggestion(null);
+        }
+        return null;
+      });
       // Optimistic update applies immediately; the queued server response is
       // authoritative and arrives in call order.
       setClaim((prev) =>
@@ -312,11 +320,14 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
    * in an undo toast — a fan-out can silently un-verify rows, so it must be
    * one click to take back.
    */
-  function fanOutClaimPatch(next: {
-    singleMinistry?: boolean;
-    claimMinistry: string;
-    claimEvent: string;
-  }) {
+  function fanOutClaimPatch(
+    next: {
+      singleMinistry?: boolean;
+      claimMinistry: string;
+      claimEvent: string;
+    },
+    source: "ai" | "manual" = "manual"
+  ) {
     if (!claim) return;
     const touched = claim.lineItems.filter(
       (it) => !it.isExcluded && (it.ministry !== next.claimMinistry || it.event !== next.claimEvent)
@@ -338,6 +349,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           isVerified,
         })),
         message: `Set ${label} on ${touched.length} row${touched.length === 1 ? "" : "s"}`,
+        source,
       });
       // Optimistic mirror so the row badges don't lag the control.
       setClaim((prev) =>
@@ -526,14 +538,15 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             setPendingSuggestion(null);
             patchClaim({ singleMinistry: false });
           }}
-          onFanOut={fanOutClaimPatch}
+          onFanOut={(next) => fanOutClaimPatch(next, "manual")}
           onPersistDescription={(v) => patchClaim({ claimDescription: v })}
           onSuggest={runSuggest}
           onApplySuggestion={(s) => {
-            setPendingSuggestion(null);
-            fanOutClaimPatch({ claimMinistry: s.ministry ?? "", claimEvent: s.event ?? "" });
+            fanOutClaimPatch({ claimMinistry: s.ministry ?? "", claimEvent: s.event ?? "" }, "ai");
           }}
           onDismissSuggestion={() => setPendingSuggestion(null)}
+          fanOutUndo={fanOutUndo}
+          onUndo={undoFanOut}
         />
       )}
 
@@ -922,7 +935,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
 
       {/* A fan-out can un-verify rows wholesale, so it's always one click to
           take back while the toast is up. */}
-      {fanOutUndo && (
+      {fanOutUndo && fanOutUndo.source === "manual" && (
         <div
           className="fixed bottom-24 left-1/2 z-30 -translate-x-1/2"
           data-testid="fanout-toast"
@@ -970,6 +983,8 @@ function ClaimMinistryPanel({
   onSuggest,
   onApplySuggestion,
   onDismissSuggestion,
+  fanOutUndo,
+  onUndo,
 }: {
   claim: Claim;
   suggesting: boolean;
@@ -981,6 +996,8 @@ function ClaimMinistryPanel({
   onSuggest: (input: HTMLInputElement | null) => void;
   onApplySuggestion: (s: MinistrySuggestion) => void;
   onDismissSuggestion: () => void;
+  fanOutUndo: FanOutUndo | null;
+  onUndo: () => void;
 }) {
   const descRef = useRef<HTMLInputElement | null>(null);
   // Same "Other…" mechanics as the per-row selector: the sentinel stays
@@ -1060,36 +1077,53 @@ function ClaimMinistryPanel({
               data-testid="suggestion-banner"
             >
               {pendingSuggestion.ministry ? (
-                <>
-                  <span>
-                    Suggested:{" "}
-                    <strong>
-                      {formatMinistryEvent(
-                        pendingSuggestion.ministry,
-                        pendingSuggestion.event ?? ""
+                (() => {
+                  const isApplied = fanOutUndo?.source === "ai";
+                  return (
+                    <>
+                      <span>
+                        {isApplied ? "Applied: " : "Suggested: "}
+                        <strong>
+                          {formatMinistryEvent(
+                            pendingSuggestion.ministry,
+                            pendingSuggestion.event ?? ""
+                          )}
+                        </strong>
+                      </span>
+                      {pendingSuggestion.rationale && (
+                        <span className="text-xs text-violet-700">{pendingSuggestion.rationale}</span>
                       )}
-                    </strong>
-                  </span>
-                  {pendingSuggestion.rationale && (
-                    <span className="text-xs text-violet-700">{pendingSuggestion.rationale}</span>
-                  )}
-                  <span className="ml-auto flex items-center gap-2">
-                    <button
-                      className="rounded-full bg-violet-600 px-3 py-1 text-xs font-semibold text-white hover:bg-violet-700"
-                      onClick={() => onApplySuggestion(pendingSuggestion)}
-                      data-testid="suggestion-apply"
-                    >
-                      {claim.receipts.length === 1 ? "Apply" : "Apply to all rows"}
-                    </button>
-                    <button
-                      className="text-xs text-violet-700 hover:underline"
-                      onClick={onDismissSuggestion}
-                      data-testid="suggestion-dismiss"
-                    >
-                      Dismiss
-                    </button>
-                  </span>
-                </>
+                      <span className="ml-auto flex items-center gap-2">
+                        {isApplied ? (
+                          <button
+                            className="rounded-full bg-stone-600 px-3 py-1 text-xs font-semibold text-white hover:bg-stone-700"
+                            onClick={onUndo}
+                            data-testid="suggestion-undo"
+                          >
+                            Undo
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              className="rounded-full bg-violet-600 px-3 py-1 text-xs font-semibold text-white hover:bg-violet-700"
+                              onClick={() => onApplySuggestion(pendingSuggestion)}
+                              data-testid="suggestion-apply"
+                            >
+                              {claim.receipts.length === 1 ? "Apply" : "Apply to all rows"}
+                            </button>
+                            <button
+                              className="text-xs text-violet-700 hover:underline"
+                              onClick={onDismissSuggestion}
+                              data-testid="suggestion-dismiss"
+                            >
+                              Dismiss
+                            </button>
+                          </>
+                        )}
+                      </span>
+                    </>
+                  );
+                })()
               ) : (
                 <>
                   <span>No confident match — pick a ministry below.</span>
