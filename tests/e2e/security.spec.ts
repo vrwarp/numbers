@@ -126,7 +126,7 @@ test("removing a receipt from a draft claim returns it to the shoebox", async ({
   // Removing the last receipt is refused — discard the claim instead.
   await page.goto(`/claims/${claimId}`);
   const remaining = page.locator('[data-testid^="remove-receipt-"]');
-  await expect(remaining).toBeDisabled();
+  await expect(remaining).toBeHidden();
   const res = await page.request.delete(`/api/reimbursements/${claimId}/receipts/${kept}`);
   expect(res.status()).toBe(409);
 

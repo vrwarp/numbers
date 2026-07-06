@@ -71,12 +71,15 @@ async function generateClaim(
   const items = extractions.map((e) => e.item);
   const totalCents = items.reduce((s, it) => s + it.amountCents, 0);
 
+  const claimDescription = receipts.length === 1 ? (receipts[0].note || "") : "";
+
   const receiptIds = receipts.map((r) => r.id);
   const [reimbursement] = await prisma.$transaction([
     prisma.reimbursement.create({
       data: {
         userId,
         totalCents,
+        claimDescription,
         receipts: { create: receiptIds.map((receiptId) => ({ receiptId })) },
         lineItems: { create: items },
       },

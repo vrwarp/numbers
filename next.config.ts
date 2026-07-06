@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   output: "standalone",
   // sharp and @prisma/client contain native binaries that must not be bundled;
   // firebase-admin resolves internal modules at runtime and breaks if inlined;
