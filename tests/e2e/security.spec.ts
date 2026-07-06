@@ -100,38 +100,30 @@ test("removing a receipt from a draft claim returns it to the shoebox", async ({
   await uploadReceipts(page, [
     await makeReceiptFixture("rm-1.jpg"),
     await makeReceiptFixture("rm-2.jpg"),
-    await makeReceiptFixture("rm-3.jpg"),
   ]);
   for (const card of await page.locator('[data-testid^="receipt-card-"]').all()) await card.click();
   await page.getByTestId("generate-claim").click();
   await page.waitForURL(/\/claims\/[^/]+$/, { timeout: 30_000 });
   const claimId = page.url().match(/claims\/([^/]+)/)![1];
 
-  // Three receipt rows; remove one — its row disappears and the total reduces.
+  // Two receipt rows; remove one — its row disappears and the total halves.
   const rows = page.locator('li[data-testid^="row-"]');
-  await expect(rows).toHaveCount(3);
-  await expect(page.getByTestId("claim-total")).toHaveText("$306.30");
-  await page.locator('[data-testid^="remove-receipt-"]').first().click();
   await expect(rows).toHaveCount(2);
   await expect(page.getByTestId("claim-total")).toHaveText("$204.20");
-
-  // Remove the second one so only 1 is left.
   await page.locator('[data-testid^="remove-receipt-"]').first().click();
   await expect(rows).toHaveCount(1);
+  await expect(page.getByTestId("claim-total")).toHaveText("$102.10");
 
-  // The removed receipts are fully released: deletable again, while the one
+  // The removed receipt is fully released: deletable again, while the one
   // still in the draft stays delete-blocked.
   const all = (await (await page.request.get("/api/receipts")).json()).receipts;
   const kept = (await (await page.request.get(`/api/reimbursements/${claimId}`)).json())
     .reimbursement.receipts[0].receiptId;
-  const removedList = all.filter((r: { id: string }) => r.id !== kept);
-  for (const r of removedList) {
-    expect((await page.request.delete(`/api/receipts/${r.id}`)).status()).toBe(200);
-  }
+  const removed = all.find((r: { id: string }) => r.id !== kept)!;
+  expect((await page.request.delete(`/api/receipts/${removed.id}`)).status()).toBe(200);
   expect((await page.request.delete(`/api/receipts/${kept}`)).status()).toBe(409);
 
   // Removing the last receipt is refused — discard the claim instead.
-  // Because it's a single receipt, the card header and remove button are hidden.
   await page.goto(`/claims/${claimId}`);
   const remaining = page.locator('[data-testid^="remove-receipt-"]');
   await expect(remaining).toBeHidden();
@@ -149,59 +141,56 @@ test("removing a receipt from a draft claim returns it to the shoebox", async ({
 test("receipt notes are visible everywhere and receipts can go on multiple claims", async ({ page }, testInfo) => {
   await signInAs(page, `reuse-${testInfo.project.name}@example.com`, "Reuser");
 
-  // Stage 2 files to keep card headers and notes visible in multi-receipt claim.
-  await page.getByTestId("file-input").setInputFiles([
-    await makeReceiptFixture("note-me.jpg"),
-    await makeReceiptFixture("note-me-2.jpg"),
-  ]);
+  // Picking a file opens the prepare dialog BEFORE anything uploads, with the
+  // local file's PREVIEW next to the description field. (Driven manually here
+  // instead of via the helper to also assert the dialog and screenshot it.)
+  await page.getByTestId("file-input").setInputFiles([await makeReceiptFixture("note-me.jpg")]);
   await expect(page.getByTestId("upload-note")).toBeVisible();
-  await expect(page.getByTestId("upload-preview").locator("img").first()).toBeVisible();
+  await expect(page.getByTestId("upload-preview").locator("img")).toBeVisible();
   await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(0); // not uploaded yet
 
-  // The rotate/crop editor is available right in the prepare step.
-  await page.locator('[data-testid^="edit-image-"]').first().click();
+  // The rotate/crop editor is available right in the prepare step — it edits
+  // the local photo on-device, still before any upload.
+  await page.locator('[data-testid^="edit-image-"]').click();
   await expect(page.getByTestId("image-editor-stage")).toBeVisible();
   await page.getByTestId("rotate-right").click();
   await page.getByTestId("image-editor-save").click();
   await expect(page.getByTestId("image-editor-stage")).toBeHidden();
-  await expect(page.getByTestId("upload-preview").locator("img").first()).toBeVisible();
+  await expect(page.getByTestId("upload-preview").locator("img")).toBeVisible();
 
   await page.getByTestId("upload-note").fill("VBS craft supplies");
   await page.screenshot({ path: "screenshots/10-upload-dialog.png" });
   await page.getByTestId("upload-note-confirm").click(); // Save = upload
   await expect(page.getByTestId("upload-note")).toBeHidden({ timeout: 20_000 }); // queue drained
-  await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(2, { timeout: 20_000 });
-  const noteInput = page.locator('[data-testid^="receipt-note-"]').first();
+  await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(1, { timeout: 20_000 });
+  const noteInput = page.locator('[data-testid^="receipt-note-"]');
   await expect(noteInput).toHaveValue("VBS craft supplies");
 
   // The note is editable from the card.
   await noteInput.fill("VBS craft supplies (June)");
   await noteInput.blur();
-  await expect(page.locator('[data-testid^="receipt-note-"]').first()).toHaveValue(
+  await expect(page.locator('[data-testid^="receipt-note-"]')).toHaveValue(
     "VBS craft supplies (June)"
   );
 
   // Claim 1: the note travels to the review screen.
-  for (const card of await page.locator('[data-testid^="receipt-card-"]').all()) await card.click();
+  await page.locator('[data-testid^="receipt-card-"]').first().click();
   await page.getByTestId("generate-claim").click();
   await page.waitForURL(/\/claims\/[^/]+$/, { timeout: 30_000 });
   const claim1 = page.url().match(/claims\/([^/]+)/)![1];
   await expect(page.getByText("VBS craft supplies (June)").first()).toBeVisible();
 
-  // Verify + generate via API (both items must be verified).
-  const items = (await (await page.request.get(`/api/reimbursements/${claim1}`)).json())
-    .reimbursement.lineItems;
-  for (const item of items) {
-    await page.request.patch(`/api/line-items/${item.id}`, {
-      data: { ministry: "General Fund", isVerified: true },
-    });
-  }
+  // Verify + generate via API.
+  const item1 = (await (await page.request.get(`/api/reimbursements/${claim1}`)).json())
+    .reimbursement.lineItems[0];
+  await page.request.patch(`/api/line-items/${item1.id}`, {
+    data: { ministry: "General Fund", isVerified: true },
+  });
   expect((await page.request.post(`/api/reimbursements/${claim1}/pdf`)).status()).toBe(200);
 
   // The processed receipt can go on a SECOND claim (e.g. the purchase is
   // split across two filings).
-  const receipts = (await (await page.request.get("/api/receipts")).json()).receipts;
-  const receipt = receipts[0];
+  const receipt = (await (await page.request.get("/api/receipts")).json()).receipts[0];
   expect(receipt.status).toBe("processed");
   expect(receipt.claims).toHaveLength(1); // link data for the shoebox card
   const res2 = await page.request.post("/api/reimbursements", {

@@ -613,6 +613,14 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               </div>
               {/* Sticky so the fields stay beside a tall receipt photo while it scrolls. */}
               <div className="lg:sticky lg:top-20 lg:self-start">
+                {claim.receipts.length === 1 && group.receipt.note && (
+                  <div
+                    className="border-b border-stone-100 bg-stone-50 px-4 py-2 text-xs text-stone-500"
+                    data-testid={`receipt-note-display-${group.receipt.id}`}
+                  >
+                    Note: <span className="font-medium text-stone-700">{group.receipt.note}</span>
+                  </div>
+                )}
                 {isDraft && needsManualEntry(group.items) && (
                   <div
                     className="flex items-center justify-between gap-2 border-b border-amber-100 bg-amber-50 px-4 py-2 text-xs text-amber-900"
@@ -1477,7 +1485,7 @@ function SplitDialog({
         </p>
         {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
         <div className="mt-5 flex justify-end gap-2">
-          <button className="btn-secondary" onClick={onClose} disabled={busy}>
+          <button className="btn-secondary" onClick={onClose} disabled={busy} data-testid="split-cancel">
             Cancel
           </button>
           <button

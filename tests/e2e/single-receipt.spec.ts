@@ -66,7 +66,7 @@ test("single receipt review page displays simplified layout, row controls, and t
   await expect(generatePdfBtn).toBeEnabled();
 
   // 5. Split Behavior (splits immediately without switch-mode dialog)
-  await page.getByTestId(`unverify-${rowId}`).click(); // unverify to enable split
+  await page.getByTestId(`verify-${rowId}`).click(); // click verify again to unverify
   await page.getByTestId(`split-${rowId}`).click();
   // Real split dialog opens immediately (no split-mode-dialog overlay)
   await expect(page.getByTestId("split-mode-dialog")).toBeHidden();

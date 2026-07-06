@@ -137,7 +137,7 @@ test("upload-time crop happens on-device at full resolution; the original never 
   const stage = page.getByTestId("image-editor-stage");
   await expect(stage).toBeVisible();
   const box = (await page.getByTestId("crop-box").boundingBox())!;
-  const south = page.getByTestId("crop-box").locator("span").nth(5); // "s" handle
+  const south = page.getByTestId("crop-box").locator('[data-handle="s"]');
   const hb = (await south.boundingBox())!;
   await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
   await page.mouse.down();
