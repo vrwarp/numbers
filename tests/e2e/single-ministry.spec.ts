@@ -24,6 +24,7 @@ async function makeClaim(page: import("@playwright/test").Page, names: string[])
   return page.url().split("/").pop()!;
 }
 
+
 test("describe → Suggest → apply fans the ministry onto every row and unlocks the PDF", async ({
   page,
 }, testInfo) => {
@@ -53,6 +54,17 @@ test("describe → Suggest → apply fans the ministry onto every row and unlock
   // Nothing applied yet: rows still have no ministry.
   await expect(approveButtons.first()).toBeDisabled();
 
+  // Apply the suggestion
+  await page.getByTestId("suggestion-apply").click();
+  await expect(page.getByTestId("suggestion-undo")).toBeVisible();
+  await expect(page.getByTestId("fanout-toast")).toBeHidden();
+
+  // Test the undo action
+  await page.getByTestId("suggestion-undo").click();
+  await expect(page.getByTestId("suggestion-apply")).toBeVisible();
+  await expect(page.locator('[data-testid^="row-ministry-badge-"]').filter({ hasText: "471" })).toHaveCount(0);
+
+  // Re-apply it
   await page.getByTestId("suggestion-apply").click();
   await expect(
     page
@@ -60,8 +72,6 @@ test("describe → Suggest → apply fans the ministry onto every row and unlock
       .filter({ hasText: "471 Youth Retreat — Youth Retreat" })
   ).toHaveCount(3);
   await expect(page.getByTestId("claim-ministry")).toHaveValue("471 Youth Retreat");
-  // Clear the undo toast so it can't sit over the row buttons below.
-  await page.getByTestId("fanout-toast").getByLabel("Dismiss").click();
 
   // Rows are stamped but NOT verified — the human still confirms each amount.
   await expect(page.getByTestId("verify-progress")).toContainText("0 / 3 verified");
