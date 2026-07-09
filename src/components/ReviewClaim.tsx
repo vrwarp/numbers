@@ -1259,7 +1259,13 @@ function LineItemRow({
 
   return (
     <li
-      className={`px-4 py-3 ${excluded ? "bg-stone-50 opacity-60" : ""}`}
+      className={`px-4 py-3 transition-all border-l-4 ${
+        excluded
+          ? "bg-stone-50 opacity-60 border-transparent"
+          : item.isVerified
+            ? "bg-emerald-50/20 border-emerald-500"
+            : "bg-white border-transparent"
+      }`}
       data-testid={`row-${item.id}`}
       data-description={item.description}
     >
@@ -1431,22 +1437,35 @@ function LineItemRow({
                   </span>
                 )}
                 <button
-                  className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
+                  className={`flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all ${
                     item.isVerified
-                      ? "border border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100"
-                      : "bg-emerald-600 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-400"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100"
+                      : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50 disabled:bg-stone-50 disabled:text-stone-400 disabled:border-stone-200 disabled:cursor-not-allowed"
                   } ${nudged ? "nudge-ring" : ""}`}
-                  // Cosmetic: the line-items PATCH route is what actually refuses to
-                  // verify a row without a ministry.
                   disabled={!item.isVerified && !item.ministry}
-                  title={!item.isVerified && !item.ministry ? "Choose a ministry first" : undefined}
+                  title={
+                    !item.isVerified && !item.ministry
+                      ? "Choose a ministry first"
+                      : item.isVerified
+                        ? "Verified! Click to undo verification."
+                        : "Click to certify that description, ministry, and amount are correct."
+                  }
                   onClick={() => onPatch(item.id, { isVerified: !item.isVerified })}
                   aria-pressed={item.isVerified}
                   data-testid={`verify-${item.id}`}
                 >
-                  {item.isVerified
-                    ? "✓ Verified · Undo"
-                    : `✓ Confirm ${formatCents(item.amountCents)}`}
+                  <span
+                    className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border transition-colors ${
+                      item.isVerified
+                        ? "border-emerald-600 bg-emerald-600 text-white"
+                        : (!item.isVerified && !item.ministry)
+                          ? "border-stone-200 bg-stone-50"
+                          : "border-stone-400 bg-white"
+                    }`}
+                  >
+                    {item.isVerified && "✓"}
+                  </span>
+                  <span>Looks correct</span>
                 </button>
               </span>
             )}

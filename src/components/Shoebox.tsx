@@ -408,18 +408,25 @@ export default function Shoebox() {
       )}
 
       <div
-        className={`card sticky top-16 z-30 flex min-h-16 flex-col justify-center gap-2 p-3 transition-colors ${
-          selected.size > 0 ? "border-indigo-200 bg-indigo-50" : ""
+        className={`card sticky top-16 z-30 flex min-h-16 flex-col justify-center gap-2 p-3 transition-all duration-200 ${
+          selected.size > 0 ? "" : "border-indigo-200 bg-indigo-50/80 shadow-md"
         }`}
       >
         <div className="flex items-center justify-between gap-3">
-          <span
-            className={`truncate text-sm font-medium ${selected.size > 0 ? "text-indigo-900" : "text-stone-500"}`}
-          >
-            {selected.size > 0
-              ? `${selected.size} receipt${selected.size > 1 ? "s" : ""} selected`
-              : "Select receipts to claim"}
-          </span>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-xl select-none" role="img" aria-hidden="true">
+              🧾
+            </span>
+            <span
+              className={`truncate text-sm transition-colors duration-200 ${
+                selected.size > 0 ? "font-medium text-stone-700" : "font-semibold text-indigo-900"
+              }`}
+            >
+              {selected.size > 0
+                ? `${selected.size} receipt${selected.size > 1 ? "s" : ""} selected`
+                : "Select receipts below to start a claim"}
+            </span>
+          </div>
           {selected.size > 0 && (
             <button
               className="btn-primary shrink-0 whitespace-nowrap"

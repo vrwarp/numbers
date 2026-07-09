@@ -40,7 +40,7 @@ test("describe → Suggest → apply fans the ministry onto every row and unlock
   await expect(page.getByTestId("claim-ministry-panel")).toBeVisible();
   await expect(page.getByLabel("Ministry", { exact: true })).toHaveCount(0);
   await expect(page.locator('[data-testid^="row-ministry-badge-"]')).toHaveCount(3);
-  const approveButtons = page.getByRole("button", { name: /Confirm \$/ });
+  const approveButtons = page.getByRole("button", { name: "Looks correct", pressed: false });
   await expect(approveButtons.first()).toBeDisabled(); // no ministry yet
 
   // One sentence in, one suggestion out — pending until the human applies it.
@@ -114,7 +114,7 @@ test("switching multi → single adopts the most common ministry, un-verifies, a
   await selects.nth(1).selectOption("320 VBS");
   await selects.nth(2).selectOption("237 Office Supplies");
   // Verify the odd one out, so the switch has something to un-verify.
-  const approveButtons = page.getByRole("button", { name: /Confirm \$/ });
+  const approveButtons = page.getByRole("button", { name: "Looks correct", pressed: false });
   await approveButtons.nth(2).click();
   await expect(page.getByTestId("verify-progress")).toContainText("1 / 3 verified");
 

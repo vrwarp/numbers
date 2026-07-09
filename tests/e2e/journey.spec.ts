@@ -139,7 +139,7 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
 
   // Verify every active row; the button unlocks only at 3/3.
   await expect(page.getByTestId("verify-progress")).toContainText("0 / 3 verified");
-  const approveButtons = page.getByRole("button", { name: /Confirm \$/ });
+  const approveButtons = page.getByRole("button", { name: "Looks correct", pressed: false });
   await expect(approveButtons).toHaveCount(3); // excluded row has no confirm button
 
   // Rows arrive with no ministry — the AI never suggests one, and approving
@@ -149,10 +149,10 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   // The Costco run doesn't fit the budget list: "Other…" reveals a free-text
   // box, and the row stays unverifiable until the custom text is typed.
   await costcoRow.getByLabel("Ministry", { exact: true }).selectOption("Other…");
-  await expect(costcoRow.getByRole("button", { name: /Confirm \$/ })).toBeDisabled();
+  await expect(costcoRow.getByRole("button", { name: "Looks correct", pressed: false })).toBeDisabled();
   await costcoRow.getByLabel("Custom ministry").fill("Pastor Appreciation");
   await costcoRow.getByLabel("Custom ministry").blur();
-  await expect(costcoRow.getByRole("button", { name: /Confirm \$/ })).toBeEnabled();
+  await expect(costcoRow.getByRole("button", { name: "Looks correct", pressed: false })).toBeEnabled();
 
   for (const sel of await page.getByLabel("Ministry", { exact: true }).all()) {
     if (await sel.isDisabled()) continue; // excluded row
@@ -175,7 +175,7 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   await expect(page.getByTestId("generate-pdf")).toBeDisabled();
   await costcoRow.getByLabel("Amount").fill("90.00");
   await costcoRow.getByLabel("Amount").blur();
-  await costcoRow.getByRole("button", { name: /Confirm \$/ }).click();
+  await costcoRow.getByRole("button", { name: "Looks correct", pressed: false }).click();
   await expect(page.getByTestId("generate-pdf")).toBeEnabled();
   await shot(page, "06-review-verified");
 
@@ -264,7 +264,7 @@ test("claim with more receipts than the 13-row form paginates onto two form page
   await expect(
     page.locator('[data-testid^="row-ministry-badge-"]').filter({ hasText: "237 Office Supplies" })
   ).toHaveCount(14);
-  const approve = page.getByRole("button", { name: /Confirm \$/ });
+  const approve = page.getByRole("button", { name: "Looks correct", pressed: false });
   for (let i = 0; i < 14; i++) {
     await approve.first().click();
     await expect(page.getByTestId("verify-progress")).toContainText(`${i + 1} / 14 verified`);
