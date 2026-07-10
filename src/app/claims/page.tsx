@@ -29,7 +29,7 @@ export default async function ClaimsPage() {
           <p className="mt-2 font-medium">No claims yet</p>
           <p className="text-sm">
             Select receipts in your <Link href="/" className="text-indigo-600 underline">Shoebox</Link> and
-            hit &ldquo;Generate Claim&rdquo;.
+            hit &ldquo;New Claim&rdquo;.
           </p>
         </div>
       ) : (
