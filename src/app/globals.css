@@ -46,3 +46,19 @@ body {
 .nudge-ring {
   animation: nudge-ring 1.1s ease-out 3;
 }
+
+/* Shakes the New Claim button when clicked with nothing selected. */
+@keyframes shake-x {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-4px);
+  }
+  40%, 80% {
+    transform: translateX(4px);
+  }
+}
+.shake-x {
+  animation: shake-x 0.4s ease-in-out;
+}

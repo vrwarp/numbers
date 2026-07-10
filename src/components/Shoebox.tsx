@@ -65,6 +65,9 @@ export default function Shoebox() {
   const [waitCooldownMs, setWaitCooldownMs] = useState(0);
   // Bumped on each quota wait so the countdown ring remounts and restarts.
   const [waitKey, setWaitKey] = useState(0);
+  // Shown briefly when the New Claim button is clicked with nothing selected.
+  const [showSelectHint, setShowSelectHint] = useState(false);
+  const selectHintTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [viewing, setViewing] = useState<Receipt | null>(null);
   // Whole-page drag target: true while a file is dragged over the Shoebox.
@@ -76,6 +79,16 @@ export default function Shoebox() {
     const res = await fetch("/api/receipts");
     if (res.ok) setReceipts((await res.json()).receipts);
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (selectHintTimeout.current) clearTimeout(selectHintTimeout.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selected.size > 0) setShowSelectHint(false);
+  }, [selected]);
 
   useEffect(() => {
     load();
@@ -288,6 +301,16 @@ export default function Shoebox() {
     }
   }
 
+  function handleGenerateClaimClick() {
+    if (selected.size === 0) {
+      setShowSelectHint(true);
+      if (selectHintTimeout.current) clearTimeout(selectHintTimeout.current);
+      selectHintTimeout.current = setTimeout(() => setShowSelectHint(false), 2000);
+      return;
+    }
+    generateClaim();
+  }
+
   async function generateClaim() {
     setGenerating(true);
     setWaiting(false);
@@ -373,32 +396,32 @@ export default function Shoebox() {
           </div>
         </div>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Shoebox</h1>
-          <p className="text-sm text-stone-500">
-            Drop receipts here as you go. Select some when you&apos;re ready to file a claim.
-          </p>
+      <div>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-3xl font-bold">Shoebox</h1>
+          <div className="shrink-0">
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*,application/pdf"
+              multiple
+              className="hidden"
+              data-testid="file-input"
+              onChange={(e) => onFilesPicked(e.target.files)}
+            />
+            <button
+              className="btn-primary"
+              onClick={() => fileInput.current?.click()}
+              disabled={uploading}
+              data-testid="upload-button"
+            >
+              {uploading ? "Uploading…" : "📷 Upload Receipt"}
+            </button>
+          </div>
         </div>
-        <div>
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/*,application/pdf"
-            multiple
-            className="hidden"
-            data-testid="file-input"
-            onChange={(e) => onFilesPicked(e.target.files)}
-          />
-          <button
-            className="btn-primary"
-            onClick={() => fileInput.current?.click()}
-            disabled={uploading}
-            data-testid="upload-button"
-          >
-            {uploading ? "Uploading…" : "📷 Upload Receipt"}
-          </button>
-        </div>
+        <p className="mt-1.5 text-sm text-stone-500">
+          Drop receipts here as you go. Select some when you&apos;re ready to file a claim.
+        </p>
       </div>
 
       {error && (
@@ -407,66 +430,79 @@ export default function Shoebox() {
         </div>
       )}
 
-      <div
-        className={`card sticky top-16 z-30 flex min-h-16 flex-col justify-center gap-2 p-3 transition-all duration-200 ${
-          selected.size > 0 ? "" : "border-indigo-200 bg-indigo-50/80 shadow-md"
-        }`}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="text-xl select-none" role="img" aria-hidden="true">
-              🧾
-            </span>
-            <span
-              className={`truncate text-sm transition-colors duration-200 ${
-                selected.size > 0 ? "font-medium text-stone-700" : "font-semibold text-indigo-900"
-              }`}
-            >
-              {selected.size > 0
-                ? `${selected.size} receipt${selected.size > 1 ? "s" : ""} selected`
-                : "Select receipts below to start a claim"}
-            </span>
+      {receipts !== null && (unassigned.length > 0 || processed.length > 0) && (
+        <div
+          className={`card sticky top-16 z-30 flex min-h-16 flex-col justify-center gap-2 p-3 transition-all duration-200 ${
+            selected.size > 0 ? "" : "border-indigo-200 bg-indigo-50/80 shadow-md"
+          }`}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-start gap-2.5">
+              <span className="text-xl select-none" role="img" aria-hidden="true">
+                🧾
+              </span>
+              <span
+                className={`text-sm transition-colors duration-200 ${
+                  selected.size > 0 ? "font-medium text-stone-700" : "font-semibold text-indigo-900"
+                }`}
+              >
+                {selected.size > 0
+                  ? `${selected.size} receipt${selected.size > 1 ? "s" : ""} selected`
+                  : "Select receipts below to start a claim"}
+              </span>
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <button
+                className={`btn-primary whitespace-nowrap ${
+                  selected.size === 0 ? "cursor-not-allowed opacity-40" : ""
+                } ${showSelectHint ? "shake-x" : ""}`}
+                onClick={handleGenerateClaimClick}
+                disabled={generating}
+                aria-disabled={selected.size === 0}
+                data-testid="generate-claim"
+              >
+                {generating
+                  ? waiting
+                    ? "Waiting on rate limit…"
+                    : "Reading receipts…"
+                  : "✨ New Claim"}
+              </button>
+              {showSelectHint && (
+                <span
+                  className="text-xs font-medium text-indigo-700"
+                  data-testid="select-receipt-hint"
+                >
+                  Select a receipt first ↑
+                </span>
+              )}
+            </div>
           </div>
-          {selected.size > 0 && (
-            <button
-              className="btn-primary shrink-0 whitespace-nowrap"
-              onClick={generateClaim}
-              disabled={generating}
-              data-testid="generate-claim"
+          {generating && status && (
+            <div
+              className="flex items-center gap-2"
+              role="status"
+              aria-live="polite"
+              data-testid="generate-status"
             >
-              {generating
-                ? waiting
-                  ? "Waiting on rate limit…"
-                  : "Reading receipts…"
-                : "✨ Generate Claim"}
-            </button>
+              {waiting && waitCooldownMs > 0 && (
+                <QuotaWaitRing key={waitKey} durationMs={waitCooldownMs} />
+              )}
+              <span className={`text-xs ${waiting ? "font-medium text-amber-700" : "text-indigo-700"}`}>
+                {status}
+              </span>
+              {waiting && (
+                <button
+                  className="ml-1 rounded px-2 py-1 text-xs font-semibold text-amber-800 underline underline-offset-2 hover:bg-amber-100"
+                  onClick={generateManualClaim}
+                  data-testid="generate-claim-manual"
+                >
+                  Enter manually instead
+                </button>
+              )}
+            </div>
           )}
         </div>
-        {generating && status && (
-          <div
-            className="flex items-center gap-2"
-            role="status"
-            aria-live="polite"
-            data-testid="generate-status"
-          >
-            {waiting && waitCooldownMs > 0 && (
-              <QuotaWaitRing key={waitKey} durationMs={waitCooldownMs} />
-            )}
-            <span className={`text-xs ${waiting ? "font-medium text-amber-700" : "text-indigo-700"}`}>
-              {status}
-            </span>
-            {waiting && (
-              <button
-                className="ml-1 rounded px-2 py-1 text-xs font-semibold text-amber-800 underline underline-offset-2 hover:bg-amber-100"
-                onClick={generateManualClaim}
-                data-testid="generate-claim-manual"
-              >
-                Enter manually instead
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+      )}
 
       {receipts === null ? (
         <p className="text-sm text-stone-500">Loading…</p>
@@ -477,7 +513,7 @@ export default function Shoebox() {
           <p className="text-sm">Upload a photo or PDF of a receipt to get started.</p>
           <ol className="mx-auto mt-8 grid max-w-3xl gap-3 text-left text-sm text-stone-600 sm:grid-cols-4">
             <li><span className="font-semibold text-indigo-700">1. Snap.</span> Photograph receipts into your Shoebox the moment you buy.</li>
-            <li><span className="font-semibold text-indigo-700">2. Batch.</span> Once a month, select receipts and generate a claim — AI drafts the line items.</li>
+            <li><span className="font-semibold text-indigo-700">2. Batch.</span> Later, when you&apos;re ready, select receipts and hit New Claim.</li>
             <li><span className="font-semibold text-indigo-700">3. Verify.</span> Check every row against the receipt. Fix, split, or exclude items.</li>
             <li><span className="font-semibold text-indigo-700">4. Print.</span> Download the filled CFCC form with receipts attached, sign, and drop it off.</li>
           </ol>
