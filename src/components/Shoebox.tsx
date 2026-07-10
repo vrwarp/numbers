@@ -398,7 +398,7 @@ export default function Shoebox() {
       )}
       <div>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">Shoebox</h1>
+          <h1 className="text-3xl font-bold">Shoebox</h1>
           <div className="shrink-0">
             <input
               ref={fileInput}
