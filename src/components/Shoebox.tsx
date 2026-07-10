@@ -419,7 +419,7 @@ export default function Shoebox() {
             </button>
           </div>
         </div>
-        <p className="text-sm text-stone-500">
+        <p className="mt-1.5 text-sm text-stone-500">
           Drop receipts here as you go. Select some when you&apos;re ready to file a claim.
         </p>
       </div>
@@ -513,7 +513,7 @@ export default function Shoebox() {
           <p className="text-sm">Upload a photo or PDF of a receipt to get started.</p>
           <ol className="mx-auto mt-8 grid max-w-3xl gap-3 text-left text-sm text-stone-600 sm:grid-cols-4">
             <li><span className="font-semibold text-indigo-700">1. Snap.</span> Photograph receipts into your Shoebox the moment you buy.</li>
-            <li><span className="font-semibold text-indigo-700">2. Batch.</span> Once a month, select receipts and generate a claim — AI drafts the line items.</li>
+            <li><span className="font-semibold text-indigo-700">2. Batch.</span> Later, when you&apos;re ready, select receipts and hit New Claim — AI drafts the line items.</li>
             <li><span className="font-semibold text-indigo-700">3. Verify.</span> Check every row against the receipt. Fix, split, or exclude items.</li>
             <li><span className="font-semibold text-indigo-700">4. Print.</span> Download the filled CFCC form with receipts attached, sign, and drop it off.</li>
           </ol>
