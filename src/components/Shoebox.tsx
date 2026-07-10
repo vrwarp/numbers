@@ -396,32 +396,32 @@ export default function Shoebox() {
           </div>
         </div>
       )}
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div>
+        <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">Shoebox</h1>
-          <p className="text-sm text-stone-500">
-            Drop receipts here as you go. Select some when you&apos;re ready to file a claim.
-          </p>
+          <div className="shrink-0">
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*,application/pdf"
+              multiple
+              className="hidden"
+              data-testid="file-input"
+              onChange={(e) => onFilesPicked(e.target.files)}
+            />
+            <button
+              className="btn-primary"
+              onClick={() => fileInput.current?.click()}
+              disabled={uploading}
+              data-testid="upload-button"
+            >
+              {uploading ? "Uploading…" : "📷 Upload Receipt"}
+            </button>
+          </div>
         </div>
-        <div className="shrink-0">
-          <input
-            ref={fileInput}
-            type="file"
-            accept="image/*,application/pdf"
-            multiple
-            className="hidden"
-            data-testid="file-input"
-            onChange={(e) => onFilesPicked(e.target.files)}
-          />
-          <button
-            className="btn-primary"
-            onClick={() => fileInput.current?.click()}
-            disabled={uploading}
-            data-testid="upload-button"
-          >
-            {uploading ? "Uploading…" : "📷 Upload Receipt"}
-          </button>
-        </div>
+        <p className="text-sm text-stone-500">
+          Drop receipts here as you go. Select some when you&apos;re ready to file a claim.
+        </p>
       </div>
 
       {error && (
