@@ -436,13 +436,13 @@ export default function Shoebox() {
             selected.size > 0 ? "" : "border-indigo-200 bg-indigo-50/80 shadow-md"
           }`}
         >
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-start gap-2.5">
               <span className="text-xl select-none" role="img" aria-hidden="true">
                 🧾
               </span>
               <span
-                className={`truncate text-sm transition-colors duration-200 ${
+                className={`text-sm transition-colors duration-200 ${
                   selected.size > 0 ? "font-medium text-stone-700" : "font-semibold text-indigo-900"
                 }`}
               >
