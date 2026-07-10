@@ -436,8 +436,8 @@ export default function Shoebox() {
             selected.size > 0 ? "" : "border-indigo-200 bg-indigo-50/80 shadow-md"
           }`}
         >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-2.5">
               <span className="text-xl select-none" role="img" aria-hidden="true">
                 🧾
               </span>
@@ -451,7 +451,7 @@ export default function Shoebox() {
                   : "Select receipts below to start a claim"}
               </span>
             </div>
-            <div className="flex w-full flex-col items-end gap-1 sm:w-auto sm:shrink-0">
+            <div className="flex shrink-0 flex-col items-end gap-1">
               <button
                 className={`btn-primary whitespace-nowrap ${
                   selected.size === 0 ? "cursor-not-allowed opacity-40" : ""
