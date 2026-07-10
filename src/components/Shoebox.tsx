@@ -451,30 +451,32 @@ export default function Shoebox() {
                   : "Select receipts below to start a claim"}
               </span>
             </div>
-            <button
-              className={`btn-primary shrink-0 whitespace-nowrap ${
-                selected.size === 0 ? "cursor-not-allowed opacity-40" : ""
-              } ${showSelectHint ? "shake-x" : ""}`}
-              onClick={handleGenerateClaimClick}
-              disabled={generating}
-              aria-disabled={selected.size === 0}
-              data-testid="generate-claim"
-            >
-              {generating
-                ? waiting
-                  ? "Waiting on rate limit…"
-                  : "Reading receipts…"
-                : "✨ New Claim"}
-            </button>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <button
+                className={`btn-primary whitespace-nowrap ${
+                  selected.size === 0 ? "cursor-not-allowed opacity-40" : ""
+                } ${showSelectHint ? "shake-x" : ""}`}
+                onClick={handleGenerateClaimClick}
+                disabled={generating}
+                aria-disabled={selected.size === 0}
+                data-testid="generate-claim"
+              >
+                {generating
+                  ? waiting
+                    ? "Waiting on rate limit…"
+                    : "Reading receipts…"
+                  : "✨ New Claim"}
+              </button>
+              {showSelectHint && (
+                <span
+                  className="text-xs font-medium text-indigo-700"
+                  data-testid="select-receipt-hint"
+                >
+                  Select a receipt first ↑
+                </span>
+              )}
+            </div>
           </div>
-          {showSelectHint && (
-            <p
-              className="text-right text-xs font-medium text-indigo-700"
-              data-testid="select-receipt-hint"
-            >
-              Select a receipt first ↑
-            </p>
-          )}
           {generating && status && (
             <div
               className="flex items-center gap-2"
