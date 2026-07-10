@@ -451,7 +451,7 @@ export default function Shoebox() {
                   : "Select receipts below to start a claim"}
               </span>
             </div>
-            <div className="flex shrink-0 flex-col items-end gap-1">
+            <div className="flex w-full flex-col items-end gap-1 sm:w-auto sm:shrink-0">
               <button
                 className={`btn-primary whitespace-nowrap ${
                   selected.size === 0 ? "cursor-not-allowed opacity-40" : ""
