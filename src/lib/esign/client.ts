@@ -1,0 +1,474 @@
+"use client";
+
+/**
+ * Browser-side e-sign flows (docs/ESIGN_DESIGN.md §4–§5): environment
+ * loading, root-anchor checks, chain verification, and the ceremonies
+ * (enroll, vouch, submit, decide, pay, withdraw). Every ceremony is
+ * fail-closed: it independently hashes the bytes/refs it is about to sign
+ * and refuses on any mismatch with the server's preflight payload.
+ */
+
+import type { FirebaseWebConfig } from "@/components/SignInCard";
+import { actionHash, fingerprintMatches, keyFingerprint, sha256Hex } from "./canonical";
+import { CONSENT_TEXT } from "./consent";
+import { generateLedgerKey, openLedger, sealEnvelope, type SigningKeyPair } from "./envelope";
+import { getCustody, rememberRoster, type KeyCustody } from "./custody";
+import { getLedgerStore, type EsignBackend, type LedgerStore } from "./store";
+import { replayRoster, type RosterTimeline } from "./roster";
+import { evaluateClaimLedger, type ClaimEvaluation } from "./validity";
+import type {
+  AttestAction,
+  ClaimAction,
+  GenesisAction,
+  RawLedgerEventDoc,
+  RosterAction,
+  SubmitAction,
+  VerifiedEvent,
+  WithdrawAction,
+} from "./types";
+
+export interface EsignMe {
+  userId: string;
+  email: string;
+  name: string;
+  role: string;
+  identityStatus: string | null;
+  publicKey: string | null;
+}
+
+export interface EsignEnv {
+  bootstrapped: boolean;
+  backend: EsignBackend;
+  canBootstrap?: boolean;
+  consentVersion?: string;
+  rootPublicKey?: string;
+  rootFingerprint?: string;
+  configuredRootFingerprint?: string | null;
+  rosterLedgerId?: string;
+  rosterLedgerKey?: string | null;
+  firebaseConfig?: FirebaseWebConfig | null;
+  me: EsignMe;
+}
+
+async function jsonOrThrow(res: Response) {
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(data?.error ?? `Request failed (${res.status})`);
+  return data;
+}
+
+export async function loadEnv(): Promise<EsignEnv> {
+  const env = (await jsonOrThrow(await fetch("/api/esign/registry"))) as EsignEnv;
+  if (env.bootstrapped && env.backend === "firestore" && env.firebaseConfig) {
+    const { configureFirebase } = await import("./firebase-client");
+    configureFirebase(env.firebaseConfig, env.me.email);
+  }
+  return env;
+}
+
+export function storeFor(env: EsignEnv): LedgerStore {
+  return getLedgerStore(env.backend);
+}
+
+export function custodyFor(env: EsignEnv): KeyCustody {
+  return getCustody(env.backend);
+}
+
+function newLedgerId(): string {
+  return crypto.randomUUID().replace(/-/g, "");
+}
+
+/** Ceremony event ids derive from the action hash (§5.5): a double append is
+ *  a create-on-existing no-op instead of a duplicate. */
+function eventIdFor(hash: string): string {
+  return `e${hash.slice(0, 40)}`;
+}
+
+// --- Root anchor (§4.6) --------------------------------------------------------
+
+export type AnchorStatus =
+  | { ok: true; pinnedBy: "deployment" | "tofu" | "first-use"; fingerprint: string }
+  | { ok: false; reason: string };
+
+export async function checkRootAnchor(env: EsignEnv, custody: KeyCustody): Promise<AnchorStatus> {
+  if (!env.rootPublicKey) return { ok: false, reason: "No root key in the registry" };
+  const fingerprint = await keyFingerprint(env.rootPublicKey);
+  if (env.rootFingerprint && env.rootFingerprint !== fingerprint) {
+    return { ok: false, reason: "Server-relayed fingerprint does not match the root key" };
+  }
+  if (env.configuredRootFingerprint) {
+    return fingerprintMatches(fingerprint, env.configuredRootFingerprint)
+      ? { ok: true, pinnedBy: "deployment", fingerprint }
+      : { ok: false, reason: "Root key does not match this deployment's configured fingerprint" };
+  }
+  const pinned = await custody.getRootPin();
+  if (pinned) {
+    return fingerprintMatches(fingerprint, pinned) || pinned === fingerprint
+      ? { ok: true, pinnedBy: "tofu", fingerprint }
+      : { ok: false, reason: "Root key changed since this device pinned it — STOP and verify in person" };
+  }
+  await custody.setRootPin(fingerprint);
+  return { ok: true, pinnedBy: "first-use", fingerprint };
+}
+
+// --- Roster & chain verification -------------------------------------------------
+
+export interface RosterLoad {
+  roster: RosterTimeline;
+  rawDocs: RawLedgerEventDoc[];
+  rejectedCount: number;
+}
+
+export async function loadRoster(env: EsignEnv): Promise<RosterLoad> {
+  if (!env.rosterLedgerId || !env.rosterLedgerKey) {
+    throw new Error("Roster key is not available — enroll first");
+  }
+  const store = storeFor(env);
+  const rawDocs = await store.list(env.rosterLedgerId);
+  const { events, rejected } = await openLedger(env.rosterLedgerKey, rawDocs);
+  const roster = replayRoster(env.rosterLedgerId, events as VerifiedEvent<RosterAction>[]);
+  if (roster.root.publicKey !== env.rootPublicKey) {
+    throw new Error("Roster genesis does not match the registry root key");
+  }
+  return { roster, rawDocs, rejectedCount: rejected.length };
+}
+
+/** Push the full roster to the server's verified-mirror pipeline (§5.5). */
+export async function reportRoster(env: EsignEnv, rawDocs: RawLedgerEventDoc[]): Promise<void> {
+  await jsonOrThrow(
+    await fetch("/api/esign/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ events: rawDocs }),
+    })
+  );
+}
+
+export interface ClaimChain {
+  anchor: AnchorStatus;
+  roster: RosterTimeline;
+  evaluation: ClaimEvaluation;
+  claimDocs: RawLedgerEventDoc[];
+  /** Hash of the archived packet bytes fetched from the server, or null. */
+  packetSha256: string | null;
+  packetBytes: ArrayBuffer | null;
+}
+
+export async function verifyClaimChain(
+  env: EsignEnv,
+  claim: {
+    id: string;
+    ownerUid: string;
+    signatureLedgerId: string;
+    signatureLedgerKey: string;
+    packetSha256?: string | null;
+  }
+): Promise<ClaimChain> {
+  const custody = custodyFor(env);
+  const anchor = await checkRootAnchor(env, custody);
+  const { roster } = await loadRoster(env);
+  const store = storeFor(env);
+  const claimDocs = await store.list(claim.signatureLedgerId);
+  const { events } = await openLedger(claim.signatureLedgerKey, claimDocs);
+  const evaluation = evaluateClaimLedger({
+    claimId: claim.id,
+    ledgerId: claim.signatureLedgerId,
+    ownerUid: claim.ownerUid,
+    roster,
+    events: events as VerifiedEvent<ClaimAction>[],
+  });
+  let packetSha256: string | null = null;
+  let packetBytes: ArrayBuffer | null = null;
+  const res = await fetch(
+    `/api/reimbursements/${claim.id}/packet${claim.packetSha256 ? `?sha=${claim.packetSha256}` : ""}`
+  );
+  if (res.ok) {
+    packetBytes = await res.arrayBuffer();
+    packetSha256 = await sha256Hex(new Uint8Array(packetBytes));
+  }
+  return { anchor, roster, evaluation, claimDocs, packetSha256, packetBytes };
+}
+
+/** Reconcile the mirror from a verifying view (§5.5). */
+export async function reconcileClaim(claimId: string, docs: RawLedgerEventDoc[]): Promise<unknown> {
+  return jsonOrThrow(
+    await fetch(`/api/reimbursements/${claimId}/reconcile`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ events: docs }),
+    })
+  );
+}
+
+// --- Enrollment & vouching (§4.2–4.3) ---------------------------------------------
+
+export async function enroll(env: EsignEnv): Promise<{ publicKey: string; status: string }> {
+  // Row first (unlocks key relay + records consent), then key, then report it.
+  const first = await jsonOrThrow(
+    await fetch("/api/esign/identity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    })
+  );
+  const custody = custodyFor(env);
+  const identity = await custody.ensureIdentity(first.rosterLedgerId, first.rosterLedgerKey);
+  await custody.saveLedgerKey(first.rosterLedgerId, first.rosterLedgerKey);
+  await rememberRoster(first.rosterLedgerId);
+  const second = await jsonOrThrow(
+    await fetch("/api/esign/identity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ publicKey: identity.publicKeyB64 }),
+    })
+  );
+  return { publicKey: identity.publicKeyB64, status: second.identityStatus };
+}
+
+async function appendToLedger(
+  env: EsignEnv,
+  ledgerId: string,
+  ledgerKey: string,
+  identity: SigningKeyPair,
+  action: RosterAction | ClaimAction
+): Promise<RawLedgerEventDoc> {
+  const sealed = await sealEnvelope(ledgerKey, identity.privateKeyB64, identity.publicKeyB64, action);
+  const hash = await actionHash(action);
+  const eventId = eventIdFor(hash);
+  const store = storeFor(env);
+  await store.append(ledgerId, { eventId, ...sealed });
+  const doc = (await store.list(ledgerId)).find((d) => d.eventId === eventId);
+  if (!doc) throw new Error("Appended event did not come back from the store");
+  return doc;
+}
+
+export async function bootstrapRegistry(env: EsignEnv): Promise<void> {
+  const custody = custodyFor(env);
+  const rosterLedgerId = newLedgerId();
+  const rosterLedgerKey = await generateLedgerKey();
+  const identity = await custody.ensureIdentity(rosterLedgerId, rosterLedgerKey);
+  const genesis: GenesisAction = {
+    t: "GENESIS",
+    v: 1,
+    ledger: rosterLedgerId,
+    ts: Date.now(),
+    root: {
+      uid: env.me.userId,
+      email: env.me.email,
+      name: env.me.name,
+      publicKey: identity.publicKeyB64,
+    },
+  };
+  const genesisDoc = await appendToLedger(env, rosterLedgerId, rosterLedgerKey, identity, genesis);
+  await jsonOrThrow(
+    await fetch("/api/esign/registry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rosterLedgerId,
+        rosterLedgerKey,
+        rootPublicKey: identity.publicKeyB64,
+        genesisDoc,
+      }),
+    })
+  );
+  await custody.saveLedgerKey(rosterLedgerId, rosterLedgerKey);
+  await rememberRoster(rosterLedgerId);
+  await custody.setRootPin(await keyFingerprint(identity.publicKeyB64));
+}
+
+export interface VouchSubject {
+  uid: string;
+  email: string;
+  name: string;
+  publicKey: string;
+}
+
+export async function vouchFor(env: EsignEnv, subject: VouchSubject): Promise<void> {
+  if (!env.rosterLedgerId || !env.rosterLedgerKey) throw new Error("Enroll before vouching");
+  const custody = custodyFor(env);
+  const identity = await custody.getIdentity(env.rosterLedgerId);
+  if (!identity) throw new Error("No signing identity on this device");
+  const attest: AttestAction = {
+    t: "ATTEST",
+    v: 1,
+    ledger: env.rosterLedgerId,
+    ts: Date.now(),
+    subject,
+  };
+  await appendToLedger(env, env.rosterLedgerId, env.rosterLedgerKey, identity, attest);
+  const { rawDocs } = await loadRoster(env);
+  await reportRoster(env, rawDocs);
+}
+
+/** Root-only convenience: grant/revoke a role, then refresh the mirror. */
+export async function grantRole(
+  env: EsignEnv,
+  uid: string,
+  role: "approver" | "treasurer",
+  revoke = false
+): Promise<void> {
+  if (!env.rosterLedgerId || !env.rosterLedgerKey) throw new Error("Not enrolled");
+  const custody = custodyFor(env);
+  const identity = await custody.getIdentity(env.rosterLedgerId);
+  if (!identity) throw new Error("No signing identity on this device");
+  await appendToLedger(env, env.rosterLedgerId, env.rosterLedgerKey, identity, {
+    t: revoke ? "REVOKE_ROLE" : "GRANT_ROLE",
+    v: 1,
+    ledger: env.rosterLedgerId,
+    ts: Date.now(),
+    uid,
+    role,
+  });
+  const { rawDocs } = await loadRoster(env);
+  await reportRoster(env, rawDocs);
+}
+
+// --- Claim ceremonies (§5.5: preflight → verify → append → report) ---------------
+
+async function ceremonyIdentity(env: EsignEnv): Promise<SigningKeyPair> {
+  if (!env.rosterLedgerId) throw new Error("Not enrolled");
+  const identity = await custodyFor(env).getIdentity(env.rosterLedgerId);
+  if (!identity) {
+    throw new Error("Your signing key is not on this device — enroll or recover it first");
+  }
+  return identity;
+}
+
+/** The signer must be shown/sign the exact consent text hash it carries. */
+async function assertConsentHash(payload: unknown): Promise<void> {
+  const hash = (payload as { consentSha256?: unknown }).consentSha256;
+  if (typeof hash === "string" && hash !== (await sha256Hex(CONSENT_TEXT))) {
+    throw new Error("Consent text mismatch — refusing to sign");
+  }
+}
+
+export async function runSubmitCeremony(
+  claim: { id: string; signatureLedgerId?: string | null; signatureLedgerKey?: string | null },
+  form: { approverUserId: string; typedName: string }
+): Promise<void> {
+  const env = await loadEnv();
+  const identity = await ceremonyIdentity(env);
+  const custody = custodyFor(env);
+
+  let ledgerId = claim.signatureLedgerId ?? null;
+  let ledgerKey = claim.signatureLedgerKey ?? null;
+  if (!ledgerId) {
+    ledgerId = newLedgerId();
+    ledgerKey = await generateLedgerKey();
+  }
+  const preflight = (await jsonOrThrow(
+    await fetch(`/api/reimbursements/${claim.id}/submit?preflight=1`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...form, ledgerId }),
+    })
+  )) as { payload: SubmitAction; needLedgerKey: boolean };
+  const payload = preflight.payload;
+
+  // Fail-closed (§5.3): hash the exact stored bytes ourselves; sign OUR hash
+  // only if the server pinned the same one.
+  const res = await fetch(`/api/reimbursements/${claim.id}/packet`);
+  if (!res.ok) throw new Error("Could not fetch the packet to hash");
+  const myHash = await sha256Hex(new Uint8Array(await res.arrayBuffer()));
+  if (myHash !== payload.packetSha256) {
+    throw new Error("The packet on the server changed under you — reload and retry");
+  }
+  await assertConsentHash(payload);
+  if (payload.requestorUid !== env.me.userId || payload.approverUid !== form.approverUserId) {
+    throw new Error("Preflight payload does not match this ceremony — refusing to sign");
+  }
+
+  if (!ledgerKey) {
+    ledgerKey = (await custody.getLedgerKey(payload.ledger)) ?? null;
+    if (!ledgerKey) throw new Error("Missing the claim ledger key on this device");
+  }
+  const doc = await appendToLedger(env, payload.ledger, ledgerKey, identity, payload);
+  await custody.saveLedgerKey(payload.ledger, ledgerKey);
+  await jsonOrThrow(
+    await fetch(`/api/reimbursements/${claim.id}/submit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...doc, ledgerKey: preflight.needLedgerKey ? ledgerKey : undefined }),
+    })
+  );
+}
+
+export async function runDecisionCeremony(
+  claim: { id: string; signatureLedgerId: string; signatureLedgerKey: string },
+  form: { decision: "approve" | "reject"; comment?: string; typedName?: string },
+  expected: { submitRef: string; packetSha256: string }
+): Promise<void> {
+  const env = await loadEnv();
+  const identity = await ceremonyIdentity(env);
+  const payload = (
+    (await jsonOrThrow(
+      await fetch(`/api/reimbursements/${claim.id}/decision?preflight=1`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+    )) as { payload: ClaimAction }
+  ).payload as ClaimAction & { submitRef: string; packetSha256: string };
+  // The decision must reference EXACTLY the SUBMIT this client verified.
+  if (payload.submitRef !== expected.submitRef || payload.packetSha256 !== expected.packetSha256) {
+    throw new Error("Server's decision target differs from what you verified — refusing to sign");
+  }
+  await assertConsentHash(payload);
+  const doc = await appendToLedger(env, claim.signatureLedgerId, claim.signatureLedgerKey, identity, payload);
+  await jsonOrThrow(
+    await fetch(`/api/reimbursements/${claim.id}/decision`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(doc),
+    })
+  );
+}
+
+export async function runPaidCeremony(
+  claim: { id: string; signatureLedgerId: string; signatureLedgerKey: string },
+  form: { checkNumber?: string; typedName: string },
+  expected: { approveRef: string; packetSha256: string }
+): Promise<void> {
+  const env = await loadEnv();
+  const identity = await ceremonyIdentity(env);
+  const payload = (
+    (await jsonOrThrow(
+      await fetch(`/api/reimbursements/${claim.id}/paid?preflight=1`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+    )) as { payload: ClaimAction }
+  ).payload as ClaimAction & { approveRef: string; packetSha256: string };
+  if (payload.approveRef !== expected.approveRef || payload.packetSha256 !== expected.packetSha256) {
+    throw new Error("Server's payment target differs from what you verified — refusing to sign");
+  }
+  await assertConsentHash(payload);
+  const doc = await appendToLedger(env, claim.signatureLedgerId, claim.signatureLedgerKey, identity, payload);
+  await jsonOrThrow(
+    await fetch(`/api/reimbursements/${claim.id}/paid`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(doc),
+    })
+  );
+}
+
+/** Close the open submission (reassignment / pre-revert honesty marker). */
+export async function withdrawSubmission(
+  claim: { id: string; signatureLedgerId: string; signatureLedgerKey: string },
+  submitActionHash: string
+): Promise<void> {
+  const env = await loadEnv();
+  const identity = await ceremonyIdentity(env);
+  const action: WithdrawAction = {
+    t: "WITHDRAW",
+    v: 1,
+    ledger: claim.signatureLedgerId,
+    ts: Date.now(),
+    claimId: claim.id,
+    submitRef: submitActionHash,
+  };
+  const doc = await appendToLedger(env, claim.signatureLedgerId, claim.signatureLedgerKey, identity, action);
+  await reconcileClaim(claim.id, [doc]);
+}

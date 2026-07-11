@@ -1,0 +1,235 @@
+"use client";
+
+/**
+ * Voucher's side of the in-person ceremony (docs/ESIGN_DESIGN.md §4.3).
+ * The QR scan (native camera → this URL) is the binding channel; the manual
+ * fallback requires the candidate's FULL 64-hex key fingerprint — never the
+ * 6-digit spoken code, which is grindable. The voucher's one job here is
+ * confirming the human in front of them matches the identity on screen.
+ */
+
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import {
+  loadEnv,
+  vouchFor,
+  type EsignEnv,
+  type VouchSubject,
+} from "@/lib/esign/client";
+import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
+
+function decodeSubject(c: string): VouchSubject | null {
+  try {
+    const json = atob(c.replace(/-/g, "+").replace(/_/g, "/"));
+    const parsed = JSON.parse(json) as Partial<VouchSubject>;
+    if (parsed.uid && parsed.email && parsed.publicKey) {
+      return {
+        uid: parsed.uid,
+        email: parsed.email,
+        name: parsed.name || parsed.email,
+        publicKey: parsed.publicKey,
+      };
+    }
+  } catch {
+    // fall through
+  }
+  return null;
+}
+
+function VouchInner() {
+  const params = useSearchParams();
+  const [env, setEnv] = useState<EsignEnv | null>(null);
+  const [subject, setSubject] = useState<VouchSubject | null>(null);
+  const [fingerprint, setFingerprint] = useState<string | null>(null);
+  const [manualFp, setManualFp] = useState("");
+  const [members, setMembers] = useState<
+    { userId: string; name: string; email: string; publicKey: string; fingerprint: string | null }[]
+  >([]);
+  const [pending, setPending] = useState<VouchSubject[]>([]);
+  const [confirmed, setConfirmed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const encoded = params.get("c");
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const loaded = await loadEnv();
+        setEnv(loaded);
+        if (encoded) {
+          const s = decodeSubject(encoded);
+          if (!s) setError("This vouch link is malformed — rescan the QR");
+          else {
+            setSubject(s);
+            setFingerprint(await keyFingerprint(s.publicKey));
+          }
+        } else {
+          // Manual path: list enrollment candidates awaiting vouches.
+          const res = await fetch("/api/esign/pending");
+          if (res.ok) setPending(((await res.json()).pending ?? []) as VouchSubject[]);
+        }
+        const membersRes = await fetch("/api/esign/members");
+        if (membersRes.ok) setMembers((await membersRes.json()).members ?? []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not load");
+      }
+    })();
+  }, [encoded]);
+
+  const canVouch = env?.me.identityStatus === "attested";
+  const manualMatches = useMemo(() => {
+    const typed = manualFp.toLowerCase().replace(/[^0-9a-f]/g, "");
+    return typed.length >= 32 && fingerprint?.startsWith(typed);
+  }, [manualFp, fingerprint]);
+
+  async function submitVouch() {
+    if (!env || !subject) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await vouchFor(env, subject);
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Vouch failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!env) return <p className="text-sm text-stone-500">Loading…</p>;
+
+  return (
+    <div className="mx-auto max-w-lg space-y-4">
+      <h1 className="text-2xl font-bold">Vouch for a member</h1>
+      {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+
+      {!canVouch ? (
+        <p className="card p-5 text-sm text-stone-600">
+          Only attested members can vouch. Enable signing on your{" "}
+          <a href="/profile" className="text-indigo-600 underline">profile</a> and get vouched first.
+        </p>
+      ) : done ? (
+        <div className="card space-y-2 p-5" data-testid="vouch-done">
+          <div className="text-3xl">✅</div>
+          <p className="font-medium">Vouch recorded for {subject?.name}.</p>
+          <p className="text-sm text-stone-500">
+            They need two member vouches (or one from an approver) to become attested.
+          </p>
+        </div>
+      ) : subject ? (
+        <div className="card space-y-4 p-5">
+          <div>
+            <div className="text-lg font-semibold" data-testid="vouch-subject-name">{subject.name}</div>
+            <div className="text-sm text-stone-500">{subject.email}</div>
+            {fingerprint && (
+              <code className="mt-1 block font-mono text-xs text-stone-600">
+                {fingerprintDisplay(fingerprint)}
+              </code>
+            )}
+          </div>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-semibold">Before you vouch, confirm in person:</p>
+            <ul className="mt-1 list-inside list-disc space-y-1">
+              <li>The person is physically with you right now.</li>
+              <li>This name and email really belong to them.</li>
+              <li>You scanned the QR from THEIR screen (not a forwarded link).</li>
+            </ul>
+          </div>
+          {!encoded && (
+            <div className="space-y-1">
+              <label className="text-sm font-medium">
+                Type their full key fingerprint (from their screen — the spoken 6-digit code is
+                never enough):
+              </label>
+              <input
+                className="input font-mono text-xs"
+                placeholder="64 hex characters (≥32 accepted)"
+                value={manualFp}
+                onChange={(e) => setManualFp(e.target.value)}
+                data-testid="manual-fingerprint"
+              />
+              {!manualMatches && manualFp.length > 0 && (
+                <p className="text-xs text-red-600">Fingerprint does not match.</p>
+              )}
+            </div>
+          )}
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={confirmed}
+              onChange={(e) => setConfirmed(e.target.checked)}
+              data-testid="vouch-confirm"
+            />
+            <span>
+              I am with <strong>{subject.name}</strong> in person and confirm this identity is theirs.
+            </span>
+          </label>
+          <button
+            className="btn-primary w-full disabled:opacity-50"
+            disabled={!confirmed || busy || (!encoded && !manualMatches)}
+            onClick={submitVouch}
+            data-testid="vouch-submit"
+          >
+            {busy ? "Signing…" : "Sign the vouch"}
+          </button>
+        </div>
+      ) : (
+        <div className="card space-y-4 p-5">
+          <p className="text-sm text-stone-600">
+            Scan the candidate&apos;s QR with your phone camera — it opens this page with their
+            identity attached. No QR handy? Pick them below and type their <strong>full key
+            fingerprint</strong> (read from their screen; the short spoken code is not enough).
+          </p>
+          {pending.length === 0 ? (
+            <p className="text-sm text-stone-500">Nobody is currently awaiting vouches.</p>
+          ) : (
+            <ul className="space-y-2">
+              {pending.map((p) => (
+                <li key={p.uid}>
+                  <button
+                    className="btn-secondary w-full text-left"
+                    onClick={async () => {
+                      setSubject(p);
+                      setFingerprint(await keyFingerprint(p.publicKey));
+                    }}
+                  >
+                    {p.name} <span className="text-stone-400">({p.email})</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {members.length > 0 && (
+        <div className="card p-5">
+          <h2 className="text-sm font-semibold text-stone-500">Attested members</h2>
+          <ul className="mt-2 space-y-1 text-sm">
+            {members.map((m) => (
+              <li key={m.userId} className="flex items-center justify-between">
+                <span>{m.name}</span>
+                {m.fingerprint && (
+                  <code className="font-mono text-xs text-stone-400">
+                    {fingerprintDisplay(m.fingerprint)}
+                  </code>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function VouchScreen() {
+  return (
+    <Suspense fallback={<p className="text-sm text-stone-500">Loading…</p>}>
+      <VouchInner />
+    </Suspense>
+  );
+}
