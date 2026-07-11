@@ -10,7 +10,9 @@ export const runtime = "nodejs";
 export async function GET() {
   return handleApi(async () => {
     const userId = await requireUserId();
-    if (!(await getRegistry())) return NextResponse.json({ enabled: false });
+    const registry = await getRegistry();
+    // Master switch off ⇒ the nav shows nothing e-sign related (A5).
+    if (!registry?.enabled) return NextResponse.json({ enabled: false });
     const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
     const approvals = await prisma.reimbursement.count({
       where: { approverUserId: userId, status: "submitted" },

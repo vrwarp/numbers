@@ -129,6 +129,10 @@ model EsignRegistry {
   rootPublicKey   String
   rootUserId      String
   consentVersion  String   @default("ueta-v1")
+  // Master switch (admin-toggled, OFF by default): ceremonies, queues, and
+  // enrollment refuse while disabled. Verification of already-signed records
+  // (/v, packet, certificate) stays available — retention never turns off.
+  enabled         Boolean  @default(false)
   createdAt       DateTime @default(now())
 }
 

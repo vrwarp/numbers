@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
-import { requireRegistry } from "@/lib/esign/server";
+import { requireEnabledRegistry } from "@/lib/esign/server";
 import { CONSENT_VERSION } from "@/lib/esign/consent";
 
 export const runtime = "nodejs";
@@ -16,7 +16,7 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   return handleApi(async () => {
     const userId = await requireUserId();
-    const registry = await requireRegistry();
+    const registry = await requireEnabledRegistry();
     const body = (await req.json().catch(() => ({}))) as {
       publicKey?: string;
       consentVersion?: string;

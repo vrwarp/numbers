@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
-import { requireRegistry } from "@/lib/esign/server";
+import { requireEnabledRegistry } from "@/lib/esign/server";
 import { claimSummary } from "@/lib/esign/claim-server";
 
 export const runtime = "nodejs";
@@ -15,7 +15,7 @@ export const runtime = "nodejs";
 export async function GET() {
   return handleApi(async () => {
     const userId = await requireUserId();
-    await requireRegistry();
+    await requireEnabledRegistry();
     const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
     if (me?.role !== "treasurer" && me?.role !== "admin") throw new ApiError(404, "Not found");
     const claims = await prisma.reimbursement.findMany({

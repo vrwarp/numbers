@@ -54,7 +54,9 @@ export default function EsignPanel({
     void loadEnv().then(setEnv).catch(() => {});
   }, []);
 
-  if (!env?.bootstrapped) return null;
+  // Master switch (A5): off ⇒ no e-sign affordances anywhere. Already-signed
+  // claims still show their status chip, and /v links keep verifying.
+  if (!env?.bootstrapped || !env.enabled) return null;
 
   if (claim.status === "generated") {
     return (

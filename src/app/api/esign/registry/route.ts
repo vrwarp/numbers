@@ -47,6 +47,10 @@ export async function GET() {
     const enrolled = !!identity;
     return NextResponse.json({
       bootstrapped: true,
+      // Master switch (A5): OFF by default; only the admin's toggle turns the
+      // system on. Key material is not relayed while disabled.
+      enabled: registry.enabled,
+      canToggle: user!.role === "admin",
       backend: isEsignMock() ? "mock" : "firestore",
       firebaseConfig: isEsignMock() ? null : firebaseWebConfig(),
       consentVersion: registry.consentVersion,
@@ -55,9 +59,36 @@ export async function GET() {
       // Deployment pin (§4.6) — clients refuse a registry that mismatches it.
       configuredRootFingerprint: esignRootFingerprint() ?? null,
       rosterLedgerId: registry.rosterLedgerId,
-      rosterLedgerKey: enrolled ? registry.rosterLedgerKey : null,
+      rosterLedgerKey: registry.enabled && enrolled ? registry.rosterLedgerKey : null,
       me,
     });
+  });
+}
+
+/** The admin's master switch (docs/ESIGN_DESIGN.md A5). Audited. */
+export async function PATCH(req: Request) {
+  return handleApi(async () => {
+    const userId = await requireUserId();
+    const user = await currentUser();
+    if (user!.role !== "admin") throw new ApiError(404, "Not found");
+    const registry = await getRegistry();
+    if (!registry) throw new ApiError(404, "E-sign is not set up yet");
+    const body = (await req.json().catch(() => ({}))) as { enabled?: boolean };
+    if (typeof body.enabled !== "boolean") throw new ApiError(400, "enabled must be a boolean");
+    await prisma.$transaction([
+      prisma.esignRegistry.update({
+        where: { id: registry.id },
+        data: { enabled: body.enabled },
+      }),
+      prisma.auditEvent.create({
+        data: {
+          userId,
+          action: "esign-toggle",
+          detail: JSON.stringify({ enabled: body.enabled }),
+        },
+      }),
+    ]);
+    return NextResponse.json({ ok: true, enabled: body.enabled });
   });
 }
 

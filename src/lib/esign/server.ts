@@ -26,15 +26,27 @@ export interface RegistryRow {
   rootPublicKey: string;
   rootUserId: string;
   consentVersion: string;
+  enabled: boolean;
 }
 
 export async function getRegistry(): Promise<RegistryRow | null> {
   return prisma.esignRegistry.findFirst();
 }
 
+/** Registry exists — enough for VERIFICATION surfaces (/v, packet,
+ *  certificate), which stay available even while the system is switched
+ *  off: retention never turns off. */
 export async function requireRegistry(): Promise<RegistryRow> {
   const registry = await getRegistry();
   if (!registry) throw new ApiError(404, "E-sign is not set up yet");
+  return registry;
+}
+
+/** Registry exists AND the admin's master switch is on — required by every
+ *  ceremony, queue, and enrollment route (docs/ESIGN_DESIGN.md A5). */
+export async function requireEnabledRegistry(): Promise<RegistryRow> {
+  const registry = await requireRegistry();
+  if (!registry.enabled) throw new ApiError(409, "Electronic signing is turned off");
   return registry;
 }
 

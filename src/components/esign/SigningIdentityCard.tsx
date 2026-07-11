@@ -38,7 +38,7 @@ export default function SigningIdentityCard() {
       setEnv(loaded);
       if (loaded.me.publicKey) setFingerprint(await keyFingerprint(loaded.me.publicKey));
       // Enrolled devices freshen the verified mirror opportunistically (§5.5).
-      if (loaded.bootstrapped && loaded.me.identityStatus && loaded.rosterLedgerKey) {
+      if (loaded.bootstrapped && loaded.enabled && loaded.me.identityStatus && loaded.rosterLedgerKey) {
         const { rawDocs } = await loadRoster(loaded);
         await reportRoster(loaded, rawDocs).catch(() => {});
         setEnv(await loadEnv());
@@ -47,6 +47,24 @@ export default function SigningIdentityCard() {
       setError(err instanceof Error ? err.message : "Could not load signing status");
     }
   }, []);
+
+  async function toggleEnabled(next: boolean) {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/esign/registry", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: next }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "Could not switch");
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not switch");
+    } finally {
+      setBusy(false);
+    }
+  }
   useEffect(() => {
     void refresh();
   }, [refresh]);
@@ -81,6 +99,10 @@ export default function SigningIdentityCard() {
 
   if (!env) return null;
 
+  // Master switch off (A5): the system is invisible to regular members — only
+  // the admin sees the card, reduced to the switch itself.
+  if (env.bootstrapped && !env.enabled && !env.canToggle) return null;
+
   const status = env.me.identityStatus;
   const statusChip =
     status === "attested" ? (
@@ -97,20 +119,50 @@ export default function SigningIdentityCard() {
     <div className="card space-y-4 p-5" data-testid="signing-identity-card">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Electronic signing</h2>
-        {statusChip}
+        {/* While the system is off, an attestation chip would contradict the
+            switch row right below it. */}
+        {env.enabled ? statusChip : null}
       </div>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
-      {!env.bootstrapped ? (
+      {env.bootstrapped && env.canToggle && (
+        <div
+          className={`flex items-center justify-between gap-3 rounded-xl border p-3 ${
+            env.enabled ? "border-emerald-200 bg-emerald-50" : "border-stone-200 bg-stone-50"
+          }`}
+        >
+          <div className="text-sm">
+            <p className="font-semibold">
+              Electronic signing is {env.enabled ? "ON" : "OFF"}
+            </p>
+            <p className="text-xs text-stone-500">
+              {env.enabled
+                ? "Members can enroll, submit, approve, and pay electronically."
+                : "Off for everyone (the default). Existing signed records stay verifiable."}
+            </p>
+          </div>
+          <button
+            className={env.enabled ? "btn-secondary" : "btn-primary"}
+            disabled={busy}
+            onClick={() => toggleEnabled(!env.enabled)}
+            data-testid="esign-switch"
+          >
+            {busy ? "…" : env.enabled ? "Turn off" : "Turn on"}
+          </button>
+        </div>
+      )}
+
+      {env.bootstrapped && !env.enabled ? null : !env.bootstrapped ? (
         env.canBootstrap ? (
           <div className="space-y-3">
             <p className="text-sm text-stone-600">
               You&apos;re set up as the person who starts electronic signing for this church.
-              This takes one tap; afterwards, share the &ldquo;church code&rdquo; it shows with
-              your members so they can check it.
+              Setting up creates the signing registry with you as its anchor — it starts
+              switched <strong>off</strong>, so nothing changes for members until you flip
+              the switch.
             </p>
             <button className="btn-primary" onClick={doBootstrap} disabled={busy} data-testid="esign-bootstrap">
-              {busy ? "Setting up…" : "Turn on electronic signing"}
+              {busy ? "Setting up…" : "Set up electronic signing"}
             </button>
           </div>
         ) : (

@@ -14,7 +14,7 @@ import {
 import {
   claimEvaluation,
   recordSignature,
-  requireRegistry,
+  requireEnabledRegistry,
   verifyReportedClaimEvent,
 } from "@/lib/esign/server";
 import { closureRefs } from "@/lib/esign/validity";
@@ -41,7 +41,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   return handleApi(async () => {
     const userId = await requireUserId();
     const { id } = await ctx.params;
-    const registry = await requireRegistry();
+    const registry = await requireEnabledRegistry();
     const preflight = new URL(req.url).searchParams.get("preflight") === "1";
 
     const claim = await prisma.reimbursement.findFirst({

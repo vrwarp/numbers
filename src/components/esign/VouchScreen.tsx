@@ -140,7 +140,7 @@ function VouchInner() {
     })();
   }, [encoded]);
 
-  const canVouch = env?.me.identityStatus === "attested";
+  const canVouch = env?.enabled === true && env?.me.identityStatus === "attested";
   const manualMatches = useMemo(() => {
     const typed = manualFp.toLowerCase().replace(/[^0-9a-f]/g, "");
     return typed.length >= 32 && fingerprint?.startsWith(typed);

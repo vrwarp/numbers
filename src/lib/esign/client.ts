@@ -40,6 +40,9 @@ export interface EsignMe {
 
 export interface EsignEnv {
   bootstrapped: boolean;
+  /** Admin master switch (A5) — OFF by default; UI treats disabled like absent. */
+  enabled?: boolean;
+  canToggle?: boolean;
   backend: EsignBackend;
   canBootstrap?: boolean;
   consentVersion?: string;
