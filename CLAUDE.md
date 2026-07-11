@@ -40,11 +40,13 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    sets `isVerified=false` unless the patch explicitly sets it (see line-items PATCH route).
 5. **`totalCents` is recomputed server-side** after every line-item mutation. Never trust a
    client-provided total.
-6. **Status machines**: Receipt `unassigned ⇄ processed` ("processed" = on ≥1 GENERATED
-   claim — a receipt may join any number of claims); Reimbursement `draft ⇄ generated`.
-   Generated claims are frozen (line-item routes reject with 409). The escape hatch is
-   POST `/api/reimbursements/[id]/revert` (claim → draft; receipts released unless another
-   generated claim holds them).
+6. **Status machines**: Receipt `unassigned ⇄ processed` ("processed" = on ≥1 claim in a
+   FROZEN status — a receipt may join any number of claims); Reimbursement
+   `draft ⇄ generated → submitted → approved → paid` (+ `rejected`, back toward draft/
+   resubmit). FROZEN = generated|submitted|rejected|approved|paid: all frozen claims reject
+   line-item mutations with 409. The escape hatch is POST `/api/reimbursements/[id]/revert`
+   (any frozen-but-unpaid claim → draft, voiding collected signatures by hash mismatch;
+   receipts released unless another FROZEN claim holds them). Paid is terminal.
 7. **Telemetry**: every AI call (success AND failure) writes an `ExtractionLog` — receipt
    extraction `kind="receipt"`, ministry suggestions `kind="suggestion"`; every manual edit
    writes an `AuditEvent` with field diffs (`update-claim` for claim-level settings; fan-out
@@ -55,10 +57,26 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
 8. **The PDF is an AcroForm fill** of `assets/cfcc-form-template.pdf` (13 rows/page). Field
    names are the contract — see `docs/agent/ARCHITECTURE.md` for the exact list (note the
    double space in `For Ministry  EventRow{n}`).
+9. **E-sign chain of custody** (`docs/ESIGN_DESIGN.md` is the implementation contract):
+   once a claim leaves `generated` its packet bytes are archived per-hash under
+   `signed/…/<sha256>.pdf` and never regenerated, overwritten, or deleted (claim deletion
+   included; `EsignClaimArchive` keeps the ledger pointer/key) — `POST …/pdf` 409s while
+   under signature. Mirror rows (`SignerIdentity`, `User.role`, claim status,
+   `SignatureRecord`) are written ONLY from signature-verified ledger events
+   (`src/lib/esign/server.ts`); ceremony UIs and `/v/<token>` re-verify the whole chain
+   client-side and fail closed; the numbers server never holds Firestore credentials.
+   Signed payloads are self-binding (`ledger`/`claimId`/`packetSha256`/`seq`/`closesRef`/
+   `submitRef`/`approveRef`, money in integer cents); the roster + thread rules live in the
+   isomorphic modules `src/lib/esign/roster.ts` + `validity.ts` — change them only with
+   tests, and keep `scripts/verify-bundle.mjs` (a deliberately independent
+   reimplementation) in agreement. Dev/tests: `ESIGN_MOCK=1` + `ESIGN_ROOT_EMAIL` run the
+   full protocol (real ECDSA, real hash binding) on a SQLite ledger store, no Firebase.
 
 ## Docs map
 
 - `docs/agent/ARCHITECTURE.md` — file map, request flows, PDF field names, env vars
+- `docs/ESIGN_DESIGN.md` — e-signature & approval workflow: trust model, ledger threads,
+  ceremonies, attack/defense matrix (ratified design, now implemented)
 - `docs/agent/DATA_MODEL.md` — schema semantics, state machines, invariants per table
 - `docs/agent/CONVENTIONS.md` — code patterns + gotchas that have already bitten (read before UI/test work)
 - `docs/agent/TESTING.md` — how suites run, how to write tests here, known failure modes

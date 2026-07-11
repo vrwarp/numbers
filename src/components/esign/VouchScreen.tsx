@@ -146,6 +146,11 @@ function VouchInner() {
     return typed.length >= 32 && fingerprint?.startsWith(typed);
   }, [manualFp, fingerprint]);
 
+  async function refreshMembers() {
+    const res = await fetch("/api/esign/members");
+    if (res.ok) setMembers((await res.json()).members ?? []);
+  }
+
   async function submitVouch() {
     if (!env || !subject) return;
     setBusy(true);
@@ -153,6 +158,9 @@ function VouchInner() {
     try {
       await vouchFor(env, subject);
       setDone(true);
+      // The vouch may have just attested them — show the fresh roster state
+      // (and, for the root, the role buttons for the new member).
+      await refreshMembers();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Vouch failed");
     } finally {
@@ -289,10 +297,7 @@ function VouchInner() {
                   {/* Role grants are root-signed roster events (§4.3) — only
                       the root's browser can produce them. */}
                   {env.me.role === "admin" && m.userId !== env.me.userId && (
-                    <RoleButtons env={env} member={m} onDone={async () => {
-                      const res = await fetch("/api/esign/members");
-                      if (res.ok) setMembers((await res.json()).members ?? []);
-                    }} />
+                    <RoleButtons env={env} member={m} onDone={refreshMembers} />
                   )}
                 </span>
               </li>
