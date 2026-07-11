@@ -16,12 +16,15 @@ model User {
   email          String          @unique
   fullName       String?
   mailingAddress String?
-  role           String          @default("member") // member | treasurer | admin
+  // Verified mirror of roster-granted roles (see docs/ESIGN_DESIGN.md §5.5):
+  // written only from signature-verified GRANT_ROLE/REVOKE_ROLE events.
+  role           String          @default("member") // member | approver | treasurer | admin
   createdAt      DateTime        @default(now())
   receipts       Receipt[]
   reimbursements Reimbursement[]
   extractionLogs ExtractionLog[]
   auditEvents    AuditEvent[]
+  signerIdentity SignerIdentity?
 }
 
 model Receipt {
@@ -82,14 +85,127 @@ model Reimbursement {
   // first PDF generation and kept stable across revert/re-generate cycles so
   // a printed QR always resolves to the newest version.
   publicToken String? @unique
+  // --- E-sign workflow (docs/ESIGN_DESIGN.md) -------------------------------
+  // Status gains submitted | rejected | approved | paid. These columns are the
+  // server-side MIRROR of the signature ledger — presentation/routing only;
+  // cryptographic truth lives in the ledger events (verified client-side and
+  // in the report pipeline before any of these are written).
+  approverUserId     String?
+  signatureLedgerId  String?
+  signatureLedgerKey String?
+  // SHA-256 (hex) of the currently archived signed packet version.
+  packetSha256       String?
+  // Lifetime submission counter (thread seq source). NEVER reset, revert included.
+  submitSeq          Int     @default(0)
+  // Preflight-pinned pending ceremony payloads, JSON object keyed by signer
+  // userId — at most one pending action per (claim, signer). See §5.5.
+  pendingActionsJson String  @default("{}")
+  submittedAt DateTime?
+  decidedAt   DateTime?
+  paidAt      DateTime?
+  checkNumber String    @default("")
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt
   lineItems   LineItem[]
   receipts    ReimbursementReceipt[]
   extractionLogs ExtractionLog[]
   auditEvents    AuditEvent[]
+  signatureRecords SignatureRecord[]
 
   @@index([userId, status])
+  @@index([approverUserId, status])
+}
+
+// --- E-sign tables (docs/ESIGN_DESIGN.md §9.1) -------------------------------
+
+// Single row (app-enforced), written once by the root's bootstrap ceremony.
+// Relays the roster ledger pointer + key to enrolled clients. The root public
+// key here is a CONVENIENCE COPY — verifiers anchor on the out-of-band pin
+// (ESIGN_ROOT_FINGERPRINT / TOFU), never on this row alone (§4.6).
+model EsignRegistry {
+  id              String   @id @default(cuid())
+  rosterLedgerId  String
+  rosterLedgerKey String
+  rootPublicKey   String
+  rootUserId      String
+  consentVersion  String   @default("ueta-v1")
+  createdAt       DateTime @default(now())
+}
+
+// Verified mirror of a member's roster state (written per §5.5 only — never
+// from client assertions). Feeds pickers/badges; the roster is the truth.
+model SignerIdentity {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publicKey  String    @default("") // base64 SPKI, filled once the roster keypair exists
+  status     String    @default("pending") // pending | attested | revoked
+  attestedAt DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+// Raw ledger event docs as reported by clients — the server cannot read
+// Firestore itself (keyless), so this is the certificate/offline-bundle
+// material AND the input to server-side verification. Append-only.
+model LedgerEventMirror {
+  id            String    @id @default(cuid())
+  ledgerId      String
+  eventId       String
+  createdAtMs   BigInt
+  encryptedData String
+  iv            String
+  kind          String    @default("") // decrypted action `t`, once verified
+  verifiedAt    DateTime?
+
+  @@unique([ledgerId, eventId])
+  @@index([ledgerId])
+}
+
+// Verified mirror of claim-ledger actions; outlives the claim (retention).
+model SignatureRecord {
+  id              String         @id @default(cuid())
+  reimbursementId String?
+  reimbursement   Reimbursement? @relation(fields: [reimbursementId], references: [id], onDelete: SetNull)
+  kind            String // submit | approve | reject | paid | withdraw
+  signerUserId    String
+  signerPublicKey String
+  typedName       String   @default("")
+  packetSha256    String
+  payloadJson     String // the exact signed action (seq/refs/consent inside)
+  actionHash      String   @unique // idempotency key (§5.5)
+  ledgerEventId   String
+  createdAt       DateTime @default(now())
+
+  @@index([reimbursementId])
+}
+
+// Retention pointer written at first submission and NEVER deleted — keeps
+// certificates and /v/<token> working after the claim row itself is gone.
+model EsignClaimArchive {
+  claimId     String   @id // plain string on purpose (no FK — survives deletion)
+  userId      String
+  ledgerId    String
+  ledgerKey   String
+  publicToken String
+  createdAt   DateTime @default(now())
+
+  @@index([publicToken])
+}
+
+// ESIGN_MOCK=1 ledger backend: an append-only event store with the same
+// semantics as the Firestore rules (server-stamped createdAt, create-once
+// event ids, ciphertext readable by any signed-in user). Dev/test only —
+// empty in real deployments, where events live in Firestore.
+model EsignMockEvent {
+  id            Int      @id @default(autoincrement())
+  ledgerId      String
+  eventId       String
+  encryptedData String
+  iv            String
+  createdAt     DateTime @default(now())
+
+  @@unique([ledgerId, eventId])
+  @@index([ledgerId, id])
 }
 
 model LineItem {
