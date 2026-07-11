@@ -2,15 +2,17 @@
 
 /**
  * Click-to-stamp signing surface (docs/ESIGN_DESIGN.md click-to-stamp): shows
- * the actual document and lets the signer place their signature on it by
- * tapping/dragging — DocuSign-style. The signature seeds on the correct line
- * (zero taps for the common case) and can be moved anywhere. Emits a
- * page-normalized placement (bottom-left origin) that both the browser
- * overlay and the server's pdf-lib stamp agree on exactly.
+ * the actual document with a "Tap to sign" placeholder ON the signature line.
+ * Nothing is stamped until the signer taps it — the tap is the required
+ * affirmative act (good UETA evidence, and the familiar sign-here pattern).
+ * After tapping, the signature sits on the line and can be dragged anywhere;
+ * removing it returns to the placeholder state and disables signing again.
  *
  * The page image is rendered from the EXACT bytes passed in (client-side
  * pdf.js), never a server raster — so what you place your signature on is
- * provably the document being signed.
+ * provably the document being signed. Emits a page-normalized placement
+ * (bottom-left origin) that the browser overlay and the server's pdf-lib
+ * stamp agree on exactly, or null while unplaced.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -26,14 +28,15 @@ export default function DocumentSignField({
   bytes: ArrayBuffer;
   signatureImage: string;
   anchor: SignaturePlacement;
-  onChange: (placement: SignaturePlacement) => void;
+  onChange: (placement: SignaturePlacement | null) => void;
 }) {
   const [page, setPage] = useState<RenderedPage | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [placed, setPlaced] = useState(false);
   const [placement, setPlacement] = useState<SignaturePlacement>(anchor);
   const [imgAspect, setImgAspect] = useState(0.35); // naturalH / naturalW
-  const [nudged, setNudged] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,26 +69,30 @@ export default function DocumentSignField({
     [heightRatioPerWidth, onChange]
   );
 
-  // Seed the parent with the anchor on first render.
-  useEffect(() => {
+  /** The required affirmative act: tapping the sign-here tab stamps the
+   *  signature on the line. Until then the parent holds no placement and
+   *  the sign button stays disabled. */
+  function placeAtAnchor() {
+    setPlaced(true);
     commit(anchor);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function place(clientX: number, clientY: number) {
-    const box = boxRef.current?.getBoundingClientRect();
-    if (!box) return;
-    const cw = box.width;
-    const ch = box.height;
-    const stampWpx = placement.widthRatio * cw;
-    // Drop point = bottom-center of the stamp.
-    const xRatio = (clientX - box.left - stampWpx / 2) / cw;
-    const yRatio = (ch - (clientY - box.top)) / ch;
-    commit({ ...placement, xRatio, yRatio });
-    setNudged(true);
   }
 
-  const dragging = useRef(false);
+  function unplace() {
+    setPlaced(false);
+    dragging.current = false;
+    setPlacement(anchor);
+    onChange(null);
+  }
+
+  function moveTo(clientX: number, clientY: number) {
+    const box = boxRef.current?.getBoundingClientRect();
+    if (!box) return;
+    const stampWpx = placement.widthRatio * box.width;
+    // Drop point = bottom-center of the stamp.
+    const xRatio = (clientX - box.left - stampWpx / 2) / box.width;
+    const yRatio = (box.height - (clientY - box.top)) / box.height;
+    commit({ ...placement, xRatio, yRatio });
+  }
 
   if (error) {
     return (
@@ -111,19 +118,22 @@ export default function DocumentSignField({
   return (
     <div className="space-y-2">
       <p className="text-sm text-stone-600">
-        Your signature is on the line. Tap anywhere on the form to move it.
+        {placed
+          ? "Signed. Drag your signature if you want it somewhere else."
+          : "Tap the yellow tab to sign on the line."}
       </p>
       <div
         ref={boxRef}
         className="relative w-full touch-none select-none overflow-hidden rounded-lg border border-stone-300 bg-white"
         style={{ aspectRatio: `${page.widthPx} / ${page.heightPx}` }}
         onPointerDown={(e) => {
+          if (!placed) return; // signing requires tapping the tab first
           e.currentTarget.setPointerCapture(e.pointerId);
           dragging.current = true;
-          place(e.clientX, e.clientY);
+          moveTo(e.clientX, e.clientY);
         }}
         onPointerMove={(e) => {
-          if (dragging.current) place(e.clientX, e.clientY);
+          if (dragging.current) moveTo(e.clientX, e.clientY);
         }}
         onPointerUp={() => {
           dragging.current = false;
@@ -132,27 +142,46 @@ export default function DocumentSignField({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={page.dataUrl} alt="Document to sign" className="pointer-events-none block w-full" />
-        <div
-          className={`pointer-events-none absolute rounded ${nudged ? "" : "ring-2 ring-indigo-400/70 ring-offset-1"}`}
-          style={{ left: `${leftPct}%`, top: `${topPct}%`, width: `${widthPct}%` }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={signatureImage} alt="Your signature" className="block w-full" />
-        </div>
+        {placed ? (
+          <div
+            className="pointer-events-none absolute"
+            style={{ left: `${leftPct}%`, top: `${topPct}%`, width: `${widthPct}%` }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={signatureImage} alt="Your signature" className="block w-full" />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={placeAtAnchor}
+            className="absolute flex animate-pulse items-center justify-center gap-1 rounded-md border-2 border-amber-500 bg-amber-300/90 py-1.5 text-xs font-bold text-amber-950 shadow-md motion-reduce:animate-none"
+            style={{
+              left: `${anchor.xRatio * 100}%`,
+              bottom: `${anchor.yRatio * 100}%`,
+              width: `${anchor.widthRatio * 100}%`,
+            }}
+            data-testid="tap-to-sign"
+          >
+            ✍️ Tap to sign
+          </button>
+        )}
       </div>
       <div className="flex items-center justify-between text-xs text-stone-400">
-        <span>Drag to fine-tune the position.</span>
-        <button
-          type="button"
-          className="text-indigo-600 underline"
-          onClick={() => {
-            setNudged(false);
-            commit(anchor);
-          }}
-          data-testid="reset-placement"
-        >
-          Back to the signature line
-        </button>
+        {placed ? (
+          <>
+            <span>Drag to fine-tune the position.</span>
+            <button
+              type="button"
+              className="text-indigo-600 underline"
+              onClick={unplace}
+              data-testid="remove-signature"
+            >
+              Remove signature
+            </button>
+          </>
+        ) : (
+          <span>Your signature appears only after you tap.</span>
+        )}
       </div>
     </div>
   );
