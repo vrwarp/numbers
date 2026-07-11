@@ -302,8 +302,10 @@ fresh metadata, so bytes differ on every call) and overwrites
 
 The envelope signs only the action (§3), so every action carries its own binding:
 `ledger` (the claim ledger ID), `claimId`, `packetSha256`, and **signer-committed
-thread references** — ordering never depends on timestamps or the server. `ts` is the
-signer's clock, kept for the UETA record and display only. `rowsDigest` = SHA-256 over
+thread references** — ordering never depends on timestamps or the server. `ts` is a
+display timestamp for the UETA record only, never an ordering or validity input: for
+ceremony payloads it is stamped at preflight (server clock, §5.5 — which is what makes
+retries byte-identical), for roster events it is the signer's clock. `rowsDigest` = SHA-256 over
 `canonicalStringify` of active rows `[{description, amountCents, ministry, event}]` in
 sortOrder — it lets the certificate and verification page prove *contents*, not just
 bytes, and verifiers recompute `totalCents` as the sum of row `amountCents`.
@@ -383,8 +385,9 @@ offline verifier alike):
    to a binding APPROVE; `packetSha256` matches it. Once valid, the thread is
    terminally settled.
 
-**Claim-level state** shown to humans: the *current* thread is the one whose
-`packetSha256` matches the currently archived packet version (the server points at
+**Claim-level state** shown to humans: the *current* thread is the **highest-seq valid
+thread** whose `packetSha256` matches the currently archived packet version — several
+threads may share those bytes after withdraw-and-resubmit (the server points at
 "current"; every per-thread fact above is provable without that pointer — the pointer
 only scopes display). `approved`/`paid` render green only when the current thread's
 chain verifies end-to-end.
@@ -423,12 +426,14 @@ double-submission converge instead of contaminating the ledger:
 
 1. **Preflight** (`?preflight=1` on the semantic routes) validates server-side (status,
    approver eligibility, hash match) and returns the **exact canonical payload** to
-   sign — the server stamps `seq`, `closesRef`, `ts`, and pins the content as the
-   claim's single *pending action* (persisted). Re-preflighting replaces an unconsumed
-   pending action; there is at most one. Two tabs therefore sign byte-identical
-   payloads → identical action hash → the second append is a Firestore create on a
-   derived event id / a duplicate action hash that verifiers count once. `submitSeq`
-   never resets (revert included) — seq is a lifetime counter per claim.
+   sign — the server stamps `seq`, `closesRef`, `ts`, and pins the content as that
+   signer's *pending action* on the claim (persisted; at most one per (claim, signer),
+   so a requestor preparing a WITHDRAW never clobbers the approver's in-flight
+   decision). Re-preflighting replaces one's own unconsumed pending action. Two tabs
+   therefore sign byte-identical payloads, and **ceremony event ids are derived from
+   the action hash**, so the duplicate append fails at the rules layer (create on an
+   existing doc) — nothing to dedupe. `submitSeq` never resets (revert included) — seq
+   is a lifetime counter per claim.
 2. **Append** via `ledger-io` with a client-chosen event id.
 3. **Report** `{eventId, createdAtMs, encryptedData, iv}` — the **full raw event doc**,
    not just the payload. The route is idempotent on action hash; re-reporting after a
@@ -625,8 +630,8 @@ and flood).
 New values `Reimbursement.status`: `submitted | rejected | approved | paid`. New
 columns: `approverUserId?`, `signatureLedgerId?`, `signatureLedgerKey?`,
 `packetSha256?`, `submitSeq Int @default(0)` (lifetime counter, never reset),
-`pendingActionJson?` (§5.5 preflight pin), `submittedAt?`, `decidedAt?`, `paidAt?`,
-`checkNumber?`.
+`pendingActionsJson?` (§5.5 preflight pins, keyed by signer), `submittedAt?`,
+`decidedAt?`, `paidAt?`, `checkNumber?`.
 
 ```prisma
 model EsignRegistry {   // single row (app-enforced), written once at bootstrap
