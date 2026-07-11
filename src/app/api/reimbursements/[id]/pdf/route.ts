@@ -2,11 +2,8 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
-import { readStoredFile, saveGeneratedPdf } from "@/lib/storage";
-import { generateClaimPdf } from "@/lib/pdf/generate";
-import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
-import { formatMinistryEvent } from "@/lib/ministries";
-import { publicBaseUrl } from "@/lib/config";
+import { saveGeneratedPdf } from "@/lib/storage";
+import { buildClaimPdfBytes } from "@/lib/esign/packet";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -53,60 +50,18 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       throw new ApiError(400, `${missingMinistry.length} row(s) still need a ministry before the PDF can be generated`);
     }
 
-    // A receipt whose every row is excluded backs nothing on the form —
-    // leave its image out of the packet so the treasurer never gets a
-    // receipt page with no matching claim row.
-    const activeReceiptIds = new Set(active.map((it) => it.receiptId));
-    const includedReceipts = reimbursement.receipts.filter((rr) =>
-      activeReceiptIds.has(rr.receiptId)
-    );
-    const receiptFiles = [];
-    for (const rr of includedReceipts) {
-      receiptFiles.push({
-        data: await readStoredFile(rr.receipt.filePath),
-        mimeType: rr.receipt.mimeType,
-        originalName: rr.receipt.originalName,
-        note: rr.receipt.note,
-      });
-    }
-
-    const now = new Date();
-    const dateString = `${String(now.getMonth() + 1).padStart(2, "0")}/${String(now.getDate()).padStart(2, "0")}/${now.getFullYear()}`;
-
     // Mint the capability token on first generation; it survives revert /
     // re-generate cycles so a QR printed from any version keeps resolving to
     // the latest packet. 24 random bytes (base64url) — unguessable, and NOT
     // derived from the claim id.
     const publicToken =
       reimbursement.publicToken ?? crypto.randomBytes(24).toString("base64url");
-    const base = publicBaseUrl();
 
-    // Hand-drawn signature on file → stamped over the "Requested by" line at
-    // generation, so the ink is part of the bytes a submission later freezes.
-    const identity = await prisma.signerIdentity.findUnique({
-      where: { userId },
-      select: { signatureImage: true },
-    });
-    const requestorSignaturePng = identity?.signatureImage?.startsWith("data:image/png;base64,")
-      ? new Uint8Array(Buffer.from(identity.signatureImage.split(",")[1], "base64"))
-      : undefined;
-
-    const pdfBytes = await generateClaimPdf({
-      requesterName: reimbursement.user.fullName || reimbursement.user.email,
-      requesterAddress: reimbursement.user.mailingAddress || "",
-      dateString,
-      items: active.map((it) => ({
-        description: it.description,
-        amountCents: it.amountCents,
-        ministry: formatMinistryEvent(it.ministry, it.event),
-      })),
-      receipts: receiptFiles,
-      templateBytes: await loadTemplateBytes(),
-      // No PUBLIC_BASE_URL configured → no QR stamp (the server can't know
-      // what URL a scanner could actually reach).
-      selfLinkUrl: base ? `${base}/c/${publicToken}` : undefined,
-      requestorSignaturePng,
-    });
+    // Generation produces the UNSIGNED form (blank signature lines) — the base
+    // for print-and-wet-sign AND for e-sign. The requestor's signature is
+    // click-placed and baked in during the submit ceremony, not here
+    // (docs/ESIGN_DESIGN.md click-to-stamp).
+    const pdfBytes = await buildClaimPdfBytes(reimbursement, publicToken);
 
     // Persist the packet so /c/<token> can serve it later; overwriting on
     // every generation keeps the link pointed at the latest version.

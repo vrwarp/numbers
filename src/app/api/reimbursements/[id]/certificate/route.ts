@@ -10,7 +10,7 @@ import { claimAccessRole, signedPacketPath } from "@/lib/esign/claim-server";
 import { getRegistry, mirroredRawDocs } from "@/lib/esign/server";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
-import { signatureLineRect, stampSignature } from "@/lib/pdf/generate";
+import { signatureAnchor, stampSignatureAt } from "@/lib/pdf/generate";
 import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
 import { FORM_ROWS_PER_PAGE } from "@/lib/config";
 
@@ -213,7 +213,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
         where: { userId: approveRecord.signerUserId },
         select: { signatureImage: true },
       });
-      const approvePayload = JSON.parse(approveRecord.payloadJson) as { ts?: number };
+      const approvePayload = JSON.parse(approveRecord.payloadJson) as {
+        ts?: number;
+        signaturePlacement?: import("@/lib/esign/placement").SignaturePlacement;
+      };
       const approvalDate = new Date(approvePayload.ts ?? approveRecord.createdAt.getTime());
       const dateString = `${String(approvalDate.getMonth() + 1).padStart(2, "0")}/${String(
         approvalDate.getDate()
@@ -232,10 +235,17 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       const signaturePng = approverIdentity?.signatureImage?.startsWith("data:image/png;base64,")
         ? new Uint8Array(Buffer.from(approverIdentity.signatureImage.split(",")[1], "base64"))
         : null;
+      // The approver's click-placed position (page-0 relative); fall back to
+      // the signature-line anchor for older approvals with no recorded spot.
+      const placement =
+        approvePayload.signaturePlacement ??
+        (await signatureAnchor(await loadTemplateBytes(), "approver"));
 
       const activeRows = claim.lineItems.filter((it) => !it.isExcluded).length;
       const formPageCount = Math.max(1, Math.ceil(activeRows / FORM_ROWS_PER_PAGE));
-      // Cover page is index 0; packet form pages follow it.
+      // Cover page is index 0; packet form pages follow it. Name + date go on
+      // every form page's "Approved by" fields; the drawn signature lands at
+      // the approver's chosen spot on the first form page.
       for (let i = 1; i <= Math.min(formPageCount, pages.length); i++) {
         const page = doc.getPage(i);
         if (nameRect) {
@@ -246,9 +256,6 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
             font: helv,
             color: rgb(0.1, 0.09, 0.08),
           });
-          if (signaturePng) {
-            await stampSignature(doc, page, signaturePng, signatureLineRect(nameRect));
-          }
         }
         if (dateRect) {
           page.drawText(dateString, {
@@ -258,6 +265,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
             font: helv,
             color: rgb(0.1, 0.09, 0.08),
           });
+        }
+        if (signaturePng && i === 1) {
+          await stampSignatureAt(doc, page, signaturePng, placement);
         }
       }
     }

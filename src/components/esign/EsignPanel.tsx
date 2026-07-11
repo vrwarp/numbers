@@ -17,7 +17,9 @@ import {
 } from "@/lib/esign/client";
 import { CONSENT_TEXT, INTENT_AFFIRMATION } from "@/lib/esign/consent";
 import { formatCents } from "@/lib/money";
+import type { SignaturePlacement } from "@/lib/esign/placement";
 import { AuditDetails, ThreadSignatures, VerifiedBanner, useClaimChain, type ClaimRef } from "./chain";
+import DocumentSignField from "./DocumentSignField";
 
 export interface EsignClaim extends ClaimRef {
   status: string;
@@ -176,32 +178,51 @@ function SubmitDialog({
   const [affirmed, setAffirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [bytes, setBytes] = useState<ArrayBuffer | null>(null);
+  const [anchor, setAnchor] = useState<SignaturePlacement | null>(null);
+  const [placement, setPlacement] = useState<SignaturePlacement | null>(null);
   const enrolled = env.me.identityStatus === "attested";
+  const hasSignature = !!env.me.signatureImage;
 
   useEffect(() => {
     void (async () => {
       const res = await fetch("/api/esign/members");
-      if (!res.ok) return;
-      const all = ((await res.json()).members ?? []) as Member[];
-      setMembers(
-        all.filter(
-          (m) => m.userId !== env.me.userId && ["approver", "treasurer", "admin"].includes(m.role)
-        )
-      );
+      if (res.ok) {
+        const all = ((await res.json()).members ?? []) as Member[];
+        setMembers(
+          all.filter(
+            (m) => m.userId !== env.me.userId && ["approver", "treasurer", "admin"].includes(m.role)
+          )
+        );
+      }
+      if (enrolled && hasSignature) {
+        const [pkt, anc] = await Promise.all([
+          fetch(`/api/reimbursements/${claim.id}/packet`),
+          fetch(`/api/reimbursements/${claim.id}/sign-anchor`),
+        ]);
+        if (pkt.ok) setBytes(await pkt.arrayBuffer());
+        if (anc.ok) setAnchor((await anc.json()).anchor as SignaturePlacement);
+      }
     })();
-  }, [env.me.userId]);
+  }, [env.me.userId, claim.id, enrolled, hasSignature]);
 
   async function sign() {
     setBusy(true);
     setError(null);
     try {
-      await runSubmitCeremony(claim, { approverUserId, typedName });
+      await runSubmitCeremony(claim, {
+        approverUserId,
+        typedName,
+        placement: placement ?? undefined,
+      });
       await onDone();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Submission failed");
       setBusy(false);
     }
   }
+
+  const placedReady = !hasSignature || !!placement;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">
@@ -215,32 +236,22 @@ function SubmitDialog({
         ) : (
           <>
             <p className="text-sm text-stone-600">
-              You&apos;re asking for approval of this claim ({formatCents(claim.totalCents)}).{" "}
-              <a
-                className="text-indigo-600 underline"
-                href={`/api/reimbursements/${claim.id}/packet`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Look over the paperwork
-              </a>{" "}
-              first — if anything on it changes later, your signature stops counting and
-              approval starts over.
+              You&apos;re asking for approval of this claim ({formatCents(claim.totalCents)}).
+              Place your signature on the form, pick who should approve it, and sign. If the
+              claim changes later, your signature stops counting and approval starts over.
             </p>
-            {env.me.signatureImage && (
-              <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
-                <p className="text-xs font-medium text-stone-500">
-                  Your signature (already on the paperwork&apos;s “Requested by” line):
-                </p>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={env.me.signatureImage}
-                  alt="Your signature"
-                  className="mt-1 h-12 object-contain"
-                  data-testid="signature-preview"
-                />
+            {hasSignature && bytes && anchor && env.me.signatureImage ? (
+              <DocumentSignField
+                bytes={bytes}
+                signatureImage={env.me.signatureImage}
+                anchor={anchor}
+                onChange={setPlacement}
+              />
+            ) : hasSignature ? (
+              <div className="flex h-40 items-center justify-center rounded-lg border border-stone-200 text-sm text-stone-400">
+                Opening the form…
               </div>
-            )}
+            ) : null}
             <label className="block text-sm font-medium">
               Approver
               <select
@@ -286,7 +297,7 @@ function SubmitDialog({
               </button>
               <button
                 className="btn-primary disabled:opacity-50"
-                disabled={!approverUserId || !typedName.trim() || !affirmed || busy}
+                disabled={!approverUserId || !typedName.trim() || !affirmed || !placedReady || busy}
                 onClick={sign}
                 data-testid="sign-submit"
               >

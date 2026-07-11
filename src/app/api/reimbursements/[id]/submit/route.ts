@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
-import { readStoredFile, generatedPdfPath } from "@/lib/storage";
+import { readStoredFile, saveGeneratedPdf, generatedPdfPath } from "@/lib/storage";
 import { canonicalStringify, sha256Hex } from "@/lib/esign/canonical";
 import { CONSENT_TEXT, CONSENT_VERSION } from "@/lib/esign/consent";
 import {
@@ -18,6 +18,8 @@ import {
   verifyReportedClaimEvent,
 } from "@/lib/esign/server";
 import { closureRefs } from "@/lib/esign/validity";
+import { buildClaimPdfBytes } from "@/lib/esign/packet";
+import { roundPlacement, type SignaturePlacement } from "@/lib/esign/placement";
 import type { RawLedgerEventDoc, SubmitAction } from "@/lib/esign/types";
 
 export const runtime = "nodejs";
@@ -44,7 +46,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
     const claim = await prisma.reimbursement.findFirst({
       where: { id, userId },
-      include: { lineItems: true },
+      include: {
+        lineItems: true,
+        receipts: { include: { receipt: true } },
+        user: { select: { fullName: true, mailingAddress: true, email: true } },
+      },
     });
     if (!claim) throw new ApiError(404, "Claim not found");
     if (!["generated", "submitted", "rejected"].includes(claim.status)) {
@@ -57,6 +63,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         approverUserId?: string;
         typedName?: string;
         ledgerId?: string;
+        placement?: SignaturePlacement;
       };
       if (!body.approverUserId || !body.typedName?.trim()) {
         throw new ApiError(400, "Pick an approver and type your name");
@@ -79,6 +86,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       const ledgerId = claim.signatureLedgerId ?? body.ledgerId;
       if (!ledgerId || !LEDGER_ID.test(ledgerId)) {
         throw new ApiError(400, "Missing signature ledger id");
+      }
+
+      // Click-to-stamp: bake the requestor's signature into the packet at the
+      // placement they chose, then hash THOSE bytes (docs/ESIGN_DESIGN.md
+      // click-to-stamp). The placement is inside the frozen bytes AND signed
+      // into the payload below. A signer with no drawn signature (edge case)
+      // submits an unsigned form.
+      let placement: SignaturePlacement | undefined;
+      if (claim.publicToken && identity.signatureImage.startsWith("data:image/png;base64,")) {
+        if (!body.placement) throw new ApiError(400, "Place your signature on the form first");
+        placement = roundPlacement(body.placement);
+        const png = new Uint8Array(Buffer.from(identity.signatureImage.split(",")[1], "base64"));
+        const signedBytes = await buildClaimPdfBytes(claim, claim.publicToken, {
+          requestorSignature: { png, placement },
+        });
+        await saveGeneratedPdf(userId, id, signedBytes);
       }
 
       const bytes = await readStoredFile(generatedPdfPath(userId, id)).catch(() => {
@@ -134,6 +157,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         ...(identity.signatureImage
           ? { signatureImageSha256: await sha256Hex(identity.signatureImage) }
           : {}),
+        ...(placement ? { signaturePlacement: placement } : {}),
       };
       await setPendingAction(id, claim.pendingActionsJson, userId, payload);
       return NextResponse.json({ payload, needLedgerKey: !claim.signatureLedgerKey });

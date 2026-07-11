@@ -4,6 +4,8 @@
  * server-side mirror pipeline, and the offline verifier.
  */
 
+import type { SignaturePlacement } from "./placement";
+
 /** A raw ledger event document exactly as stored (Firestore or mock store). */
 export interface RawLedgerEventDoc {
   eventId: string;
@@ -104,6 +106,9 @@ export interface SubmitAction {
   consentSha256: string;
   /** SHA-256 of the signer's hand-drawn signature data URL, when one exists. */
   signatureImageSha256?: string;
+  /** Where the signer click-placed their signature on the form (signed, so
+   *  the position is part of the record). */
+  signaturePlacement?: SignaturePlacement;
 }
 
 export interface ApproveAction {
@@ -120,6 +125,7 @@ export interface ApproveAction {
   consentSha256: string;
   comment: string;
   signatureImageSha256?: string;
+  signaturePlacement?: SignaturePlacement;
 }
 
 export interface RejectAction {

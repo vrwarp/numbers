@@ -2,6 +2,7 @@ import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from "pdf-lib";
 import { paginateItems } from "./paginate";
 import { applyQrStamp } from "./qr";
 import { centsToDollarString } from "@/lib/money";
+import type { SignaturePlacement } from "@/lib/esign/placement";
 
 /**
  * The official CFCC "Invoice Payment / Expense Reimbursement Form" is a
@@ -55,12 +56,13 @@ export interface ClaimPdfInput {
    */
   selfLinkUrl?: string;
   /**
-   * The requestor's hand-drawn signature (PNG bytes, transparent bg),
-   * stamped over the "Requested by" line of every form page. Applied at
-   * GENERATION so the ink is inside the hash-bound packet bytes an e-sign
-   * submission later freezes. Omitted → line stays blank (classic flow).
+   * The requestor's hand-drawn signature, click-placed on the form during the
+   * submit ceremony (docs/ESIGN_DESIGN.md — click-to-stamp). Stamped at the
+   * chosen coordinates on the first form page, INSIDE the hash-bound bytes the
+   * submission freezes. Omitted → blank signature line (generation / classic
+   * print-and-wet-sign flow).
    */
-  requestorSignaturePng?: Uint8Array;
+  requestorSignature?: { png: Uint8Array; placement: SignaturePlacement };
 }
 
 /** Usable text box inside a field widget, after pdf-lib's border+padding inset. */
@@ -234,15 +236,6 @@ async function fillFormPage(
   // ink is stamped on the certificate delivery copy after approval (the packet
   // bytes are frozen under signature by then; see the certificate route).
 
-  // Capture the signature line's rect before flatten() erases the fields.
-  const requestorRect = (() => {
-    try {
-      return form.getTextField("Requestor Name").acroField.getWidgets()[0]?.getRectangle() ?? null;
-    } catch {
-      return null;
-    }
-  })();
-
   form.updateFieldAppearances(helv);
   form.flatten();
 
@@ -252,52 +245,61 @@ async function fillFormPage(
   if (input.selfLinkUrl) {
     applyQrStamp(tpl.getPage(0), input.selfLinkUrl, helv);
   }
-  if (input.requestorSignaturePng?.length && requestorRect) {
-    await stampSignature(
-      tpl,
-      tpl.getPage(0),
-      input.requestorSignaturePng,
-      signatureLineRect(requestorRect)
-    );
+  // The requestor's click-placed signature (page 0 only; multi-page packets
+  // sign on the first form page).
+  if (input.requestorSignature?.png.length && pageIndex === 0) {
+    await stampSignatureAt(tpl, tpl.getPage(0), input.requestorSignature.png, input.requestorSignature.placement);
   }
   return tpl;
 }
 
 /**
  * The CFCC form's "(Signature)" lines have NO AcroForm field — they sit to
- * the LEFT of the "Name (Please print)" field on the same baseline. Derive
- * the ink rect from the name field's rect: same bottom edge, spanning the
- * signature column (left content edge ≈ x 90 to just before the "Name"
- * label at ≈ x 240 on the 612pt page).
+ * the LEFT of the "Name (Please print)" field on the same baseline. The
+ * default click-to-stamp anchor for a role is derived from that name field's
+ * rect: bottom-left on the signature column. Returned as a page-normalized
+ * placement (docs/ESIGN_DESIGN.md — click-to-stamp) so the UI can seed the
+ * draggable stamp on the right line and the user just confirms.
  */
-export function signatureLineRect(nameFieldRect: { y: number }): {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-} {
-  return { x: 96, y: nameFieldRect.y, width: 144, height: 26 };
+export async function signatureAnchor(
+  templateBytes: Uint8Array,
+  role: "requestor" | "approver"
+): Promise<SignaturePlacement> {
+  const tpl = await PDFDocument.load(templateBytes);
+  const page = tpl.getPage(0);
+  const pageW = page.getWidth();
+  const pageH = page.getHeight();
+  const fieldName = role === "requestor" ? "Requestor Name" : "Approver Name";
+  let y = role === "requestor" ? 182 : 129; // template fallbacks (612×792)
+  try {
+    const rect = tpl.getForm().getTextField(fieldName).acroField.getWidgets()[0]?.getRectangle();
+    if (rect) y = rect.y;
+  } catch {
+    // customized template without the field — fall back to the constant
+  }
+  return { page: 0, xRatio: 96 / pageW, yRatio: y / pageH, widthRatio: 144 / pageW };
 }
 
 /**
- * Draw a hand-drawn signature PNG sitting ON a signature line: bottom edge
- * at the line, left-aligned, ink allowed to rise like a real signature.
+ * Draw a hand-drawn signature PNG at a page-normalized placement (bottom-left
+ * origin). Width follows widthRatio; height preserves the image's aspect.
  */
-export async function stampSignature(
+export async function stampSignatureAt(
   doc: PDFDocument,
   page: PDFPage,
   png: Uint8Array,
-  rect: { x: number; y: number; width: number; height: number }
+  placement: SignaturePlacement
 ): Promise<void> {
   const image = await doc.embedPng(png);
-  const maxH = 28;
-  const maxW = rect.width;
-  const scale = Math.min(maxW / image.width, maxH / image.height);
+  const pageW = page.getWidth();
+  const pageH = page.getHeight();
+  const w = placement.widthRatio * pageW;
+  const h = w * (image.height / image.width);
   page.drawImage(image, {
-    x: rect.x,
-    y: rect.y + 2, // resting on the printed line
-    width: image.width * scale,
-    height: image.height * scale,
+    x: placement.xRatio * pageW,
+    y: placement.yRatio * pageH,
+    width: w,
+    height: h,
   });
 }
 

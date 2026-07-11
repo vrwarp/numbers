@@ -14,6 +14,7 @@ import {
   requireRegistry,
   verifyReportedClaimEvent,
 } from "@/lib/esign/server";
+import { roundPlacement, type SignaturePlacement } from "@/lib/esign/placement";
 import type { ApproveAction, RawLedgerEventDoc, RejectAction } from "@/lib/esign/types";
 
 export const runtime = "nodejs";
@@ -54,6 +55,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         decision?: "approve" | "reject";
         comment?: string;
         typedName?: string;
+        placement?: SignaturePlacement;
       };
       if (body.decision !== "approve" && body.decision !== "reject") {
         throw new ApiError(400, "decision must be approve or reject");
@@ -95,6 +97,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
               consentSha256: await sha256Hex(CONSENT_TEXT),
               ...(identity.signatureImage
                 ? { signatureImageSha256: await sha256Hex(identity.signatureImage) }
+                : {}),
+              // Where the approver click-placed their signature (stamped onto
+              // the certificate delivery copy; docs/ESIGN_DESIGN.md click-to-stamp).
+              ...(identity.signatureImage.startsWith("data:image/png;base64,") && body.placement
+                ? { signaturePlacement: roundPlacement(body.placement) }
                 : {}),
             }
           : { ...base, t: "REJECT" };

@@ -13,6 +13,7 @@ import { actionHash, fingerprintMatches, keyFingerprint, sha256Hex } from "./can
 import { CONSENT_TEXT } from "./consent";
 import { generateLedgerKey, openLedger, sealEnvelope, type SigningKeyPair } from "./envelope";
 import { getCustody, rememberRoster, type KeyCustody } from "./custody";
+import { placementsEqual, roundPlacement, type SignaturePlacement } from "./placement";
 import { getLedgerStore, type EsignBackend, type LedgerStore } from "./store";
 import { replayRoster, type RosterTimeline } from "./roster";
 import { evaluateClaimLedger, type ClaimEvaluation } from "./validity";
@@ -359,7 +360,7 @@ async function assertConsentHash(payload: unknown): Promise<void> {
 
 export async function runSubmitCeremony(
   claim: { id: string; signatureLedgerId?: string | null; signatureLedgerKey?: string | null },
-  form: { approverUserId: string; typedName: string }
+  form: { approverUserId: string; typedName: string; placement?: SignaturePlacement }
 ): Promise<void> {
   const env = await loadEnv();
   const identity = await ceremonyIdentity(env);
@@ -379,6 +380,11 @@ export async function runSubmitCeremony(
     })
   )) as { payload: SubmitAction; needLedgerKey: boolean };
   const payload = preflight.payload;
+
+  // Fail-closed: refuse to sign a placement we didn't choose.
+  if (form.placement && !placementsEqual(payload.signaturePlacement, roundPlacement(form.placement))) {
+    throw new Error("Server placed the signature differently than you did — refusing to sign");
+  }
 
   // Fail-closed (§5.3): hash the exact stored bytes ourselves; sign OUR hash
   // only if the server pinned the same one.
@@ -410,7 +416,7 @@ export async function runSubmitCeremony(
 
 export async function runDecisionCeremony(
   claim: { id: string; signatureLedgerId: string; signatureLedgerKey: string },
-  form: { decision: "approve" | "reject"; comment?: string; typedName?: string },
+  form: { decision: "approve" | "reject"; comment?: string; typedName?: string; placement?: SignaturePlacement },
   expected: { submitRef: string; packetSha256: string }
 ): Promise<void> {
   const env = await loadEnv();
@@ -423,10 +429,21 @@ export async function runDecisionCeremony(
         body: JSON.stringify(form),
       })
     )) as { payload: ClaimAction }
-  ).payload as ClaimAction & { submitRef: string; packetSha256: string };
+  ).payload as ClaimAction & {
+    submitRef: string;
+    packetSha256: string;
+    signaturePlacement?: SignaturePlacement;
+  };
   // The decision must reference EXACTLY the SUBMIT this client verified.
   if (payload.submitRef !== expected.submitRef || payload.packetSha256 !== expected.packetSha256) {
     throw new Error("Server's decision target differs from what you verified — refusing to sign");
+  }
+  if (
+    form.decision === "approve" &&
+    form.placement &&
+    !placementsEqual(payload.signaturePlacement, roundPlacement(form.placement))
+  ) {
+    throw new Error("Server placed the signature differently than you did — refusing to sign");
   }
   await assertConsentHash(payload);
   const doc = await appendToLedger(env, claim.signatureLedgerId, claim.signatureLedgerKey, identity, payload);

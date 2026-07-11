@@ -13,6 +13,8 @@ import { formatCents } from "@/lib/money";
 import { runDecisionCeremony } from "@/lib/esign/client";
 import { CONSENT_TEXT, INTENT_AFFIRMATION } from "@/lib/esign/consent";
 import { AuditDetails, ThreadSignatures, VerifiedBanner, useClaimChain } from "./chain";
+import DocumentSignField from "./DocumentSignField";
+import type { SignaturePlacement } from "@/lib/esign/placement";
 import type { SubmitAction } from "@/lib/esign/types";
 
 export interface InboxClaim {
@@ -152,10 +154,21 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
   const [affirmed, setAffirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [anchor, setAnchor] = useState<SignaturePlacement | null>(null);
+  const [placement, setPlacement] = useState<SignaturePlacement | null>(null);
 
   useEffect(() => {
     if (state && !typedName) setTypedName(state.env.me.name);
   }, [state, typedName]);
+
+  useEffect(() => {
+    void fetch(`/api/reimbursements/${claim.id}/sign-anchor`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setAnchor(d.anchor as SignaturePlacement))
+      .catch(() => {});
+  }, [claim.id]);
+
+  const signatureImage = state?.env.me.signatureImage ?? null;
 
   const thread = state?.thread ?? null;
   const submit = thread?.submit?.action as SubmitAction | undefined;
@@ -179,7 +192,7 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
           signatureLedgerId: claim.signatureLedgerId!,
           signatureLedgerKey: claim.signatureLedgerKey!,
         },
-        { decision, comment, typedName },
+        { decision, comment, typedName, placement: placement ?? undefined },
         { submitRef: thread.submit.actionHash, packetSha256: submit!.packetSha256 }
       );
       await onChanged();
@@ -213,14 +226,25 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
               </div>
             ))}
           </div>
-          {state.packetUrl && (
-            <iframe
-              src={state.packetUrl}
-              className="h-96 w-full rounded-lg border border-stone-200"
-              title="Verified packet"
-              data-testid="verified-packet-frame"
+          {/* Click-to-stamp on the EXACT verified bytes (never a server
+              raster) — placing the approval signature where it goes. */}
+          {verified && state.chain.packetBytes && signatureImage && anchor ? (
+            <DocumentSignField
+              bytes={state.chain.packetBytes}
+              signatureImage={signatureImage}
+              anchor={anchor}
+              onChange={setPlacement}
             />
-          )}
+          ) : state.packetUrl ? (
+            <a
+              className="text-sm text-indigo-600 underline"
+              href={state.packetUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open the verified packet
+            </a>
+          ) : null}
           <AuditDetails state={state} />
           <label className="block text-sm font-medium">
             Comment (required to reject)
@@ -251,7 +275,9 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
             </button>
             <button
               className="btn-primary disabled:opacity-50"
-              disabled={!verified || busy || !typedName.trim() || !affirmed}
+              disabled={
+                !verified || busy || !typedName.trim() || !affirmed || (!!signatureImage && !placement)
+              }
               onClick={() => decide("approve")}
               data-testid="approve-button"
             >
