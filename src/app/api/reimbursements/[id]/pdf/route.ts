@@ -30,6 +30,15 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       },
     });
     if (!reimbursement) throw new ApiError(404, "Claim not found");
+    // Hash-bound signatures reference the archived bytes: while a claim is
+    // under signature the packet is frozen — regeneration is only reachable
+    // through revert, which voids the signatures (docs/ESIGN_DESIGN.md §5.1).
+    if (["submitted", "rejected", "approved", "paid"].includes(reimbursement.status)) {
+      throw new ApiError(
+        409,
+        "The packet is frozen under signature — download it from the claim page, or revert to draft to edit"
+      );
+    }
 
     const active = reimbursement.lineItems.filter((it) => !it.isExcluded);
     if (active.length === 0) throw new ApiError(400, "Claim has no line items to reimburse");

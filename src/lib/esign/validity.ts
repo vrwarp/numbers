@@ -52,6 +52,43 @@ interface Input {
   events: VerifiedEvent<ClaimAction>[]; // envelope-checked, deduped, ordered
 }
 
+/**
+ * Action hashes that legally close `thread` for a follow-up SUBMIT carrying
+ * `nextSha` (§5.3.2) — the binding REJECT, WITHDRAWs of (each contested)
+ * SUBMIT, or the binding APPROVE when the bytes changed. Null when the
+ * thread is not closable (open, paid, or approved with the same bytes —
+ * the repudiation shape). Exported for the submit preflight, which must
+ * stamp the exact `closesRef` the verifier will demand.
+ */
+export function closureRefs(thread: Thread, nextSha: string): Set<string> | null {
+  if (thread.state === "rejected" || thread.state === "withdrawn") {
+    return new Set(
+      [thread.decision?.actionHash ?? "", ...thread.withdrawals.map((w) => w.actionHash)].filter(
+        Boolean
+      )
+    );
+  }
+  if (thread.state === "disputed") {
+    // Every contested SUBMIT must have been withdrawn; the closure is that
+    // full set of WITHDRAW hashes.
+    const withdrawn = new Set(
+      thread.withdrawals.map((w) => (w.action as WithdrawAction).submitRef)
+    );
+    const allWithdrawn = thread.contested.every((s) => withdrawn.has(s.actionHash));
+    return allWithdrawn ? new Set(thread.withdrawals.map((w) => w.actionHash)) : null;
+  }
+  if (
+    thread.state === "approved" &&
+    thread.submit &&
+    nextSha !== (thread.submit.action as SubmitAction).packetSha256
+  ) {
+    // Revert-and-edit flow: an approval closes its thread only for NEW bytes
+    // — same-bytes resubmission over an approval is the repudiation shape.
+    return thread.decision ? new Set([thread.decision.actionHash]) : null;
+  }
+  return null; // open / paid / approved-with-same-bytes: not closable
+}
+
 export function evaluateClaimLedger(input: Input): ClaimEvaluation {
   const { claimId, ledgerId, ownerUid, roster } = input;
   const anomalies: ClaimEvaluation["anomalies"] = [];
@@ -117,27 +154,7 @@ export function evaluateClaimLedger(input: Input): ClaimEvaluation {
   const threads: Thread[] = [];
   const maxSeq = Math.max(0, ...submitsBySeq.keys());
 
-  /** Action hashes that legally close `thread` for a follow-up SUBMIT carrying
-   *  `nextSha` — the binding REJECT, WITHDRAWs of (each contested) SUBMIT, or
-   *  the binding APPROVE when the bytes changed. */
-  const closureSets = (thread: Thread, nextSha: string): Set<string> | null => {
-    if (thread.state === "rejected" || thread.state === "withdrawn") {
-      return new Set([thread.decision?.actionHash ?? "", ...thread.withdrawals.map((w) => w.actionHash)].filter(Boolean));
-    }
-    if (thread.state === "disputed") {
-      // Every contested SUBMIT must have been withdrawn; the closure is that
-      // full set of WITHDRAW hashes.
-      const withdrawn = new Set(thread.withdrawals.map((w) => (w.action as WithdrawAction).submitRef));
-      const allWithdrawn = thread.contested.every((s) => withdrawn.has(s.actionHash));
-      return allWithdrawn ? new Set(thread.withdrawals.map((w) => w.actionHash)) : null;
-    }
-    if (thread.state === "approved" && thread.submit && nextSha !== (thread.submit.action as SubmitAction).packetSha256) {
-      // Revert-and-edit flow: an approval closes its thread only for NEW bytes
-      // — same-bytes resubmission over an approval is the repudiation shape.
-      return thread.decision ? new Set([thread.decision.actionHash]) : null;
-    }
-    return null; // open / paid / approved-with-same-bytes: not closable
-  };
+  const closureSets = closureRefs;
 
   for (let seq = 1; seq <= maxSeq; seq++) {
     const candidates = submitsBySeq.get(seq) ?? [];
