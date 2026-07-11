@@ -22,6 +22,9 @@ const nextConfig: NextConfig = {
       "./node_modules/@napi-rs/**/*",
       "./node_modules/pdfjs-dist/**/*",
     ],
+    // The client-side signing surface fetches the pdf.js worker from this
+    // route, which reads it out of node_modules at runtime.
+    "/api/esign/pdf-worker": ["./node_modules/pdfjs-dist/build/*"],
   },
   // Firebase's sign-in helper lives under /__/auth (and /__/firebase) on the
   // authDomain. App Router treats "__"-prefixed folders as private (unroutable),

@@ -2,20 +2,45 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 async function signOut() {
   await fetch("/api/auth/session", { method: "DELETE" }).catch(() => {});
   window.location.assign("/signin");
 }
 
-const LINKS = [
-  { href: "/", label: "Shoebox" },
-  { href: "/claims", label: "Claims" },
-  { href: "/profile", label: "Profile" },
-];
+interface Badges {
+  enabled: boolean;
+  role?: string;
+  approvals?: number;
+  finance?: number | null;
+}
 
 export default function NavBar({ userName }: { userName: string }) {
   const pathname = usePathname();
+  // E-sign work badges (no notification infra — the nav surfaces state).
+  const [badges, setBadges] = useState<Badges>({ enabled: false });
+  useEffect(() => {
+    void fetch("/api/esign/badges")
+      .then((r) => (r.ok ? r.json() : { enabled: false }))
+      .then(setBadges)
+      .catch(() => {});
+  }, [pathname]);
+
+  const links: { href: string; label: string; badge?: number }[] = [
+    { href: "/", label: "Shoebox" },
+    { href: "/claims", label: "Claims" },
+  ];
+  if (badges.enabled && (badges.approvals ?? 0) > 0) {
+    links.push({ href: "/approvals", label: "Approvals", badge: badges.approvals });
+  } else if (badges.enabled && ["approver", "treasurer", "admin"].includes(badges.role ?? "")) {
+    links.push({ href: "/approvals", label: "Approvals" });
+  }
+  if (badges.enabled && badges.finance !== null && badges.finance !== undefined) {
+    links.push({ href: "/finance", label: "Finance", badge: badges.finance || undefined });
+  }
+  links.push({ href: "/profile", label: "Profile" });
+
   return (
     <header className="sticky top-0 z-40 border-b border-stone-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 sm:px-4">
@@ -23,17 +48,25 @@ export default function NavBar({ userName }: { userName: string }) {
           <span aria-hidden>⛪</span> <span className="hidden min-[380px]:inline">Numbers</span>
         </Link>
         <nav className="flex min-w-0 items-center gap-0.5 overflow-x-auto sm:gap-2" aria-label="Main">
-          {LINKS.map((l) => {
+          {links.map((l) => {
             const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
             return (
               <Link
                 key={l.href}
                 href={l.href}
-                className={`whitespace-nowrap rounded-lg px-2 py-1.5 text-sm font-medium sm:px-3 ${
+                className={`relative whitespace-nowrap rounded-lg px-2 py-1.5 text-sm font-medium sm:px-3 ${
                   active ? "bg-indigo-50 text-indigo-700" : "text-stone-600 hover:bg-stone-100"
                 }`}
               >
                 {l.label}
+                {l.badge ? (
+                  <span
+                    className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
+                    data-testid={`badge-${l.label.toLowerCase()}`}
+                  >
+                    {l.badge}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

@@ -21,25 +21,36 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       include: { receipts: true },
     });
     if (!reimbursement) throw new ApiError(404, "Claim not found");
-    if (reimbursement.status !== "generated") {
-      throw new ApiError(409, "Only generated claims can be reverted to draft");
+    // Extended by the e-sign workflow (docs/ESIGN_DESIGN.md §6.1): any
+    // frozen-but-unpaid claim may revert; the collected signatures void by
+    // hash mismatch once the packet is regenerated. Paid is terminal.
+    if (!["generated", "submitted", "rejected", "approved"].includes(reimbursement.status)) {
+      throw new ApiError(409, "Only generated or under-signature claims can be reverted to draft");
     }
 
     const receiptIds = reimbursement.receipts.map((rr) => rr.receiptId);
-    // "processed" means "on ≥1 generated claim" — only release receipts that
-    // no OTHER generated claim still holds.
+    // "processed" means "on ≥1 claim in a FROZEN status" — only release
+    // receipts that no OTHER frozen claim still holds (a receipt inside a
+    // submitted/approved/paid claim backs live signatures and must keep its
+    // image-edit lock).
     const heldElsewhere = await prisma.reimbursementReceipt.findMany({
       where: {
         receiptId: { in: receiptIds },
         reimbursementId: { not: id },
-        reimbursement: { status: "generated" },
+        reimbursement: { status: { in: ["generated", "submitted", "rejected", "approved", "paid"] } },
       },
       select: { receiptId: true },
     });
     const held = new Set(heldElsewhere.map((rr) => rr.receiptId));
     const releasable = receiptIds.filter((rid) => !held.has(rid));
     await prisma.$transaction([
-      prisma.reimbursement.update({ where: { id }, data: { status: "draft" } }),
+      prisma.reimbursement.update({
+        where: { id },
+        // approverUserId is mirror routing for the (now void) submission;
+        // packetSha256/ledger fields stay — they are provenance for the
+        // retained signed archives.
+        data: { status: "draft", approverUserId: null, pendingActionsJson: "{}" },
+      }),
       prisma.receipt.updateMany({
         where: { id: { in: releasable } },
         data: { status: "unassigned" },

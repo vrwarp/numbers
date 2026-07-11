@@ -14,6 +14,19 @@ import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import AddReceiptsDialog from "@/components/AddReceiptsDialog";
 import ManualEntryDialog from "@/components/ManualEntryDialog";
 import PdfReceiptPreview from "@/components/PdfReceiptPreview";
+import EsignPanel from "@/components/esign/EsignPanel";
+
+/** Statuses in which the packet is under signature — the stored bytes are
+ *  frozen, downloads must NOT regenerate, and only paid blocks revert. */
+const SIGNED_STATUSES = ["submitted", "rejected", "approved", "paid"] as const;
+const STATUS_CHIPS: Record<string, { label: string; className: string }> = {
+  draft: { label: "Draft", className: "bg-amber-100 text-amber-800" },
+  generated: { label: "Generated", className: "bg-emerald-100 text-emerald-800" },
+  submitted: { label: "Awaiting approval", className: "bg-sky-100 text-sky-800" },
+  rejected: { label: "Rejected", className: "bg-red-100 text-red-800" },
+  approved: { label: "Approved", className: "bg-emerald-100 text-emerald-800" },
+  paid: { label: "Paid", className: "bg-indigo-100 text-indigo-800" },
+};
 
 interface LineItem {
   id: string;
@@ -45,8 +58,15 @@ interface ReceiptRef {
 
 interface Claim {
   id: string;
-  status: "draft" | "generated";
+  status: "draft" | "generated" | "submitted" | "rejected" | "approved" | "paid";
   totalCents: number;
+  // E-sign mirror fields (docs/ESIGN_DESIGN.md §9.1); null pre-submission.
+  approverUserId: string | null;
+  signatureLedgerId: string | null;
+  signatureLedgerKey: string | null;
+  packetSha256: string | null;
+  submitSeq: number;
+  checkNumber: string;
   // Single-ministry mode: claimMinistry/claimEvent mirror onto every active
   // row (the server fans out on PATCH); rows keep their own values as the
   // source of truth for the PDF.
@@ -451,8 +471,13 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     setDownloading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/reimbursements/${claim!.id}/pdf`, { method: "POST" });
-      if (!res.ok) throw new Error((await res.json()).error ?? "PDF generation failed");
+      // Under signature the packet is frozen (hash-bound) — download the
+      // archived bytes; regenerating would 409 and would change the hash.
+      const signed = (SIGNED_STATUSES as readonly string[]).includes(claim!.status);
+      const res = signed
+        ? await fetch(`/api/reimbursements/${claim!.id}/packet`)
+        : await fetch(`/api/reimbursements/${claim!.id}/pdf`, { method: "POST" });
+      if (!res.ok) throw new Error((await res.json()).error ?? "PDF download failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -471,9 +496,12 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   }
 
   async function revertClaim() {
+    const underSignature = (SIGNED_STATUSES as readonly string[]).includes(claim!.status);
     if (
       !confirm(
-        "Revert this claim to draft? Only do this if you have NOT filed the printed form yet. Rows become editable again and the receipts leave “processed”."
+        underSignature
+          ? "Revert this claim to draft? All collected signatures become void (the packet bytes will change) and approval starts over."
+          : "Revert this claim to draft? Only do this if you have NOT filed the printed form yet. Rows become editable again and the receipts leave “processed”."
       )
     )
       return;
@@ -510,11 +538,11 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           Review claim{" "}
           <span
             className={`ml-1 align-middle rounded-full px-3 py-1 text-xs font-semibold ${
-              isDraft ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+              (STATUS_CHIPS[claim.status] ?? STATUS_CHIPS.generated).className
             }`}
             data-testid="claim-status"
           >
-            {isDraft ? "Draft" : "Generated"}
+            {(STATUS_CHIPS[claim.status] ?? STATUS_CHIPS.generated).label}
           </span>
         </h1>
         <p className="text-sm text-stone-500">
@@ -526,6 +554,24 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         <div className="card border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
           {error}
         </div>
+      )}
+
+      {!isDraft && (
+        <EsignPanel
+          claim={{
+            id: claim.id,
+            status: claim.status,
+            ownerUid: "", // owner view — filled server-side checks apply
+            approverUserId: claim.approverUserId,
+            signatureLedgerId: claim.signatureLedgerId,
+            signatureLedgerKey: claim.signatureLedgerKey,
+            packetSha256: claim.packetSha256,
+            submitSeq: claim.submitSeq,
+            totalCents: claim.totalCents,
+            checkNumber: claim.checkNumber,
+          }}
+          onChanged={load}
+        />
       )}
 
       {isDraft && (
@@ -716,7 +762,11 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             </span>
           </div>
         ) : isDraft ? null : (
-          <span className="text-sm text-stone-500">Generated — rows are frozen.</span>
+          <span className="text-sm text-stone-500">
+            {claim.status === "generated"
+              ? "Generated — rows are frozen."
+              : "Under signature — packet and rows are frozen."}
+          </span>
         )}
         <div className="ml-auto flex items-center gap-3">
           {isDraft && (
@@ -733,7 +783,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               Discard
             </button>
           )}
-          {!isDraft && (
+          {!isDraft && claim.status !== "paid" && (
             <button className="btn-secondary" onClick={revertClaim} data-testid="revert-claim">
               ↩ Revert to draft
             </button>
@@ -753,7 +803,13 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               disabled={!pdfButtonEnabled || downloading}
               data-testid="generate-pdf"
             >
-              {downloading ? "Building PDF…" : isDraft ? "⬇ Generate PDF" : "⬇ Download PDF again"}
+              {downloading
+                ? "Working…"
+                : isDraft
+                  ? "⬇ Generate PDF"
+                  : claim.status === "generated"
+                    ? "⬇ Download PDF again"
+                    : "⬇ Download signed packet"}
             </button>
           </span>
         </div>

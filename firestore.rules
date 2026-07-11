@@ -1,0 +1,51 @@
+rules_version = '2';
+
+// Numbers e-sign Firestore rules — charproof's reference ruleset with ONE
+// hardening fork (docs/ESIGN_DESIGN.md §9.2): event creates must carry the
+// exact 4-field document shape with a server-assigned timestamp
+// (`createdAt == request.time`, i.e. serverTimestamp()), denying custom
+// clients the ability to backdate events. Roster replay order and stateAt
+// role timing depend on this. Deploy with:
+//
+//   firebase deploy --only firestore:rules
+//
+// then run `node scripts/check-rules.mjs` (backdated-write canary) — a rules
+// deploy is NOT done until the canary is denied. Never create
+// `chaff_pool/current`: chaff stays disabled.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Per-user zero-knowledge key material (charproof keystore) — owner-only.
+    match /users/{uid}/{document=**} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Chaff pool: read-only and intentionally never written (no chaff here).
+    match /chaff_pool/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // Shared, link-accessible ledgers (ciphertext; keys travel out-of-band).
+    match /polls/{ledgerId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+
+      match /events/{eventId} {
+        allow read: if isSignedIn();
+        // FORK: exact shape + server-assigned createdAt only.
+        allow create: if isSignedIn()
+          && request.resource.data.keys().hasOnly(['eventId', 'createdAt', 'encryptedData', 'iv'])
+          && request.resource.data.eventId == eventId
+          && request.resource.data.createdAt == request.time;
+        allow update, delete: if false;
+      }
+    }
+  }
+}

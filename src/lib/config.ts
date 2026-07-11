@@ -75,6 +75,38 @@ export function isAuthTestMode(): boolean {
   return configValue("AUTH_TEST_MODE") === "1";
 }
 
+// --- E-signature & approval workflow (docs/ESIGN_DESIGN.md) -----------------
+
+/**
+ * ESIGN_MOCK=1 swaps the Firestore ledger backend for the append-only SQLite
+ * mock store (EsignMockEvent + /api/esign-mock/*) and local key custody — the
+ * whole signing protocol (real ECDSA, real hash binding, real thread rules)
+ * runs unchanged; only transport and key sync are simulated. Dev/tests only,
+ * same spirit as AI_MOCK / AUTH_TEST_MODE.
+ */
+export function isEsignMock(): boolean {
+  return configValue("ESIGN_MOCK") === "1";
+}
+
+/** Email of the trust root — the only account allowed to bootstrap the roster
+ *  registry (POST /api/esign/registry). Unset → bootstrap disabled. */
+export function esignRootEmail(): string | undefined {
+  const raw = configValue("ESIGN_ROOT_EMAIL")?.trim().toLowerCase();
+  return raw || undefined;
+}
+
+/**
+ * Optional out-of-band root anchor: hex fingerprint (any grouping/case) of the
+ * root signing key, ≥16 bytes (32 hex chars). When set, clients and server
+ * refuse any registry whose root key doesn't match — see ESIGN_DESIGN §4.6.
+ */
+export function esignRootFingerprint(): string | undefined {
+  const raw = configValue("ESIGN_ROOT_FINGERPRINT");
+  if (!raw) return undefined;
+  const hex = raw.toLowerCase().replace(/[^0-9a-f]/g, "");
+  return hex.length >= 32 ? hex : undefined;
+}
+
 /**
  * When enabled, Firebase's sign-in helper (`/__/auth/*`) is served from this
  * app's own origin via a reverse proxy (see the `/fbauth` route + the

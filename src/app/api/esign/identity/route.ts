@@ -1,0 +1,87 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireUserId, handleApi, ApiError } from "@/lib/api";
+import { requireEnabledRegistry } from "@/lib/esign/server";
+import { CONSENT_VERSION } from "@/lib/esign/consent";
+
+export const runtime = "nodejs";
+
+/**
+ * Begin (or continue) enrollment (docs/ESIGN_DESIGN.md §4.2): creates the
+ * caller's SignerIdentity row — which is what unlocks the roster key relay —
+ * and records their roster public key once the client has generated it.
+ * Status stays `pending` until the report pipeline verifies real ATTEST
+ * events (§5.5); nothing here grants attestation.
+ */
+export async function POST(req: Request) {
+  return handleApi(async () => {
+    const userId = await requireUserId();
+    const registry = await requireEnabledRegistry();
+    const body = (await req.json().catch(() => ({}))) as {
+      publicKey?: string;
+      consentVersion?: string;
+      signatureImage?: string;
+    };
+    if (body.publicKey !== undefined && !/^[A-Za-z0-9+/=]{40,400}$/.test(body.publicKey)) {
+      throw new ApiError(400, "Bad public key");
+    }
+    // The hand-drawn signature: small transparent PNG, stamped onto PDFs.
+    if (
+      body.signatureImage !== undefined &&
+      body.signatureImage !== "" &&
+      (!/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(body.signatureImage) ||
+        body.signatureImage.length > 150_000)
+    ) {
+      throw new ApiError(400, "Bad signature image");
+    }
+
+    const existing = await prisma.signerIdentity.findUnique({ where: { userId } });
+    if (!existing) {
+      await prisma.$transaction([
+        prisma.signerIdentity.create({
+          data: {
+            userId,
+            publicKey: body.publicKey ?? "",
+            signatureImage: body.signatureImage ?? "",
+          },
+        }),
+        // First-use UETA consent acknowledgment (§4.2) — the load-bearing
+        // consent evidence is the consentSha256 inside each signed payload.
+        prisma.auditEvent.create({
+          data: {
+            userId,
+            action: "esign-consent",
+            detail: JSON.stringify({ consentVersion: body.consentVersion ?? CONSENT_VERSION }),
+          },
+        }),
+      ]);
+    } else if (body.publicKey && body.publicKey !== existing.publicKey) {
+      // A new key (fresh enrollment after key loss) restarts attestation.
+      await prisma.signerIdentity.update({
+        where: { userId },
+        data: {
+          publicKey: body.publicKey,
+          status: "pending",
+          attestedAt: null,
+          ...(body.signatureImage !== undefined ? { signatureImage: body.signatureImage } : {}),
+        },
+      });
+    } else if (body.signatureImage !== undefined) {
+      // Redrawing the ink alone never touches attestation — the key is the
+      // identity; the drawing is presentation stamped on paper.
+      await prisma.signerIdentity.update({
+        where: { userId },
+        data: { signatureImage: body.signatureImage },
+      });
+    }
+
+    const identity = await prisma.signerIdentity.findUnique({ where: { userId } });
+    return NextResponse.json({
+      identityStatus: identity!.status,
+      publicKey: identity!.publicKey || null,
+      rosterLedgerId: registry.rosterLedgerId,
+      rosterLedgerKey: registry.rosterLedgerKey,
+      rootPublicKey: registry.rootPublicKey,
+    });
+  });
+}

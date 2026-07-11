@@ -1,7 +1,8 @@
-import { PDFDocument, PDFFont, rgb, StandardFonts } from "pdf-lib";
+import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from "pdf-lib";
 import { paginateItems } from "./paginate";
 import { applyQrStamp } from "./qr";
 import { centsToDollarString } from "@/lib/money";
+import type { SignaturePlacement } from "@/lib/esign/placement";
 
 /**
  * The official CFCC "Invoice Payment / Expense Reimbursement Form" is a
@@ -54,6 +55,14 @@ export interface ClaimPdfInput {
    * configured) the pages are unchanged.
    */
   selfLinkUrl?: string;
+  /**
+   * The requestor's hand-drawn signature, click-placed on the form during the
+   * submit ceremony (docs/ESIGN_DESIGN.md — click-to-stamp). Stamped at the
+   * chosen coordinates on the first form page, INSIDE the hash-bound bytes the
+   * submission freezes. Omitted → blank signature line (generation / classic
+   * print-and-wet-sign flow).
+   */
+  requestorSignature?: { png: Uint8Array; placement: SignaturePlacement };
 }
 
 /** Usable text box inside a field widget, after pdf-lib's border+padding inset. */
@@ -223,7 +232,9 @@ async function fillFormPage(
 
   setText("Requestor Name", input.requesterName, 10);
   setText("Request Date", input.dateString, 10);
-  // "Approved by" and "For Treasurer use only" stay blank — filled by hand.
+  // "Approved by" and "For Treasurer use only" stay blank here — the approver's
+  // ink is stamped on the certificate delivery copy after approval (the packet
+  // bytes are frozen under signature by then; see the certificate route).
 
   form.updateFieldAppearances(helv);
   form.flatten();
@@ -234,7 +245,62 @@ async function fillFormPage(
   if (input.selfLinkUrl) {
     applyQrStamp(tpl.getPage(0), input.selfLinkUrl, helv);
   }
+  // The requestor's click-placed signature (page 0 only; multi-page packets
+  // sign on the first form page).
+  if (input.requestorSignature?.png.length && pageIndex === 0) {
+    await stampSignatureAt(tpl, tpl.getPage(0), input.requestorSignature.png, input.requestorSignature.placement);
+  }
   return tpl;
+}
+
+/**
+ * The CFCC form's "(Signature)" lines have NO AcroForm field — they sit to
+ * the LEFT of the "Name (Please print)" field on the same baseline. The
+ * default click-to-stamp anchor for a role is derived from that name field's
+ * rect: bottom-left on the signature column. Returned as a page-normalized
+ * placement (docs/ESIGN_DESIGN.md — click-to-stamp) so the UI can seed the
+ * draggable stamp on the right line and the user just confirms.
+ */
+export async function signatureAnchor(
+  templateBytes: Uint8Array,
+  role: "requestor" | "approver"
+): Promise<SignaturePlacement> {
+  const tpl = await PDFDocument.load(templateBytes);
+  const page = tpl.getPage(0);
+  const pageW = page.getWidth();
+  const pageH = page.getHeight();
+  const fieldName = role === "requestor" ? "Requestor Name" : "Approver Name";
+  let y = role === "requestor" ? 182 : 129; // template fallbacks (612×792)
+  try {
+    const rect = tpl.getForm().getTextField(fieldName).acroField.getWidgets()[0]?.getRectangle();
+    if (rect) y = rect.y;
+  } catch {
+    // customized template without the field — fall back to the constant
+  }
+  return { page: 0, xRatio: 96 / pageW, yRatio: y / pageH, widthRatio: 144 / pageW };
+}
+
+/**
+ * Draw a hand-drawn signature PNG at a page-normalized placement (bottom-left
+ * origin). Width follows widthRatio; height preserves the image's aspect.
+ */
+export async function stampSignatureAt(
+  doc: PDFDocument,
+  page: PDFPage,
+  png: Uint8Array,
+  placement: SignaturePlacement
+): Promise<void> {
+  const image = await doc.embedPng(png);
+  const pageW = page.getWidth();
+  const pageH = page.getHeight();
+  const w = placement.widthRatio * pageW;
+  const h = w * (image.height / image.width);
+  page.drawImage(image, {
+    x: placement.xRatio * pageW,
+    y: placement.yRatio * pageH,
+    width: w,
+    height: h,
+  });
 }
 
 /** Split a one-line mailing address across the form's two address lines. */
