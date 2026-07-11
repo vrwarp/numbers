@@ -12,12 +12,66 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import {
+  grantRole,
   loadEnv,
   vouchFor,
   type EsignEnv,
   type VouchSubject,
 } from "@/lib/esign/client";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
+
+function RoleButtons({
+  env,
+  member,
+  onDone,
+}: {
+  env: EsignEnv;
+  member: { userId: string; role: string };
+  onDone: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  async function set(role: "approver" | "treasurer", revoke: boolean) {
+    setBusy(true);
+    try {
+      await grantRole(env, member.userId, role, revoke);
+      await onDone();
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <span className="flex gap-1">
+      {member.role === "approver" || member.role === "treasurer" ? (
+        <button
+          className="rounded-lg border border-stone-200 px-2 py-0.5 text-xs text-stone-500 hover:bg-stone-50"
+          disabled={busy}
+          onClick={() => set(member.role as "approver" | "treasurer", true)}
+        >
+          revoke {member.role}
+        </button>
+      ) : (
+        <>
+          <button
+            className="rounded-lg border border-indigo-200 px-2 py-0.5 text-xs text-indigo-700 hover:bg-indigo-50"
+            disabled={busy}
+            onClick={() => set("approver", false)}
+            data-testid={`grant-approver-${member.userId}`}
+          >
+            make approver
+          </button>
+          <button
+            className="rounded-lg border border-indigo-200 px-2 py-0.5 text-xs text-indigo-700 hover:bg-indigo-50"
+            disabled={busy}
+            onClick={() => set("treasurer", false)}
+            data-testid={`grant-treasurer-${member.userId}`}
+          >
+            make treasurer
+          </button>
+        </>
+      )}
+    </span>
+  );
+}
 
 function decodeSubject(c: string): VouchSubject | null {
   try {
@@ -44,7 +98,14 @@ function VouchInner() {
   const [fingerprint, setFingerprint] = useState<string | null>(null);
   const [manualFp, setManualFp] = useState("");
   const [members, setMembers] = useState<
-    { userId: string; name: string; email: string; publicKey: string; fingerprint: string | null }[]
+    {
+      userId: string;
+      name: string;
+      email: string;
+      role: string;
+      publicKey: string;
+      fingerprint: string | null;
+    }[]
   >([]);
   const [pending, setPending] = useState<VouchSubject[]>([]);
   const [confirmed, setConfirmed] = useState(false);
@@ -208,15 +269,32 @@ function VouchInner() {
       {members.length > 0 && (
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-stone-500">Attested members</h2>
-          <ul className="mt-2 space-y-1 text-sm">
+          <ul className="mt-2 space-y-2 text-sm">
             {members.map((m) => (
-              <li key={m.userId} className="flex items-center justify-between">
-                <span>{m.name}</span>
-                {m.fingerprint && (
-                  <code className="font-mono text-xs text-stone-400">
-                    {fingerprintDisplay(m.fingerprint)}
-                  </code>
-                )}
+              <li key={m.userId} className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  {m.name}
+                  {m.role !== "member" && (
+                    <span className="ml-2 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold capitalize text-indigo-700">
+                      {m.role}
+                    </span>
+                  )}
+                </span>
+                <span className="flex items-center gap-2">
+                  {m.fingerprint && (
+                    <code className="font-mono text-xs text-stone-400">
+                      {fingerprintDisplay(m.fingerprint)}
+                    </code>
+                  )}
+                  {/* Role grants are root-signed roster events (§4.3) — only
+                      the root's browser can produce them. */}
+                  {env.me.role === "admin" && m.userId !== env.me.userId && (
+                    <RoleButtons env={env} member={m} onDone={async () => {
+                      const res = await fetch("/api/esign/members");
+                      if (res.ok) setMembers((await res.json()).members ?? []);
+                    }} />
+                  )}
+                </span>
               </li>
             ))}
           </ul>
