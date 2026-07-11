@@ -89,7 +89,7 @@ export function NewDeviceCard({
   async function doStartOver() {
     if (
       !confirm(
-        "Start over from nothing?\n\nThis signs ALL your devices out of electronic signing and throws away your current signing key. You'll set up again from scratch and must be vouched for again in person. Anything you already signed stays valid."
+        "Start over from nothing?\n\nThis signs ALL your devices out of electronic signing and throws away your current signing key. You'll set up again from scratch and be vouched for again in person — being vouched back in automatically retires the old key. Anything you already signed stays valid."
       )
     ) {
       return;
@@ -192,10 +192,12 @@ export function NewDeviceCard({
           None of these work?
         </summary>
         <p className="mt-2">
-          If your old devices are gone and you never set up a recovery phrase, the identity
+          If your old devices are gone and you never printed a recovery sheet, the identity
           can&apos;t be recovered — that&apos;s what keeps it yours. Starting over creates a
-          brand-new signing key: you&apos;ll be vouched for again in person, and it&apos;s
-          worth telling your administrator so the old key gets revoked.
+          brand-new signing key: the same people who vouched for you before vouch for you
+          again, and the moment they do, your old key stops counting automatically. Only if
+          you think someone else might USE the old key before then, tell your administrator —
+          they can retire it immediately.
         </p>
         <button className="btn-secondary mt-2" onClick={doStartOver} disabled={busy} data-testid="start-over">
           Start over from nothing

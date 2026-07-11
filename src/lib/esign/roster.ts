@@ -123,6 +123,12 @@ export function replayRoster(
         bad("self-vouching never counts");
         continue;
       }
+      if (a.subject.uid === root.uid) {
+        // Superseding the trust anchor via vouch collusion must be impossible;
+        // root rotation is a re-genesis ceremony (§12), never a vouch.
+        bad("the root key is fixed by genesis — it cannot be re-vouched");
+        continue;
+      }
       if (members.some((m) => m.publicKey === a.subject.publicKey && m.revokedAtMs === undefined)) {
         continue; // already attested — extra vouches are harmless
       }
@@ -135,6 +141,14 @@ export function replayRoster(
       // Threshold (§4.3): two distinct attested vouchers, or one approver+.
       const tipped = entry.voucherUids.size >= 2 || isApproverAt(signer.uid, t);
       if (tipped) {
+        // Key supersession (§4.5): the quorum that grants identity also
+        // retires it — a freshly attested key ends the uid's earlier keys at
+        // this same instant (forward-only: everything they signed before
+        // stands). This IS the lost-everything recovery path — re-vouch next
+        // Sunday, no admin required.
+        for (const m of members) {
+          if (m.uid === entry.subject.uid && m.revokedAtMs === undefined) m.revokedAtMs = t;
+        }
         members.push({ ...entry.subject, attestedAtMs: t });
         pending.delete(a.subject.publicKey);
       }

@@ -236,6 +236,19 @@ function VouchInner() {
               <li>You scanned the QR from THEIR screen (not a forwarded link).</li>
             </ul>
           </div>
+          {members.some((m) => m.userId === subject.uid && m.publicKey !== subject.publicKey) && (
+            <div
+              className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-900"
+              data-testid="rekey-notice"
+            >
+              <p className="font-semibold">This replaces {subject.name}&apos;s previous signing key.</p>
+              <p className="mt-1">
+                Usually that means a lost device. The moment they&apos;re vouched back in,
+                the old key stops counting — everything they signed before stays valid. Be
+                extra sure it&apos;s really them.
+              </p>
+            </div>
+          )}
           {!encoded && (
             <div className="space-y-1">
               <label className="text-sm font-medium">

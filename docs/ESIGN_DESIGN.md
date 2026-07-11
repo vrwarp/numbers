@@ -42,6 +42,7 @@ generated PDF — is untouched; signing begins where it currently ends.
 | A5 | **Admin master switch, OFF by default**: `EsignRegistry.enabled` (default `false`). Bootstrapping creates the registry switched off; only an admin can flip it (PATCH `/api/esign/registry`, audited as `esign-toggle`). While off, every ceremony/queue/enrollment route refuses (`requireEnabledRegistry`, 409 "Electronic signing is turned off"), key material is not relayed, badges vanish, and the UI shows nothing e-sign related to regular members — the admin sees only the switch. Verification surfaces (`/api/v/[token]/*`, packet, certificate) deliberately stay open: retention and auditability of already-signed records never turn off. |
 | A4 | **Click-to-stamp** (DocuSign-style): signing a paper form means *seeing the document and placing your signature on it*. Generation now produces the UNSIGNED form (blank signature lines — the base for print-and-wet-sign and e-sign alike; the requestor auto-stamp at generation is removed). In the submit/approve ceremony the packet is rendered client-side with pdf.js (`DocumentSignField`) — the EXACT verified bytes, never a server raster, preserving the approver's "you see what you sign" guarantee — and a pulsing "Tap to sign" placeholder marks the signature line. Nothing is stamped until the signer TAPS it — the tap is a required affirmative act (stronger UETA intent evidence than auto-placement), after which the signature sits on the line, stays draggable, and can be removed back to the placeholder (disabling the sign button again). The chosen spot travels as a page-normalized `signaturePlacement` INSIDE the signed SUBMIT/APPROVE payload, so *where* each person signed is attested and the client refuses to sign a placement it didn't choose. The requestor's placement is baked into the frozen packet bytes at submit (`buildClaimPdfBytes` regenerates with the stamp, then hashes+archives); the approver's placement is stamped onto the certificate delivery copy at their coordinates. The pdf.js worker is served same-origin from `/api/esign/pdf-worker` (with a `getOrInsertComputed` polyfill for older engines). |
 | A6 | **Multi-device implemented** (M1–M4 of `docs/MULTI_DEVICE_PLAN.md`; M5 live-Firestore validation pending): custody always runs charproof's real device/keystore code — in `ESIGN_MOCK` its persistence providers are injected (`setDeviceServiceProviders`) with a SQLite-backed `AccountKeyStore` over `/api/esign-mock/device-sync/*` (CAS `version` column standing in for Firestore transactions) plus a per-browser-context mock passkey; `LocalKeyCustody` is deleted. New devices join via typed-6-digit-code approval (`expectedVerificationCode` ENFORCED — stricter than LetUsMeet's display-only comparison), silent passkey unlock, or 24-word phrase recovery (print-first: a client-built recovery-sheet PDF — the words never reach the keyless server); the same attested key signs from every authorized device — no re-vouching, zero roster/payload/verifier changes. `DeviceRequestsBanner` (app-wide) prompts existing devices; the profile card gains a devices panel (remove = `revokeDevice` AMK rotation) and a recovery nudge (sticky for the root); the vouch screen gains the root-only `REVOKE_KEY` button for the compromised-device path (§4.5). Device-sync routes are deliberately NOT master-switch-gated (prod Firestore isn't either); everything user-visible still is. |
+| A7 | **Key supersession — re-vouching is the recovery path** (owner-ratified: the lost-everything case should route through the same two-members-or-one-approver ceremony, not the admin): when a key crosses the attestation threshold, the reducer revokes the same uid's earlier keys at that instant. Rationale: the vouch quorum is already the identity authority — what granted the old key replaces it; recovery needs no admin and gains no new trust assumptions (colluding vouchers could already mint a parallel key; supersession is bounded by in-person accountability plus the root override). Forward-only: everything the old key signed stays valid via `stateAt`; deliberately re-vouching an old key restores it (the quorum always speaks last). The root uid is EXCLUDED — vouching a "new root key" is an anomaly; the anchor rotates only by re-genesis (§12). Root `REVOKE_KEY` remains for immediate retirement of a possibly-misused key. Enforced identically in `roster.ts` and `scripts/verify-bundle.mjs`, with supersede/restore/root-guard unit tests; the vouch screen shows a "this replaces their previous signing key" notice on re-key vouches. |
 
 ## 2. Trust model — what the cryptography buys
 
@@ -231,7 +232,11 @@ rules-pinned §9.2; ties broken by event doc id) with a pure reducer:
 2. Every event's `ledger` field must equal the roster ledger ID (kills cross-ledger
    replay); duplicate action hashes are processed once (kills same-ledger replay).
 3. `ATTEST` counts only if its **signer** is attested (or root) at that point and the
-   subject key isn't revoked; thresholds per §4.3.
+   subject key isn't revoked; thresholds per §4.3. The subject uid must not be the
+   root's (the anchor rotates by re-genesis, never by vouching — else voucher
+   collusion could retire it). **Key supersession (A7):** the moment a key crosses
+   the attestation threshold, the same uid's earlier keys are revoked at that
+   instant — the quorum that grants identity is the quorum that replaces it.
 4. `GRANT_ROLE`/`REVOKE_ROLE`/`REVOKE_KEY` count only from the root key.
 5. Output is a timeline: `stateAt(t)` returns `publicKey → {uid, name, roles[]}` as of
    server time `t`. **Claim events are judged against `stateAt(event.createdAt)`** — a
@@ -256,8 +261,12 @@ in the server's mirror pipeline (§5.5), and in the offline verifier script (§7
 - **Lost device, recovery configured**: phrase or PRF recovery restores the AMK on a
   clean device; identity intact. `revokeDevice` rotates the AMK for remaining devices.
 - **Lost device, no recovery** (plain members only, §4.2): enroll fresh (new identity
-  key), get re-vouched next Sunday; root appends `REVOKE_KEY` for the old key. History
-  signed by the old key remains valid per §4.4's `stateAt` rule.
+  key) and get re-vouched next Sunday — the re-vouch itself retires the old key by
+  **supersession** (A7): when the new key crosses the vouch threshold, the uid's
+  earlier keys are revoked at that instant, no admin involved. Root `REVOKE_KEY`
+  remains the *immediate* retirement path (stolen key that might be misused before
+  the re-vouch happens). History signed by the old key remains valid per §4.4's
+  `stateAt` rule either way.
 
 ### 4.6 The root anchor (out-of-band, never server-relayed alone)
 
@@ -608,7 +617,7 @@ audit tool; SQLite status never feeds it.
 | Fake ATTEST/GRANT_ROLE report to gain roles/inbox access | Server verifies root-chained signatures before mirror/role writes (§5.5); unverifiable reports change nothing |
 | Grind a keypair matching a victim's 6-digit vouch code | QR scan or 16-byte fingerprint entry is the binding channel; the code is never sufficient (§4.3) |
 | Voucher collusion (two members attest a fake person) | Accepted residual risk (decision 2); events are permanent, signed, and attributable — collusion leaves evidence |
-| Stolen device / exfiltrated key | charproof `revokeDevice` (AMK rotation) + roster `REVOKE_KEY`; forward-only, historical events stand (§4.4–4.5) |
+| Stolen device / exfiltrated key | charproof `revokeDevice` (AMK rotation); the key itself retires via re-vouch supersession (A7) or, when speed matters, root `REVOKE_KEY`; forward-only, historical events stand (§4.4–4.5) |
 | Ledger flooding / junk events (any Firebase-authed account can append — charproof's world-append design) | Invalid events are classified client-side; **the roster is always read in full** (§4.4) — flooding it degrades performance, never validity; claim ledgers are per-claim and bounded-interest; escalation path: rules fork restricting the roster ledger's writers at deploy time, or roster re-genesis (§12) |
 | Requestor reports `submitted` without appending SUBMIT | Approver ceremony fails closed on missing/invalid SUBMIT — the lie only wedges the liar's claim (§5.3) |
 | Self-appended SUBMIT naming a non-consenting approver | Reconciliation never routes work; inbox placement requires server-side eligibility checks (§5.5) |

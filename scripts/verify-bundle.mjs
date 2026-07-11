@@ -92,11 +92,14 @@ function replayRoster(rosterLedgerId, events) {
     if (a.t === "ATTEST") {
       const signer = memberAt(e.signerPublicKey, e.createdAtMs);
       if (!signer || signer.uid === a.subject.uid) continue;
+      if (a.subject.uid === root.uid) continue; // root rotates by re-genesis, never a vouch
       if (members.some((m) => m.publicKey === a.subject.publicKey && m.revokedAtMs === undefined)) continue;
       const entry = pending.get(a.subject.publicKey) ?? { subject: a.subject, vouchers: new Set() };
       entry.vouchers.add(signer.uid);
       pending.set(a.subject.publicKey, entry);
       if (entry.vouchers.size >= 2 || isApproverAt(signer.uid, e.createdAtMs)) {
+        // Key supersession (§4.5): a newly attested key retires the uid's earlier keys.
+        for (const m of members) if (m.uid === a.subject.uid && m.revokedAtMs === undefined) m.revokedAtMs = e.createdAtMs;
         members.push({ ...entry.subject, attestedAtMs: e.createdAtMs });
         pending.delete(a.subject.publicKey);
       }

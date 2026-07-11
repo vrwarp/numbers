@@ -84,14 +84,15 @@ still attested, because the vouched *key* (not the device) is the identity.
 - **D5 — master switch applies (amendment A5).** Device routes take
   `requireEnabledRegistry()`; device UI renders only when `env.enabled`. Verification
   surfaces remain open as always.
-- **D6 — two-severity revocation.** "Remove this device" (retired/wiped) =
-  `revokeDevice` alone: AMK rotates, remaining devices re-wrapped, historical AMKs
-  keep old keystore entries readable. "Someone else may have it" (stolen, possibly
-  unlocked) = `revokeDevice` **plus** the §4.5 lost-key path: report to the root in
-  person, root signs `REVOKE_KEY` (root-only in the v1 roster rules — keep it that
-  way), member re-enrolls a fresh key and gets re-vouched. History signed by the old
-  key stays valid per `stateAt` (§4.4). The UI must make the second option scary and
-  the first one boring.
+- **D6 — two-severity revocation** *(amended by A7 — supersession)*. "Remove this
+  device" (retired/wiped) = `revokeDevice` alone: AMK rotates, remaining devices
+  re-wrapped, historical AMKs keep old keystore entries readable. Losing the KEY
+  itself heals through the normal ceremony: the member re-enrolls a fresh key and
+  **the re-vouch retires the old one automatically** (key supersession, A7 — the
+  same two-members-or-one-approver quorum that granted the old key replaces it;
+  no admin in the loop). Root `REVOKE_KEY` remains for the urgent case only — a
+  stolen key that might be misused before the re-vouch happens. History signed by
+  the old key stays valid per `stateAt` (§4.4) on every path.
 - **D7 — root redundancy is not optional-feeling.** Root key loss without recovery =
   new registry (documented catastrophe, design §12). Bootstrap and the root's device
   page nudge hard: add a second device AND phrase/passkey recovery immediately;
@@ -242,8 +243,12 @@ charproof's own rules.
 
 ## 8. Open questions (defaults chosen, revisit if wrong)
 
-1. **Self-service `REVOKE_KEY`?** Default: stay root-only (v1 rule). An in-person
-   report to the root fits the trust model and keeps the roster reducer untouched.
+1. **Self-service `REVOKE_KEY`?** RESOLVED by A7 (owner direction): key
+   *supersession* — a newly attested key for a uid retires that uid's earlier keys
+   at the tipping vouch — makes recovery flow through the vouch quorum instead of
+   the admin. `REVOKE_KEY` stays root-only, now purely as the immediate-retirement
+   override. The root uid is excluded from supersession (anchor rotates by
+   re-genesis only).
 2. **Banner scope**: app-wide on authenticated pages (default, matches LetUsMeet) vs
    profile-only. App-wide wins because approval is time-sensitive — the member is
    standing there holding both devices.

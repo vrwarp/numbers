@@ -331,3 +331,64 @@ describe("claim thread validity", () => {
     expect(reasons).toMatch(/WITHDRAW after approval/);
   });
 });
+
+describe("key supersession (§4.5 — re-vouching is the lost-device recovery)", () => {
+  it("a newly attested key retires the uid's old key at that instant; history stands", async () => {
+    const g = await ev(rootPK, genesis());
+    const a1 = await ev(rootPK, attest({ uid: "alice", publicKey: alicePK }));
+    const b1 = await ev(rootPK, attest({ uid: "bob", publicKey: bobPK }));
+    const gb = await ev(rootPK, grant("bob", "approver"));
+    // Alice lost everything: new key, one approver vouch tips it.
+    const rekey = await ev(bobPK, attest({ uid: "alice", publicKey: "PK_alice2" }));
+    const roster = replayRoster(ROSTER, [g, a1, b1, gb, rekey] as VerifiedEvent<RosterAction>[]);
+
+    // Before the re-vouch the old key is valid — repudiation-proofing.
+    expect(roster.memberAt(alicePK, rekey.createdAtMs - 1)?.uid).toBe("alice");
+    // From the re-vouch on, only the new key counts.
+    expect(roster.memberAt(alicePK, rekey.createdAtMs + 1)).toBeUndefined();
+    expect(roster.memberAt("PK_alice2", rekey.createdAtMs + 1)?.uid).toBe("alice");
+    const old = roster.members.find((m) => m.publicKey === alicePK);
+    expect(old?.revokedAtMs).toBe(rekey.createdAtMs);
+    expect(roster.anomalies).toHaveLength(0);
+
+    // Deliberately re-vouching the ORIGINAL key restores it and retires the
+    // replacement — the quorum always speaks last.
+    const restore = await ev(bobPK, attest({ uid: "alice", publicKey: alicePK }));
+    const roster2 = replayRoster(ROSTER, [g, a1, b1, gb, rekey, restore] as VerifiedEvent<RosterAction>[]);
+    expect(roster2.memberAt(alicePK, restore.createdAtMs + 1)?.uid).toBe("alice");
+    expect(roster2.memberAt("PK_alice2", restore.createdAtMs + 1)).toBeUndefined();
+    // The middle window still belongs to the replacement key.
+    expect(roster2.memberAt("PK_alice2", restore.createdAtMs - 1)?.uid).toBe("alice");
+  });
+
+  it("supersedes on the two-member path too, at the tipping vouch's time", async () => {
+    const g = await ev(rootPK, genesis());
+    const a1 = await ev(rootPK, attest({ uid: "alice", publicKey: alicePK }));
+    const b1 = await ev(rootPK, attest({ uid: "bob", publicKey: bobPK }));
+    const m1 = await ev(alicePK, attest({ uid: "mallory", publicKey: malloryPK }));
+    const m2 = await ev(bobPK, attest({ uid: "mallory", publicKey: malloryPK }));
+    // Mallory re-keys with two plain-member vouches.
+    const r1 = await ev(alicePK, attest({ uid: "mallory", publicKey: "PK_mallory2" }));
+    const roster1 = replayRoster(ROSTER, [g, a1, b1, m1, m2, r1] as VerifiedEvent<RosterAction>[]);
+    // One vouch: nothing supersedes yet.
+    expect(roster1.memberAt(malloryPK, r1.createdAtMs + 1)?.uid).toBe("mallory");
+
+    const r2 = await ev(bobPK, attest({ uid: "mallory", publicKey: "PK_mallory2" }));
+    const roster2 = replayRoster(ROSTER, [g, a1, b1, m1, m2, r1, r2] as VerifiedEvent<RosterAction>[]);
+    expect(roster2.memberAt(malloryPK, r2.createdAtMs + 1)).toBeUndefined();
+    expect(roster2.memberAt("PK_mallory2", r2.createdAtMs + 1)?.attestedAtMs).toBe(r2.createdAtMs);
+  });
+
+  it("the root key can never be superseded by vouching", async () => {
+    const g = await ev(rootPK, genesis());
+    const a1 = await ev(rootPK, attest({ uid: "alice", publicKey: alicePK }));
+    const b1 = await ev(rootPK, attest({ uid: "bob", publicKey: bobPK }));
+    const takeover1 = await ev(alicePK, attest({ uid: "root", publicKey: "PK_root2" }));
+    const takeover2 = await ev(bobPK, attest({ uid: "root", publicKey: "PK_root2" }));
+    const roster = replayRoster(ROSTER, [g, a1, b1, takeover1, takeover2] as VerifiedEvent<RosterAction>[]);
+    expect(roster.memberAt("PK_root2", takeover2.createdAtMs + 1)).toBeUndefined();
+    // The anchor is untouched and both attempts are surfaced loudly.
+    expect(roster.memberAt(rootPK, takeover2.createdAtMs + 1)?.uid).toBe("root");
+    expect(roster.anomalies.filter((a) => /fixed by genesis/.test(a.reason))).toHaveLength(2);
+  });
+});
