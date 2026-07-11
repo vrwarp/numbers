@@ -81,6 +81,16 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       reimbursement.publicToken ?? crypto.randomBytes(24).toString("base64url");
     const base = publicBaseUrl();
 
+    // Hand-drawn signature on file → stamped over the "Requested by" line at
+    // generation, so the ink is part of the bytes a submission later freezes.
+    const identity = await prisma.signerIdentity.findUnique({
+      where: { userId },
+      select: { signatureImage: true },
+    });
+    const requestorSignaturePng = identity?.signatureImage?.startsWith("data:image/png;base64,")
+      ? new Uint8Array(Buffer.from(identity.signatureImage.split(",")[1], "base64"))
+      : undefined;
+
     const pdfBytes = await generateClaimPdf({
       requesterName: reimbursement.user.fullName || reimbursement.user.email,
       requesterAddress: reimbursement.user.mailingAddress || "",
@@ -95,6 +105,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       // No PUBLIC_BASE_URL configured → no QR stamp (the server can't know
       // what URL a scanner could actually reach).
       selfLinkUrl: base ? `${base}/c/${publicToken}` : undefined,
+      requestorSignaturePng,
     });
 
     // Persist the packet so /c/<token> can serve it later; overwriting on

@@ -194,9 +194,10 @@ function VouchInner() {
             <div className="text-lg font-semibold" data-testid="vouch-subject-name">{subject.name}</div>
             <div className="text-sm text-stone-500">{subject.email}</div>
             {fingerprint && (
-              <code className="mt-1 block font-mono text-xs text-stone-600">
-                {fingerprintDisplay(fingerprint)}
-              </code>
+              <details className="mt-1 text-xs text-stone-500">
+                <summary className="cursor-pointer select-none">Audit details</summary>
+                <code className="mt-1 block font-mono">{fingerprintDisplay(fingerprint)}</code>
+              </details>
             )}
           </div>
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -289,11 +290,6 @@ function VouchInner() {
                   )}
                 </span>
                 <span className="flex items-center gap-2">
-                  {m.fingerprint && (
-                    <code className="font-mono text-xs text-stone-400">
-                      {fingerprintDisplay(m.fingerprint)}
-                    </code>
-                  )}
                   {/* Role grants are root-signed roster events (§4.3) — only
                       the root's browser can produce them. */}
                   {env.me.role === "admin" && m.userId !== env.me.userId && (

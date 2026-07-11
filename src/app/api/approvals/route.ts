@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi } from "@/lib/api";
 import { requireRegistry } from "@/lib/esign/server";
-import { claimSummary, receiptOverlapWarnings } from "@/lib/esign/claim-server";
+import { claimSummary } from "@/lib/esign/claim-server";
 
 export const runtime = "nodejs";
 
@@ -28,7 +28,6 @@ export async function GET() {
       claims.map(async (claim) => ({
         ...claimSummary(claim, claim.user.fullName || claim.user.email),
         signatureLedgerKey: claim.signatureLedgerKey,
-        overlapWarnings: await receiptOverlapWarnings(claim.id),
       }))
     );
     return NextResponse.json({ claims: items });

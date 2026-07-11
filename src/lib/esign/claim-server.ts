@@ -2,7 +2,7 @@
  * Server-side claim ceremony machinery (docs/ESIGN_DESIGN.md §5.1, §5.5,
  * §6) — SERVER ONLY. Shared by the submit/decision/paid/reconcile/packet
  * routes: participant access, pending-action pins, the per-hash packet
- * archive, rows digests, and the duplicate-receipt guard.
+ * archive, and rows digests.
  */
 
 import fs from "fs/promises";
@@ -110,71 +110,14 @@ export async function rowsDigestAndTotal(
 }
 
 /** The signer's identity must be attested and match the reporting session. */
-export async function requireAttestedIdentity(userId: string): Promise<{ publicKey: string }> {
+export async function requireAttestedIdentity(
+  userId: string
+): Promise<{ publicKey: string; signatureImage: string }> {
   const identity = await prisma.signerIdentity.findUnique({ where: { userId } });
   if (!identity || identity.status !== "attested" || !identity.publicKey) {
     throw new ApiError(409, "Your signing identity is not attested yet");
   }
-  return { publicKey: identity.publicKey };
-}
-
-// --- Duplicate-receipt guard (§6.4, advisory) ------------------------------------
-
-export interface ReceiptOverlapWarning {
-  receiptId: string;
-  originalName: string;
-  thisClaimCents: number;
-  otherClaimsCents: number | null;
-  printedNetCents: number | null;
-  overClaimed: boolean;
-  otherClaims: { id: string; status: string }[];
-}
-
-export async function receiptOverlapWarnings(claimId: string): Promise<ReceiptOverlapWarning[]> {
-  const joins = await prisma.reimbursementReceipt.findMany({
-    where: { reimbursementId: claimId },
-    include: { receipt: true },
-  });
-  const warnings: ReceiptOverlapWarning[] = [];
-  for (const join of joins) {
-    const others = await prisma.reimbursementReceipt.findMany({
-      where: {
-        receiptId: join.receiptId,
-        reimbursementId: { not: claimId },
-        reimbursement: { status: { in: [...FROZEN_STATUSES] } },
-      },
-      include: { reimbursement: { select: { id: true, status: true } } },
-    });
-    if (others.length === 0) continue;
-    const sums = await prisma.lineItem.groupBy({
-      by: ["reimbursementId"],
-      where: {
-        receiptId: join.receiptId,
-        isExcluded: false,
-        reimbursementId: { in: [claimId, ...others.map((o) => o.reimbursementId)] },
-      },
-      _sum: { amountCents: true },
-    });
-    const sumFor = (id: string) => sums.find((s) => s.reimbursementId === id)?._sum.amountCents ?? 0;
-    const printedNetCents =
-      join.receipt.extractedTotalCents === null
-        ? null
-        : join.receipt.extractedTotalCents - (join.receipt.extractedRefundCents ?? 0);
-    const thisClaimCents = sumFor(claimId);
-    const otherClaimsCents = others.reduce((s, o) => s + sumFor(o.reimbursementId), 0);
-    warnings.push({
-      receiptId: join.receiptId,
-      originalName: join.receipt.originalName,
-      thisClaimCents,
-      otherClaimsCents,
-      printedNetCents,
-      // NULL printed totals (manual/failed extraction) ⇒ overlap-only warning.
-      overClaimed:
-        printedNetCents !== null && thisClaimCents + otherClaimsCents > printedNetCents,
-      otherClaims: others.map((o) => o.reimbursement),
-    });
-  }
-  return warnings;
+  return { publicKey: identity.publicKey, signatureImage: identity.signatureImage };
 }
 
 // --- Claim summary serializer for approver/finance/verification views ------------

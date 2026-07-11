@@ -2,11 +2,11 @@
 
 /**
  * Profile-page card for the member's signing identity
- * (docs/ESIGN_DESIGN.md §4.2–4.3): bootstrap (root only), the
- * enable-signing wizard (consent → keys → roster join), the identity QR +
- * fingerprint for in-person vouching, and role display. The QR encodes a
- * /vouch URL so a voucher can scan it with their phone's native camera —
- * no in-app decoder needed.
+ * (docs/ESIGN_DESIGN.md §4.2–4.3). Written for non-technical members: the
+ * happy path is "agree → sign your name → show the code to two people".
+ * Fingerprints and other audit material live behind a details disclosure.
+ * The QR encodes a /vouch URL so a voucher scans it with their phone's
+ * native camera — no in-app decoder.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -16,18 +16,20 @@ import {
   loadEnv,
   loadRoster,
   reportRoster,
+  updateSignatureImage,
   type EsignEnv,
 } from "@/lib/esign/client";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
 import IdentityQr from "./IdentityQr";
+import SignaturePad from "./SignaturePad";
 
 export default function SigningIdentityCard() {
   const [env, setEnv] = useState<EsignEnv | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [consented, setConsented] = useState(false);
+  const [redrawOpen, setRedrawOpen] = useState(false);
   const [fingerprint, setFingerprint] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -71,21 +73,7 @@ export default function SigningIdentityCard() {
       await bootstrapRegistry((await loadEnv())!);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Bootstrap failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function doEnroll() {
-    setBusy(true);
-    setError(null);
-    try {
-      await enroll(env!);
-      setWizardOpen(false);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Enrollment failed");
+      setError(err instanceof Error ? err.message : "Setup failed");
     } finally {
       setBusy(false);
     }
@@ -96,19 +84,19 @@ export default function SigningIdentityCard() {
   const status = env.me.identityStatus;
   const statusChip =
     status === "attested" ? (
-      <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Attested</span>
+      <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Ready to sign</span>
     ) : status === "pending" ? (
-      <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Awaiting vouches</span>
+      <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Almost there</span>
     ) : status === "revoked" ? (
-      <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">Revoked</span>
+      <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">Turned off</span>
     ) : (
-      <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600">Not enrolled</span>
+      <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600">Not set up</span>
     );
 
   return (
     <div className="card space-y-4 p-5" data-testid="signing-identity-card">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">Signing identity</h2>
+        <h2 className="text-lg font-bold">Electronic signing</h2>
         {statusChip}
       </div>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
@@ -117,12 +105,12 @@ export default function SigningIdentityCard() {
         env.canBootstrap ? (
           <div className="space-y-3">
             <p className="text-sm text-stone-600">
-              You are the configured trust root. Initializing creates the church signing
-              registry with your key as its anchor — publish the fingerprint it shows so
-              members can verify it in person.
+              You&apos;re set up as the person who starts electronic signing for this church.
+              This takes one tap; afterwards, share the &ldquo;church code&rdquo; it shows with
+              your members so they can check it.
             </p>
             <button className="btn-primary" onClick={doBootstrap} disabled={busy} data-testid="esign-bootstrap">
-              {busy ? "Initializing…" : "Initialize signing registry"}
+              {busy ? "Setting up…" : "Turn on electronic signing"}
             </button>
           </div>
         ) : (
@@ -133,94 +121,233 @@ export default function SigningIdentityCard() {
       ) : !status ? (
         <div className="space-y-3">
           <p className="text-sm text-stone-600">
-            Enable signing to submit claims for approval electronically. Your signing key is
-            created on this device and never leaves it; two members (or one approver) must
-            vouch for you in person before it counts.
+            Sign and approve reimbursements from your phone — no printing. You&apos;ll agree to
+            sign electronically, draw your signature, and then two members confirm it&apos;s
+            really you (in person, one quick scan).
           </p>
           <button className="btn-primary" onClick={() => setWizardOpen(true)} data-testid="enable-signing">
-            Enable signing
+            Set up signing
           </button>
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="grid gap-1 text-sm">
-            <div>
-              <span className="text-stone-500">Role: </span>
-              <span className="font-medium capitalize">{env.me.role}</span>
+          {env.me.signatureImage && (
+            <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-stone-500">Your signature</p>
+                <button
+                  className="text-xs text-indigo-600 underline"
+                  onClick={() => setRedrawOpen(true)}
+                  data-testid="redraw-signature"
+                >
+                  Redraw
+                </button>
+              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={env.me.signatureImage} alt="Your signature" className="mt-1 h-14 object-contain" />
             </div>
-            {fingerprint && (
-              <div>
-                <span className="text-stone-500">Key fingerprint: </span>
-                <code className="font-mono text-xs" data-testid="identity-fingerprint">
-                  {fingerprintDisplay(fingerprint)}
-                </code>
-              </div>
-            )}
-            {env.rootFingerprint && (
-              <div>
-                <span className="text-stone-500">Church root fingerprint: </span>
-                <code className="font-mono text-xs">{fingerprintDisplay(env.rootFingerprint)}</code>
-                <span className="ml-2 text-xs text-stone-400">(compare against the published value)</span>
-              </div>
-            )}
-          </div>
+          )}
 
           {status === "pending" && vouchUrl && (
             <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
               <p className="text-sm font-medium text-amber-900">
-                Show this to two members (or one approver) IN PERSON — they scan it with
-                their phone camera and confirm it&apos;s really you:
+                One last step: show this to two members (or one approver) <b>in person</b>.
+                They scan it with their phone camera and confirm it&apos;s really you.
               </p>
               <IdentityQr url={vouchUrl} />
-              {fingerprint && (
-                <p className="text-xs text-amber-800">
-                  If scanning fails they can type your full fingerprint instead:{" "}
-                  <code className="font-mono">{fingerprint}</code>
-                </p>
-              )}
             </div>
           )}
 
           {status === "attested" && (
-            <a href="/vouch" className="btn-secondary inline-block" data-testid="vouch-link">
-              🤝 Vouch for a member
-            </a>
+            <div className="flex flex-wrap gap-2">
+              <a href="/vouch" className="btn-secondary inline-block" data-testid="vouch-link">
+                🤝 Vouch for a member
+              </a>
+            </div>
           )}
+
+          <details className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-600">
+            <summary className="cursor-pointer select-none font-medium text-stone-500">
+              Audit details
+            </summary>
+            <div className="mt-2 grid gap-1">
+              <div>
+                Role: <span className="font-medium capitalize">{env.me.role}</span>
+              </div>
+              {fingerprint && (
+                <div>
+                  Your key fingerprint:{" "}
+                  <code className="font-mono" data-testid="identity-fingerprint">
+                    {fingerprintDisplay(fingerprint)}
+                  </code>
+                  <span className="ml-1 text-stone-400">(full: {fingerprint})</span>
+                </div>
+              )}
+              {env.rootFingerprint && (
+                <div>
+                  Church root fingerprint:{" "}
+                  <code className="font-mono">{fingerprintDisplay(env.rootFingerprint)}</code>
+                  <span className="ml-1 text-stone-400">— compare against the published value</span>
+                </div>
+              )}
+            </div>
+          </details>
         </div>
       )}
 
       {wizardOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-6 sm:rounded-2xl">
-            <h3 className="text-lg font-bold">Enable electronic signing</h3>
-            <pre className="mt-3 max-h-64 overflow-y-auto whitespace-pre-wrap rounded-lg bg-stone-50 p-3 text-xs text-stone-700">
+        <EnrollWizard
+          env={env}
+          onClose={() => setWizardOpen(false)}
+          onDone={async () => {
+            setWizardOpen(false);
+            await refresh();
+          }}
+        />
+      )}
+      {redrawOpen && (
+        <RedrawDialog
+          onClose={() => setRedrawOpen(false)}
+          onDone={async () => {
+            setRedrawOpen(false);
+            await refresh();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function EnrollWizard({
+  env,
+  onClose,
+  onDone,
+}: {
+  env: EsignEnv;
+  onClose: () => void;
+  onDone: () => Promise<void>;
+}) {
+  const [step, setStep] = useState<"consent" | "draw">("consent");
+  const [consented, setConsented] = useState(false);
+  const [signatureImage, setSignatureImage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function finish() {
+    setBusy(true);
+    setError(null);
+    try {
+      await enroll(env, signatureImage!);
+      await onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Setup failed");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">
+      <div className="max-h-[92vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-t-2xl bg-white p-6 sm:rounded-2xl">
+        {step === "consent" ? (
+          <>
+            <h3 className="text-lg font-bold">Sign electronically instead of on paper</h3>
+            <p className="text-sm text-stone-600">
+              Please read this once — it says your electronic signature counts like an ink one,
+              and that you can always go back to paper.
+            </p>
+            <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-lg bg-stone-50 p-3 text-xs text-stone-700">
               {CONSENT_TEXT}
             </pre>
-            <label className="mt-3 flex items-start gap-2 text-sm">
+            <label className="flex items-start gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={consented}
                 onChange={(e) => setConsented(e.target.checked)}
                 data-testid="consent-checkbox"
               />
-              <span>I agree to conduct these transactions electronically.</span>
+              <span>I agree to sign electronically.</span>
             </label>
-            <div className="mt-4 flex justify-end gap-2">
-              <button className="btn-secondary" onClick={() => setWizardOpen(false)}>
+            <div className="flex justify-end gap-2">
+              <button className="btn-secondary" onClick={onClose}>
                 Cancel
               </button>
               <button
                 className="btn-primary disabled:opacity-50"
-                disabled={!consented || busy}
-                onClick={doEnroll}
-                data-testid="finish-enroll"
+                disabled={!consented}
+                onClick={() => setStep("draw")}
+                data-testid="consent-next"
               >
-                {busy ? "Creating keys…" : "Create my signing key"}
+                Next: draw your signature
               </button>
             </div>
-          </div>
+          </>
+        ) : (
+          <>
+            <h3 className="text-lg font-bold">Draw your signature</h3>
+            <p className="text-sm text-stone-600">
+              This is the signature that appears on the reimbursement forms — sign the way you
+              would on paper, with your finger or the mouse.
+            </p>
+            <SignaturePad onChange={setSignatureImage} />
+            {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+            <div className="flex justify-end gap-2">
+              <button className="btn-secondary" onClick={() => setStep("consent")}>
+                Back
+              </button>
+              <button
+                className="btn-primary disabled:opacity-50"
+                disabled={!signatureImage || busy}
+                onClick={finish}
+                data-testid="finish-enroll"
+              >
+                {busy ? "Finishing…" : "Finish setup"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RedrawDialog({ onClose, onDone }: { onClose: () => void; onDone: () => Promise<void> }) {
+  const [signatureImage, setSignatureImage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">
+      <div className="w-full max-w-lg space-y-4 rounded-t-2xl bg-white p-6 sm:rounded-2xl">
+        <h3 className="text-lg font-bold">Redraw your signature</h3>
+        <p className="text-sm text-stone-600">
+          The new drawing is used on paperwork you sign from now on; nothing already signed
+          changes.
+        </p>
+        <SignaturePad onChange={setSignatureImage} />
+        {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <button className="btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn-primary disabled:opacity-50"
+            disabled={!signatureImage || busy}
+            onClick={async () => {
+              setBusy(true);
+              setError(null);
+              try {
+                await updateSignatureImage(signatureImage!);
+                await onDone();
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Could not save");
+                setBusy(false);
+              }
+            }}
+            data-testid="save-signature"
+          >
+            {busy ? "Saving…" : "Save signature"}
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

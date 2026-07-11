@@ -1,12 +1,13 @@
 # E-signature & approval workflow — design
 
-Status: **approved proposal, not yet implemented.** Decisions in §1 were ratified by the
-project owner (2026-07-11). v2 added the first hardening round; v3 incorporates two
-independent design reviews (protocol soundness; implementation feasibility): the thread
-model for submissions, the out-of-band root anchor, server-side signature-backed
-mirroring, the ledger-IO split, and the corrected Firebase-auth and receipt-lifecycle
-assumptions. This document is the implementation contract; §10 graduates into
-`CLAUDE.md` as phases land.
+Status: **implemented** (mock-backend verified end-to-end; live-Firestore wiring is the
+remaining phase-5 work). Decisions in §1 were ratified by the project owner
+(2026-07-11); the post-implementation amendments below them are also owner-ratified.
+v2 added the first hardening round; v3 incorporated two independent design reviews
+(protocol soundness; implementation feasibility): the thread model for submissions, the
+out-of-band root anchor, server-side signature-backed mirroring, the ledger-IO split,
+and the corrected Firebase-auth and receipt-lifecycle assumptions. This document is the
+implementation contract; §10 has graduated into `CLAUDE.md`.
 
 The feature adds a cryptographically tamper-evident e-signature and approval process on
 top of the existing claim flow, using [charproof](https://github.com/vrwarp/charproof)
@@ -30,6 +31,14 @@ generated PDF — is untouched; signing begins where it currently ends.
 | 10 | Artifact | Digital packet is primary; printouts are backup; wet signatures not required |
 | 11 | Formality | UETA/ESIGN-style ceremony: consent disclosure, intent affirmation, typed name |
 | 12 | Platform | Firestore becomes a hard runtime dependency for the e-sign feature |
+
+### Post-implementation amendments (owner-ratified)
+
+| # | Change |
+| :-- | :-- |
+| A1 | **Duplicate-receipt guard removed** — the §6.4 advisory overlap warnings were cut from the approver/finance views at the owner's direction; cross-claim receipt reuse stays a human-process matter |
+| A2 | **Non-technical UX rule**: the target member can scan a QR code and nothing more. Fingerprints, hashes, chain pills, anomaly lists, and verifier pointers live behind collapsed "Audit details" disclosures on every screen; the main path speaks plain language ("Everything checks out — this is the genuine paperwork") and ceremonies stay fail-closed regardless of what is displayed |
+| A3 | **Hand-drawn signatures**: enrollment captures a literal signature (touch/mouse canvas → transparent PNG, stored on `SignerIdentity.signatureImage`, redrawable without touching attestation). The REQUESTOR's ink is stamped over the form's "Requested by" line at GENERATION — inside the hash-bound bytes a submission freezes. The APPROVER's ink + name + date are stamped onto the certificate DELIVERY COPY's form pages (template field rects; the archived original never changes — it remains the verification target, one QR scan away). Ceremony payloads carry `signatureImageSha256` so the artwork used is part of the signed record. The stamped delivery PDF is what existing paper processes file |
 
 ## 2. Trust model — what the cryptography buys
 
@@ -514,7 +523,7 @@ draft ⇄ generated → submitted → approved → paid            (paid is term
 | `/api/reimbursements/[id]/packet` | GET | stored packet bytes while `generated`; archived bytes once signed (`?sha=`, format-validated, §5.1) — owner, assigned approver, or treasurer |
 | `/api/reimbursements/[id]/certificate` | GET | approval-certificate PDF (§7.1) — same access as `packet` |
 | `/api/approvals` | GET | approver inbox: claims where `approverUserId = me` and `status="submitted"` (+ decided history), mirror-labeled; detail view fetches ledger key + runs full verification |
-| `/api/finance` | GET | treasurer queue: `status ∈ {approved, paid}`, mirror-labeled, with receipt-overlap warnings (§6.4) |
+| `/api/finance` | GET | treasurer queue: `status ∈ {approved, paid}`, mirror-labeled |
 | `/api/v/[token]/summary` · `/registry` · `/events` · `/packet` | GET | **token-authorized, `/c`-style** (token = the existing `publicToken`; no other auth): claim summary + ledger key, registry (id/key/root pin), mirrored raw events, archived packet bytes — everything the `/v` page verifies against. Live Firestore cross-check additionally requires the visitor's own Firebase sign-in |
 | `/v/[token]` | GET page | verification page (§7.2) |
 
@@ -534,21 +543,6 @@ GRANT_ROLE), or presenting the capability token. Everything else keeps owner-onl
 semantics. Approvers review the *packet* (form + receipt images are already inside
 it) — individual receipt routes stay owner-only.
 
-### 6.4 Duplicate-receipt guard (advisory, server-computed)
-
-A receipt may legitimately join many claims (existing feature), which under paper
-process is how double-reimbursement slips through. The approver detail and finance
-queue therefore compute, per receipt on the claim: the sum of that receipt's line-item
-`amountCents` across **all** claims in FROZEN statuses vs the receipt's
-`extractedTotalCents − extractedRefundCents`. When the extraction totals are NULL
-(manual claims, failed-extraction placeholders), arithmetic is skipped and **any**
-second FROZEN claim holding the receipt triggers the overlap warning. Over-claiming or
-overlap renders prominently, with links (for the treasurer) to the overlapping claims.
-This guard is **server-trusted and advisory** — it spans other tenants' data the
-verifying client cannot read, so unlike the signature chain it does not survive a
-compromised server; it is a human-process aid, not a cryptographic control, and is
-labeled as such in §8. A warning, not a block — legitimate cross-claim splits exist;
-the human judges (and their judgment is what they sign).
 
 ## 7. Finance delivery & artifacts
 
@@ -609,7 +603,6 @@ audit tool; SQLite status never feeds it.
 | Grind a keypair matching a victim's 6-digit vouch code | QR scan or 16-byte fingerprint entry is the binding channel; the code is never sufficient (§4.3) |
 | Voucher collusion (two members attest a fake person) | Accepted residual risk (decision 2); events are permanent, signed, and attributable — collusion leaves evidence |
 | Stolen device / exfiltrated key | charproof `revokeDevice` (AMK rotation) + roster `REVOKE_KEY`; forward-only, historical events stand (§4.4–4.5) |
-| Same receipt reimbursed twice across claims | Duplicate-receipt guard — **advisory, server-trusted** (§6.4); not a cryptographic control |
 | Ledger flooding / junk events (any Firebase-authed account can append — charproof's world-append design) | Invalid events are classified client-side; **the roster is always read in full** (§4.4) — flooding it degrades performance, never validity; claim ledgers are per-claim and bounded-interest; escalation path: rules fork restricting the roster ledger's writers at deploy time, or roster re-genesis (§12) |
 | Requestor reports `submitted` without appending SUBMIT | Approver ceremony fails closed on missing/invalid SUBMIT — the lie only wedges the liar's claim (§5.3) |
 | Self-appended SUBMIT naming a non-consenting approver | Reconciliation never routes work; inbox placement requires server-side eligibility checks (§5.5) |

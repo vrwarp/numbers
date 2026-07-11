@@ -34,6 +34,7 @@ export interface EsignMe {
   role: string;
   identityStatus: string | null;
   publicKey: string | null;
+  signatureImage: string | null;
 }
 
 export interface EsignEnv {
@@ -201,13 +202,16 @@ export async function reconcileClaim(claimId: string, docs: RawLedgerEventDoc[])
 
 // --- Enrollment & vouching (§4.2–4.3) ---------------------------------------------
 
-export async function enroll(env: EsignEnv): Promise<{ publicKey: string; status: string }> {
+export async function enroll(
+  env: EsignEnv,
+  signatureImage: string
+): Promise<{ publicKey: string; status: string }> {
   // Row first (unlocks key relay + records consent), then key, then report it.
   const first = await jsonOrThrow(
     await fetch("/api/esign/identity", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ signatureImage }),
     })
   );
   const custody = custodyFor(env);
@@ -218,10 +222,21 @@ export async function enroll(env: EsignEnv): Promise<{ publicKey: string; status
     await fetch("/api/esign/identity", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ publicKey: identity.publicKeyB64 }),
+      body: JSON.stringify({ publicKey: identity.publicKeyB64, signatureImage }),
     })
   );
   return { publicKey: identity.publicKeyB64, status: second.identityStatus };
+}
+
+/** Update the hand-drawn signature alone (never touches attestation). */
+export async function updateSignatureImage(signatureImage: string): Promise<void> {
+  await jsonOrThrow(
+    await fetch("/api/esign/identity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ signatureImage }),
+    })
+  );
 }
 
 async function appendToLedger(

@@ -33,6 +33,7 @@ export async function GET() {
       role: user!.role,
       identityStatus: identity?.status ?? null,
       publicKey: identity?.publicKey || null,
+      signatureImage: identity?.signatureImage || null,
     };
     const rootEmail = esignRootEmail();
     if (!registry) {

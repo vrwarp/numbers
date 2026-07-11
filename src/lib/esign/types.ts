@@ -102,6 +102,8 @@ export interface SubmitAction {
   typedName: string;
   consentVersion: string;
   consentSha256: string;
+  /** SHA-256 of the signer's hand-drawn signature data URL, when one exists. */
+  signatureImageSha256?: string;
 }
 
 export interface ApproveAction {
@@ -117,6 +119,7 @@ export interface ApproveAction {
   consentVersion: string;
   consentSha256: string;
   comment: string;
+  signatureImageSha256?: string;
 }
 
 export interface RejectAction {
@@ -153,6 +156,7 @@ export interface MarkPaidAction {
   consentVersion: string;
   consentSha256: string;
   checkNumber: string;
+  signatureImageSha256?: string;
 }
 
 export type ClaimAction =

@@ -10,6 +10,9 @@ import { claimAccessRole, signedPacketPath } from "@/lib/esign/claim-server";
 import { getRegistry, mirroredRawDocs } from "@/lib/esign/server";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
+import { stampSignature } from "@/lib/pdf/generate";
+import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
+import { FORM_ROWS_PER_PAGE } from "@/lib/config";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -29,7 +32,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const bundleOnly = new URL(req.url).searchParams.get("bundle") === "1";
     const claim = await prisma.reimbursement.findUnique({
       where: { id },
-      include: { user: { select: { fullName: true, email: true } } },
+      include: {
+        user: { select: { fullName: true, email: true } },
+        lineItems: { select: { isExcluded: true } },
+      },
     });
     if (!claim) throw new ApiError(404, "Claim not found");
     await claimAccessRole(claim, userId);
@@ -140,7 +146,11 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     if (pin) text(`Deployment pin (prefix): ${pin}`, { size: 8, color: [0.35, 0.33, 0.3] });
     y -= 6;
     text(
-      "The pages after this cover are the exact signed packet bytes; this PDF also embeds",
+      "The pages after this cover are the signed packet, with the approval signature stamped on",
+      { size: 8, color: [0.4, 0.38, 0.35] }
+    );
+    text(
+      "for filing. The untouched original is archived and one QR scan away; this PDF also embeds",
       { size: 8, color: [0.4, 0.38, 0.35] }
     );
     text(
@@ -191,6 +201,66 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const packet = await PDFDocument.load(packetBytes, { ignoreEncryption: true });
     const pages = await doc.copyPages(packet, packet.getPageIndices());
     for (const p of pages) doc.addPage(p);
+
+    // Stamp the approver's (and treasurer's typed) marks onto the DELIVERY
+    // COPY's form pages — the archived original stays untouched (hash-bound);
+    // this copy is what existing print processes file. Field rects come from
+    // the blank template (the archived packet is flattened, its fields gone;
+    // geometry is identical). Form pages = ceil(active rows / 13).
+    const approveRecord = records.find((r) => r.kind === "approve");
+    if (approveRecord) {
+      const approverIdentity = await prisma.signerIdentity.findUnique({
+        where: { userId: approveRecord.signerUserId },
+        select: { signatureImage: true },
+      });
+      const approvePayload = JSON.parse(approveRecord.payloadJson) as { ts?: number };
+      const approvalDate = new Date(approvePayload.ts ?? approveRecord.createdAt.getTime());
+      const dateString = `${String(approvalDate.getMonth() + 1).padStart(2, "0")}/${String(
+        approvalDate.getDate()
+      ).padStart(2, "0")}/${approvalDate.getFullYear()}`;
+
+      const template = await PDFDocument.load(await loadTemplateBytes());
+      const rectOf = (name: string) => {
+        try {
+          return template.getForm().getTextField(name).acroField.getWidgets()[0]?.getRectangle() ?? null;
+        } catch {
+          return null;
+        }
+      };
+      const nameRect = rectOf("Approver Name");
+      const dateRect = rectOf("Approval Date");
+      const signaturePng = approverIdentity?.signatureImage?.startsWith("data:image/png;base64,")
+        ? new Uint8Array(Buffer.from(approverIdentity.signatureImage.split(",")[1], "base64"))
+        : null;
+
+      const activeRows = claim.lineItems.filter((it) => !it.isExcluded).length;
+      const formPageCount = Math.max(1, Math.ceil(activeRows / FORM_ROWS_PER_PAGE));
+      // Cover page is index 0; packet form pages follow it.
+      for (let i = 1; i <= Math.min(formPageCount, pages.length); i++) {
+        const page = doc.getPage(i);
+        if (nameRect) {
+          page.drawText(approveRecord.typedName || "", {
+            x: nameRect.x + 2,
+            y: nameRect.y + 3,
+            size: 10,
+            font: helv,
+            color: rgb(0.1, 0.09, 0.08),
+          });
+          if (signaturePng) {
+            await stampSignature(doc, page, signaturePng, nameRect);
+          }
+        }
+        if (dateRect) {
+          page.drawText(dateString, {
+            x: dateRect.x + 2,
+            y: dateRect.y + 3,
+            size: 10,
+            font: helv,
+            color: rgb(0.1, 0.09, 0.08),
+          });
+        }
+      }
+    }
 
     const bytes = await doc.save();
     return new NextResponse(new Uint8Array(bytes), {

@@ -17,7 +17,7 @@ import {
 } from "@/lib/esign/client";
 import { CONSENT_TEXT, INTENT_AFFIRMATION } from "@/lib/esign/consent";
 import { formatCents } from "@/lib/money";
-import { ChainPills, ThreadSignatures, useClaimChain, type ClaimRef } from "./chain";
+import { AuditDetails, ThreadSignatures, VerifiedBanner, useClaimChain, type ClaimRef } from "./chain";
 
 export interface EsignClaim extends ClaimRef {
   status: string;
@@ -94,8 +94,8 @@ export default function EsignPanel({
           {claim.status === "approved" && "Approved — awaiting payment"}
           {claim.status === "paid" && `Paid${claim.checkNumber ? ` — check #${claim.checkNumber}` : ""}`}
         </h2>
-        {state && <ChainPills state={state} />}
       </div>
+      {state && <VerifiedBanner state={state} />}
       {chainError && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{chainError}</p>}
       {decision?.t === "REJECT" && decision.comment && (
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="rejection-comment">
@@ -103,6 +103,7 @@ export default function EsignPanel({
         </p>
       )}
       {state && <ThreadSignatures state={state} />}
+      {state && <AuditDetails state={state} />}
 
       <div className="flex flex-wrap gap-2">
         {(claim.status === "approved" || claim.status === "paid") && (
@@ -214,17 +215,32 @@ function SubmitDialog({
         ) : (
           <>
             <p className="text-sm text-stone-600">
-              You are signing the exact generated packet ({formatCents(claim.totalCents)}).{" "}
+              You&apos;re asking for approval of this claim ({formatCents(claim.totalCents)}).{" "}
               <a
                 className="text-indigo-600 underline"
                 href={`/api/reimbursements/${claim.id}/packet`}
                 target="_blank"
                 rel="noreferrer"
               >
-                Open the packet
+                Look over the paperwork
               </a>{" "}
-              and check it — your signature binds to these bytes; any later edit voids it.
+              first — if anything on it changes later, your signature stops counting and
+              approval starts over.
             </p>
+            {env.me.signatureImage && (
+              <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
+                <p className="text-xs font-medium text-stone-500">
+                  Your signature (already on the paperwork&apos;s “Requested by” line):
+                </p>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={env.me.signatureImage}
+                  alt="Your signature"
+                  className="mt-1 h-12 object-contain"
+                  data-testid="signature-preview"
+                />
+              </div>
+            )}
             <label className="block text-sm font-medium">
               Approver
               <select

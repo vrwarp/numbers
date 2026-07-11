@@ -163,12 +163,15 @@ export default function VerificationView({ token }: { token: string }) {
               {" · "}
             </>
           )}
-          server status “{verdict.summary.status}” (informational — the verdict above is computed
-          in this browser).
+          checked just now, in this browser.
         </p>
       </div>
 
-      <div className="card space-y-2 p-5 text-sm">
+      <details className="card p-5 text-sm">
+        <summary className="cursor-pointer select-none font-medium text-stone-500">
+          Audit details
+        </summary>
+        <div className="mt-3 space-y-2">
         <Check ok={verdict.anchor.ok} label={verdict.anchor.label} />
         <Check
           ok={verdict.packetOk}
@@ -187,9 +190,26 @@ export default function VerificationView({ token }: { token: string }) {
           }
         />
         {verdict.rosterAnomalies > 0 && (
-          <Check ok={false} label={`${verdict.rosterAnomalies} roster oddity(ies) — see below`} />
+          <Check ok={false} label={`${verdict.rosterAnomalies} roster oddity(ies)`} />
         )}
-      </div>
+        {verdict.evaluation.anomalies.length > 0 && (
+          <div>
+            <p className="font-semibold text-amber-800">Invalid events (kept visible):</p>
+            <ul className="list-inside list-disc text-stone-600">
+              {verdict.evaluation.anomalies.map((a, i) => (
+                <li key={i}>
+                  {(a.event.action as { t?: string }).t}: {a.reason}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <p className="text-xs text-stone-400">
+          Independent check: run <code>scripts/verify-bundle.mjs</code> against the
+          certificate&apos;s embedded bundle with the church&apos;s published root fingerprint.
+        </p>
+        </div>
+      </details>
 
       {verdict.evaluation.threads.map((t) => (
         <div key={t.seq} className="card space-y-2 p-5">
@@ -235,23 +255,6 @@ export default function VerificationView({ token }: { token: string }) {
         </div>
       ))}
 
-      {verdict.evaluation.anomalies.length > 0 && (
-        <div className="card border-amber-200 p-5 text-sm">
-          <h2 className="font-semibold text-amber-800">Anomalies (invalid events, kept visible)</h2>
-          <ul className="mt-1 list-inside list-disc text-stone-600">
-            {verdict.evaluation.anomalies.map((a, i) => (
-              <li key={i}>
-                {(a.event.action as { t?: string }).t}: {a.reason}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <p className="text-center text-xs text-stone-400">
-        Independent check: run <code>scripts/verify-bundle.mjs</code> against the certificate's
-        embedded bundle with the church's published root fingerprint.
-      </p>
     </div>
   );
 }
@@ -294,8 +297,11 @@ function SignatureLine({
         {typed && <span className="italic">“{typed}” — </span>}
         {name}
       </div>
-      <code className="font-mono text-[10px] text-stone-400">{fp}</code>
       {extra && <div className="mt-1 text-xs text-stone-600">{extra}</div>}
+      <details className="mt-1 text-[10px] text-stone-400">
+        <summary className="cursor-pointer select-none">key</summary>
+        <code className="font-mono">{fp}</code>
+      </details>
     </div>
   );
 }

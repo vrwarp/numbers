@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { formatCents } from "@/lib/money";
 import { runPaidCeremony } from "@/lib/esign/client";
 import { INTENT_AFFIRMATION } from "@/lib/esign/consent";
-import { ChainPills, ThreadSignatures, useClaimChain } from "./chain";
+import { AuditDetails, ThreadSignatures, VerifiedBanner, useClaimChain } from "./chain";
 import { StatusChip, type InboxClaim } from "./ApprovalsInbox";
 
 export default function FinanceQueue() {
@@ -39,8 +39,7 @@ export default function FinanceQueue() {
       <div>
         <h1 className="text-2xl font-bold">Finance</h1>
         <p className="text-sm text-stone-500">
-          Approved claims ready to pay. Each is re-verified against the signature ledger before
-          you sign the payment.
+          Approved claims ready to pay.
         </p>
       </div>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
@@ -145,26 +144,14 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {state && (
         <>
-          <ChainPills state={state} />
+          <VerifiedBanner state={state} />
           {!verified && (
-            <p className="rounded-lg bg-red-50 p-3 text-sm text-red-800">
-              The approval chain does not verify — payment signing is disabled (fail-closed).
+            <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+              Signing is disabled until everything checks out.
             </p>
           )}
           <ThreadSignatures state={state} />
-          {claim.overlapWarnings.length > 0 && (
-            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-              <p className="font-semibold">⚠ Receipt overlap (advisory):</p>
-              <ul className="mt-1 list-inside list-disc">
-                {claim.overlapWarnings.map((w) => (
-                  <li key={w.receiptId}>
-                    {w.originalName}: on {w.otherClaims.length} other frozen claim(s)
-                    {w.overClaimed && " (OVER-CLAIMED)"}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <AuditDetails state={state} />
           {state.packetUrl && (
             <a className="btn-secondary inline-block" href={state.packetUrl} target="_blank" rel="noreferrer">
               📄 Open verified packet

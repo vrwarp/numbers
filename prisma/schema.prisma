@@ -139,6 +139,12 @@ model SignerIdentity {
   userId     String    @unique
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   publicKey  String    @default("") // base64 SPKI, filled once the roster keypair exists
+  // Hand-drawn signature (PNG data URL, transparent background), captured on a
+  // touch screen or with the mouse at enrollment. Stamped onto the PDF's
+  // signature lines: the requestor's at packet generation (inside the
+  // hash-bound bytes), the approver's onto the certificate delivery copy.
+  // Its SHA-256 rides inside every ceremony payload the member signs.
+  signatureImage String @default("")
   status     String    @default("pending") // pending | attested | revoked
   attestedAt DateTime?
   createdAt  DateTime  @default(now())

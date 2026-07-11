@@ -12,7 +12,7 @@ import { useCallback, useEffect, useState } from "react";
 import { formatCents } from "@/lib/money";
 import { runDecisionCeremony } from "@/lib/esign/client";
 import { CONSENT_TEXT, INTENT_AFFIRMATION } from "@/lib/esign/consent";
-import { ChainPills, ThreadSignatures, useClaimChain } from "./chain";
+import { AuditDetails, ThreadSignatures, VerifiedBanner, useClaimChain } from "./chain";
 import type { SubmitAction } from "@/lib/esign/types";
 
 export interface InboxClaim {
@@ -28,15 +28,6 @@ export interface InboxClaim {
   submitSeq: number;
   submittedAt: string | null;
   rows: { description: string; amountCents: number; ministry: string; event: string }[];
-  overlapWarnings: {
-    receiptId: string;
-    originalName: string;
-    thisClaimCents: number;
-    otherClaimsCents: number | null;
-    printedNetCents: number | null;
-    overClaimed: boolean;
-    otherClaims: { id: string; status: string }[];
-  }[];
 }
 
 export default function ApprovalsInbox({ endpoint = "/api/approvals", title = "Approvals" }) {
@@ -64,8 +55,7 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals", title = "A
       <div>
         <h1 className="text-2xl font-bold">{title}</h1>
         <p className="text-sm text-stone-500">
-          List status comes from the server and is re-verified cryptographically when you open a
-          claim.
+          Open a claim to check it and sign.
         </p>
       </div>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
@@ -205,29 +195,13 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {state && (
         <>
-          <ChainPills state={state} />
+          <VerifiedBanner state={state} />
           {!verified && (
-            <p className="rounded-lg bg-red-50 p-3 text-sm text-red-800" data-testid="failclosed-note">
-              This claim does not verify for your signature right now — signing is disabled
-              (fail-closed). Ask the requestor to check it, or re-verify.
+            <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="failclosed-note">
+              Signing is disabled until everything checks out.
             </p>
           )}
           <ThreadSignatures state={state} />
-          {claim.overlapWarnings.length > 0 && (
-            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" data-testid="overlap-warning">
-              <p className="font-semibold">⚠ Receipt overlap (server-computed, advisory):</p>
-              <ul className="mt-1 list-inside list-disc">
-                {claim.overlapWarnings.map((w) => (
-                  <li key={w.receiptId}>
-                    {w.originalName}: also on {w.otherClaims.length} other frozen claim(s)
-                    {w.printedNetCents !== null &&
-                      ` — ${formatCents(w.thisClaimCents + (w.otherClaimsCents ?? 0))} claimed of ${formatCents(w.printedNetCents)} printed`}
-                    {w.overClaimed && " (OVER-CLAIMED)"}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
           <div className="grid gap-1 text-sm">
             {claim.rows.map((r, i) => (
               <div key={i} className="flex justify-between gap-3">
@@ -247,6 +221,7 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
               data-testid="verified-packet-frame"
             />
           )}
+          <AuditDetails state={state} />
           <label className="block text-sm font-medium">
             Comment (required to reject)
             <input className="input mt-1" value={comment} onChange={(e) => setComment(e.target.value)} data-testid="decision-comment" />

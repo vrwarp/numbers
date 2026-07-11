@@ -93,6 +93,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
               typedName: body.typedName!.trim(),
               consentVersion: CONSENT_VERSION,
               consentSha256: await sha256Hex(CONSENT_TEXT),
+              ...(identity.signatureImage
+                ? { signatureImageSha256: await sha256Hex(identity.signatureImage) }
+                : {}),
             }
           : { ...base, t: "REJECT" };
       await setPendingAction(id, claim.pendingActionsJson, userId, payload);

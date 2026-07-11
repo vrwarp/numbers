@@ -1,4 +1,4 @@
-import { PDFDocument, PDFFont, rgb, StandardFonts } from "pdf-lib";
+import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from "pdf-lib";
 import { paginateItems } from "./paginate";
 import { applyQrStamp } from "./qr";
 import { centsToDollarString } from "@/lib/money";
@@ -54,6 +54,13 @@ export interface ClaimPdfInput {
    * configured) the pages are unchanged.
    */
   selfLinkUrl?: string;
+  /**
+   * The requestor's hand-drawn signature (PNG bytes, transparent bg),
+   * stamped over the "Requested by" line of every form page. Applied at
+   * GENERATION so the ink is inside the hash-bound packet bytes an e-sign
+   * submission later freezes. Omitted → line stays blank (classic flow).
+   */
+  requestorSignaturePng?: Uint8Array;
 }
 
 /** Usable text box inside a field widget, after pdf-lib's border+padding inset. */
@@ -223,7 +230,18 @@ async function fillFormPage(
 
   setText("Requestor Name", input.requesterName, 10);
   setText("Request Date", input.dateString, 10);
-  // "Approved by" and "For Treasurer use only" stay blank — filled by hand.
+  // "Approved by" and "For Treasurer use only" stay blank here — the approver's
+  // ink is stamped on the certificate delivery copy after approval (the packet
+  // bytes are frozen under signature by then; see the certificate route).
+
+  // Capture the signature line's rect before flatten() erases the fields.
+  const requestorRect = (() => {
+    try {
+      return form.getTextField("Requestor Name").acroField.getWidgets()[0]?.getRectangle() ?? null;
+    } catch {
+      return null;
+    }
+  })();
 
   form.updateFieldAppearances(helv);
   form.flatten();
@@ -234,7 +252,36 @@ async function fillFormPage(
   if (input.selfLinkUrl) {
     applyQrStamp(tpl.getPage(0), input.selfLinkUrl, helv);
   }
+  if (input.requestorSignaturePng?.length && requestorRect) {
+    await stampSignature(tpl, tpl.getPage(0), input.requestorSignaturePng, requestorRect);
+  }
   return tpl;
+}
+
+/**
+ * Draw a hand-drawn signature PNG over a signature-line field rect: bottom
+ * edge sitting just above the line, left-aligned with the printed name, ink
+ * allowed to rise above the field like a real signature. Scales to fit the
+ * line's width and a ~30pt height cap.
+ */
+export async function stampSignature(
+  doc: PDFDocument,
+  page: PDFPage,
+  png: Uint8Array,
+  rect: { x: number; y: number; width: number; height: number }
+): Promise<void> {
+  const image = await doc.embedPng(png);
+  const maxH = 30;
+  const maxW = rect.width - 4;
+  const scale = Math.min(maxW / image.width, maxH / image.height);
+  const w = image.width * scale;
+  const h = image.height * scale;
+  page.drawImage(image, {
+    x: rect.x + 2,
+    y: rect.y + rect.height - 4, // riding on top of the typed name / line
+    width: w,
+    height: h,
+  });
 }
 
 /** Split a one-line mailing address across the form's two address lines. */
