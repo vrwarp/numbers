@@ -75,7 +75,7 @@ export function storeFor(env: EsignEnv): LedgerStore {
 }
 
 export function custodyFor(env: EsignEnv): KeyCustody {
-  return getCustody(env.backend);
+  return getCustody(env.backend, env.me, env.rosterLedgerId);
 }
 
 function newLedgerId(): string {
@@ -337,6 +337,24 @@ export async function grantRole(
     ts: Date.now(),
     uid,
     role,
+  });
+  const { rawDocs } = await loadRoster(env);
+  await reportRoster(env, rawDocs);
+}
+
+/** Root-only: revoke a member's signing KEY (§4.5 compromised-device path).
+ *  Forward-only — history signed by the key stays valid via stateAt (§4.4). */
+export async function revokeMemberKey(env: EsignEnv, publicKey: string): Promise<void> {
+  if (!env.rosterLedgerId || !env.rosterLedgerKey) throw new Error("Not enrolled");
+  const custody = custodyFor(env);
+  const identity = await custody.getIdentity(env.rosterLedgerId);
+  if (!identity) throw new Error("No signing identity on this device");
+  await appendToLedger(env, env.rosterLedgerId, env.rosterLedgerKey, identity, {
+    t: "REVOKE_KEY",
+    v: 1,
+    ledger: env.rosterLedgerId,
+    ts: Date.now(),
+    publicKey,
   });
   const { rawDocs } = await loadRoster(env);
   await reportRoster(env, rawDocs);

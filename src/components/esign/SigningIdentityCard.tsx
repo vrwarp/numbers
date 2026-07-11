@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   bootstrapRegistry,
+  custodyFor,
   enroll,
   loadEnv,
   loadRoster,
@@ -19,8 +20,10 @@ import {
   updateSignatureImage,
   type EsignEnv,
 } from "@/lib/esign/client";
+import type { DeviceStatus } from "@/lib/esign/custody";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
+import { DevicesPanel, NewDeviceCard, RecoveryCard } from "./DeviceManager";
 import IdentityQr from "./IdentityQr";
 import SignaturePad from "./SignaturePad";
 
@@ -31,12 +34,19 @@ export default function SigningIdentityCard() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [redrawOpen, setRedrawOpen] = useState(false);
   const [fingerprint, setFingerprint] = useState<string | null>(null);
+  const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
 
   const refresh = useCallback(async () => {
     try {
       const loaded = await loadEnv();
       setEnv(loaded);
       if (loaded.me.publicKey) setFingerprint(await keyFingerprint(loaded.me.publicKey));
+      // Where does this browser stand in the member's device fleet (M2)?
+      if (loaded.bootstrapped && loaded.enabled && loaded.me.identityStatus) {
+        setDeviceStatus(await custodyFor(loaded).deviceStatus());
+      } else {
+        setDeviceStatus(null);
+      }
       // Enrolled devices freshen the verified mirror opportunistically (§5.5).
       if (loaded.bootstrapped && loaded.enabled && loaded.me.identityStatus && loaded.rosterLedgerKey) {
         const { rawDocs } = await loadRoster(loaded);
@@ -181,6 +191,19 @@ export default function SigningIdentityCard() {
             Set up signing
           </button>
         </div>
+      ) : deviceStatus === null ? (
+        <p className="text-sm text-stone-400">Checking this device…</p>
+      ) : deviceStatus !== "ready" ? (
+        // Enrolled member, but the keys aren't on this browser (M2).
+        <NewDeviceCard
+          env={env}
+          fleetGone={deviceStatus === "fresh"}
+          onReady={refresh}
+          onStartOver={() => {
+            setDeviceStatus("fresh");
+            setWizardOpen(true);
+          }}
+        />
       ) : (
         <div className="space-y-4">
           {env.me.signatureImage ? (
@@ -226,6 +249,9 @@ export default function SigningIdentityCard() {
               </a>
             </div>
           )}
+
+          <RecoveryCard env={env} sticky={env.me.role === "admin"} />
+          <DevicesPanel env={env} />
 
           <details className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-600">
             <summary className="cursor-pointer select-none font-medium text-stone-500">

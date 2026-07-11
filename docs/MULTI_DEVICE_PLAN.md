@@ -1,9 +1,31 @@
 # Multi-device plan — e-sign identity across a member's devices
 
-Status: **plan, not yet implemented.** Companion to `docs/ESIGN_DESIGN.md` §4.5 (the
-ratified behavior) and §11 phase 5 (where this work sits). Reference implementation
+Status: **M1–M4 implemented and e2e-verified in mock mode** (design amendment A6);
+**M5 (live Firestore validation) pending** — it needs a real Firebase project plus the
+phase-1 `ensureFirebaseAuth()` platform item. Companion to `docs/ESIGN_DESIGN.md` §4.5
+(the ratified behavior) and §11 phase 5 (where this work sits). Reference implementation
 of the UX: [LetUsMeet](https://github.com/vrwarp/LetUsMeet) (`frontend/src/hooks/useAuth.ts`,
 `components/Layout.tsx`), which ships this exact charproof ceremony in production.
+
+Implementation notes (deltas discovered while building):
+- charproof v1.0.8 ships everything needed, including `subscribeAuthorizedDevices`
+  (names pre-decrypted) and `setupPhraseRecovery` — no upstream changes required
+  (open question 4 resolved: no local decrypt helper needed either).
+- Custody takes `rosterLedgerId` from the registry env, NOT the local IndexedDB
+  marker: devices that join via authorization/recovery never ran `enroll()`, so the
+  marker doesn't exist there (found by the walkthrough's phone-submit ceremony).
+- Devices get a friendly default name ("Chrome on a Mac") at charproof init —
+  charproof's fallback is the string "Unknown Device", useless in the banner.
+- `ensureIdentity` hard-refuses to mint a fresh key on an unauthorized device of an
+  existing account (it would fork the identity); M2's flows are the way back in.
+- Files: `src/lib/esign/device-sync.ts` (providers + store adapter),
+  `src/lib/esign/devices.ts` (UI-facing ops), `src/components/esign/DeviceManager.tsx`
+  + `DeviceRequestsBanner.tsx`, mock routes under
+  `src/app/api/esign-mock/device-sync/*`, migration `20260711220601_esign_device_sync`.
+- Verified end-to-end (walkthrough acts 10–12): typed-code approval → phone submits a
+  real claim ceremony with the same attested key (no new roster events) → phrase
+  set up on device 1 and recovered on device 3 with no other device online →
+  phone revoked (AMK rotation) and locked out while its signed chain stays VERIFIED.
 
 ## 1. Goal and non-goals
 
@@ -139,10 +161,15 @@ priority order:
 
 ### M4 — recovery setup
 
-- Post-enrollment nudge card: set up the phrase (show 24 words, confirm 3 random
-  words back) and/or a passkey (`enablePrfRecovery`, behind feature detection).
-  Dismissible for members; sticky until done for the root (D7), plus a printable
-  recovery sheet from the bootstrap flow.
+- Post-enrollment nudge card, **print-first** (owner direction: hand-copying 24
+  words is unreasonable): the dialog's primary action downloads a one-page
+  **recovery sheet PDF** — built entirely client-side with pdf-lib
+  (`src/lib/esign/recovery-sheet.ts`), because the phrase must never reach the
+  keyless server — with the words, the member's name, the date, and plain-language
+  instructions. A collapsed hand-copy fallback exists for the printerless; finishing
+  requires the "printed and stored somewhere safe" confirmation. Passkeys ride
+  along automatically (genesis seals a PRF method). Dismissible for members;
+  sticky until done for the root (D7).
 - PRF in CI: use a Playwright virtual authenticator where supported, else skip —
   phrase recovery is the deterministic, headless-testable path (LetUsMeet keeps a
   `mockPrfProvider` for exactly this; charproof accepts an injected `PrfProvider`).

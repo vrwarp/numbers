@@ -218,6 +218,37 @@ model EsignMockEvent {
   @@index([ledgerId, id])
 }
 
+// ESIGN_MOCK device-sync store (docs/MULTI_DEVICE_PLAN.md M1): SQLite stand-in
+// for charproof's Firestore AccountKeyStore, so the REAL charproof device/keystore
+// code runs in dev/tests via provider injection. All payloads are opaque JSON the
+// client already encrypted/blinded — the server never sees key material. Empty in
+// real deployments (production custody rides Firestore under charproof's rules).
+model EsignAccountKeys {
+  userId    String   @id
+  doc       String
+  // Optimistic-concurrency counter standing in for Firestore transactions.
+  version   Int      @default(1)
+  updatedAt DateTime @updatedAt
+}
+
+model EsignPendingDevice {
+  userId    String
+  deviceId  String
+  data      String
+  updatedAt DateTime @updatedAt
+
+  @@id([userId, deviceId])
+}
+
+model EsignKeystoreEntry {
+  userId    String
+  docId     String
+  entry     String
+  updatedAt DateTime @updatedAt
+
+  @@id([userId, docId])
+}
+
 model LineItem {
   id              String        @id @default(cuid())
   reimbursementId String

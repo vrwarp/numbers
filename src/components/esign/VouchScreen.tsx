@@ -14,6 +14,7 @@ import { Suspense } from "react";
 import {
   grantRole,
   loadEnv,
+  revokeMemberKey,
   vouchFor,
   type EsignEnv,
   type VouchSubject,
@@ -26,7 +27,7 @@ function RoleButtons({
   onDone,
 }: {
   env: EsignEnv;
-  member: { userId: string; role: string };
+  member: { userId: string; name: string; role: string; publicKey: string };
   onDone: () => Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
@@ -39,8 +40,35 @@ function RoleButtons({
       setBusy(false);
     }
   }
+  // §4.5 compromised-device path: the member reports the loss in person and
+  // the root retires the KEY itself. Their history stays valid; they enroll a
+  // fresh key and get re-vouched.
+  async function revokeKey() {
+    if (
+      !confirm(
+        `Revoke ${member.name}'s signing key?\n\nDo this when a device that could sign as them was lost or stolen. Everything they already signed stays valid, but the key stops working everywhere — they'll set up signing again and be vouched for again in person.`
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    try {
+      await revokeMemberKey(env, member.publicKey);
+      await onDone();
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <span className="flex gap-1">
+      <button
+        className="rounded-lg border border-red-200 px-2 py-0.5 text-xs text-red-700 hover:bg-red-50"
+        disabled={busy}
+        onClick={revokeKey}
+        data-testid={`revoke-key-${member.userId}`}
+      >
+        revoke key
+      </button>
       {member.role === "approver" || member.role === "treasurer" ? (
         <button
           className="rounded-lg border border-stone-200 px-2 py-0.5 text-xs text-stone-500 hover:bg-stone-50"

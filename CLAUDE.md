@@ -69,8 +69,12 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    `submitRef`/`approveRef`, money in integer cents); the roster + thread rules live in the
    isomorphic modules `src/lib/esign/roster.ts` + `validity.ts` — change them only with
    tests, and keep `scripts/verify-bundle.mjs` (a deliberately independent
-   reimplementation) in agreement. Dev/tests: `ESIGN_MOCK=1` + `ESIGN_ROOT_EMAIL` run the
-   full protocol (real ECDSA, real hash binding) on a SQLite ledger store, no Firebase.
+   reimplementation) in agreement. Multi-device is charproof's AMK keystore (typed-code
+   device approval, phrase/passkey recovery, revocation; `docs/MULTI_DEVICE_PLAN.md`) —
+   devices are transport, the vouched KEY is the identity, so device changes never touch
+   the roster. Dev/tests: `ESIGN_MOCK=1` + `ESIGN_ROOT_EMAIL` run the full protocol
+   (real ECDSA, real hash binding, real charproof custody) on SQLite ledger +
+   device-sync stores, no Firebase.
 
 ## Docs map
 
