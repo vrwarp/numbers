@@ -245,6 +245,9 @@ in the server's mirror pipeline (§5.5), and in the offline verifier script (§7
 
 ### 4.5 Multi-device and key loss
 
+> Implementation plan: `docs/MULTI_DEVICE_PLAN.md` (phases M1–M5, mock device-sync
+> store via charproof provider injection, revocation severity model).
+
 - **Second device**: charproof's own flow — `requestDeviceAuthorization()` on the new
   device, 6-digit code compared between the member's own two devices,
   `approveDeviceAuthorization(d, {expectedVerificationCode})` on the old one. The AMK
@@ -792,9 +795,9 @@ allow create: if isSignedIn()
 4. **Finance & verification** — treasurer queue, mark-paid ceremony, certificate PDF
    with embedded verification bundle, offline verifier script, `/api/v/[token]/*` +
    `/v/<token>` page with live mode, route tests.
-5. **Hardening** — device management UI, PRF recovery, full emulator e2e suite, UETA
-   consent text review, root-rotation ceremony doc, docs (`ARCHITECTURE`/`DATA_MODEL`/
-   `CLAUDE.md` updates).
+5. **Hardening** — device management UI + PRF recovery (planned in detail:
+   `docs/MULTI_DEVICE_PLAN.md`), full emulator e2e suite, UETA consent text review,
+   root-rotation ceremony doc, docs (`ARCHITECTURE`/`DATA_MODEL`/`CLAUDE.md` updates).
 
 ## 12. Risks & open items
 
