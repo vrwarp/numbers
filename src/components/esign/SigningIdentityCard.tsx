@@ -131,7 +131,7 @@ export default function SigningIdentityCard() {
         </div>
       ) : (
         <div className="space-y-4">
-          {env.me.signatureImage && (
+          {env.me.signatureImage ? (
             <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium text-stone-500">Your signature</p>
@@ -146,6 +146,15 @@ export default function SigningIdentityCard() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={env.me.signatureImage} alt="Your signature" className="mt-1 h-14 object-contain" />
             </div>
+          ) : (
+            // e.g. the root, whose bootstrap path skips the wizard.
+            <button
+              className="btn-secondary"
+              onClick={() => setRedrawOpen(true)}
+              data-testid="add-signature"
+            >
+              ✍️ Add your signature
+            </button>
           )}
 
           {status === "pending" && vouchUrl && (

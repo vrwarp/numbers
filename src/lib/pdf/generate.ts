@@ -253,16 +253,35 @@ async function fillFormPage(
     applyQrStamp(tpl.getPage(0), input.selfLinkUrl, helv);
   }
   if (input.requestorSignaturePng?.length && requestorRect) {
-    await stampSignature(tpl, tpl.getPage(0), input.requestorSignaturePng, requestorRect);
+    await stampSignature(
+      tpl,
+      tpl.getPage(0),
+      input.requestorSignaturePng,
+      signatureLineRect(requestorRect)
+    );
   }
   return tpl;
 }
 
 /**
- * Draw a hand-drawn signature PNG over a signature-line field rect: bottom
- * edge sitting just above the line, left-aligned with the printed name, ink
- * allowed to rise above the field like a real signature. Scales to fit the
- * line's width and a ~30pt height cap.
+ * The CFCC form's "(Signature)" lines have NO AcroForm field — they sit to
+ * the LEFT of the "Name (Please print)" field on the same baseline. Derive
+ * the ink rect from the name field's rect: same bottom edge, spanning the
+ * signature column (left content edge ≈ x 90 to just before the "Name"
+ * label at ≈ x 240 on the 612pt page).
+ */
+export function signatureLineRect(nameFieldRect: { y: number }): {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+} {
+  return { x: 96, y: nameFieldRect.y, width: 144, height: 26 };
+}
+
+/**
+ * Draw a hand-drawn signature PNG sitting ON a signature line: bottom edge
+ * at the line, left-aligned, ink allowed to rise like a real signature.
  */
 export async function stampSignature(
   doc: PDFDocument,
@@ -271,16 +290,14 @@ export async function stampSignature(
   rect: { x: number; y: number; width: number; height: number }
 ): Promise<void> {
   const image = await doc.embedPng(png);
-  const maxH = 30;
-  const maxW = rect.width - 4;
+  const maxH = 28;
+  const maxW = rect.width;
   const scale = Math.min(maxW / image.width, maxH / image.height);
-  const w = image.width * scale;
-  const h = image.height * scale;
   page.drawImage(image, {
-    x: rect.x + 2,
-    y: rect.y + rect.height - 4, // riding on top of the typed name / line
-    width: w,
-    height: h,
+    x: rect.x,
+    y: rect.y + 2, // resting on the printed line
+    width: image.width * scale,
+    height: image.height * scale,
   });
 }
 

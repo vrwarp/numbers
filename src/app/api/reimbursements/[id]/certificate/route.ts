@@ -10,7 +10,7 @@ import { claimAccessRole, signedPacketPath } from "@/lib/esign/claim-server";
 import { getRegistry, mirroredRawDocs } from "@/lib/esign/server";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
-import { stampSignature } from "@/lib/pdf/generate";
+import { signatureLineRect, stampSignature } from "@/lib/pdf/generate";
 import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
 import { FORM_ROWS_PER_PAGE } from "@/lib/config";
 
@@ -247,7 +247,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
             color: rgb(0.1, 0.09, 0.08),
           });
           if (signaturePng) {
-            await stampSignature(doc, page, signaturePng, nameRect);
+            await stampSignature(doc, page, signaturePng, signatureLineRect(nameRect));
           }
         }
         if (dateRect) {
