@@ -1,22 +1,25 @@
 # E-signature & approval workflow — design
 
 Status: **approved proposal, not yet implemented.** Decisions in §1 were ratified by the
-project owner (2026-07-11); v2 adds the hardening round (replay binding, rules fork,
-fail-closed verification, offline verification bundle, duplicate-receipt guard). This
-document is the implementation contract; §10 graduates into `CLAUDE.md` as phases land.
+project owner (2026-07-11). v2 added the first hardening round; v3 incorporates two
+independent design reviews (protocol soundness; implementation feasibility): the thread
+model for submissions, the out-of-band root anchor, server-side signature-backed
+mirroring, the ledger-IO split, and the corrected Firebase-auth and receipt-lifecycle
+assumptions. This document is the implementation contract; §10 graduates into
+`CLAUDE.md` as phases land.
 
 The feature adds a cryptographically tamper-evident e-signature and approval process on
 top of the existing claim flow, using [charproof](https://github.com/vrwarp/charproof)
-(client-side zero-knowledge, append-only, ECDSA-signed event ledgers on Cloud Firestore).
-The existing flow — Shoebox → extraction → human verification → generated PDF — is
-untouched; signing begins where it currently ends.
+(client-side zero-knowledge key management + append-only, ECDSA-signed event ledgers on
+Cloud Firestore). The existing flow — Shoebox → extraction → human verification →
+generated PDF — is untouched; signing begins where it currently ends.
 
 ## 1. Decisions log
 
 | # | Question | Decision |
 | :-- | :-- | :-- |
 | 1 | Trust root | The project owner is the genesis trust root (`ESIGN_ROOT_EMAIL`) |
-| 2 | Vouching | In person only. A signer is attested by **two vouches from any attested members, or one vouch from an approver-or-above**. Vouching attests identity only; roles are granted separately |
+| 2 | Vouching | In person only. A signer is attested by **two vouches from distinct attested members, or one vouch from an approver-or-above**. Vouching attests identity only; roles are granted separately |
 | 3 | Key burden | Full charproof accounts (AMK, device enrollment, phrase/PRF recovery) — but **only required for e-sign actions**. Building and generating a claim never requires enrollment |
 | 4 | Who signs | Requestor signs at submission **and** approver signs the decision. The treasurer's mark-paid is also a signed event |
 | 5 | Routing | The requestor picks one approver per claim. No amount thresholds |
@@ -36,88 +39,110 @@ untouched; signing begins where it currently ends.
   humans physically vouched for.
 - **Tamper-evidence**: ledger events are append-only and immutable (Firestore rules).
   Signatures bind the exact packet bytes (SHA-256), the claim, the ledger, and their
-  position in the submission sequence (§5.2), so edits, replays, and reordering are
-  detectable by anyone re-running verification.
-- **Server exclusion**: the numbers server holds **no Firestore write credentials**
-  (`firebase-admin` stays keyless, projectId-only, used solely for ID-token
-  verification). The server relays ledger *read* keys (decision 8) but cannot forge,
-  modify, or delete events — tamper-evidence holds even against a compromised app server.
-- **Fail-closed verification**: any UI about to countersign (approve, mark-paid) or to
-  assert validity (`/v` page, finance queue) must first re-derive the full chain —
-  roster from the pinned root, event signatures against the allowlist, packet bytes
-  against the signed hash — in the browser, and refuse the ceremony on any mismatch.
-  The SQLite mirror (§8) is a convenience cache, never proof.
+  thread position via signer-committed references (§5.2) — edits, replays, reordering,
+  and retroactive re-submission are detectable by anyone re-running verification, and
+  **settled threads are immune to later events** (§5.3).
+- **Server exclusion, stated precisely.** The numbers server holds no Firestore
+  credentials at all (`firebase-admin` stays keyless, projectId-only, used solely for
+  ID-token verification): it can neither write nor read ledgers. It relays ledger keys
+  (decision 8) and mirrors events that clients report, verifying their signatures
+  before believing them (§5.5). What a fully compromised server *can* do: serve
+  malicious page code, lie by omission, or present a parallel fake universe to a
+  visitor with no prior state. What it can never do: forge a signature chained to the
+  real root, or alter/remove events in the real ledgers. The defenses against the
+  fake-universe attack are the out-of-band root anchor (§4.6) and the offline verifier
+  (§7.1); in-browser verification on a fresh device is honestly phishing-equivalent and
+  documented as such.
+- **Timestamp authority.** Event `createdAt` is Firestore `request.time`, pinned by the
+  rules fork (§9.2) — Google is therefore a trusted *ordering* authority. Signer-
+  committed references remove timestamps from claim-thread structure entirely; residual
+  timestamp trust is confined to roster replay order and decision tie-breaks (§4.4,
+  §5.3), and is accepted (Google already operates the auth system).
+- **Fail-closed verification, scoped.** Ceremony dialogs (submit/approve/mark-paid),
+  claim detail views for approver/treasurer, `/v`, the certificate bundle, and the
+  offline verifier re-derive the full chain and refuse on any mismatch. **List views**
+  (inbox, finance queue, claim cards) render mirror status explicitly labeled as
+  unverified — full verification requires packet downloads (multi-MB each) and belongs
+  on detail/ceremony views, not on every list render.
 - **Not secrecy**: ledger payloads are encrypted client-side as a side effect of using
   charproof, but confidentiality is not a goal. Keys are relayed to participants by the
   server and embedded in capability links.
 
-## 3. charproof facts that shaped this design
+## 3. charproof: what we use, what we bypass
 
-Verified against charproof `2a61af5`:
+Verified against charproof `2a61af5`.
 
-- Ledgers live at `polls/{ledgerId}/events/{eventId}` (collection name hardcoded in
-  `FirestoreLedgerEventStore`). The library writes `createdAt: serverTimestamp()` on
-  every event and orders by it; event doc IDs are client-chosen UUIDs. **The bundled
-  rules do not pin `createdAt`**, so a custom client bypassing the library could
-  backdate events — we fork the rules minimally to close this (§9.2).
-- The event envelope is `{action, signature, publicKey}` — AES-GCM-encrypted with the
-  ledger's symmetric key, ECDSA-signed over the canonicalized action
-  (`canonicalStringify`). The signature covers **only the action**: neither the ledger
-  ID, the event ID, nor the timestamp. Anyone holding the ledger key can therefore
-  re-append a copied envelope (same signature, new event ID) or append it to a
-  different ledger. Our payload schema carries the binding the envelope lacks (§5.2).
-- Events are immutable once written (`update, delete: if false`; re-`set` on an existing
-  doc ID counts as an update and is denied).
-- Signing identities are **per-ledger**: `getLedgerSession(id, {shareableKey})` generates
-  a fresh keypair for a new participant and stores it in the user's AMK-encrypted cloud
-  keystore (`saveToKeystore`), which syncs it to all of that user's enrolled devices.
-- Multi-writer authenticity requires `session.setAuthorizedSigners(keys)` — the
-  allowlist is the application's job. This design derives it from the roster ledger (§4).
-- Chaff/decoy writes only occur when `chaff_pool/current` exists. **We never create it**
-  (and pass `decoyCount: 0`), so no chaff machinery, scheduled job, or admin credentials
-  are needed. Plausible deniability is not a goal here.
-- `getActiveAmk`, device enrollment with 6-digit out-of-band verification, 24-word
-  phrase recovery (`setupPhraseRecovery`), WebAuthn-PRF recovery (`enablePrfRecovery`),
-  and `getVerificationCodeForPublicKey` are public API and used as-is.
+**Used as-is (key custody & identity)** — the genuinely hard parts: `getActiveAmk`
+(account master key), device enrollment with the 6-digit out-of-band ceremony,
+`revokeDevice` (AMK rotation; historical keyring preserved for remaining devices),
+keystore sync (`saveToKeystore`/`loadFromKeystore` — AMK-encrypted, synced to all of a
+user's devices), phrase recovery (`setupPhraseRecovery`), WebAuthn-PRF recovery
+(`enablePrfRecovery`), and `getVerificationCodeForPublicKey`.
+
+**Bypassed (ledger I/O)** — the `LedgerSession` API is unsuitable for verification and
+ceremonies, for reasons confirmed in source:
+
+- `subscribe`/`getGenesisEvent` return only `{action, signerPublicKey}` — the Firestore
+  doc id and server `createdAt` are stripped, and invalid events are **silently
+  dropped**, so replay order, `stateAt` timing, anomaly display, and doc↔event
+  correlation are all impossible through it.
+- `appendEvent` generates the event id internally and returns `void` — ceremonies could
+  never report which doc they wrote.
+- `createLedgerSession`/`getLedgerSession` mint a **fresh keypair** per ledger per
+  participant (and even for read-only visitors), which would leave first submissions
+  signed by an unattested key and litter the keystore.
+
+Instead, a small module `src/lib/esign/ledger-io.ts` owns ledger reads/writes directly
+against `polls/{ledgerId}/events/{eventId}`, using charproof's **exported crypto
+primitives** (`signAction`, `verifySignature`, `encrypt`, `decrypt`,
+`canonicalStringify`, `generateSymmetricKey`, key import/export) and the same envelope
+(`{action, signature, publicKey}`, AES-GCM under the ledger key) and document shape
+(`{eventId, createdAt: serverTimestamp(), encryptedData, iv}`) so everything stays
+compatible with charproof's rules and storage layout. It writes client-chosen event
+ids, reads raw docs with `createdAt` + id intact, and never drops an event silently —
+invalid ones are *classified*, not hidden. `setAuthorizedSigners` is not relied on;
+authorization is per-event `stateAt` logic in our reducer (§4.4). Chaff is disabled by
+construction: `chaff_pool/current` is never created and our writer adds no decoys.
+
+**Ledger creation** (replacing `createLedgerSession`): generate a symmetric key
+client-side, write the `polls/{ledgerId}` pointer doc ourselves, and store credentials
+in the keystore with the **member's roster identity as the signing keypair** (§4.1) —
+so there is no window where an unattested fresh key exists for the ledger.
 
 ### Conventions used throughout
 
-- **Action hash**: SHA-256 over `canonicalStringify(action)`, hex — used for
-  cross-references (`submitRef`, `approveRef`).
-- **Key fingerprint** (display only): first 8 bytes of SHA-256 over the base64-decoded
-  SPKI key, hex, space-grouped in pairs — shown on certificates, `/v`, and vouch screens.
+- **Action hash**: SHA-256 over `canonicalStringify(action)`, hex — the cross-reference
+  primitive (`submitRef`, `approveRef`, `closesRef`) and the idempotency key.
+- **Key fingerprint**: SHA-256 over the base64-decoded SPKI key. Display form = first
+  8 bytes, hex, space-grouped. Where a fingerprint is an *input* (manual vouch
+  fallback, offline-verifier root anchor), the first 16 bytes (32 hex chars) are
+  required — 128 bits, second-preimage-resistant; the 8-byte display form is never
+  accepted as input.
 - **Money** is integer cents everywhere, including signed payloads (invariant 1);
   dollars appear only in rendered UI/PDF text.
+- **Frozen statuses**: `{generated, submitted, rejected, approved, paid}` — referenced
+  throughout as `FROZEN`.
 
 ## 4. Identity layer
 
 ### 4.1 One church identity key per member
 
-A member's **church signing identity is their participant keypair on the roster ledger**.
-When claim ledgers are opened, the same identity is reused by pre-seeding the claim
-ledger's credentials via the exported keystore API before the first
-`getLedgerSession` call:
+A member's **church signing identity is their participant keypair on the roster
+ledger**, generated when they join it at enrollment (via `ledger-io`, stored through
+`saveToKeystore(rosterLedgerId, …)` so it syncs across their devices). Claim ledgers
+never get their own identities: when a claim ledger is created or first opened by a
+participant, its keystore entry is written with the claim's symmetric key **and the
+roster identity's signing keypair** — unconditionally for the creator (there is no
+`createLedgerSession` path minting a fresh key anymore, see §3), and before first use
+for every other participant. Verification is therefore one-hop: every event on every
+ledger must be signed by a key attested in the roster.
 
-```ts
-// openClaimLedger(claimLedgerId, claimLedgerKey) — always seed before opening
-const roster = await loadFromKeystore(rosterLedgerId);      // my roster identity
-const existing = await loadFromKeystore(claimLedgerId);
-if (!existing) {
-  await saveToKeystore(claimLedgerId, {
-    symmetricKey: claimLedgerKey,
-    signingPrivateKey: roster.signingPrivateKey,            // reuse attested identity
-    signingPublicKey: roster.signingPublicKey,
-  });
-}
-return getLedgerSession(claimLedgerId);                     // path 1: keystore creds
-```
-
-This keeps verification one-hop: *every* event on *any* claim ledger must be signed by a
-key attested in the roster. **Implementation checkpoint (phase 1 spike)**: if keystore
-seeding proves brittle against charproof internals, the fallback is per-ledger keys plus
-signed `DELEGATE {claimLedgerId, claimPublicKey}` events appended to the roster by the
-member's roster key — verification becomes two-hop but stays within the plain
-`appendEvent` API. The event schema below is agnostic to which resolution is used.
+*Phase-1 spike*: confirm keystore round-tripping of an externally-supplied signing
+keypair (the entry shape matches what `loadFromKeystore` returns; no charproof code
+path rotates or overwrites claim-ledger entries behind our back — `revokeDevice`
+re-wraps but does not alter entry contents). Fallback if brittle: per-ledger keys plus
+root-chained `DELEGATE {claimLedgerId, claimPublicKey}` roster events — two-hop
+verification, same event schema.
 
 ### 4.2 Enrollment ("Enable signing")
 
@@ -126,15 +151,20 @@ the profile page:
 
 1. **ESIGN/UETA consent** — first-use consent to transact electronically (versioned
    text, §5.4); recorded as `AuditEvent(action:"esign-consent",
-   detail:{consentVersion})`. Shown once, re-shown on version bumps.
-2. **Charproof bootstrap** — `getActiveAmk()` genesis on the member's first device.
-3. **Recovery ceremony** — 24-word phrase (`setupPhraseRecovery`) with confirm-by-
-   re-entry; passkey recovery (`enablePrfRecovery`) offered where WebAuthn PRF exists.
-   **Mandatory before any role grant takes effect** (approver/treasurer/root);
-   skippable-with-nag for plain members, whose worst case is re-vouching (§4.5).
-4. **Join the roster** — `getLedgerSession(rosterLedgerId, {shareableKey})` (registry
-   relayed by the server, §6.2) generates the member's identity keypair.
-5. **Report** — POST the public key to the server (`SignerIdentity` mirror row,
+   detail:{consentVersion, consentSha256})`. Shown once, re-shown on version bumps.
+   (The *legally load-bearing* consent evidence is the consent-text hash inside every
+   signed payload — this record is the onboarding acknowledgment.)
+2. **Firebase re-auth** — see §9.2: the app deliberately drops client-side Firebase
+   auth after login, so the wizard (and every later ceremony session) starts with
+   `ensureFirebaseAuth()`, a popup that must resolve to the same email as the numbers
+   session (abort on mismatch).
+3. **Charproof bootstrap** — `getActiveAmk()` genesis on the member's first device.
+4. **Recovery ceremony** — 24-word phrase with confirm-by-re-entry; passkey recovery
+   offered where WebAuthn PRF exists. **Mandatory before any role grant takes effect**
+   (approver/treasurer/root); skippable-with-nag for plain members, whose worst case is
+   re-vouching (§4.5).
+5. **Join the roster** — generate the identity keypair, save to keystore (§4.1).
+6. **Report** — POST the public key to the server (`SignerIdentity` mirror row,
    status `pending`), then show the vouching QR (§4.3).
 
 The Submit/Approve/Mark-paid buttons prompt un-enrolled users into this wizard.
@@ -142,24 +172,28 @@ The Submit/Approve/Mark-paid buttons prompt un-enrolled users into this wizard.
 ### 4.3 Vouching ceremony (in person)
 
 - The candidate opens **My signing identity** → a QR encoding
-  `{uid, email, name, publicKey}` plus a 6-digit code
-  (`getVerificationCodeForPublicKey`) and the key fingerprint.
+  `{uid, email, name, publicKey}` plus the key fingerprint and a 6-digit code
+  (`getVerificationCodeForPublicKey`).
 - The voucher opens **Vouch for a member** and **scans the QR from the candidate's
-  screen — the scan is the binding channel.** The spoken 6-digit code is a human sanity
-  check only: at 10⁶ keyspace an attacker can grind a keypair matching any code, so the
-  code must never be accepted as the sole channel (manual entry falls back to typing
-  the full fingerprint, not the code). The voucher confirms the person standing in
-  front of them is who the screen claims, then their client appends:
+  screen — the scan is the binding channel.** Scanning uses an in-page camera decoder
+  (`jsQR` or `@zxing/browser`; iOS Safari has no `BarcodeDetector`, and church devices
+  skew iOS — the dependency and camera-permission UX are phase-2 scope). The manual
+  fallback is typing the **16-byte fingerprint** (§3 conventions) — never the 6-digit
+  code alone, which at 10⁶ keyspace is grindable and serves only as a spoken sanity
+  check. The voucher confirms the person standing in front of them is who the screen
+  claims, then their client appends:
 
 ```jsonc
 { "t": "ATTEST", "v": 1, "ledger": "<rosterLedgerId>", "ts": 1760000000000,
   "subject": { "uid": "…", "email": "…", "name": "Jane Doe", "publicKey": "<b64 SPKI>" } }
 ```
 
-- Attestation threshold (decision 2): a key becomes **attested** once it has ATTEST
-  events from **two distinct attested members**, or **one** from a member holding the
-  `approver`/`treasurer`/root role at that point in the log. Self-vouching never counts.
-  The root's own key is attested by the roster's genesis event.
+- Attestation threshold (decision 2): a key becomes **attested** once ATTEST events
+  from **two distinct attested member identities (distinct `uid`s and distinct signer
+  keys — dedupe is by voucher, never by event count)** exist, or **one** from a member
+  holding the `approver`/`treasurer`/root role at that point in the log. Self-vouching
+  (signer uid = subject uid) never counts. The root's own key is attested by the
+  roster's genesis event.
 - Vouching asserts identity only. Roles arrive as separate events, valid **only when
   signed by the root key** (v1; delegation to the treasurer is a later option):
 
@@ -173,27 +207,30 @@ The Submit/Approve/Mark-paid buttons prompt un-enrolled users into this wizard.
   from the first counting ATTEST and the UI surfaces variants; the name is a label, the
   key is the identity.
 
-### 4.4 Roster evaluation (deterministic, client-side)
+### 4.4 Roster evaluation (deterministic, client-safe, isomorphic)
 
-Verifiers replay roster events in `createdAt` order (server-assigned; pinned by the
-rules fork §9.2) with a pure reducer:
+Verifiers replay **all** roster events — the roster is never paginated, sampled, or
+capped; a truncated roster is an invalid roster (a dropped `REVOKE_KEY` or
+`GRANT_ROLE` silently changes validity) — in `createdAt` order (server-assigned,
+rules-pinned §9.2; ties broken by event doc id) with a pure reducer:
 
-1. Genesis signer key = pinned root public key (cross-checked against the server-relayed
-   registry pin, §6.2) — else the roster is invalid, full stop.
+1. Genesis signer key must match the **root anchor** (§4.6) — else the roster is
+   invalid, full stop.
 2. Every event's `ledger` field must equal the roster ledger ID (kills cross-ledger
    replay); duplicate action hashes are processed once (kills same-ledger replay).
 3. `ATTEST` counts only if its **signer** is attested (or root) at that point and the
-   subject key isn't revoked.
+   subject key isn't revoked; thresholds per §4.3.
 4. `GRANT_ROLE`/`REVOKE_ROLE`/`REVOKE_KEY` count only from the root key.
-5. Output is a timeline, not just a final state: `stateAt(t)` returns
-   `publicKey → {uid, name, roles[]}` as of server time `t`. **Claim events are judged
-   against `stateAt(event.createdAt)`** — a signer must be attested (with the required
-   role) *when they signed*; later revocation never retroactively voids earlier
-   signatures (forward-only, matching charproof's revocation semantics). Paid claims
-   therefore stay verifiable forever.
+5. Output is a timeline: `stateAt(t)` returns `publicKey → {uid, name, roles[]}` as of
+   server time `t`. **Claim events are judged against `stateAt(event.createdAt)`** — a
+   signer must be attested (with the required role) *when they signed*; later
+   revocation never retroactively voids earlier signatures (forward-only, matching
+   charproof's revocation semantics). Paid claims therefore stay verifiable forever.
 
-The reducer lives in a dependency-free client-safe module (`src/lib/esign/roster.ts`)
-with the same unit-test discipline as `money.ts`.
+The reducer and the claim-validity rules (§5.3) live in dependency-free **isomorphic**
+modules (`src/lib/esign/roster.ts`, `src/lib/esign/validity.ts`) with the same
+unit-test discipline as `money.ts` — the same code runs in the browser (verification),
+in the server's mirror pipeline (§5.5), and in the offline verifier script (§7.1).
 
 ### 4.5 Multi-device and key loss
 
@@ -207,6 +244,29 @@ with the same unit-test discipline as `money.ts`.
   key), get re-vouched next Sunday; root appends `REVOKE_KEY` for the old key. History
   signed by the old key remains valid per §4.4's `stateAt` rule.
 
+### 4.6 The root anchor (out-of-band, never server-relayed alone)
+
+The server relays the registry (`rosterLedgerId`, key, root public key) for
+convenience, but **no verifier treats the relayed root as the anchor**:
+
+- **Participants (TOFU + ceremony pin)**: at enrollment the wizard displays the root
+  fingerprint; the member is instructed to compare it against the church's published
+  value (printed in the church records / read out by the root at the vouching moment).
+  The client persists the pin (IndexedDB, beside the charproof keys) and every later
+  verification compares against the *pinned* value — a server that swaps registries
+  breaks loudly for every enrolled device.
+- **Deployment pin**: optional `ESIGN_ROOT_FINGERPRINT` config (via `configValue()`);
+  when set, clients and the server refuse any registry that doesn't match. Set it right
+  after bootstrap — it turns "compromise the DB row" into "compromise the config file
+  too".
+- **Offline verifier**: `scripts/verify-bundle.mjs` **requires** the expected root
+  fingerprint as an explicit argument; it never trusts the bundle's embedded pin.
+- **Fresh browsers on `/v`**: have no prior state, and the page code itself is
+  server-served — verification there is honest-server-dependent, said so on the page
+  ("cryptographically verified against the church roster pinned by this deployment";
+  auditors who need server-independence use the offline verifier). This is the precise
+  boundary of the §2 server-exclusion claim.
+
 ## 5. Claim signature layer
 
 ### 5.1 Packet freezing and the per-hash archive
@@ -216,95 +276,128 @@ fresh metadata, so bytes differ on every call) and overwrites
 `generated/<userId>/<claimId>.pdf` — incompatible with hash binding. Changes:
 
 - `GET /api/reimbursements/[id]/packet` serves the **currently stored** packet bytes to
-  the owner while `generated` (and archived bytes once signed, §6.2) — the client never
-  hashes regenerated bytes, only stored ones.
+  the owner while `generated` (and archived bytes once signed) — the client never
+  hashes regenerated bytes, only stored ones. `?sha=<64 lowercase hex>` (validated
+  `/^[0-9a-f]{64}$/` **before** any path construction — `readStoredFile`'s traversal
+  guard alone would let a crafted value escape the claim's directory while staying
+  inside `DATA_DIR`) selects an archived version.
 - **At submission** the client fetches the stored packet, hashes it, and signs that
-  hash; the server independently hashes the same file and rejects on mismatch (409 —
-  e.g. the user regenerated in another tab between fetch and submit; the UI retries the
-  ceremony against the new bytes). On success the server copies the packet to an
-  immutable archive: `signed/<userId>/<claimId>/<sha256>.pdf`.
-- While `status ∈ {submitted, rejected, approved, paid}`, `POST …/pdf` returns **409**
-  ("packet is frozen under signature"). Downloads go through `GET …/packet` or
-  `/c/<token>` (which keeps serving the latest stored packet — unchanged while frozen).
+  hash. The submit route then reads the stored file **once into memory, hashes those
+  bytes, compares against the client's claimed hash (409 on mismatch — e.g. a
+  regeneration raced the ceremony; the UI restarts against the new bytes), and archives
+  those same in-memory bytes** to `signed/<userId>/<claimId>/<sha256>.pdf` inside the
+  same transaction that flips status — no read-check-copy window in which a concurrent
+  `POST …/pdf` (still legal while `generated`) could swap the file between hashing and
+  archiving.
+- While `status ∈ FROZEN ∖ {generated}`, `POST …/pdf` returns **409** ("packet is
+  frozen under signature"). Downloads go through `GET …/packet` or `/c/<token>` (which
+  keeps serving the latest stored packet — unchanged while frozen).
 - Archived signed packets are **never deleted**, even if the claim is later reverted,
   edited, regenerated, or deleted (UETA retention; mirrors the `ExtractionLog`
-  outlives-the-claim pattern). Claim deletion must skip the `signed/` tree.
+  outlives-the-claim pattern). Claim deletion must skip the `signed/` tree, and the
+  ledger pointer/key survive in `EsignClaimArchive` (§9.1) so certificates and `/v`
+  keep working for retained packets.
 
 ### 5.2 Canonical signable payloads
 
 The envelope signs only the action (§3), so every action carries its own binding:
-`ledger` (the claim ledger ID), `claimId`, `packetSha256`, a submission sequence `seq`,
-and cross-references by action hash. `ts` is the signer's clock — kept for the UETA
-record and display, never used for ordering or validity. `rowsDigest` = SHA-256 over
+`ledger` (the claim ledger ID), `claimId`, `packetSha256`, and **signer-committed
+thread references** — ordering never depends on timestamps or the server. `ts` is the
+signer's clock, kept for the UETA record and display only. `rowsDigest` = SHA-256 over
 `canonicalStringify` of active rows `[{description, amountCents, ministry, event}]` in
 sortOrder — it lets the certificate and verification page prove *contents*, not just
 bytes, and verifiers recompute `totalCents` as the sum of row `amountCents`.
+`consentSha256` = SHA-256 of the exact consent text version the signer was shown —
+signed, so "the text I saw was different" is cryptographically foreclosed.
 
 ```jsonc
-// Requestor — the submission signature (UETA §5.4 fields included).
-// seq starts at 1 and increments on every SUBMIT for this claim (server-issued,
-// embedded and signed here so verifiers don't consult the server).
-{ "t": "SUBMIT", "v": 1, "ledger": "…", "ts": …, "seq": 1,
+// Requestor — opens thread `seq`. closesRef: null for seq 1; otherwise the action
+// hash(es) of the terminal event(s) that closed thread seq−1 (§5.3).
+{ "t": "SUBMIT", "v": 1, "ledger": "…", "ts": …, "seq": 2, "closesRef": ["…"],
   "claimId": "…", "packetSha256": "…", "rowsDigest": "…", "totalCents": 12345,
   "requestorUid": "…", "approverUid": "…",
-  "typedName": "Jane Doe", "consentVersion": "ueta-v1" }
+  "typedName": "Jane Doe", "consentVersion": "ueta-v1", "consentSha256": "…" }
 
-// Approver — the decision signature. submitRef = action hash (§3) of the exact
-// SUBMIT being answered; a decision never floats free of its submission.
+// Approver — decision, bound to one SUBMIT by its action hash. APPROVE is a UETA
+// signature (typedName + consent); REJECT is an authenticated action (typedName
+// optional, no consent block — it declines to sign rather than signing).
 { "t": "APPROVE", "v": 1, "ledger": "…", "ts": …, "claimId": "…",
   "packetSha256": "…", "submitRef": "…", "approverUid": "…",
-  "typedName": "John Smith", "consentVersion": "ueta-v1", "comment": "" }
+  "typedName": "John Smith", "consentVersion": "ueta-v1", "consentSha256": "…",
+  "comment": "" }
 { "t": "REJECT",  "v": 1, "ledger": "…", "ts": …, "claimId": "…",
   "packetSha256": "…", "submitRef": "…", "approverUid": "…",
   "comment": "Receipt 2 is for the wrong ministry" }
 
-// Treasurer — closes the loop; approveRef = action hash of the APPROVE it pays.
+// Requestor — closes their own open thread (reassignment, or before revert).
+{ "t": "WITHDRAW", "v": 1, "ledger": "…", "ts": …, "claimId": "…", "submitRef": "…" }
+
+// Treasurer — UETA signature closing the loop; binds the exact APPROVE it pays.
 { "t": "MARK_PAID", "v": 1, "ledger": "…", "ts": …, "claimId": "…",
   "packetSha256": "…", "approveRef": "…", "treasurerUid": "…",
-  "typedName": "…", "checkNumber": "1042" }
-
-// Requestor — optional honesty marker when reverting a submitted/rejected claim.
-{ "t": "WITHDRAW", "v": 1, "ledger": "…", "ts": …, "claimId": "…",
-  "packetSha256": "…", "seq": 1 }
+  "typedName": "…", "consentVersion": "ueta-v1", "consentSha256": "…",
+  "checkNumber": "1042" }
 ```
 
-### 5.3 Claim ledger lifecycle and validity rules
+### 5.3 Threads: lifecycle and validity rules
 
-- On first submission the requestor's client runs `createLedgerSession()` → one ledger
-  per claim, forever (resubmissions append to it). The client POSTs
-  `{ledgerId, exportSessionKey()}` to the submit route; the server stores both on the
-  claim and relays them to the assigned approver, the treasurer, and `/v/<token>`
-  holders (decision 8). The server's claim→ledger mapping is the *pointer*; all
-  validity below is judged inside the ledger itself.
-- Every reader derives the allowlist from the roster (§4.4) and calls
-  `setAuthorizedSigners`. Event-level validity, evaluated client-side:
-  1. Envelope signature valid and signer key attested at `createdAt` (§4.4);
-     `action.ledger` equals this ledger's ID; duplicate action hashes count once.
-  2. `SUBMIT` — signer maps to `requestorUid` = the claim owner; `approverUid` holds
-     the `approver` role and ≠ `requestorUid` (decision 6). The **authoritative SUBMIT**
-     is the valid one with the highest `seq`; two distinct valid SUBMITs sharing a `seq`
-     render the claim invalid (loud red — that only happens under key compromise).
-  3. `APPROVE`/`REJECT` — signer maps to the `approverUid` named by the SUBMIT that
-     `submitRef` points at, **and** that SUBMIT is the authoritative one; `packetSha256`
-     must match it. A decision referencing a superseded SUBMIT is ignored — so a stale
-     APPROVE can never be revived by resubmission, replay, or approver reassignment.
-  4. `MARK_PAID` — signer holds `treasurer` role; `approveRef` resolves to a currently
-     valid APPROVE.
-- **Approval state is a pure function** of (archived packet hash, roster, claim ledger):
-  a claim is *approved* iff the authoritative SUBMIT and a valid APPROVE exist for the
-  hash of the currently archived packet. Hash binding makes edits self-voiding:
-  revert → edit → regenerate produces a new hash and the old signatures simply stop
-  matching (strict, per decision 7 — even a typo fix restarts the ceremony). `WITHDRAW`
-  is best-effort record keeping, not the mechanism.
-- Resubmission after rejection appends a fresh `SUBMIT` (same hash allowed, next `seq`,
-  possibly a different approver, re-signed with a fresh ceremony).
-- **Fail-closed countersigning**: before offering Approve/Reject, the approver's client
-  must (a) verify the chain end-to-end, (b) fetch the archived bytes and check their
-  hash equals the authoritative SUBMIT's `packetSha256` — the PDF rendered on screen is
-  those exact verified bytes, so a server that swaps packets can't obtain a signature
-  over its swap. Mark-paid applies the same discipline. A missing/invalid SUBMIT
-  (e.g. a client that reported `submitted` to the server but never appended) blocks the
-  ceremony and shows the discrepancy.
+Submissions form **threads**: thread *n* is the valid SUBMIT with `seq` *n* plus the
+events referencing it. The core monotonicity rule — **later events never invalidate
+settled threads** — is what makes the record repudiation-proof: nothing the requestor,
+approver, or anyone else appends afterward can un-approve or un-pay an already-settled
+thread (a requestor who got paid cannot orphan the evidence by submitting again; an
+approver cannot muddy a paid claim by appending a contrary decision later).
+
+Event-level validity, evaluated by the shared `validity.ts` (client, server mirror,
+offline verifier alike):
+
+1. **Envelope**: signature valid; signer key attested at `createdAt`
+   (`stateAt`, §4.4); `action.ledger` equals this ledger's ID; duplicate action hashes
+   count once.
+2. **SUBMIT (thread n)**: signer maps to `requestorUid` = the claim owner;
+   `approverUid` holds the `approver` role and ≠ `requestorUid` (decision 6);
+   and its `closesRef` correctly closes thread n−1:
+   - `seq 1`: `closesRef` null.
+   - After a REJECT or WITHDRAW of thread n−1: `closesRef` = that event's action hash
+     (array form covers closing multiple contested SUBMITs, below).
+   - After an APPROVE of thread n−1: allowed **only with a different `packetSha256`**
+     (the revert-and-edit flow) and `closesRef` = the APPROVE's hash. Same-bytes
+     resubmission over an approval is invalid — that shape is precisely the
+     repudiation attack.
+   - No valid closure exists (thread n−1 open, or approved and same bytes): invalid.
+3. **Contested seq** (two valid-form SUBMITs, same seq, different content — requires
+   the owner's own key, e.g. equivocation or an interleaved two-tab mishap that
+   escaped dedupe): *that thread* is `disputed` — neither SUBMIT is decidable — and
+   **settled earlier threads are unaffected**. Recovery: WITHDRAW every contested
+   SUBMIT, open thread n+1 with `closesRef` = all of those WITHDRAW hashes.
+4. **APPROVE/REJECT**: signer maps to the `approverUid` named by the SUBMIT that
+   `submitRef` points at; that SUBMIT must be valid and undisputed; `packetSha256`
+   must match it. The **binding decision** for a thread is the first valid decision by
+   `createdAt` (doc-id tie-break; the §2 timestamp-authority caveat applies);
+   subsequent conflicting decisions are flagged anomalies that never alter the binding
+   — so a post-payment contrary decision is visible but inert.
+5. **WITHDRAW**: signed by the requestor; targets their own SUBMIT; invalid if that
+   thread already has a binding APPROVE (approved threads close only via §5.3.2's
+   new-bytes rule; nothing "un-approves").
+6. **MARK_PAID**: signer holds `treasurer` role at `createdAt`; `approveRef` resolves
+   to a binding APPROVE; `packetSha256` matches it. Once valid, the thread is
+   terminally settled.
+
+**Claim-level state** shown to humans: the *current* thread is the one whose
+`packetSha256` matches the currently archived packet version (the server points at
+"current"; every per-thread fact above is provable without that pointer — the pointer
+only scopes display). `approved`/`paid` render green only when the current thread's
+chain verifies end-to-end.
+
+**Fail-closed countersigning**: before offering Approve/Reject, the approver's client
+(a) verifies the chain end-to-end, (b) fetches the archived bytes, hashes them, and
+requires equality with the SUBMIT's `packetSha256` — and the PDF rendered in the
+ceremony **is those exact verified bytes, rendered client-side** (pdf.js in the dialog;
+the existing server-raster preview path is for Shoebox receipts, not ceremonies — a
+server raster would reopen the packet-swap hole on mobile, where embedded-PDF viewing
+doesn't work natively). Mark-paid applies the same discipline. A missing/invalid SUBMIT
+(e.g. a client that reported `submitted` but never appended) blocks the ceremony and
+shows the discrepancy.
 
 ### 5.4 UETA/ESIGN ceremony (decision 11)
 
@@ -313,31 +406,50 @@ bytes, and verifiers recompute `totalCents` as the sum of row `amountCents`.
   a legal signature, and notice of the right to a paper process — versioned text kept
   in-repo (`src/lib/esign/consent.ts`, starting at `ueta-v1`) and recorded per §4.2.
 - **Every signing dialog** (submit / approve / mark-paid):
-  1. Shows the exact verified packet bytes inline and the claim summary recomputed from
-     the `rowsDigest` inputs.
+  1. Renders the exact verified packet bytes client-side (§5.3) and the claim summary
+     recomputed from the `rowsDigest` inputs.
   2. Restates the one-line intent affirmation with a required checkbox
      ("I intend this to be my signature").
   3. Shows the signer's name **prefilled from their roster attestation**, editable —
      the typed string is recorded in the payload as `typedName`, not validated against
      the roster (UETA cares about intent; strict string matching only causes lockouts —
      the cryptographic identity does the proving).
-  4. Signs, appends, then reports the mirror row (§5.5).
+  4. Signs `consentSha256` + content into the payload, appends, then reports (§5.5).
 
-### 5.5 Ledger-first write order and mirror reconciliation
+### 5.5 Ceremony write path and the signature-backed mirror
 
-Ceremonies follow **preflight → append → report**:
+Ceremonies follow **preflight → append → report**, engineered so that crashes and
+double-submission converge instead of contaminating the ledger:
 
-1. `POST …/submit?preflight=1` (and equivalents) validates everything server-side
-   (status, approver eligibility, hash match) *before* the client appends — so ledgers
-   don't collect events for requests the server would refuse.
-2. The client appends the ledger event.
-3. The client reports `{eventId, action payload}`; the route is **idempotent on
-   (claim, action hash)** — re-reporting after a crash is a no-op.
+1. **Preflight** (`?preflight=1` on the semantic routes) validates server-side (status,
+   approver eligibility, hash match) and returns the **exact canonical payload** to
+   sign — the server stamps `seq`, `closesRef`, `ts`, and pins the content as the
+   claim's single *pending action* (persisted). Re-preflighting replaces an unconsumed
+   pending action; there is at most one. Two tabs therefore sign byte-identical
+   payloads → identical action hash → the second append is a Firestore create on a
+   derived event id / a duplicate action hash that verifiers count once. `submitSeq`
+   never resets (revert included) — seq is a lifetime counter per claim.
+2. **Append** via `ledger-io` with a client-chosen event id.
+3. **Report** `{eventId, createdAtMs, encryptedData, iv}` — the **full raw event doc**,
+   not just the payload. The route is idempotent on action hash; re-reporting after a
+   crash is a no-op; reporting consumes the pending action.
 
-If the report is lost (step 3 crash), truth is ahead of the mirror. Every participant
-view that verifies the ledger also **reconciles**: when it finds a valid event the
-mirror lacks, it re-POSTs the report. The mirror can lag; it can never contradict a
-verifying client silently — discrepancies render as warnings on `/v` and the queues.
+**The server verifies before it believes.** It holds every ledger key (it relayed
+them), so on each report (and on reconciliation) it decrypts the envelope, checks the
+ECDSA signature, and runs the same isomorphic reducer/validity modules (§4.4) over its
+mirrored event set — **`SignerIdentity.status`, `User.role`, claim `status`, and every
+`SignatureRecord` are written only from events that verify**. This closes the
+self-asserted-role hole (a fake ATTEST/GRANT_ROLE report without root-chained
+signatures simply doesn't verify) and means the cross-tenant grants of §6.3 rest on
+cryptography, not client honesty. Raw docs land in `LedgerEventMirror` (§9.1) — the
+material for certificates and offline bundles, which the server could otherwise never
+assemble (it cannot read Firestore). Residual gap, stated: the server can be starved by
+*omission* (nobody reports an event); any participant's verifying view reconciles by
+re-reporting valid events the mirror lacks, and `/v`'s live mode compares mirror vs
+Firestore and flags divergence. Reconciliation **routes no work by itself**: a
+reconciled SUBMIT updates mirror facts, but inbox/queue placement additionally requires
+the server-side eligibility checks — a self-appended SUBMIT naming a non-consenting
+approver surfaces as a flagged discrepancy on the claim, not as an inbox entry.
 
 ## 6. Workflow
 
@@ -346,23 +458,37 @@ verifying client silently — discrepancies render as warnings on `/v` and the q
 ```
 draft ⇄ generated → submitted → approved → paid            (paid is terminal)
   ▲                    │  ▲         │
-  │                    ▼  │(resubmit)
+  │                    ▼  │(withdraw+resubmit: new approver, same bytes)
   └─────(revert)──── rejected
-        (also from submitted / approved)
+        (revert also from submitted / approved)
 ```
 
-- `generated → submitted`: requestor's SUBMIT ceremony (archives the packet, records the
-  chosen approver, increments `submitSeq`).
-- `submitted → approved | rejected`: the assigned approver's decision. `rejected` stays
-  frozen with the comment until the requestor resubmits or reverts (decision 7).
+- `generated → submitted`: requestor's SUBMIT ceremony (archives the packet, records
+  the chosen approver, `submitSeq`+1).
+- `submitted → approved | rejected`: the assigned approver's decision. `rejected`
+  stays frozen with the comment until the requestor acts (decision 7).
+- **Stalled approver** (expected failure mode — there are no notifications): the
+  requestor may WITHDRAW + resubmit from `submitted` at any time — same bytes, next
+  seq, different approver; no revert or re-verification of rows needed. The submit
+  route accepts `generated | submitted | rejected` accordingly.
 - `approved → paid`: treasurer's MARK_PAID. No revert from `paid`.
-- **Revert** extends to `{generated, submitted, rejected, approved} → draft`; receipts
-  release exactly as today. Signatures for the old hash void automatically (§5.3).
-- Freezing needs no new enforcement: every line-item/claim mutation route is already
-  draft-only, so the new statuses are frozen for free. The two routes that special-case
-  `generated` change: `…/pdf` POST (409 while signed, §5.1) and `…/revert` (accepts the
-  new statuses).
-- Receipt statuses are untouched — `processed` still means "on ≥1 generated claim".
+- **Revert** extends to `{generated, submitted, rejected, approved} → draft`; the UI
+  appends WITHDRAW first when a thread is open (best-effort honesty marker; §5.3's
+  hash rules are the mechanism).
+- **Receipt lifecycle changes with the machine** (amending invariant 6):
+  `Receipt.status="processed"` is redefined as **"on ≥1 claim in a FROZEN status"**.
+  The revert route's release query must check `reimbursement.status IN FROZEN` (today
+  it checks `= "generated"` — left as-is, a sibling claim's revert would release a
+  receipt still inside a *submitted/approved/paid* claim, re-enabling image edits on
+  receipts whose bytes back live signatures). The receipt-edit route's `processed` 409
+  then covers signed claims automatically.
+- Freezing of line items/claim settings needs no new enforcement: every mutation route
+  is already draft-only. The routes that special-case `generated` and must learn the
+  new statuses: `…/pdf` POST (§5.1), `…/revert`, and the **UI touchpoints that assume
+  the binary status set** — `ReviewClaim.tsx` (types `status: "draft" | "generated"`;
+  shows Revert for every non-draft status, which must exclude `paid`; its "Download
+  PDF again" button POSTs `…/pdf` and must switch to `GET …/packet` when frozen),
+  `claims/page.tsx` and `ReceiptGrid.tsx` status chips.
 - **No notifications (decision 9), so the UI must surface state**: NavBar badge counts
   for approvers (pending decisions) and the treasurer (approved awaiting payment);
   status chips on claim cards for requestors.
@@ -372,18 +498,20 @@ draft ⇄ generated → submitted → approved → paid            (paid is term
 | Route | Methods | Behavior |
 | :-- | :-- | :-- |
 | `/api/esign/registry` | GET | roster `{ledgerId, key, rootPublicKey}` + my `SignerIdentity` status. **Key material only for enrolled users** (a `SignerIdentity` row exists); others get existence/status only. 404 until bootstrapped |
-| | POST | one-time bootstrap by the root user (email = `ESIGN_ROOT_EMAIL`): stores registry, grants `role=admin`. Refuses a second row |
-| `/api/esign/identity` | POST | begin enrollment: create my `SignerIdentity(pending)` and return the registry key material; later, PATCH-like re-POST records my roster public key once generated |
-| `/api/esign/attest` | POST | voucher reports an appended ATTEST/role event `{subjectUserId, eventId}`; server re-tallies the mirror (client-verified truth stays in the roster) |
-| `/api/esign/members` | GET | attested members (+roles) — feeds the vouch screen and approver picker. **Enrolled users only** (see registry gating) |
-| `/api/reimbursements/[id]/submit` | POST | `?preflight=1` validates only. Full call: `{approverUserId, ledgerId, ledgerKey, packetSha256, typedName, eventId, payload}` → guards: status `generated∣rejected`, approver attested + role + ≠ self, server-recomputed hash == claimed hash → archive packet, `submitSeq`+1, status=`submitted`, `SignatureRecord`, AuditEvent(`submit`). Idempotent on action hash |
-| `/api/reimbursements/[id]/decision` | POST | assigned approver only: `{decision, comment?, typedName, eventId, payload}` → status `approved∣rejected`, `SignatureRecord`, AuditEvent. Preflight + idempotency as above |
-| `/api/reimbursements/[id]/paid` | POST | treasurer role: `{checkNumber?, typedName, eventId, payload}` → status `paid`, `SignatureRecord`, AuditEvent. Preflight + idempotency as above |
-| `/api/reimbursements/[id]/packet` | GET | stored packet bytes while `generated`; archived bytes once signed (`?sha=` selects a version, default current) — owner, assigned approver, or treasurer |
+| | POST | one-time bootstrap by the root user (email = `ESIGN_ROOT_EMAIL`): requires the recovery ceremony completed, stores registry, grants `role=admin`. Refuses a second row |
+| `/api/esign/identity` | POST | begin enrollment: create my `SignerIdentity(pending)` and return registry key material; re-POST records my roster public key once generated |
+| `/api/esign/report` | POST | raw roster event docs (ATTEST/GRANT_ROLE/…): server decrypts, verifies, re-runs the reducer, updates `SignerIdentity`/`User.role` mirrors + `LedgerEventMirror`. Idempotent per event |
+| `/api/esign/members` | GET | attested members (+roles) from the verified mirror — feeds the vouch screen and approver picker. **Enrolled users only** |
+| `/api/reimbursements/[id]/submit` | POST | `?preflight=1` → pending-action payload (§5.5). Full call: `{eventId, createdAtMs, encryptedData, iv}` (+ `{ledgerId, ledgerKey}` on first submission only — later submissions reuse the stored ledger) → verify + apply: archive bytes it hashed (§5.1), status=`submitted`, `approverUserId`, `SignatureRecord`, AuditEvent(`submit`). Guards status `generated∣submitted∣rejected` |
+| `/api/reimbursements/[id]/decision` | POST | assigned approver only; preflight + raw-doc report as above → status `approved∣rejected`, `SignatureRecord`, AuditEvent |
+| `/api/reimbursements/[id]/paid` | POST | treasurer role; preflight + raw-doc report → status `paid`, `checkNumber`, `SignatureRecord`, AuditEvent |
+| `/api/reimbursements/[id]/reconcile` | POST | raw claim-ledger event docs from any participant's verifying view: verify + merge into mirror (`SignatureRecord`/`LedgerEventMirror`), surface discrepancies; **never routes work** (§5.5). Also how WITHDRAW reaches the mirror |
+| `/api/reimbursements/[id]/packet` | GET | stored packet bytes while `generated`; archived bytes once signed (`?sha=`, format-validated, §5.1) — owner, assigned approver, or treasurer |
 | `/api/reimbursements/[id]/certificate` | GET | approval-certificate PDF (§7.1) — same access as `packet` |
-| `/api/approvals` | GET | approver inbox: claims where `approverUserId = me`, `status="submitted"` (+ decided history). Detail view includes ledger key + receipt-overlap warnings (§6.4) |
-| `/api/finance` | GET | treasurer queue: `status ∈ {approved, paid}`, with receipt-overlap warnings |
-| `/v/[token]` | GET page | verification page (§7.2). Requires numbers sign-in (Firestore reads need Firebase auth anyway); the unguessable token authorizes access to this claim's packet, ledger key, and registry read, `/c`-style |
+| `/api/approvals` | GET | approver inbox: claims where `approverUserId = me` and `status="submitted"` (+ decided history), mirror-labeled; detail view fetches ledger key + runs full verification |
+| `/api/finance` | GET | treasurer queue: `status ∈ {approved, paid}`, mirror-labeled, with receipt-overlap warnings (§6.4) |
+| `/api/v/[token]/summary` · `/registry` · `/events` · `/packet` | GET | **token-authorized, `/c`-style** (token = the existing `publicToken`; no other auth): claim summary + ledger key, registry (id/key/root pin), mirrored raw events, archived packet bytes — everything the `/v` page verifies against. Live Firestore cross-check additionally requires the visitor's own Firebase sign-in |
+| `/v/[token]` | GET page | verification page (§7.2) |
 
 Enrollment gating note: numbers upserts a `User` for *any* verified Google sign-in
 (existing posture), so registry keys and the member directory are withheld from
@@ -393,23 +521,29 @@ either, and why that's acceptable.
 
 ### 6.3 Cross-tenant access (amendment to hard invariant 2)
 
-The approver inbox, finance queue, `packet`, `certificate`, and `/v/<token>` are the
-**only** places a claim is readable by a non-owner, each gated by an explicit grant:
-being the claim's assigned approver, holding the treasurer role, or presenting the
-capability token. Everything else keeps owner-only 404 semantics. Approvers review the
-*packet* (form + receipt images are already inside it) — individual receipt routes stay
-owner-only.
+The approver inbox, finance queue, `packet`, `certificate`, `reconcile`, and
+`/api/v/[token]/*` are the **only** places a claim is readable by a non-owner, each
+gated by an explicit grant: being the claim's assigned approver (set only by a
+signature-verified SUBMIT), holding the treasurer role (set only by a root-chained
+GRANT_ROLE), or presenting the capability token. Everything else keeps owner-only 404
+semantics. Approvers review the *packet* (form + receipt images are already inside
+it) — individual receipt routes stay owner-only.
 
-### 6.4 Duplicate-receipt guard
+### 6.4 Duplicate-receipt guard (advisory, server-computed)
 
 A receipt may legitimately join many claims (existing feature), which under paper
 process is how double-reimbursement slips through. The approver detail and finance
 queue therefore compute, per receipt on the claim: the sum of that receipt's line-item
-`amountCents` across **all** claims in `{submitted, approved, paid}` vs the receipt's
-`extractedTotalCents − extractedRefundCents`. Over-claiming or any overlap renders a
-prominent warning with links (for the treasurer) to the overlapping claims. A warning,
-not a block — legitimate cross-claim splits exist; the human judges (and their judgment
-is what they sign).
+`amountCents` across **all** claims in FROZEN statuses vs the receipt's
+`extractedTotalCents − extractedRefundCents`. When the extraction totals are NULL
+(manual claims, failed-extraction placeholders), arithmetic is skipped and **any**
+second FROZEN claim holding the receipt triggers the overlap warning. Over-claiming or
+overlap renders prominently, with links (for the treasurer) to the overlapping claims.
+This guard is **server-trusted and advisory** — it spans other tenants' data the
+verifying client cannot read, so unlike the signature chain it does not survive a
+compromised server; it is a human-process aid, not a cryptographic control, and is
+labeled as such in §8. A warning, not a block — legitimate cross-claim splits exist;
+the human judges (and their judgment is what they sign).
 
 ## 7. Finance delivery & artifacts
 
@@ -418,31 +552,39 @@ is what they sign).
 The signed inner packet can never be restamped (hash binding), so approval evidence
 lives in a **certificate cover** prepended to it on download: claim summary (requestor,
 approver, treasurer, totals via `centsToDollarString`), one UETA signature block per
-event (typed name, `ts`, key fingerprint, event id, consent version), `packetSha256`
-and `rowsDigest`, a QR to `/v/<token>`, and the consent text version in an appendix.
-The template's `Approver Name`/`Approval Date` AcroForm fields on the inner pages stay
-blank forever — the certificate replaces them.
+event (typed name, `ts`, key fingerprint, event id, consent version + hash),
+`packetSha256` and `rowsDigest`, the root fingerprint (for comparison against the
+church's published value, §4.6), a QR to `/v/<token>`, and the consent text in an
+appendix. The template's `Approver Name`/`Approval Date` AcroForm fields on the inner
+pages stay blank forever — the certificate replaces them.
 
-The bundle is rebuilt on demand by the server **from the mirror**, so on its own it is
-only as honest as the server; the QR is the pointer back to cryptographic truth, and
-the embedded **verification bundle** makes it independently checkable:
+The bundle is assembled server-side **from `LedgerEventMirror`** (raw ciphertext docs
+reported by clients, §5.5 — the server has no Firestore read path of its own):
 
-- A PDF attachment `verification-bundle.json` embedding the raw roster events, the raw
-  claim-ledger events (ciphertext + keys + envelope fields), the registry pin, and the
-  archived packet's SHA-256.
-- `scripts/verify-bundle.mjs` (Node WebCrypto, no Firestore, no server) re-runs the full
-  §4.4/§5.3 verification against the bundle plus the packet bytes extracted from the
-  same PDF. Financial records stay verifiable for the retention window (7+ years) even
-  if Firestore, Firebase, or the app are gone.
+- A PDF attachment `verification-bundle.json`: registry pin, raw roster events, raw
+  claim-ledger events (ciphertext + envelope fields + `createdAt` + ids), ledger keys,
+  and the archived packet's SHA-256.
+- `scripts/verify-bundle.mjs` (Node WebCrypto; no Firestore, no server; takes the
+  expected **root fingerprint as a required argument**) re-runs the full §4.4/§5.3
+  verification against the bundle plus the packet bytes extracted from the same PDF.
+  Financial records stay verifiable for the retention window (7+ years) even if
+  Firestore, Firebase, or the app are gone.
+- Completeness caveat, stated: a malicious server can *omit* events from a bundle
+  (it cannot forge them). While Firestore lives, `/v`'s live mode exposes omission;
+  archivally, participants keep their own certificate copies (each ceremony offers the
+  download), so an omitted-event bundle can be contradicted by any honest copy.
 
 ### 7.2 Verification page `/v/<token>`
 
-Client-side, from scratch, on every load: fetch registry → replay roster from the pinned
-root (§4.4) → open the claim ledger read-only with the allowlist → fetch archived packet
-bytes, hash in-browser, match against the authoritative SUBMIT → render per-signature
-✓/✗ with names, roles, vouch chains, signer `ts`, and server `createdAt` (read directly
-from the event docs alongside charproof's decryption). A red state (hash mismatch,
-unattested signer, superseded submit, mirror disagreement) is loud. This page is the
+Client-side, from scratch, on every load, fed by `/api/v/[token]/*`: replay roster
+from the root anchor (§4.6 — pinned/TOFU where available; explicitly labeled
+"deployment-pinned" for fresh visitors) → verify the claim ledger events → fetch
+archived packet bytes, hash in-browser, match against the SUBMIT chain → render
+per-thread, per-signature ✓/✗ with names, roles, vouch chains, signer `ts`, and server
+`createdAt`. When the visitor also signs into Firebase, a **live mode** re-reads
+`polls/{ledgerId}/events` directly and diffs against the server-supplied set —
+divergence (omission, extra events) renders loudly. Red states (hash mismatch,
+unattested signer, disputed thread, mirror divergence) are prominent. This page is the
 audit tool; SQLite status never feeds it.
 
 ## 8. Attack scenarios & defenses
@@ -450,37 +592,44 @@ audit tool; SQLite status never feeds it.
 | Attack | Defense |
 | :-- | :-- |
 | Edit a claim after signatures (server, owner, or DB tamper) | Hash binding to archived bytes; regeneration blocked while signed; verification recomputes hashes from bytes (§5.1, §5.3) |
-| Replay an old SUBMIT to re-route approval to a previously named approver | `seq` — authoritative SUBMIT is highest-seq valid; duplicates count once (§5.2) |
-| Revive a stale APPROVE after revert/resubmit of identical bytes | `submitRef` pins a decision to one SUBMIT; superseded refs are ignored (§5.3) |
-| Copy a signed envelope into another ledger (cross-claim/roster replay) | Every action embeds `ledger` + `claimId`; mismatches are invalid (§4.4, §5.3) |
+| Paid requestor appends a new SUBMIT to orphan the approval (repudiation) | Thread monotonicity: settled threads are immune; same-bytes SUBMIT over an APPROVE is invalid; new-bytes threads don't touch old ones (§5.3) |
+| Approver appends a contrary decision after payment | Binding decision is first-by-`createdAt`; later conflicts are inert flagged anomalies (§5.3.4) |
+| Replay an old SUBMIT/decision (same or different ledger) | Action-embedded `ledger`/`claimId`; duplicate action hashes count once; `closesRef`/`submitRef`/`approveRef` pin thread structure (§5.2–5.3) |
 | Backdate/forward-date events with a custom Firestore client | Rules fork pins `createdAt == request.time` and the exact document shape (§9.2) |
-| Server swaps packet bytes shown to the approver | Fail-closed countersigning: the approve UI renders only bytes whose hash matches the verified SUBMIT (§5.3) |
-| Server lies in the mirror (`status`, names) | Mirror is presentation-only; queues, `/v`, and certificates re-verify client-side; reconciliation surfaces divergence (§5.5, §7.2) |
-| Forge a signer (mint a keypair, hold the shared ledger key) | `setAuthorizedSigners` from the roster; roster requires in-person vouches chained to the pinned root (§4.3–4.4) |
-| Grind a keypair matching a victim's 6-digit vouch code | QR scan is the binding channel; the code is never sufficient (§4.3) |
+| Server swaps packet bytes shown to the approver | Fail-closed countersigning renders only bytes whose hash matches the verified SUBMIT, client-side even on mobile (§5.3) |
+| Server lies in the mirror (`status`, roles, names) | Mirror rows are written only from signature-verified events (§5.5); ceremonies/detail views/`/v` re-verify client-side; reconciliation + live mode surface divergence |
+| Server presents a fake parallel roster/claim universe | Root anchor: TOFU pins on enrolled devices, `ESIGN_ROOT_FINGERPRINT` deployment pin, printed fingerprint comparison, offline verifier with explicit anchor. Fresh-browser `/v` is honestly labeled server-dependent (§4.6) |
+| Forge a signer (mint a keypair, hold the shared ledger key) | Per-event `stateAt` attestation chained to the root; roster requires in-person vouches (§4.3–4.4) |
+| Fake ATTEST/GRANT_ROLE report to gain roles/inbox access | Server verifies root-chained signatures before mirror/role writes (§5.5); unverifiable reports change nothing |
+| Grind a keypair matching a victim's 6-digit vouch code | QR scan or 16-byte fingerprint entry is the binding channel; the code is never sufficient (§4.3) |
 | Voucher collusion (two members attest a fake person) | Accepted residual risk (decision 2); events are permanent, signed, and attributable — collusion leaves evidence |
-| Stolen device / exfiltrated key | charproof `revokeDevice` (AMK rotation) + roster `REVOKE_KEY`; forward-only, historical events stand, `stateAt` keeps old signatures valid (§4.4–4.5) |
-| Same receipt reimbursed twice across claims | Duplicate-receipt guard on approver/finance views (§6.4) |
-| Ledger flooding / junk events (any Firebase-authed account can append — charproof's world-append design) | Invalid events are filtered client-side; reads are paginated/capped; registry gating dampens drive-by abuse; if it ever matters, a further rules fork can restrict event creation — accepted at church scale (§6.2, §9.2) |
+| Stolen device / exfiltrated key | charproof `revokeDevice` (AMK rotation) + roster `REVOKE_KEY`; forward-only, historical events stand (§4.4–4.5) |
+| Same receipt reimbursed twice across claims | Duplicate-receipt guard — **advisory, server-trusted** (§6.4); not a cryptographic control |
+| Ledger flooding / junk events (any Firebase-authed account can append — charproof's world-append design) | Invalid events are classified client-side; **the roster is always read in full** (§4.4) — flooding it degrades performance, never validity; claim ledgers are per-claim and bounded-interest; escalation path: rules fork restricting the roster ledger's writers at deploy time, or roster re-genesis (§12) |
 | Requestor reports `submitted` without appending SUBMIT | Approver ceremony fails closed on missing/invalid SUBMIT — the lie only wedges the liar's claim (§5.3) |
-| Firestore/Google disappears years later | Certificate-embedded verification bundle + offline verifier script (§7.1) |
+| Self-appended SUBMIT naming a non-consenting approver | Reconciliation never routes work; inbox placement requires server-side eligibility checks (§5.5) |
+| Google (timestamp/order authority) misbehaves | Signer-committed refs keep claim threads timestamp-free; residual roster-order + tie-break trust accepted and documented (§2) |
+| Firestore/Google disappears years later | Certificate-embedded verification bundle + offline verifier with out-of-band anchor (§7.1) |
 
 Out of scope, stated honestly: malware on a signer's device (can sign as them until
 revoked — mitigated by revocation + audit trail, not prevented), collusion between
 requestor and approver (a human-process problem; thresholds were declined, decision 5),
 and Google-account takeover of a signer (Firestore auth gates *access*; signatures
-still require the device-held key, so takeover alone cannot sign — it can only read).
+still require the device-held key, so takeover alone cannot sign — it can only read
+and flood).
 
 ## 9. Data model & platform integration
 
-### 9.1 SQLite changes (mirror + workflow)
+### 9.1 SQLite changes (mirror + workflow + retention)
 
-New values `Reimbursement.status`: `submitted | rejected | approved | paid`. New columns:
-`approverUserId?`, `signatureLedgerId?`, `signatureLedgerKey?`, `packetSha256?`,
-`submitSeq Int @default(0)`, `submittedAt?`, `decidedAt?`, `paidAt?`, `checkNumber?`.
+New values `Reimbursement.status`: `submitted | rejected | approved | paid`. New
+columns: `approverUserId?`, `signatureLedgerId?`, `signatureLedgerKey?`,
+`packetSha256?`, `submitSeq Int @default(0)` (lifetime counter, never reset),
+`pendingActionJson?` (§5.5 preflight pin), `submittedAt?`, `decidedAt?`, `paidAt?`,
+`checkNumber?`.
 
 ```prisma
-model EsignRegistry {   // single row, written once at bootstrap
+model EsignRegistry {   // single row (app-enforced), written once at bootstrap
   id String @id @default(cuid())
   rosterLedgerId String
   rosterLedgerKey String
@@ -490,7 +639,7 @@ model EsignRegistry {   // single row, written once at bootstrap
   createdAt      DateTime @default(now())
 }
 
-model SignerIdentity {  // mirror of roster state, for pickers/badges only
+model SignerIdentity {  // verified mirror of roster state (written per §5.5 only)
   id        String @id @default(cuid())
   userId    String @unique
   publicKey String  @default("")        // filled once the roster keypair exists
@@ -499,35 +648,67 @@ model SignerIdentity {  // mirror of roster state, for pickers/badges only
   createdAt  DateTime @default(now())
 }
 
-model SignatureRecord { // mirror of claim-ledger events; outlives the claim
+model LedgerEventMirror { // raw event docs as reported — certificate/bundle material
+  id            String @id @default(cuid())
+  ledgerId      String
+  eventId       String
+  createdAtMs   BigInt        // Firestore createdAt as reported
+  encryptedData String
+  iv            String
+  kind          String @default("") // decrypted t, once verified
+  verifiedAt    DateTime?
+  @@unique([ledgerId, eventId])
+  @@index([ledgerId])
+}
+
+model SignatureRecord { // verified mirror of claim-ledger actions; outlives the claim
   id              String  @id @default(cuid())
-  reimbursementId String? // SetNull on claim deletion (retention, like ExtractionLog)
+  reimbursementId String?
+  reimbursement   Reimbursement? @relation(fields: [reimbursementId], references: [id], onDelete: SetNull)
   kind            String  // submit | approve | reject | paid | withdraw
   signerUserId    String
   signerPublicKey String
   typedName       String  @default("")
   packetSha256    String
-  payloadJson     String  // the exact signed action (carries seq/refs/consent)
-  actionHash      String  @unique       // idempotency key for reports (§5.5)
-  ledgerEventId   String?
+  payloadJson     String  // the exact signed action (seq/refs/consent inside)
+  actionHash      String  @unique       // idempotency key (§5.5)
+  ledgerEventId   String
   createdAt       DateTime @default(now())
+}
+
+model EsignClaimArchive { // retention pointer — survives claim deletion untouched
+  claimId       String @id   // plain string on purpose (no FK)
+  ledgerId      String
+  ledgerKey     String
+  publicToken   String
+  createdAt     DateTime @default(now())
 }
 ```
 
-`User.role` (currently unread) becomes the role mirror: `member | approver | treasurer |
-admin` — UI/queue authz only; the roster is the signed truth. Every transition writes an
-AuditEvent (`submit`, `approve`, `reject`, `mark-paid`, `esign-consent` join the action
-list) — invariant 7 extends to this trail. `ownershipToken` from `createLedgerSession`
-is discarded: the keystore already syncs the requestor's credentials, and the server
-holds the shareable key.
+`User.role` becomes the verified role mirror: `member | approver | treasurer | admin`
+(update the stale `schema.prisma` comment, which predates `approver`) — UI/queue authz
+only; the roster is the signed truth and the mirror is written only from verified
+events (§5.5). Every transition writes an AuditEvent (`submit`, `approve`, `reject`,
+`mark-paid`, `esign-consent`, `esign-reconcile` join the action list) — invariant 7
+extends to this trail. `ownershipToken` from ledger creation is discarded (the
+keystore syncs the requestor's credentials; the server holds the shareable key;
+`EsignClaimArchive` preserves it past claim deletion).
 
-### 9.2 Firestore & rules (forked minimally)
+### 9.2 Firebase client, Firestore & rules (forked minimally)
 
-- **Firebase client**: new `src/lib/firebase-client.ts` singleton initializing the app +
-  Firestore on app pages from the same runtime-relayed config the sign-in page uses.
-  Google sign-in already persists Firebase auth in IndexedDB; e-sign screens wait for
-  `onAuthStateChanged` and, when the numbers cookie has outlived the Firebase session,
-  prompt a re-auth popup before any ledger operation.
+- **Firebase client**: new `src/lib/firebase-client.ts`, lazily loaded **only by
+  e-sign screens** (SignInCard set the precedent of importing Firebase only where
+  used; the Firestore SDK is too heavy for every page). Important verified fact:
+  `SignInCard` **deliberately signs out of Firebase** right after exchanging the
+  session cookie, so no Firebase auth state persists between visits. Every e-sign
+  session therefore begins with `ensureFirebaseAuth()`: a Google popup (through the
+  existing `FIREBASE_AUTH_PROXY` machinery on iOS) whose resulting email **must equal
+  the numbers session's email** (abort otherwise — a user signed into a different
+  Google account must not write ledgers under a mismatched uid). This is one popup per
+  e-sign session; the deliberate post-login sign-out is retained (changing the app's
+  auth posture is out of scope).
+- **AUTH_TEST_MODE** users have no Firebase identity → e-sign controls disabled unless
+  emulator env is present.
 - **Rules**: start from charproof's `firestore.rules` (collection name `polls` is
   hardcoded upstream) with one hardening fork on event creation, kept in-repo at
   `firestore.rules` with a comment block explaining the delta:
@@ -538,60 +719,81 @@ allow create: if isSignedIn()
   && request.resource.data.createdAt == request.time;   // serverTimestamp() only
 ```
 
-  This preserves charproof compatibility (the library always writes
-  `serverTimestamp()`) while denying custom clients the ability to backdate events —
-  which the roster reducer's ordering and `stateAt` depend on. `chaff_pool/current` is
-  never created; the event store is constructed with `decoyCount: 0`.
-- **Config**: one new setting, `ESIGN_ROOT_EMAIL` (via `configValue()`, so
-  `config.json`-overridable). The roster registry lives in SQLite, created by the
-  bootstrap route (which **requires the root to complete the recovery-phrase ceremony
-  before finishing** — the root key is the single point of trust, decision 1). The
-  e-sign UI renders only when Firebase web config + a bootstrapped registry exist —
-  deployments that never bootstrap keep today's flow untouched.
-- **AUTH_TEST_MODE / tests**: test-login users have no Firebase identity → e-sign
-  controls disabled unless emulator env is present. Unit tests inject fake stores via
-  `setSessionProviders`/`initializeZK({cryptoProvider})` (charproof's own test seam) and
-  hammer the roster reducer, payload validity rules, and the offline verifier. E2E adds
-  a Firebase emulator-backed project (auth + Firestore) exercising enroll → vouch →
-  submit → approve → pay → verify; budgeted as its own phase.
+  This matches exactly what both charproof's store and our `ledger-io` write, while
+  denying custom clients the ability to backdate events — which roster replay order
+  and `stateAt` depend on. **Deployment is an explicit phase-1 step with an owner**
+  (`firebase deploy --only firestore:rules`), documented in the README alongside a
+  canary: `scripts/check-rules.mjs` attempts a backdated write to a scratch ledger and
+  must be denied — run it after every rules deploy and in the e2e emulator suite, so
+  silent drift (console edits, forgotten deploys) is caught rather than trusted.
+  `chaff_pool/current` is never created; `ledger-io` writes no decoys.
+- **Config**: `ESIGN_ROOT_EMAIL` (bootstrap gate) and optional
+  `ESIGN_ROOT_FINGERPRINT` (§4.6), both via `configValue()`. The roster registry lives
+  in SQLite, created by the bootstrap route (which requires the root's recovery
+  ceremony first). The e-sign UI renders only when Firebase web config + a
+  bootstrapped registry exist — deployments that never bootstrap keep today's flow
+  untouched.
+- **Testing**: unit tests hammer `roster.ts`/`validity.ts` (isomorphic, dependency-
+  free) and the offline verifier against fixture bundles; `ledger-io` and ceremony
+  flows run against injected fakes (charproof's `setSessionProviders`/`cryptoProvider`
+  seams + a fake Firestore layer for our reader). Route-level tests for the new
+  statuses/grants (mirror-only, no emulator) land **with** phases 3–4, and
+  `tests/e2e/security.spec.ts`'s cross-tenant-404 sweep is updated for the deliberate
+  §6.3 exceptions in the same PRs. The full Firebase-emulator e2e
+  (enroll → vouch → submit → approve → pay → verify) is phase 5.
 
 ## 10. New invariants (graduate into CLAUDE.md as implemented)
 
 1. **Signed packets are immutable**: once a claim leaves `generated`, its packet bytes
    are archived per-hash under `signed/…/<sha256>.pdf` and never regenerated,
-   overwritten, or deleted (claim deletion included) — regeneration is only reachable
-   through revert, which voids signatures by hash mismatch.
-2. **Approval state is client-verified, fail-closed**: SQLite `status`/`SignatureRecord`
-   are mirrors; any UI that countersigns or asserts validity must re-derive it from the
-   roster + claim ledger in the browser and refuse on mismatch. The server never claims
-   cryptographic truth.
-3. **The numbers server never holds Firestore write credentials.**
-4. **Signed actions are self-binding**: every payload carries `ledger`, `claimId`,
-   `packetSha256`, and its `seq`/`submitRef`/`approveRef` linkage; verifiers never
-   resolve authority from timestamps or the server. Roster rules (2 vouches or 1
-   approver+, root-only role grants, `stateAt` role timing) are code in the shared
-   client-safe module, exhaustively unit-tested.
-5. Signed payloads carry money as **integer cents** and bind `packetSha256` +
-   `rowsDigest`; every workflow transition writes its AuditEvent + SignatureRecord,
-   idempotent on action hash.
+   overwritten, or deleted (claim deletion included; `EsignClaimArchive` keeps the
+   ledger pointer/key) — regeneration is only reachable through revert, which voids
+   signatures by hash mismatch.
+2. **Mirror rows are written only from signature-verified events** (§5.5); ceremonies,
+   detail views, `/v`, certificates, and the offline verifier re-derive validity
+   themselves and fail closed; list views may show mirror status only when labeled
+   unverified. The server never claims cryptographic truth.
+3. **The numbers server never holds Firestore credentials** — it can neither write nor
+   read ledgers; everything it knows arrives as client-reported, signature-verified
+   raw events.
+4. **Signed actions are self-binding and threads are monotonic**: every payload carries
+   `ledger`, `claimId`, `packetSha256`, and its `seq`/`closesRef`/`submitRef`/
+   `approveRef` linkage; settled threads are never invalidated by later events;
+   verifiers never resolve thread structure from timestamps or the server. Roster and
+   validity rules are isomorphic, dependency-free, exhaustively unit-tested modules.
+5. **`Receipt.status="processed"` means "on ≥1 claim in a FROZEN status"** — every
+   query that releases or edit-gates receipts uses the full frozen set (amends
+   invariant 6).
+6. Signed payloads carry money as **integer cents** and bind `packetSha256` +
+   `rowsDigest` + `consentSha256`; every workflow transition writes its AuditEvent +
+   SignatureRecord, idempotent on action hash.
 
 ## 11. Implementation phases
 
-1. **Platform** — firebase-client bootstrap, Firestore enablement + forked rules
-   deploy, charproof dependency, `ESIGN_ROOT_EMAIL`, feature gating. *Spike:
-   keystore-seeded identity reuse across ledgers (§4.1); fall back to delegation events
-   if brittle.*
-2. **Identity** — registry bootstrap (root recovery ceremony), enable-signing wizard
-   (consent → AMK → recovery → roster join), vouching ceremony + QR, roster reducer +
-   `stateAt`, mirrors, members endpoint, registry gating.
-3. **Submission & approval** — per-hash archive + packet GET, freeze/revert/pdf-route
-   changes, submit ceremony (preflight/idempotent reports), approver inbox + fail-closed
-   decision ceremony, duplicate-receipt guard, status machine + audit trail, badges.
+1. **Platform** — lazy firebase-client + `ensureFirebaseAuth()`, Firestore enablement,
+   forked rules deploy (documented owner + `check-rules.mjs` canary), charproof
+   dependency, `ledger-io` module (append/read/verify round-trip vs the emulator),
+   `ESIGN_ROOT_EMAIL`/`ESIGN_ROOT_FINGERPRINT`, feature gating. *Spike: keystore
+   round-trip of an externally-supplied signing keypair (§4.1); fall back to delegation
+   events if brittle.*
+2. **Identity** — registry bootstrap (root recovery ceremony + fingerprint
+   publication), enable-signing wizard (consent → AMK → recovery → roster join →
+   report), vouching ceremony (QR scanner dependency + camera UX + fingerprint
+   fallback), roster reducer + `stateAt`, server-side verified mirroring
+   (`/api/esign/report`), members endpoint, registry gating, TOFU pinning.
+3. **Submission & approval** — per-hash archive + packet GET (sha validation,
+   atomic hash-archive-flip), freeze/revert/pdf-route changes + FROZEN receipt
+   semantics, preflight/pending-action machinery, submit ceremony, approver inbox +
+   fail-closed decision ceremony (client-side pdf.js render), withdraw/reassignment,
+   **reconciliation endpoint** (crash repair ships with the ceremonies that need it),
+   duplicate-receipt guard, status machine + audit trail, badges, and the §6.1 UI
+   touchpoint fixes (`ReviewClaim` status union/revert/download, claims page,
+   `ReceiptGrid` chips), route tests + security-sweep updates.
 4. **Finance & verification** — treasurer queue, mark-paid ceremony, certificate PDF
-   with embedded verification bundle, offline verifier script, `/v/<token>` page,
-   mirror reconciliation.
-5. **Hardening** — device management UI, PRF recovery, emulator e2e suite, UETA consent
-   text review, root-rotation ceremony doc, docs (`ARCHITECTURE`/`DATA_MODEL`/
+   with embedded verification bundle, offline verifier script, `/api/v/[token]/*` +
+   `/v/<token>` page with live mode, route tests.
+5. **Hardening** — device management UI, PRF recovery, full emulator e2e suite, UETA
+   consent text review, root-rotation ceremony doc, docs (`ARCHITECTURE`/`DATA_MODEL`/
    `CLAUDE.md` updates).
 
 ## 12. Risks & open items
@@ -603,14 +805,19 @@ allow create: if isSignedIn()
   still function but new enrollments break. Covered by existing volume-backup practice;
   the registry is also recoverable from any enrolled client.
 - **Root succession/compromise**: rotation = new roster genesis cross-signed by the old
-  root (documented ceremony, phase 5); until then the root key is the single point of
-  trust — per decision 1, accepted, with mandatory phrase backup at bootstrap.
+  root, republished fingerprint, TOFU re-pin prompt (documented ceremony, phase 5);
+  until then the root key is the single point of trust — per decision 1, accepted,
+  with mandatory phrase backup at bootstrap.
 - **UETA consent text** (`ueta-v1`) should get a once-over from someone who reads
-  legalese before the feature is used in anger; payloads/certificates already capture
-  consent version, typed name, and intent affirmation.
-- **Safari IndexedDB eviction** can wipe device keys; the AMK keystore + phrase/PRF
-  recovery is the mitigation, and worst case for a plain member is a re-vouch.
-- **Ledger bloat** from the world-append rules is accepted at church scale (§8); revisit
-  the rules if it ever matters.
+  legalese before the feature is used in anger; payloads/certificates capture the
+  consent text hash, typed name, and intent affirmation.
+- **Safari IndexedDB eviction** can wipe device keys *and TOFU pins*; the AMK keystore
+  + phrase/PRF recovery covers keys, the deployment pin covers the anchor, and worst
+  case for a plain member is a re-vouch.
+- **Ledger bloat** from the world-append rules is accepted at church scale (§8), with
+  the roster-writer rules fork and roster re-genesis as escalation paths.
+- **Client bundle weight**: firebase + charproof + pdf.js + a QR decoder are all
+  lazy-loaded on e-sign screens only; keep them out of the shared bundle (phase 1/3
+  acceptance criterion).
 - Firestore outages make e-sign actions unavailable (hard dependency accepted,
   decision 12); claim building/PDF generation continue to work without Firestore.
