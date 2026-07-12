@@ -168,7 +168,7 @@
     "zh-Hant": "machine"
   },
   "Home.profileNudge": {
-    "source": "Your <link>profile</link> is missing a name or mailing address — both get printed on the reimbursement form.",
+    "source": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
     "context": "Warning banner on the home page; <link> wraps the word that opens the profile page.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -611,7 +611,7 @@
     "zh-Hant": "machine"
   },
   "Shoebox.processedNote": {
-    "source": "Already on a generated claim — still selectable if part of the purchase belongs on another claim.",
+    "source": "Already on a generated claim. You can still pick it if part of the purchase belongs on another claim.",
     "context": "Fine print under that heading: processed receipts stay selectable.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -779,7 +779,7 @@
     "zh-Hant": "machine"
   },
   "ManualEntry.intro": {
-    "source": "The AI couldn't read <strong>{name}</strong>. Type in what's printed on it so the row can be verified.",
+    "source": "The AI couldn't read <strong>{name}</strong>. Type in what's printed on it so you can verify the row.",
     "context": "Dialog intro; <strong> wraps {name}, the receipt's file name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -887,7 +887,7 @@
     "zh-Hant": "machine"
   },
   "ImageEditor.introLocal": {
-    "source": "Straighten the photo and drag the box to trim away the background. The edit happens on this device before anything uploads.",
+    "source": "Straighten the photo and drag the box to trim away the background.",
     "context": "Intro in the pre-upload flow: the edit happens on-device.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -1127,7 +1127,7 @@
     "zh-Hant": "machine"
   },
   "Review.revertConfirm": {
-    "source": "Revert this claim to draft? Only do this if you have NOT filed the printed form yet. Rows become editable again and the receipts leave “processed”.",
+    "source": "Revert this claim to draft? Only do this if you haven’t turned in the printed form yet. Rows become editable again, and the receipts leave “processed”.",
     "context": "Native confirm() before reverting. Quotes the 'processed' status word — its exact translation is provided as mustContain and must appear verbatim (test-enforced).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -1211,7 +1211,7 @@
     "zh-Hant": "machine"
   },
   "Review.splitModeBody": {
-    "source": "Splitting divides one receipt between different ministries, but this claim is set to use <strong>one ministry</strong> for every row.",
+    "source": "This claim is set to use <strong>one ministry</strong> for every row.",
     "context": "Dialog body; <strong> emphasizes the one-ministry setting.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -1235,7 +1235,7 @@
     "zh-Hant": "machine"
   },
   "Review.modeSwitchBody": {
-    "source": "Every row will be set to <strong>{value}</strong> (what most rows already use{distinct, plural, =1 {} other {, of the # different ministries currently picked}}).",
+    "source": "Every row will be set to <strong>{value}</strong> — the ministry most rows already use.",
     "context": "Dialog body; <strong>{value} is the adopted ministry. The ICU '=1' branch is DELIBERATELY EMPTY — the clause about N different ministries only appears when more than one is picked.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -1595,7 +1595,7 @@
     "zh-Hant": "machine"
   },
   "Review.revertConfirmSigned": {
-    "source": "Revert this claim to draft? All collected signatures become void (the packet bytes will change) and approval starts over.",
+    "source": "Revert this claim to draft? Every signature collected so far becomes void, and approval starts over.",
     "context": "confirm() before reverting a claim that has e-signatures: warns that collected signatures become void and approval restarts.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -1715,7 +1715,7 @@
     "zh-Hant": "machine"
   },
   "Esign.notAttested": {
-    "source": "Your signing identity isn't attested yet — enable signing on your <link>profile</link> and get vouched first.",
+    "source": "You can't sign yet — turn on signing on your <link>profile</link>, then get vouched.",
     "context": "Shown in the signing dialog when the member isn't vouched yet. <link> wraps the word for the profile page.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -1973,7 +1973,7 @@
     "zh-Hant": "machine"
   },
   "Esign.couldNotOpenDoc": {
-    "source": "Couldn't show the document to sign on. {message}",
+    "source": "Couldn't open the document to sign. {message}",
     "context": "Error box when the PDF can't be rendered; {message} is the technical reason (may stay English).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -2183,7 +2183,7 @@
     "zh-Hant": "machine"
   },
   "Identity.bootstrapIntro": {
-    "source": "You're set up as the person who starts electronic signing for this church. Setting up creates the signing registry with you as its anchor — it starts switched <b>off</b>, so nothing changes for members until you flip the switch.",
+    "source": "You're the person who sets up electronic signing for this church. It starts switched <b>off</b>, so nothing changes for members until you turn it on.",
     "context": "Shown only to the designated first admin before setup. <b> wraps 'off'. Explains setup creates the registry with them as anchor.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -2381,7 +2381,7 @@
     "zh-Hant": "machine"
   },
   "Identity.redrawBody": {
-    "source": "The new drawing is used on paperwork you sign from now on; nothing already signed changes.",
+    "source": "Your new signature is used on everything you sign from now on. Nothing you've already signed changes.",
     "context": "Note in that dialog: the new drawing affects future paperwork only.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -2395,6 +2395,72 @@
   "Identity.couldNotSave": {
     "source": "Could not save",
     "context": "Fallback error for the redraw dialog.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.scopeTitle": {
+    "source": "Who can sign electronically",
+    "context": "Heading of the admin's rollout-scope row (allowlist vs everyone), under the master switch.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.scopeAllowlist": {
+    "source": "Only members I choose",
+    "context": "Scope button: restrict e-signing to the allowlist below. Keep short — segmented button.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.scopeEveryone": {
+    "source": "Everyone",
+    "context": "Scope button: open e-signing to all signed-in users. Keep short — segmented button.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.allowlistTitle": {
+    "source": "Members who can use electronic signing",
+    "context": "Heading of the admin's allowlist panel.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.allowlistNote": {
+    "source": "People you allow can see the signing features and enroll, but they still need to be vouched for before they can sign. Removing someone hides signing from them; anything they already signed stays valid.",
+    "context": "Explainer under the allowlist heading. The second sentence is the important retention promise.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.allowlistLoading": {
+    "source": "Loading members…",
+    "context": "Placeholder while the allowlist loads.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.allowlistAllow": {
+    "source": "Allow",
+    "context": "Button: add this member to the e-sign allowlist. Keep short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.allowlistRemove": {
+    "source": "Remove",
+    "context": "Button: take this member off the e-sign allowlist. Keep short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.allowlistAlwaysOn": {
+    "source": "Admin — always on",
+    "context": "Chip on the admin's own row in the allowlist: admins cannot be excluded.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.allowlistLoadFailed": {
+    "source": "Could not load the member list",
+    "context": "Client-side fallback error for the allowlist panel.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.allowlistUpdateFailed": {
+    "source": "Could not update that member",
+    "context": "Client-side fallback error when an allow/remove toggle fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -2441,7 +2507,7 @@
     "zh-Hant": "machine"
   },
   "Devices.noneWorkBody": {
-    "source": "If your old devices are gone and you never printed a recovery sheet, the identity can't be recovered — that's what keeps it yours. Starting over creates a brand-new signing key: the same people who vouched for you before vouch for you again, and the moment they do, your old key stops counting automatically. Only if you think someone else might USE the old key before then, tell your administrator — they can retire it immediately.",
+    "source": "If your old devices are gone and you never printed a recovery sheet, your identity can't be recovered — that's what keeps it yours. Starting over creates a brand-new signing key: the same people vouch for you again, in person, and the moment they do, your old key stops counting on its own. Worried someone might use the old key before then? Tell your administrator and they can retire it right away.",
     "context": "Last-resort explanation: unrecoverable by design; starting over re-vouches and auto-retires the old key; tell the admin only if someone might USE the old key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -2453,7 +2519,7 @@
     "zh-Hant": "machine"
   },
   "Devices.startOverConfirm": {
-    "source": "Start over from nothing?\n\nThis signs ALL your devices out of electronic signing and throws away your current signing key. You'll set up again from scratch and be vouched for again in person — being vouched back in automatically retires the old key. Anything you already signed stays valid.",
+    "source": "Start over from nothing?\n\nThis signs ALL your devices out and throws away your current signing key. You'll set up again from scratch and be vouched for again in person — which automatically retires the old key. Anything you already signed stays valid.",
     "context": "confirm() for start-over. Keep the blank line (\\n\\n). Serious but calm: old signatures stay valid.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -2477,7 +2543,7 @@
     "zh-Hant": "machine"
   },
   "Devices.waitingNote": {
-    "source": "Waiting for the other device… this page continues by itself once it's approved. The code proves the other device is talking to <em>this</em> browser and not an impostor.",
+    "source": "Waiting for the other device… this page continues by itself once it's approved.",
     "context": "Small print while waiting; <em> wraps 'this'. Explains the code binds the approval to this browser.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -2573,7 +2639,7 @@
     "zh-Hant": "machine"
   },
   "Devices.removeConfirm": {
-    "source": "Sign “{name}” out of electronic signing?\n\nIt loses access immediately (your keys rotate under the hood). If the device might be in someone else's hands, also tell your administrator in person so they can revoke your signing key.",
+    "source": "Sign “{name}” out of electronic signing?\n\nIt loses access right away. If the device might be in someone else's hands, tell your administrator in person too, so they can revoke your signing key.",
     "context": "confirm() for removing a device; {name} is the device name. Keep the blank line (\\n\\n).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -3297,7 +3363,7 @@
     "zh-Hant": "machine"
   },
   "Errors.aiQuotaExhausted": {
-    "source": "AI provider rate limit / quota exhausted (target {rpm} requests/minute). The server waited and retried but the quota hasn't cleared — please wait a minute and try again. Affected: {names}",
+    "source": "The AI provider is busy right now — please wait a minute and try again. Affected: {names}",
     "context": "429 after retries; {rpm} requests/minute target, {names} is a list of receipt file names.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -3407,6 +3473,18 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Errors.esign.switchedOff": {
+    "source": "Electronic signing is turned off",
+    "context": "409 from every e-sign route while the admin master switch is off.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.notAllowed": {
+    "source": "Electronic signing is not enabled for your account",
+    "context": "409 from e-sign routes when the rollout scope is allowlist and this member is not on it.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "AddReceipts.title": {
     "source": "Add receipts to this claim",
     "context": "Dialog heading: add receipts to an existing draft claim.",
@@ -3512,84 +3590,6 @@
   "AddReceipts.confirm": {
     "source": "✨ Add receipts",
     "context": "Primary button with no selection yet; keep the ✨.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.scopeTitle": {
-    "source": "Who can sign electronically",
-    "context": "Heading of the admin's rollout-scope row (allowlist vs everyone), under the master switch.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.scopeAllowlist": {
-    "source": "Only members I choose",
-    "context": "Scope button: restrict e-signing to the allowlist below. Keep short — segmented button.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.scopeEveryone": {
-    "source": "Everyone",
-    "context": "Scope button: open e-signing to all signed-in users. Keep short — segmented button.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.allowlistTitle": {
-    "source": "Members who can use electronic signing",
-    "context": "Heading of the admin's allowlist panel.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.allowlistNote": {
-    "source": "People you allow see the signing features and can enroll; being vouched for is still required to sign. Removing someone hides signing from them — anything they already signed stays valid.",
-    "context": "Explainer under the allowlist heading. The second sentence is the important retention promise.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.allowlistLoading": {
-    "source": "Loading members…",
-    "context": "Placeholder while the allowlist loads.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.allowlistAllow": {
-    "source": "Allow",
-    "context": "Button: add this member to the e-sign allowlist. Keep short.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.allowlistRemove": {
-    "source": "Remove",
-    "context": "Button: take this member off the e-sign allowlist. Keep short.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.allowlistAlwaysOn": {
-    "source": "Admin — always on",
-    "context": "Chip on the admin's own row in the allowlist: admins cannot be excluded.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.allowlistLoadFailed": {
-    "source": "Could not load the member list",
-    "context": "Client-side fallback error for the allowlist panel.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.allowlistUpdateFailed": {
-    "source": "Could not update that member",
-    "context": "Client-side fallback error when an allow/remove toggle fails.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Errors.esign.switchedOff": {
-    "source": "Electronic signing is turned off",
-    "context": "409 from every e-sign route while the admin master switch is off.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Errors.esign.notAllowed": {
-    "source": "Electronic signing is not enabled for your account",
-    "context": "409 from e-sign routes when the rollout scope is allowlist and this member is not on it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   }

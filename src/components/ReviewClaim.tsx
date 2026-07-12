@@ -941,7 +941,6 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                       modeSwitchPrompt.adopt.ministry,
                       modeSwitchPrompt.adopt.event
                     ),
-                    distinct: modeSwitchPrompt.distinct,
                     strong: (chunks) => <strong>{chunks}</strong>,
                   })
                 : t("modeSwitchBodyNoMinistry")}
