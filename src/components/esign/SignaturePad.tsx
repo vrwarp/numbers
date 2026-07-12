@@ -12,16 +12,18 @@ import { useTranslations } from "next-intl";
 
 // Drawing-surface resolution. The canvas overlays the writing area of the form's
 // "Requested by" signature box (public/esign/signature-guide.png, cropped from
-// the template). W/H matches that area's wide, short aspect so strokes map
-// without distortion; the fractions below place it on the backdrop.
+// the template — the box is cropped narrow on the right so it renders taller,
+// giving more room to sign). W/H matches the writing area's aspect so strokes
+// map without distortion; the fractions below place it on the backdrop.
 const W = 720;
-const H = 94;
+const H = 163;
 /** Drawable zone within the backdrop, measured from the template: it starts just
- *  under the "Requested by" bar and runs past the signature line into the gap
- *  above the "(Signature)" caption, so a signature can cross the line the way a
- *  real one does. */
+ *  under the "Requested by" bar and runs past the signature line down over the
+ *  "(Signature)" caption, so a signature can cross the line — and overlap the
+ *  caption — the way a real one does; the preview shows the overlap so the
+ *  signer can judge it. */
 const CELL_TOP = 28; // % from the top of the backdrop (bar bottom)
-const CELL_HEIGHT = 44; // % (down to just above the "(Signature)" caption)
+const CELL_HEIGHT = 60; // % (down over the "(Signature)" caption)
 const CELL_INSET = 1.2; // % horizontal inset to clear the box's side borders
 
 export default function SignaturePad({
