@@ -106,6 +106,21 @@ async function enroll(persona: Persona): Promise<string> {
   return (await link.getAttribute("href"))!;
 }
 
+/**
+ * Root sets an attested member's role via the role select + its confirm
+ * dialog. The select flips optimistically on pick, so the completion signal is
+ * the dialog closing (which the component does only after the roster event is
+ * signed and reported) — not the value.
+ */
+async function grantRole(page: Page, name: string, role: "approver" | "treasurer") {
+  await page.locator(`li:has-text('${name}') select`).selectOption(role);
+  await page.click('[data-testid="confirm-dialog-submit"]');
+  await expect(page.locator('[data-testid="confirm-dialog-submit"]')).toBeHidden({
+    timeout: 30_000,
+  });
+  await expect(page.locator(`li:has-text('${name}') select`)).toHaveValue(role);
+}
+
 /** Seed a fully verified single-ministry claim via the API; returns its id. */
 async function seedClaim(persona: Persona, event: string): Promise<string> {
   const api = persona.context.request;
@@ -278,23 +293,13 @@ test("members enroll; vouches + roles attest them", async () => {
   await root.page.check('[data-testid="vouch-confirm"]');
   await root.page.click('[data-testid="vouch-submit"]');
   await root.page.waitForSelector('[data-testid="vouch-done"]', { timeout: 30_000 });
-  const bobRow = root.page.locator("li", { hasText: "Bob Chen" });
-  await bobRow.locator("text=make approver").click();
-  // Wait on "revoke approver" — the grant ceremony's completion signal
-  // ("text=approver" would match the make-approver button itself).
-  await expect(
-    root.page.locator("li:has-text('Bob Chen') >> text=revoke approver")
-  ).toBeVisible({ timeout: 30_000 });
+  await grantRole(root.page, "Bob Chen", "approver");
 
   await root.page.goto(carolVouchUrl);
   await root.page.check('[data-testid="vouch-confirm"]');
   await root.page.click('[data-testid="vouch-submit"]');
   await root.page.waitForSelector('[data-testid="vouch-done"]', { timeout: 30_000 });
-  const carolRow = root.page.locator("li", { hasText: "Carol Okafor" });
-  await carolRow.locator("text=make treasurer").click();
-  await expect(
-    root.page.locator("li:has-text('Carol Okafor') >> text=revoke treasurer")
-  ).toBeVisible({ timeout: 30_000 });
+  await grantRole(root.page, "Carol Okafor", "treasurer");
 
   // Bob (now approver) vouches Alice — one vouch tips it.
   await bob.page.goto(aliceVouchUrl);
