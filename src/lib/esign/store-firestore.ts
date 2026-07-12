@@ -59,4 +59,42 @@ export class FirestoreLedgerStore implements LedgerStore {
       };
     });
   }
+
+  subscribe(ledgerId: string, onChange: () => void): () => void {
+    // Attach is async (auth + SDK import), but callers need a synchronous
+    // unsubscribe — hand back a teardown that cancels the listener once (and if)
+    // it lands.
+    let inner: (() => void) | null = null;
+    let stopped = false;
+    void (async () => {
+      await ensureFirebaseAuth();
+      if (stopped) return;
+      const [db, fs] = [await getDb(), await import("firebase/firestore")];
+      if (stopped) return;
+      let first = true;
+      inner = fs.onSnapshot(
+        fs.query(fs.collection(db, "polls", ledgerId, "events"), fs.orderBy("createdAt", "asc")),
+        { includeMetadataChanges: false },
+        (snap) => {
+          // The initial snapshot is the state the caller already holds; only
+          // react to CHANGES after it. Skip snapshots reflecting only our own
+          // not-yet-acknowledged writes so we react once, on server confirmation.
+          if (first) {
+            first = false;
+            return;
+          }
+          if (snap.metadata.hasPendingWrites) return;
+          onChange();
+        },
+        () => {
+          // A dropped listener (permissions, transport reset) leaves the manual
+          // reload path intact — don't surface it as a hard failure here.
+        }
+      );
+    })();
+    return () => {
+      stopped = true;
+      inner?.();
+    };
+  }
 }

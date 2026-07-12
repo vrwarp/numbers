@@ -196,6 +196,16 @@ export async function loadRoster(env: EsignEnv): Promise<RosterLoad> {
   return { roster, rawDocs, rejectedCount: rejected.length };
 }
 
+/** Live-watch the roster ledger so a vouch (pending → attested), role grant, or
+ *  key revocation made on another device surfaces here without a manual reload
+ *  (§4.3). `onChange` fires only on changes after subscription — the caller
+ *  re-reads and re-reports the roster to refresh the mirror. Returns the
+ *  unsubscribe; a no-op when no roster is enrolled yet. */
+export function subscribeRoster(env: EsignEnv, onChange: () => void): () => void {
+  if (!env.rosterLedgerId) return () => {};
+  return storeFor(env).subscribe(env.rosterLedgerId, onChange);
+}
+
 /** Push the full roster to the server's verified-mirror pipeline (§5.5). */
 export async function reportRoster(env: EsignEnv, rawDocs: RawLedgerEventDoc[]): Promise<void> {
   await jsonOrThrow(

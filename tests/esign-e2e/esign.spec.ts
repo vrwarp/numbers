@@ -256,8 +256,10 @@ test("members enroll; vouches + roles attest them", async () => {
   await bob.page.check('[data-testid="vouch-confirm"]');
   await bob.page.click('[data-testid="vouch-submit"]');
   await bob.page.waitForSelector('[data-testid="vouch-done"]', { timeout: 30_000 });
-  await alice.page.goto(`${BASE}/profile`);
-  await expect(alice.page.getByText("Ready to sign")).toBeVisible({ timeout: 30_000 });
+  // Auto-refresh (subscribeRoster): Alice's profile has stayed open since she
+  // enrolled, so Bob's vouch reaches her over the roster ledger's live
+  // subscription and her card flips pending → attested with NO reload.
+  await expect(alice.page.getByText("Ready to sign")).toBeVisible({ timeout: 60_000 });
 });
 
 test("in-page QR scanner appears for vouchers and degrades without a camera", async () => {
