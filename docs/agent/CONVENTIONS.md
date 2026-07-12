@@ -177,7 +177,16 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     polling already active. The e-sign client pins `useFetchStreams: false` (XHR) for both
     backends in `src/lib/esign/firebase-client.ts` — keep it when touching Firebase init or
     bumping `firebase`, and re-verify on Safari after a bump (the `esign-transport.test.ts`
-    canary only proves the SDK still *accepts* the settings, not that it honors them).
+    canary only proves the SDK still *accepts* the settings, not that it honors them). With
+    the pin in place Safari still logs the same line for long-polls IT interrupts
+    (refresh, tab suspend, sleep) — that residue is benign; the channel re-establishes.
+14. **Interrupted ceremonies must be resumable**: `enroll()` is non-atomic (identity row →
+    Firestore custody → key report), and a death in between — Safari killing the tab's
+    channel was the production case — left "pending" rows with an empty `publicKey`:
+    no vouch QR, invisible to `/api/esign/pending`, no UI path out. The identity card now
+    self-heals via `repairEnrollment()` (client.ts) on the next visit; the e-sign e2e scene
+    "a mid-enroll crash strands no one" reproduces the strand by aborting the key-report
+    POST. Give any new multi-step ceremony the same recover-on-revisit property.
 
 ## Telemetry duty (when adding mutations)
 

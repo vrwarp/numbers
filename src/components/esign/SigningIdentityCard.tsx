@@ -18,6 +18,7 @@ import {
   enroll,
   loadEnv,
   loadRoster,
+  repairEnrollment,
   reportRoster,
   updateSignatureImage,
   type EsignEnv,
@@ -46,12 +47,26 @@ export default function SigningIdentityCard() {
 
   const refresh = useCallback(async () => {
     try {
-      const loaded = await loadEnv();
+      let loaded = await loadEnv();
       setEnv(loaded);
       if (loaded.me.publicKey) setFingerprint(await keyFingerprint(loaded.me.publicKey));
       // Where does this browser stand in the member's device fleet (M2)?
       if (loaded.bootstrapped && loaded.enabled && loaded.me.identityStatus) {
-        setDeviceStatus(await custodyFor(loaded).deviceStatus());
+        const device = await custodyFor(loaded).deviceStatus();
+        setDeviceStatus(device);
+        // Self-heal a half-completed enrollment: the row exists but the key
+        // was never reported (mid-enroll crash/refresh) — QR-less and
+        // invisible to vouchers until the key lands (§4.2). Ready custody
+        // re-derives the same key, so re-report it and reload.
+        if (
+          device === "ready" &&
+          !loaded.me.publicKey &&
+          (await repairEnrollment(loaded).catch(() => false))
+        ) {
+          loaded = await loadEnv();
+          setEnv(loaded);
+          if (loaded.me.publicKey) setFingerprint(await keyFingerprint(loaded.me.publicKey));
+        }
       } else {
         setDeviceStatus(null);
       }
