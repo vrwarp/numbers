@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { Auth, User } from "firebase/auth";
+import { useApiErrorMessage } from "@/lib/use-api-error";
 
 export type FirebaseWebConfig = {
   apiKey: string;
@@ -45,6 +47,8 @@ export default function SignInCard({
   firebaseConfig: FirebaseWebConfig | null;
   testMode: boolean;
 }) {
+  const t = useTranslations("SignIn");
+  const apiError = useApiErrorMessage();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [embedded, setEmbedded] = useState(false);
@@ -71,7 +75,7 @@ export default function SignInCard({
     await fb.signOut(auth).catch(() => {});
     if (!res.ok) {
       const data = await res.json().catch(() => null);
-      throw new Error(data?.error ?? "Sign-in failed");
+      throw new Error(apiError(data, t("failed")));
     }
     window.location.assign("/");
   }
@@ -84,12 +88,9 @@ export default function SignInCard({
       return;
     }
     if (code === "auth/popup-blocked") {
-      setError(
-        "Your browser blocked the sign-in popup. If you opened this from inside " +
-          "another app, tap the menu and choose “Open in Safari” (or Chrome), then try again.",
-      );
+      setError(t("popupBlocked"));
     } else {
-      setError(err instanceof Error ? err.message : "Sign-in failed");
+      setError(err instanceof Error ? err.message : t("failed"));
     }
     setBusy(false);
   }
@@ -145,11 +146,11 @@ export default function SignInCard({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Sign-in failed");
+        throw new Error(apiError(data, t("failed")));
       }
       window.location.assign("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign-in failed");
+      setError(err instanceof Error ? err.message : t("failed"));
       setBusy(false);
     }
   }
@@ -161,12 +162,8 @@ export default function SignInCard({
           className="mt-8 rounded-lg border border-amber-400 bg-amber-100 p-4 text-left text-sm text-amber-900"
           data-testid="signin-embedded-hint"
         >
-          <p className="font-semibold">You&apos;re in an in-app browser</p>
-          <p className="mt-1">
-            Google sign-in may not work in in-app browsers. If it doesn&apos;t, open this page in
-            Safari or Chrome — tap the menu (&#8943; or the share icon) and choose &ldquo;Open in
-            Safari&rdquo;.
-          </p>
+          <p className="font-semibold">{t("embeddedTitle")}</p>
+          <p className="mt-1">{t("embeddedBody")}</p>
         </div>
       )}
 
@@ -189,15 +186,13 @@ export default function SignInCard({
               d="M21.35 11.1H12v2.9h5.3c-.5 2.5-2.6 4.3-5.3 4.3a5.8 5.8 0 1 1 0-11.6c1.5 0 2.8.5 3.8 1.4l2.2-2.2A8.9 8.9 0 0 0 12 3a9 9 0 1 0 0 18c5.2 0 8.9-3.7 8.9-8.9 0-.3 0-.7-.05-1z"
             />
           </svg>
-          {embedded ? "Try Google sign-in anyway" : "Sign in with Google"}
+          {embedded ? t("googleTryAnyway") : t("googleSignIn")}
         </button>
       )}
 
       {!firebaseConfig && !testMode && (
         <p className="mt-8 rounded-lg bg-amber-50 p-4 text-sm text-amber-800">
-          No sign-in method is configured. Set <code>FIREBASE_API_KEY</code>,{" "}
-          <code>FIREBASE_AUTH_DOMAIN</code> and <code>FIREBASE_PROJECT_ID</code> in the
-          environment.
+          {t.rich("notConfigured", { code: (chunks) => <code>{chunks}</code> })}
         </p>
       )}
 
@@ -207,12 +202,12 @@ export default function SignInCard({
           className="mt-8 space-y-3 rounded-lg border border-dashed border-amber-300 bg-amber-50 p-4 text-left"
         >
           <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
-            Dev login (test mode)
+            {t("devLogin")}
           </p>
-          <input name="email" type="email" required placeholder="you@example.com" className="input" data-testid="dev-email" />
-          <input name="name" type="text" placeholder="Your name" className="input" data-testid="dev-name" />
+          <input name="email" type="email" required placeholder={t("devEmailPlaceholder")} className="input" data-testid="dev-email" />
+          <input name="name" type="text" placeholder={t("devNamePlaceholder")} className="input" data-testid="dev-name" />
           <button type="submit" disabled={busy} className="btn-secondary w-full" data-testid="dev-signin">
-            Sign in (dev)
+            {t("devSignIn")}
           </button>
         </form>
       )}

@@ -3,29 +3,30 @@ import { prisma } from "@/lib/prisma";
 import { handleApi, ApiError } from "@/lib/api";
 import { isFirebaseConfigured, verifyFirebaseIdToken } from "@/lib/firebase-admin";
 import { setSessionCookie, clearSessionCookie } from "@/lib/session";
+import { syncLocalePreference } from "@/i18n/cookie";
 
 export const runtime = "nodejs";
 
 /** Exchange a Firebase ID token (from the client SDK sign-in) for our session cookie. */
 export async function POST(req: NextRequest) {
   return handleApi(async () => {
-    if (!isFirebaseConfigured()) throw new ApiError(400, "Firebase sign-in is not configured");
+    if (!isFirebaseConfigured()) throw new ApiError(400, "Firebase sign-in is not configured", "signInNotConfigured");
     const body = await req.json().catch(() => null);
     const idToken = typeof body?.idToken === "string" ? body.idToken : "";
-    if (!idToken) throw new ApiError(400, "idToken required");
+    if (!idToken) throw new ApiError(400, "idToken required", "idTokenRequired");
 
     let decoded;
     try {
       decoded = await verifyFirebaseIdToken(idToken);
     } catch {
-      throw new ApiError(401, "Invalid Firebase ID token");
+      throw new ApiError(401, "Invalid Firebase ID token", "invalidIdToken");
     }
 
     // Users are keyed by email, so only accept identities Firebase has
     // verified the email for (always true for Google sign-in).
     const email = decoded.email?.trim().toLowerCase();
     if (!email || !decoded.email_verified) {
-      throw new ApiError(401, "A verified email address is required");
+      throw new ApiError(401, "A verified email address is required", "verifiedEmailRequired");
     }
 
     const user = await prisma.user.upsert({
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
       },
     });
     await setSessionCookie(user.id);
+    await syncLocalePreference(user.id, user.locale);
     return NextResponse.json({ ok: true });
   });
 }

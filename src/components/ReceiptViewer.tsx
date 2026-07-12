@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import ReceiptImageEditor from "./ReceiptImageEditor";
 import { usePdfPreviewManifest, pdfPreviewPageUrl } from "./PdfReceiptPreview";
 
@@ -33,6 +34,7 @@ export default function ReceiptViewer({
   onClose: () => void;
   onEdited?: () => void;
 }) {
+  const t = useTranslations("Viewer");
   const isPdf = receipt.mimeType === "application/pdf";
   // Only unassigned photos can be rotated/cropped: the edit route overwrites
   // the stored file and refuses PDFs and receipts frozen on a generated claim.
@@ -170,7 +172,7 @@ export default function ReceiptViewer({
       className="fixed inset-0 z-50 flex flex-col bg-black/90"
       role="dialog"
       aria-modal="true"
-      aria-label={`Receipt: ${receipt.originalName}`}
+      aria-label={t("ariaTitle", { name: receipt.originalName })}
       data-testid="receipt-viewer"
     >
       <div className="flex items-center justify-between gap-3 px-4 py-3 text-white">
@@ -183,8 +185,8 @@ export default function ReceiptViewer({
             target="_blank"
             rel="noopener noreferrer"
             className={ctrlBtn}
-            aria-label="Open in a new tab"
-            title="Open in a new tab"
+            aria-label={t("openNewTab")}
+            title={t("openNewTab")}
             onClick={(e) => e.stopPropagation()}
           >
             ↗
@@ -193,8 +195,8 @@ export default function ReceiptViewer({
             ref={closeRef}
             className={ctrlBtn}
             onClick={onClose}
-            aria-label="Close viewer"
-            title="Close (Esc)"
+            aria-label={t("close")}
+            title={t("closeTitle")}
             data-testid="receipt-viewer-close"
           >
             ✕
@@ -216,12 +218,12 @@ export default function ReceiptViewer({
           pdfPreview.failed ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-stone-400">
               <div className="text-5xl">📄</div>
-              <div className="text-sm">Preview unavailable — use ↗ to open the PDF</div>
+              <div className="text-sm">{t("previewUnavailable")}</div>
             </div>
           ) : !pdfPreview.manifest ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-stone-300">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-500 border-t-white" />
-              <div className="text-sm">Rendering preview…</div>
+              <div className="text-sm">{t("rendering")}</div>
             </div>
           ) : (
             <div className="h-full w-full overflow-auto">
@@ -231,16 +233,14 @@ export default function ReceiptViewer({
                   <img
                     key={i}
                     src={pdfPreviewPageUrl(receipt.id, i + 1)}
-                    alt={`${receipt.originalName} page ${i + 1}`}
+                    alt={t("pageAlt", { name: receipt.originalName, page: i + 1 })}
                     loading="lazy"
                     className="w-full"
                   />
                 ))}
                 {pdfPreview.manifest.omitted > 0 && (
                   <div className="bg-stone-100 px-4 py-3 text-center text-xs text-stone-500">
-                    +{pdfPreview.manifest.omitted} more{" "}
-                    {pdfPreview.manifest.omitted === 1 ? "page" : "pages"} not shown — use ↗ to
-                    open the full PDF.
+                    {t("omitted", { omitted: pdfPreview.manifest.omitted })}
                   </div>
                 )}
               </div>
@@ -274,11 +274,11 @@ export default function ReceiptViewer({
             <button
               className="pointer-events-auto flex h-10 items-center justify-center gap-1.5 rounded-full bg-black/70 px-4 text-sm font-medium text-white shadow-lg backdrop-blur transition-colors hover:bg-black/80"
               onClick={() => setEditing(true)}
-              aria-label="Rotate or crop this receipt"
-              title="Rotate or crop"
+              aria-label={t("editAria")}
+              title={t("editTitle")}
               data-testid="receipt-viewer-edit"
             >
-              ✂ Rotate / crop
+              {t("editButton")}
             </button>
           )}
           <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-black/70 px-2 py-1 shadow-lg backdrop-blur">
@@ -286,20 +286,20 @@ export default function ReceiptViewer({
               className={ctrlBtn}
               onClick={() => zoomFromCenter(1 / 1.4)}
               disabled={view.scale <= MIN_SCALE}
-              aria-label="Zoom out"
-              title="Zoom out"
+              aria-label={t("zoomOut")}
+              title={t("zoomOut")}
             >
               −
             </button>
             <span className="w-12 select-none text-center text-xs font-medium tabular-nums text-white">
-              {Math.round(view.scale * 100)}%
+              {t("zoomLevel", { percent: Math.round(view.scale * 100) })}
             </span>
             <button
               className={ctrlBtn}
               onClick={() => zoomFromCenter(1.4)}
               disabled={view.scale >= MAX_SCALE}
-              aria-label="Zoom in"
-              title="Zoom in"
+              aria-label={t("zoomIn")}
+              title={t("zoomIn")}
             >
               +
             </button>
@@ -307,8 +307,8 @@ export default function ReceiptViewer({
               className={ctrlBtn}
               onClick={reset}
               disabled={view.scale <= MIN_SCALE && view.x === 0 && view.y === 0}
-              aria-label="Reset zoom"
-              title="Reset zoom"
+              aria-label={t("resetZoom")}
+              title={t("resetZoom")}
             >
               ⤢
             </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 export interface PdfPreviewManifest {
   pages: number;
@@ -55,6 +56,7 @@ export default function PdfReceiptPreview({
   /** Link target for the original PDF (defaults to the file route). */
   fileHref?: string;
 }) {
+  const t = useTranslations("PdfPreview");
   const { manifest, failed } = usePdfPreviewManifest(receiptId);
   const openHref = fileHref ?? `/api/receipts/${receiptId}/file`;
 
@@ -63,7 +65,7 @@ export default function PdfReceiptPreview({
       {failed ? (
         <div className="flex flex-col items-center gap-1 py-10 text-stone-400">
           <div className="text-4xl">📄</div>
-          <div className="text-xs font-semibold">PDF receipt</div>
+          <div className="text-xs font-semibold">{t("chip")}</div>
         </div>
       ) : !manifest ? (
         <div
@@ -71,7 +73,7 @@ export default function PdfReceiptPreview({
           data-testid={`pdf-preview-loading-${receiptId}`}
         >
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-stone-300 border-t-indigo-500" />
-          <div className="text-xs font-medium">Rendering preview…</div>
+          <div className="text-xs font-medium">{t("rendering")}</div>
         </div>
       ) : (
         <>
@@ -80,7 +82,7 @@ export default function PdfReceiptPreview({
             <img
               key={i}
               src={pdfPreviewPageUrl(receiptId, i + 1)}
-              alt={`PDF receipt page ${i + 1}`}
+              alt={t("pageAlt", { page: i + 1 })}
               loading="lazy"
               className="w-full"
               data-testid={i === 0 ? `pdf-preview-${receiptId}` : undefined}
@@ -88,8 +90,7 @@ export default function PdfReceiptPreview({
           ))}
           {manifest.omitted > 0 && (
             <div className="border-t border-stone-200 bg-stone-50 px-4 py-3 text-center text-xs text-stone-500">
-              +{manifest.omitted} more {manifest.omitted === 1 ? "page" : "pages"} not shown — open
-              the PDF receipt to view {manifest.omitted === 1 ? "it" : "them"}.
+              {t("omitted", { omitted: manifest.omitted })}
             </div>
           )}
         </>
@@ -100,7 +101,7 @@ export default function PdfReceiptPreview({
         rel="noopener noreferrer"
         className="border-t border-stone-100 px-4 py-2 text-center text-sm text-indigo-600 underline"
       >
-        Open PDF receipt ↗
+        {t("open")}
       </a>
     </div>
   );

@@ -75,7 +75,7 @@ export async function PATCH(req: Request) {
     const user = await currentUser();
     if (user!.role !== "admin") throw new ApiError(404, "Not found");
     const registry = await getRegistry();
-    if (!registry) throw new ApiError(404, "E-sign is not set up yet");
+    if (!registry) throw new ApiError(404, "E-sign is not set up yet", "esign.notSetUp");
     const body = (await req.json().catch(() => ({}))) as { enabled?: boolean };
     if (typeof body.enabled !== "boolean") throw new ApiError(400, "enabled must be a boolean");
     await prisma.$transaction([

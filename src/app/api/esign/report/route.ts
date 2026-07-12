@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     const userId = await requireUserId();
     const registry = await requireEnabledRegistry();
     const enrolled = await prisma.signerIdentity.findUnique({ where: { userId } });
-    if (!enrolled) throw new ApiError(404, "Not enrolled");
+    if (!enrolled) throw new ApiError(404, "Not enrolled", "esign.notEnrolled");
     const body = (await req.json()) as { events?: unknown };
     const roster = await reportRosterEvents(registry, body.events);
     return NextResponse.json({

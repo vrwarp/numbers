@@ -16,6 +16,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 import {
   approveDevice,
   currentDeviceId,
@@ -32,6 +33,7 @@ import {
   type DeviceEnv,
   type PendingDeviceRequest,
 } from "@/lib/esign/devices";
+import { useThrownErrorMessage } from "@/lib/use-api-error";
 
 // --- M2: the new-device gate ---------------------------------------------------
 
@@ -47,6 +49,9 @@ export function NewDeviceCard({
   onReady: () => Promise<void> | void;
   onStartOver: () => void;
 }) {
+  const t = useTranslations("Devices");
+  const tCommon = useTranslations("Common");
+  const thrown = useThrownErrorMessage();
   const [mode, setMode] = useState<"idle" | "waiting" | "phrase">("idle");
   const [code, setCode] = useState<string | null>(null);
   const [phrase, setPhrase] = useState("");
@@ -68,7 +73,7 @@ export function NewDeviceCard({
         void onReady();
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not start");
+      setError(thrown(err, t("couldNotStart")));
     } finally {
       setBusy(false);
     }
@@ -81,17 +86,13 @@ export function NewDeviceCard({
       await recoverWithPhrase(env, phrase);
       await onReady();
     } catch {
-      setError("That phrase didn't work — check the words and their order");
+      setError(t("phraseWrong"));
       setBusy(false);
     }
   }
 
   async function doStartOver() {
-    if (
-      !confirm(
-        "Start over from nothing?\n\nThis signs ALL your devices out of electronic signing and throws away your current signing key. You'll set up again from scratch and be vouched for again in person — being vouched back in automatically retires the old key. Anything you already signed stays valid."
-      )
-    ) {
+    if (!confirm(t("startOverConfirm"))) {
       return;
     }
     setBusy(true);
@@ -100,7 +101,7 @@ export function NewDeviceCard({
       await startOver(env);
       onStartOver();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not reset");
+      setError(thrown(err, t("couldNotReset")));
       setBusy(false);
     }
   }
@@ -108,10 +109,7 @@ export function NewDeviceCard({
   if (mode === "waiting" && code) {
     return (
       <div className="space-y-3 rounded-xl border border-indigo-200 bg-indigo-50 p-4" data-testid="waiting-approval">
-        <p className="text-sm font-medium text-indigo-900">
-          Now pick up the device you already sign with. A message appears there — type this
-          code into it:
-        </p>
+        <p className="text-sm font-medium text-indigo-900">{t("waitingIntro")}</p>
         <div
           className="mx-auto w-fit rounded-xl bg-white px-6 py-3 font-mono text-3xl font-bold tracking-[0.3em] text-indigo-900 shadow-sm"
           data-testid="device-code"
@@ -119,9 +117,7 @@ export function NewDeviceCard({
           {code}
         </div>
         <p className="text-xs text-indigo-800/70">
-          Waiting for the other device… this page continues by itself once it&apos;s approved.
-          The code proves the other device is talking to <em>this</em> browser and not an
-          impostor.
+          {t.rich("waitingNote", { em: (chunks) => <em>{chunks}</em> })}
         </p>
       </div>
     );
@@ -130,10 +126,10 @@ export function NewDeviceCard({
   if (mode === "phrase") {
     return (
       <div className="space-y-3 rounded-xl border border-stone-200 bg-stone-50 p-4">
-        <p className="text-sm font-medium">Type your 24-word recovery phrase</p>
+        <p className="text-sm font-medium">{t("phraseTitle")}</p>
         <textarea
           className="input h-28 w-full font-mono text-sm"
-          placeholder="correct horse battery staple …"
+          placeholder={t("phrasePlaceholder")}
           value={phrase}
           onChange={(e) => setPhrase(e.target.value)}
           data-testid="recover-phrase-input"
@@ -141,7 +137,7 @@ export function NewDeviceCard({
         {error && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
         <div className="flex justify-end gap-2">
           <button className="btn-secondary" onClick={() => setMode("idle")}>
-            Back
+            {tCommon("back")}
           </button>
           <button
             className="btn-primary disabled:opacity-50"
@@ -149,7 +145,7 @@ export function NewDeviceCard({
             onClick={submitPhrase}
             data-testid="recover-phrase-submit"
           >
-            {busy ? "Unlocking…" : "Unlock"}
+            {busy ? t("unlocking") : t("unlock")}
           </button>
         </div>
       </div>
@@ -159,18 +155,14 @@ export function NewDeviceCard({
   return (
     <div className="space-y-3" data-testid="new-device-card">
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-        <p className="font-semibold">This looks like a new device.</p>
-        <p className="mt-1">
-          Your signing identity exists, but it isn&apos;t on this{" "}
-          {fleetGone ? "account anymore" : "device yet"}. Bring it over — no re-vouching
-          needed{fleetGone ? " unless you start over" : ""}.
-        </p>
+        <p className="font-semibold">{t("newDeviceTitle")}</p>
+        <p className="mt-1">{fleetGone ? t("newDeviceBodyGone") : t("newDeviceBody")}</p>
       </div>
       {error && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
       {!fleetGone ? (
         <div className="grid gap-2">
           <button className="btn-primary" onClick={beginRequest} disabled={busy} data-testid="request-device-auth">
-            📱 Approve from a device you already sign with
+            {t("approveFromOther")}
           </button>
           <button
             className="btn-secondary"
@@ -178,29 +170,19 @@ export function NewDeviceCard({
             disabled={busy}
             data-testid="recover-phrase-option"
           >
-            🔑 Type my 24-word recovery phrase
+            {t("typePhraseOption")}
           </button>
         </div>
       ) : (
-        <p className="text-sm text-stone-600">
-          Your signing keys were removed everywhere, so the only way forward is to start
-          over below.
-        </p>
+        <p className="text-sm text-stone-600">{t("keysRemovedEverywhere")}</p>
       )}
       <details className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-600">
         <summary className="cursor-pointer select-none font-medium text-stone-500">
-          None of these work?
+          {t("noneWork")}
         </summary>
-        <p className="mt-2">
-          If your old devices are gone and you never printed a recovery sheet, the identity
-          can&apos;t be recovered — that&apos;s what keeps it yours. Starting over creates a
-          brand-new signing key: the same people who vouched for you before vouch for you
-          again, and the moment they do, your old key stops counting automatically. Only if
-          you think someone else might USE the old key before then, tell your administrator —
-          they can retire it immediately.
-        </p>
+        <p className="mt-2">{t("noneWorkBody")}</p>
         <button className="btn-secondary mt-2" onClick={doStartOver} disabled={busy} data-testid="start-over">
-          Start over from nothing
+          {t("startOver")}
         </button>
       </details>
     </div>
@@ -218,6 +200,8 @@ export function PendingRequestPrompt({
   request: PendingDeviceRequest;
   onSettled: () => void;
 }) {
+  const t = useTranslations("Devices");
+  const thrown = useThrownErrorMessage();
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -229,7 +213,7 @@ export function PendingRequestPrompt({
       await approveDevice(env, request, typed);
       onSettled();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Approval failed");
+      setError(thrown(err, t("approvalFailed")));
       setBusy(false);
     }
   }
@@ -242,11 +226,10 @@ export function PendingRequestPrompt({
       <div className="flex flex-wrap items-center gap-3">
         <div className="min-w-48 flex-1 text-sm text-indigo-900">
           <p className="font-semibold">
-            “{request.decryptedDeviceName || "A new device"}” wants to sign as you.
+            {t("deviceWants", { name: request.decryptedDeviceName || t("unnamedDevice") })}
           </p>
           <p className="mt-0.5 text-xs text-indigo-800/70">
-            Only approve if it&apos;s yours and in your hands. Type the 6-digit code from{" "}
-            <em>its</em> screen — that&apos;s what proves it&apos;s really that device.
+            {t.rich("approveHint", { em: (chunks) => <em>{chunks}</em> })}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -265,7 +248,7 @@ export function PendingRequestPrompt({
             onClick={approve}
             data-testid="approve-device"
           >
-            {busy ? "…" : "Approve"}
+            {busy ? "…" : t("approve")}
           </button>
           <button
             className="btn-secondary"
@@ -276,7 +259,7 @@ export function PendingRequestPrompt({
             }}
             data-testid="reject-device"
           >
-            Reject
+            {t("rejectDevice")}
           </button>
         </div>
       </div>
@@ -288,6 +271,9 @@ export function PendingRequestPrompt({
 // --- M3: authorized devices panel ---------------------------------------------
 
 export function DevicesPanel({ env }: { env: DeviceEnv }) {
+  const t = useTranslations("Devices");
+  const format = useFormatter();
+  const thrown = useThrownErrorMessage();
   const [devices, setDevices] = useState<AuthorizedDevice[]>([]);
   const [selfId, setSelfId] = useState<string>("");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -310,11 +296,7 @@ export function DevicesPanel({ env }: { env: DeviceEnv }) {
   }, [env.me.userId]);
 
   async function remove(device: AuthorizedDevice) {
-    if (
-      !confirm(
-        `Sign “${device.decryptedDeviceName}” out of electronic signing?\n\nIt loses access immediately (your keys rotate under the hood). If the device might be in someone else's hands, also tell your administrator in person so they can revoke your signing key.`
-      )
-    ) {
+    if (!confirm(t("removeConfirm", { name: device.decryptedDeviceName }))) {
       return;
     }
     setBusyId(device.deviceId);
@@ -322,7 +304,7 @@ export function DevicesPanel({ env }: { env: DeviceEnv }) {
     try {
       await removeDevice(env, device.deviceId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not remove the device");
+      setError(thrown(err, t("couldNotRemove")));
     } finally {
       setBusyId(null);
     }
@@ -332,19 +314,25 @@ export function DevicesPanel({ env }: { env: DeviceEnv }) {
 
   return (
     <div className="rounded-lg border border-stone-200 bg-stone-50 p-3" data-testid="devices-panel">
-      <p className="text-xs font-medium text-stone-500">Devices that can sign as you</p>
+      <p className="text-xs font-medium text-stone-500">{t("devicesTitle")}</p>
       <ul className="mt-2 space-y-2">
         {devices.map((d) => (
           <li key={d.deviceId} className="flex flex-wrap items-center justify-between gap-2 text-sm">
             <span>
-              {d.decryptedDeviceName || "Unnamed device"}
+              {d.decryptedDeviceName || t("unnamedDevice")}
               {d.deviceId === selfId && (
                 <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
-                  this device
+                  {t("thisDevice")}
                 </span>
               )}
               <span className="ml-2 text-xs text-stone-400">
-                added {new Date(d.createdAt).toLocaleDateString()}
+                {t("addedOn", {
+                  date: format.dateTime(new Date(d.createdAt), {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  }),
+                })}
               </span>
             </span>
             {d.deviceId !== selfId && (
@@ -354,17 +342,14 @@ export function DevicesPanel({ env }: { env: DeviceEnv }) {
                 onClick={() => remove(d)}
                 data-testid={`remove-device-${d.deviceId}`}
               >
-                {busyId === d.deviceId ? "…" : "remove"}
+                {busyId === d.deviceId ? "…" : t("removeDevice")}
               </button>
             )}
           </li>
         ))}
       </ul>
       {error && <p className="mt-2 rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
-      <p className="mt-2 text-xs text-stone-400">
-        Lost one? Remove it here, then tell your administrator in person if someone else
-        might have it — they can revoke the signing key itself.
-      </p>
+      <p className="mt-2 text-xs text-stone-400">{t("lostHint")}</p>
     </div>
   );
 }
@@ -372,6 +357,7 @@ export function DevicesPanel({ env }: { env: DeviceEnv }) {
 // --- M4: recovery phrase setup (print-first) -------------------------------------
 
 export function RecoveryCard({ env, sticky }: { env: DeviceEnv; sticky: boolean }) {
+  const t = useTranslations("Devices");
   const [state, setState] = useState<"loading" | "needed" | "done" | "dismissed">("loading");
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -400,13 +386,11 @@ export function RecoveryCard({ env, sticky }: { env: DeviceEnv; sticky: boolean 
       data-testid="recovery-nudge"
     >
       <p className="text-sm font-medium text-amber-900">
-        {sticky
-          ? "Protect the church's signing anchor. If this device is lost with no recovery sheet, electronic signing has to be rebuilt from scratch for everyone."
-          : "One more safety net: print a recovery sheet and you can sign from a new device even if this one is lost."}
+        {sticky ? t("recoveryRoot") : t("recoveryNudge")}
       </p>
       <div className="flex gap-2">
         <button className="btn-primary" onClick={() => setDialogOpen(true)} data-testid="setup-phrase">
-          Print my recovery sheet
+          {t("printSheet")}
         </button>
         {!sticky && (
           <button
@@ -416,7 +400,7 @@ export function RecoveryCard({ env, sticky }: { env: DeviceEnv; sticky: boolean 
               setState("dismissed");
             }}
           >
-            Later
+            {t("later")}
           </button>
         )}
       </div>
@@ -443,6 +427,9 @@ function PhraseDialog({
   onClose: () => void;
   onDone: () => Promise<void>;
 }) {
+  const t = useTranslations("Devices");
+  const tCommon = useTranslations("Common");
+  const thrown = useThrownErrorMessage();
   const [words, setWords] = useState<string[] | null>(null);
   const [downloaded, setDownloaded] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -454,7 +441,7 @@ function PhraseDialog({
     // only copy the member is relying on.
     void setupPhrase(env)
       .then((mnemonic) => setWords(mnemonic.split(" ")))
-      .catch((err) => setError(err instanceof Error ? err.message : "Could not create a phrase"));
+      .catch((err) => setError(thrown(err, t("couldNotCreatePhrase"))));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -478,31 +465,26 @@ function PhraseDialog({
       setTimeout(() => URL.revokeObjectURL(url), 30_000);
       setDownloaded(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not build the sheet");
+      setError(thrown(err, t("couldNotBuildSheet")));
     }
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">
       <div className="max-h-[92vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-t-2xl bg-white p-6 sm:rounded-2xl">
-        <h3 className="text-lg font-bold">Print your recovery sheet</h3>
+        <h3 className="text-lg font-bold">{t("phraseDialogTitle")}</h3>
         {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         {!words ? (
-          <p className="text-sm text-stone-500">Preparing…</p>
+          <p className="text-sm text-stone-500">{t("preparing")}</p>
         ) : (
           <>
-            <p className="text-sm text-stone-600">
-              This one-page sheet holds the 24 words that can bring your signing identity to a
-              new device. Print it and keep it with your important papers at home. Anyone
-              holding the sheet can sign as you — and nobody, including the church, can
-              recreate it if it&apos;s lost.
-            </p>
+            <p className="text-sm text-stone-600">{t("sheetBody")}</p>
             <button className="btn-primary w-full" onClick={downloadSheet} data-testid="download-recovery-pdf">
-              {downloaded ? "✓ Downloaded — print it now" : "🖨️ Download the sheet to print (PDF)"}
+              {downloaded ? t("downloadedPrint") : t("downloadSheet")}
             </button>
             <details className="rounded-lg bg-stone-50 p-3 text-xs text-stone-600">
               <summary className="cursor-pointer select-none font-medium">
-                No printer? Copy the words by hand
+                {t("noPrinter")}
               </summary>
               <ol
                 className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 font-mono text-sm sm:grid-cols-3"
@@ -523,11 +505,11 @@ function PhraseDialog({
                 onChange={(e) => setSaved(e.target.checked)}
                 data-testid="recovery-saved-checkbox"
               />
-              <span>The sheet is printed (or written out) and stored somewhere safe.</span>
+              <span>{t("savedCheckbox")}</span>
             </label>
             <div className="flex justify-end gap-2">
               <button className="btn-secondary" onClick={onClose}>
-                Cancel
+                {tCommon("cancel")}
               </button>
               <button
                 className="btn-primary disabled:opacity-50"
@@ -535,7 +517,7 @@ function PhraseDialog({
                 onClick={() => void onDone()}
                 data-testid="phrase-done"
               >
-                Done
+                {t("done")}
               </button>
             </div>
           </>

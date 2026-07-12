@@ -39,7 +39,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       where: { id, userId },
       include: REVIEW_INCLUDE,
     });
-    if (!reimbursement) throw new ApiError(404, "Claim not found");
+    if (!reimbursement) throw new ApiError(404, "Claim not found", "claimNotFound");
     return NextResponse.json({ reimbursement });
   });
 }
@@ -68,16 +68,16 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     const userId = await requireUserId();
     const { id } = await ctx.params;
     const parsed = ClaimPatchSchema.safeParse(await req.json().catch(() => null));
-    if (!parsed.success) throw new ApiError(400, "Invalid claim update");
+    if (!parsed.success) throw new ApiError(400, "Invalid claim update", "invalidClaimUpdate");
     const patch = parsed.data;
 
     const claim = await prisma.reimbursement.findFirst({
       where: { id, userId },
       include: { lineItems: true },
     });
-    if (!claim) throw new ApiError(404, "Claim not found");
+    if (!claim) throw new ApiError(404, "Claim not found", "claimNotFound");
     if (claim.status !== "draft") {
-      throw new ApiError(409, "Claim already generated; review settings are frozen");
+      throw new ApiError(409, "Claim already generated; review settings are frozen", "claimSettingsFrozen");
     }
 
     const singleMinistry = patch.singleMinistry ?? claim.singleMinistry;
@@ -176,8 +176,8 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
     const userId = await requireUserId();
     const { id } = await ctx.params;
     const reimbursement = await prisma.reimbursement.findFirst({ where: { id, userId } });
-    if (!reimbursement) throw new ApiError(404, "Claim not found");
-    if (reimbursement.status !== "draft") throw new ApiError(409, "Only draft claims can be deleted");
+    if (!reimbursement) throw new ApiError(404, "Claim not found", "claimNotFound");
+    if (reimbursement.status !== "draft") throw new ApiError(409, "Only draft claims can be deleted", "onlyDraftDeletable");
     await prisma.reimbursement.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   });

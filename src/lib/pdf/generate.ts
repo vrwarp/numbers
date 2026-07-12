@@ -1,6 +1,7 @@
 import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from "pdf-lib";
 import { paginateItems } from "./paginate";
 import { applyQrStamp } from "./qr";
+import { embedCjkFont } from "./fonts";
 import { centsToDollarString } from "@/lib/money";
 import type { SignaturePlacement } from "@/lib/esign/placement";
 
@@ -127,11 +128,13 @@ function textFits(
 }
 
 /**
- * Standard Helvetica only encodes WinAnsi (Latin-ish) characters; pdf-lib
- * renders a field containing anything else (e.g. a CJK merchant name) as a
- * completely BLANK appearance — the entire value vanishes from the printed
- * form. Keep the encodable part and mark each dropped run with a single "…"
- * so the omission stays visible next to the attached receipt.
+ * pdf-lib renders a field containing characters its appearance font cannot
+ * encode as a completely BLANK appearance — the entire value vanishes from
+ * the printed form. Values that outgrow Helvetica (WinAnsi) are drawn with
+ * the bundled CJK face instead (see fillFormPage); this sanitizer is the last
+ * net for characters even that font lacks (e.g. emoji in a receipt note):
+ * keep the encodable part and mark each dropped run with a single "…" so the
+ * omission stays visible next to the attached receipt.
  */
 export function toEncodableText(text: string, font: PDFFont): string {
   const charset = new Set(font.getCharacterSet());
@@ -149,12 +152,76 @@ export function toEncodableText(text: string, font: PDFFont): string {
   return out === text ? text : out.replace(/[^\S\n\f\r]+/g, " ").trim();
 }
 
+/**
+ * Text wrapped at measured widths with explicit newlines, so what we size is
+ * exactly what pdf-lib renders. Chinese runs carry no spaces, and pdf-lib's
+ * multiline layout only breaks at whitespace — an unspaced run longer than
+ * the field would overflow it sideways. Whitespace-separated tokens keep
+ * word-wrapping; a token wider than the field breaks per character (fine for
+ * CJK, where any character is a legal break point).
+ */
+export function wrapTextMeasured(
+  text: string,
+  font: PDFFont,
+  width: number,
+  size: number
+): string {
+  const fits = (s: string) => font.widthOfTextAtSize(s, size) <= width;
+  const lines: string[] = [];
+  for (const paragraph of text.split(/[\n\f\r]/)) {
+    let line = "";
+    for (const token of paragraph.match(/\s+|\S+/g) ?? []) {
+      if (fits(line + token.trimEnd())) {
+        line += token;
+      } else if (/^\s+$/.test(token)) {
+        lines.push(line.trimEnd());
+        line = "";
+      } else if (fits(token)) {
+        lines.push(line.trimEnd());
+        line = token;
+      } else {
+        for (const ch of token) {
+          if (line && !fits(line.trimEnd() + ch)) {
+            lines.push(line.trimEnd());
+            line = "";
+          }
+          line += ch;
+        }
+      }
+    }
+    lines.push(line.trimEnd());
+  }
+  return lines.join("\n");
+}
+
+/** fittingFontSize, but for CJK multiline values: wrap at each candidate size. */
+function fitWrappedText(
+  text: string,
+  font: PDFFont,
+  bounds: FieldBounds,
+  maxSize: number
+): { size: number; text: string } {
+  for (let size = maxSize; size > MIN_FONT_SIZE; size--) {
+    const wrapped = wrapTextMeasured(text, font, bounds.width, size);
+    const lines = wrapped.split("\n").length;
+    if (font.heightAtSize(size) * 1.2 * lines <= bounds.height) {
+      return { size, text: wrapped };
+    }
+  }
+  return {
+    size: MIN_FONT_SIZE,
+    text: wrapTextMeasured(text, font, bounds.width, MIN_FONT_SIZE),
+  };
+}
+
 export async function generateClaimPdf(input: ClaimPdfInput): Promise<Uint8Array> {
   if (!input.templateBytes?.length) {
     throw new Error("CFCC form template PDF is missing");
   }
   const doc = await PDFDocument.create();
   const helv = await doc.embedFont(StandardFonts.Helvetica);
+  let cjk: PDFFont | null = null;
+  const cjkFont = async () => (cjk ??= await embedCjkFont(doc));
 
   const pages = paginateItems(input.items);
   const grandTotal = input.items.reduce((s, it) => s + it.amountCents, 0);
@@ -166,7 +233,7 @@ export async function generateClaimPdf(input: ClaimPdfInput): Promise<Uint8Array
   }
 
   for (let i = 0; i < input.receipts.length; i++) {
-    await appendReceipt(doc, helv, input.receipts[i], i + 1, input.receipts.length);
+    await appendReceipt(doc, helv, cjkFont, input.receipts[i], i + 1, input.receipts.length);
   }
 
   return doc.save();
@@ -183,60 +250,76 @@ async function fillFormPage(
   const tpl = await PDFDocument.load(input.templateBytes);
   const form = tpl.getForm();
   const helv = await tpl.embedFont(StandardFonts.Helvetica);
+  let cjk: PDFFont | null = null;
 
   // Values that don't fit their field at the design size (wide ALL-CAPS
   // descriptions, long ministry names, long addresses) shrink just enough to
-  // stay inside the field rect instead of being clipped by it.
-  const setText = (fieldName: string, rawValue: string, maxFontSize: number) => {
+  // stay inside the field rect instead of being clipped by it. Values that
+  // outgrow WinAnsi (Chinese merchant names, ministries, requester names)
+  // switch to the bundled CJK face — each field's appearance is generated
+  // with its own font, which flatten() then bakes in.
+  const setText = async (fieldName: string, rawValue: string, maxFontSize: number) => {
     try {
-      const value = toEncodableText(rawValue, helv);
+      let font = helv;
+      let value = toEncodableText(rawValue, helv);
+      if (value !== rawValue) {
+        font = cjk ??= await embedCjkFont(tpl);
+        value = toEncodableText(rawValue, font);
+      }
       const field = form.getTextField(fieldName);
       const widget = field.acroField.getWidgets()[0];
       let size = maxFontSize;
       if (widget) {
         const rect = widget.getRectangle();
         const inset = ((widget.getBorderStyle()?.getWidth() ?? 0) + 1) * 2;
-        size = fittingFontSize(
-          value,
-          helv,
-          { width: rect.width - inset, height: rect.height - inset },
-          maxFontSize,
-          field.isMultiline()
-        );
+        const bounds = { width: rect.width - inset, height: rect.height - inset };
+        if (font !== helv && field.isMultiline()) {
+          // pdf-lib only wraps at whitespace — pre-wrap unspaced CJK runs at
+          // measured widths so the sized text is exactly what gets rendered.
+          ({ size, text: value } = fitWrappedText(value, font, bounds, maxFontSize));
+        } else {
+          size = fittingFontSize(value, font, bounds, maxFontSize, field.isMultiline());
+        }
       }
       field.setFontSize(size);
       field.setText(value);
+      field.updateAppearances(font);
     } catch {
       // Field missing on a customized template — value is simply omitted.
       console.warn(`PDF template is missing field "${fieldName}"`);
     }
   };
 
-  setText("Make check payable to", input.requesterName, 10);
+  await setText("Make check payable to", input.requesterName, 10);
   const [addr1, addr2] = splitAddress(input.requesterAddress);
-  setText("Mail check to address", addr1, 10);
-  setText("Make check to address 2", addr2, 10);
+  await setText("Mail check to address", addr1, 10);
+  await setText("Make check to address 2", addr2, 10);
 
-  items.forEach((item, i) => {
+  for (const [i, item] of items.entries()) {
     const row = i + 1;
-    setText(`Description QuantityRow${row}`, item.description, 8);
-    setText(`AmountRow${row}`, centsToDollarString(item.amountCents), 9);
-    setText(`For Ministry  EventRow${row}`, item.ministry, 8);
-  });
-
-  const isLastPage = pageIndex === pageCount - 1;
-  setText("TotalAmount", isLastPage ? centsToDollarString(grandTotalCents) : "(continued)", 10);
-  if (pageCount > 1) {
-    setText("For Ministry  EventTotal", `Page ${pageIndex + 1} of ${pageCount}`, 8);
+    await setText(`Description QuantityRow${row}`, item.description, 8);
+    await setText(`AmountRow${row}`, centsToDollarString(item.amountCents), 9);
+    await setText(`For Ministry  EventRow${row}`, item.ministry, 8);
   }
 
-  setText("Requestor Name", input.requesterName, 10);
-  setText("Request Date", input.dateString, 10);
+  const isLastPage = pageIndex === pageCount - 1;
+  await setText(
+    "TotalAmount",
+    isLastPage ? centsToDollarString(grandTotalCents) : "(continued)",
+    10
+  );
+  if (pageCount > 1) {
+    await setText("For Ministry  EventTotal", `Page ${pageIndex + 1} of ${pageCount}`, 8);
+  }
+
+  await setText("Requestor Name", input.requesterName, 10);
+  await setText("Request Date", input.dateString, 10);
   // "Approved by" and "For Treasurer use only" stay blank here — the approver's
   // ink is stamped on the certificate delivery copy after approval (the packet
   // bytes are frozen under signature by then; see the certificate route).
 
-  form.updateFieldAppearances(helv);
+  // Untouched fields keep their (empty) template appearances; the fields we
+  // set were regenerated above, each with the font that can encode its value.
   form.flatten();
 
   // Stamped AFTER flattening so the QR (and the narrowed note box that makes
@@ -321,7 +404,8 @@ export function splitAddress(address: string): [string, string] {
 
 async function appendReceipt(
   doc: PDFDocument,
-  font: PDFFont,
+  helv: PDFFont,
+  cjkFont: () => Promise<PDFFont>,
   receipt: PdfReceipt,
   index: number,
   total: number
@@ -354,12 +438,11 @@ async function appendReceipt(
   const h = image.height * scale;
   // drawText has no clipping — a long file name or note would run past the
   // page edge, so shrink a little and then truncate with an ellipsis.
-  let label = toEncodableText(
-    `Receipt ${index} of ${total} — ${receipt.originalName}${
-      receipt.note ? ` — ${receipt.note}` : ""
-    }`,
-    font
-  );
+  const rawLabel = `Receipt ${index} of ${total} — ${receipt.originalName}${
+    receipt.note ? ` — ${receipt.note}` : ""
+  }`;
+  const font = toEncodableText(rawLabel, helv) === rawLabel ? helv : await cjkFont();
+  let label = toEncodableText(rawLabel, font);
   let labelSize = 9;
   while (labelSize > 7 && font.widthOfTextAtSize(label, labelSize) > maxW) labelSize--;
   if (font.widthOfTextAtSize(label, labelSize) > maxW) {

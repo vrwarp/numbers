@@ -29,6 +29,21 @@ src/lib/config-file.ts          configValue(name): env setting resolved from
 src/lib/ministries.ts           MINISTRY_GROUPS budget categories (+ flat MINISTRIES,
                                 isKnownMinistry, formatMinistryEvent, mostCommonMinistryEvent)
                                 — dependency-free, safe for client components
+src/lib/locales.ts              LOCALES en/zh-Hans/zh-Hant, labels, numbers_locale cookie
+                                name, Accept-Language negotiator — dependency-free, client-safe
+src/i18n/request.ts             next-intl request config: cookie → Accept-Language → en
+                                (no URL locale routing, no middleware)
+src/i18n/cookie.ts              setLocaleCookie + syncLocalePreference (sign-in reconciles
+                                device cookie vs User.locale) — SERVER ONLY
+src/lib/use-api-error.ts        useApiErrorMessage(): client hook translating {error, code,
+                                params} bodies (and NDJSON error lines) via Errors.* catalog
+src/lib/translation-state.ts    flatten/unflatten/messageArguments + StateEntry — shared by the
+                                parity test and scripts/translate-messages.ts
+src/components/LocaleSwitcher.tsx  language select (NavBar + sign-in page): writes the cookie,
+                                PATCHes profile when signed in, router.refresh()
+messages/*.json                 the string catalogs (en = source of truth) + GLOSSARY.md +
+                                translation-state.json (per-key English source/status/context)
+scripts/translate-messages.ts   npm run translate — drafting/staleness/state pipeline
 src/lib/church-context.ts       loadChurchContext(): operator-authored church vocabulary doc
                                 (CHURCH_CONTEXT_PATH, default <DATA_DIR>/church-context.md;
                                 null when absent; 16 KB cap) fed into suggestion prompts —
@@ -87,6 +102,12 @@ src/lib/pdf/qr.ts               qrMatrix(url) + applyQrStamp(page, url, font): n
                                 a vector QR of the /c/<publicToken> capability URL in the
                                 freed slot beside it (geometry in NOTE_BOX / QR_STAMP)
 src/lib/pdf/loadTemplate.ts     TEMPLATE_PDF env override, else assets/cfcc-form-template.pdf
+src/lib/pdf/fonts.ts            embedCjkFont(doc): bundled pan-CJK Noto face
+                                (assets/fonts/NotoSansCJKtc-Regular.otf, CJK_FONT_PATH
+                                override) embedded as a subset via upstream fontkit 2.x
+                                (adapter bridges pdf-lib's encodeStream expectation —
+                                @pdf-lib/fontkit drops glyphs on CJK-scale fonts). Used by
+                                generate.ts for any field/label value Helvetica can't encode
 src/lib/image-client.ts         DOM-only canvas helpers for the pre-upload prepare step:
                                 renderTransformedImage (rotate/crop at native resolution,
                                 crop fractions on the ROTATED frame — same contract as
@@ -152,7 +173,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 .github/workflows/docker.yml    PR: dry-run build; main: push to Docker Hub
 ```
 
-## API routes (all: handleApi + requireUserId; JSON errors `{error}`)
+## API routes (all: handleApi + requireUserId; JSON errors `{error, code?, params?}` — code is the client-translation key)
 
 | Route | Methods | Behavior |
 | :-- | :-- | :-- |
@@ -237,8 +258,12 @@ Header/footer fields: `Make check payable to`, `Mail check to address`,
 `Make check to address 2` (sic — that's the real name), `TotalAmount` (grand total on last
 page, `(continued)` earlier), `For Ministry  EventTotal` (used for `Page x of y` when
 multi-page), `Requestor Name`, `Request Date`. Left blank on purpose: `Approver Name`,
-`Approval Date`, treasurer fields. Missing fields warn and skip (template swap tolerance);
-`form.updateFieldAppearances(helv)` then `form.flatten()` bakes values in.
+`Approval Date`, treasurer fields. Missing fields warn and skip (template swap tolerance).
+Each set field's appearance is generated with the font that can encode its value —
+Helvetica for WinAnsi-clean values, the bundled CJK face (src/lib/pdf/fonts.ts) otherwise,
+with unspaced CJK runs pre-wrapped at measured widths (pdf-lib only wraps at spaces) —
+then `form.flatten()` bakes values in. Characters even the CJK face lacks (emoji) degrade
+to "…" via `toEncodableText`.
 
 The bundled template is the church's original reworked once by
 `scripts/shrink-quantity-column.mjs` (quantity column narrowed to 36pt and headed "Qty",
@@ -274,4 +299,5 @@ through `configValue()`; add new ones the same way.
 | `CHURCH_CONTEXT_PATH` | operator-authored church vocabulary markdown fed into suggestion prompts; default `<DATA_DIR>/church-context.md`; feature degrades gracefully when absent. Contents are sent to the AI provider |
 | `AUTH_TEST_MODE=1` | enables dev login (tests/dev only) |
 | `TEMPLATE_PDF` | optional replacement blank form path |
+| `CJK_FONT_PATH` | optional replacement CJK font for PDF values (default `assets/fonts/NotoSansCJKtc-Regular.otf`; unreadable → warn + bundled) |
 | `E2E_BROWSERS`, `E2E_FORCE_BUILD`, `PLAYWRIGHT_CHROMIUM_PATH` | test harness (see TESTING.md) |

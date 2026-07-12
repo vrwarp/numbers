@@ -1,11 +1,12 @@
 # Numbers — agent guide
 
-Church reimbursement app: photograph receipts ("Shoebox") → receipt-level LLM extraction
+Church reimbursement app: photograph receipts (the "Shoebox" — UI label: "Receipts") → receipt-level LLM extraction
 (merchant, date, printed total, refund total, item summary — ONE line item per receipt;
 OpenRouter or Google AI Studio, per `AI_PROVIDER`) → human verifies every row → filled official
 CFCC PDF form + receipts appended. Splitting a row is the multi-ministry mechanism; there is no
-per-item extraction. Next.js 15 App Router, SQLite + Prisma, Firebase Auth (+ self-issued
-session cookie), sharp, pdf-lib. Single Docker container, `/data` volume.
+per-item extraction. UI in en/zh-Hans/zh-Hant (next-intl; catalogs in `messages/`). Next.js 15
+App Router, SQLite + Prisma, Firebase Auth (+ self-issued session cookie), sharp, pdf-lib.
+Single Docker container, `/data` volume.
 
 ## Commands
 
@@ -13,6 +14,7 @@ session cookie), sharp, pdf-lib. Single Docker container, `/data` volume.
 npm run dev                 # dev server (needs .env; see .env.example)
 npm run build               # prod build (runs type checking; use to validate changes)
 npm test                    # Vitest unit suite (fast, no db)
+npm run translate           # draft/refresh zh catalogs + translation-state (see CONVENTIONS)
 npm run test:e2e            # Playwright; local sandbox: E2E_BROWSERS=chromium \
                             #   PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run test:e2e
 npm run esign:emulators     # Firebase auth+firestore emulators for e-sign e2e on the
@@ -58,7 +60,9 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    paths must keep this trail complete.
 8. **The PDF is an AcroForm fill** of `assets/cfcc-form-template.pdf` (13 rows/page). Field
    names are the contract — see `docs/agent/ARCHITECTURE.md` for the exact list (note the
-   double space in `For Ministry  EventRow{n}`).
+   double space in `For Ministry  EventRow{n}`). Values Helvetica can't encode (Chinese
+   descriptions/names) are drawn with the bundled CJK face (`src/lib/pdf/fonts.ts`) — never
+   reintroduce blanket WinAnsi stripping.
 9. **E-sign chain of custody** (`docs/ESIGN_DESIGN.md` is the implementation contract):
    once a claim leaves `generated` its packet bytes are archived per-hash under
    `signed/…/<sha256>.pdf` and never regenerated, overwritten, or deleted (claim deletion
@@ -77,6 +81,11 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    the roster. Dev/tests: `ESIGN_MOCK=1` + `ESIGN_ROOT_EMAIL` run the full protocol
    (real ECDSA, real hash binding, real charproof custody) on SQLite ledger +
    device-sync stores, no Firebase.
+10. **Every user-visible string comes from `messages/<locale>.json`** (en source of truth,
+   zh-Hans + zh-Hant) via next-intl; API errors carry machine-readable `code`s translated
+   client-side. New/changed English ⇒ `npm run translate` (staleness is a red `npm test`).
+   Rules and workflow: `docs/agent/CONVENTIONS.md` "Localization". The official form itself
+   stays English; user data and ministry canonical values are never translated.
 
 ## Docs map
 

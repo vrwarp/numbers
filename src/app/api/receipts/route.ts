@@ -47,16 +47,16 @@ export async function POST(req: NextRequest) {
     const userId = await requireUserId();
     const form = await req.formData();
     const files = form.getAll("files").filter((f): f is File => f instanceof File);
-    if (files.length === 0) throw new ApiError(400, "No files uploaded");
+    if (files.length === 0) throw new ApiError(400, "No files uploaded", "noFilesUploaded");
     const note = String(form.get("note") ?? "").trim().slice(0, 300);
 
     const created = [];
     for (const file of files) {
       if (!isSupportedUpload(file.type)) {
-        throw new ApiError(415, `Unsupported file type: ${file.type || "unknown"}`);
+        throw new ApiError(415, `Unsupported file type: ${file.type || "unknown"}`, "unsupportedFileType", { type: file.type || "unknown" });
       }
       const raw = Buffer.from(await file.arrayBuffer());
-      if (raw.length === 0) throw new ApiError(400, `Empty file: ${file.name}`);
+      if (raw.length === 0) throw new ApiError(400, `Empty file: ${file.name}`, "emptyFile", { name: file.name });
 
       let data: Buffer = raw;
       let mimeType = file.type;

@@ -61,7 +61,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         throw new ApiError(400, "decision must be approve or reject");
       }
       if (body.decision === "approve" && !body.typedName?.trim()) {
-        throw new ApiError(400, "Type your name to sign an approval");
+        throw new ApiError(400, "Type your name to sign an approval", "esign.typeNameApproval");
       }
       const { evaluation } = await claimEvaluation(registry, ledgerCtx);
       const thread = evaluation.threads.find((t) => t.seq === claim.submitSeq);

@@ -1,11 +1,14 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { currentUserId } from "@/auth";
 import { isAuthTestMode } from "@/lib/config";
 import { firebaseWebConfig } from "@/lib/firebase-admin";
 import SignInCard from "@/components/SignInCard";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
 
 export default async function SignInPage() {
   if (await currentUserId()) redirect("/");
+  const t = await getTranslations("SignIn");
 
   return (
     <div className="mx-auto mt-16 max-w-md">
@@ -14,11 +17,12 @@ export default async function SignInPage() {
           ⛪
         </div>
         <h1 className="mt-3 text-2xl font-bold text-indigo-700">Numbers</h1>
-        <p className="mt-1 text-sm text-stone-500">
-          CFCC expense reimbursements — snap receipts now, file the claim later.
-        </p>
+        <p className="mt-1 text-sm text-stone-500">{t("tagline")}</p>
 
         <SignInCard firebaseConfig={firebaseWebConfig()} testMode={isAuthTestMode()} />
+      </div>
+      <div className="mt-4 flex justify-center">
+        <LocaleSwitcher />
       </div>
     </div>
   );

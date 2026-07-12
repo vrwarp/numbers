@@ -60,7 +60,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       where: { id, userId },
       select: { id: true, originalFilePath: true },
     });
-    if (!receipt) throw new ApiError(404, "Receipt not found");
+    if (!receipt) throw new ApiError(404, "Receipt not found", "receiptNotFound");
     return NextResponse.json({ hasOriginal: receipt.originalFilePath != null });
   });
 }
@@ -79,24 +79,25 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const userId = await requireUserId();
     const { id } = await ctx.params;
     const parsed = BodySchema.safeParse(await req.json().catch(() => null));
-    if (!parsed.success) throw new ApiError(400, "Invalid image edit");
+    if (!parsed.success) throw new ApiError(400, "Invalid image edit", "invalidImageEdit");
     const { rotate, crop, restore, reimbursementId } = parsed.data;
     const hasTransform = rotate !== 0 || !!crop;
-    if (!restore && !hasTransform) throw new ApiError(400, "Nothing to change");
+    if (!restore && !hasTransform) throw new ApiError(400, "Nothing to change", "nothingToChange");
 
     const receipt = await prisma.receipt.findFirst({ where: { id, userId } });
-    if (!receipt) throw new ApiError(404, "Receipt not found");
+    if (!receipt) throw new ApiError(404, "Receipt not found", "receiptNotFound");
     if (!receipt.mimeType.startsWith("image/")) {
-      throw new ApiError(400, "Only image receipts can be rotated or cropped");
+      throw new ApiError(400, "Only image receipts can be rotated or cropped", "imageEditImagesOnly");
     }
     if (receipt.status === "processed") {
       throw new ApiError(
         409,
-        "This receipt is on a generated claim — revert that claim before editing the image"
+        "This receipt is on a generated claim — revert that claim before editing the image",
+        "receiptFrozenByClaim"
       );
     }
     if (restore && !receipt.originalFilePath) {
-      throw new ApiError(400, "This receipt has no earlier version to restore");
+      throw new ApiError(400, "This receipt has no earlier version to restore", "nothingToRestore");
     }
 
     let claimIdForAudit: string | null = null;
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       const claim = await prisma.reimbursement.findFirst({
         where: { id: reimbursementId, userId, receipts: { some: { receiptId: id } } },
       });
-      if (!claim) throw new ApiError(404, "Claim not found");
+      if (!claim) throw new ApiError(404, "Claim not found", "claimNotFound");
       claimIdForAudit = claim.id;
     }
 
@@ -118,7 +119,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       try {
         output = (await transformReceiptImage(source, { rotate, crop })).data;
       } catch (err) {
-        if (err instanceof ImageTransformError) throw new ApiError(400, err.message);
+        if (err instanceof ImageTransformError) throw new ApiError(400, err.message, "cropTooSmall");
         throw err;
       }
     }

@@ -21,15 +21,15 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const userId = await requireUserId();
     const { id } = await ctx.params;
     const parsed = SplitSchema.safeParse(await req.json().catch(() => ({})));
-    if (!parsed.success) throw new ApiError(400, "Invalid split request");
+    if (!parsed.success) throw new ApiError(400, "Invalid split request", "invalidSplitRequest");
 
     const item = await prisma.lineItem.findFirst({
       where: { id, reimbursement: { userId } },
       include: { reimbursement: { select: { id: true, status: true } } },
     });
-    if (!item) throw new ApiError(404, "Line item not found");
+    if (!item) throw new ApiError(404, "Line item not found", "lineItemNotFound");
     if (item.reimbursement.status !== "draft") {
-      throw new ApiError(409, "Claim already generated; line items are frozen");
+      throw new ApiError(409, "Claim already generated; line items are frozen", "claimFrozen");
     }
 
     const total = item.amountCents;
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const first = parsed.data.firstAmountCents ?? sign * Math.ceil(Math.abs(total) / 2);
     const second = total - first;
     if (first === 0 || second === 0 || Math.abs(first) + Math.abs(second) !== Math.abs(total)) {
-      throw new ApiError(400, "Split amounts must be non-zero and sum to the original amount");
+      throw new ApiError(400, "Split amounts must be non-zero and sum to the original amount", "splitAmountsInvalid");
     }
 
     const [updated, created] = await prisma.$transaction([

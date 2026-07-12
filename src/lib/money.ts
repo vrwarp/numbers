@@ -9,7 +9,14 @@ export function parseDollarsToCents(input: string | number): number {
     if (!Number.isFinite(input)) throw new Error(`Invalid amount: ${input}`);
     return Math.round(input * 100);
   }
-  const cleaned = input.replace(/[$,\s]/g, "");
+  // Chinese IMEs emit full-width digits/punctuation (１２．３４) — normalize
+  // them to ASCII before validating instead of rejecting the amount.
+  const halfWidth = input
+    .replace(/[０-９]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
+    .replace(/．/g, ".")
+    .replace(/[－−]/g, "-")
+    .replace(/[＄￥，]/g, "");
+  const cleaned = halfWidth.replace(/[$,\s]/g, "");
   if (!/^-?\d*(\.\d{0,4})?$/.test(cleaned) || cleaned === "" || cleaned === "-") {
     throw new Error(`Invalid amount: ${input}`);
   }

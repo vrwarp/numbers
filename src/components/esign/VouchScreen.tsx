@@ -11,6 +11,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { useTranslations } from "next-intl";
 import {
   grantRole,
   loadEnv,
@@ -21,6 +22,7 @@ import {
   type VouchSubject,
 } from "@/lib/esign/client";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
+import { useThrownErrorMessage } from "@/lib/use-api-error";
 
 function RoleButtons({
   env,
@@ -31,6 +33,8 @@ function RoleButtons({
   member: { userId: string; name: string; role: string; publicKey: string };
   onDone: () => Promise<void>;
 }) {
+  const t = useTranslations("Vouch");
+  const tRole = useTranslations("Common.role");
   const [busy, setBusy] = useState(false);
   async function set(role: "approver" | "treasurer", revoke: boolean) {
     setBusy(true);
@@ -45,11 +49,7 @@ function RoleButtons({
   // the root retires the KEY itself. Their history stays valid; they enroll a
   // fresh key and get re-vouched.
   async function revokeKey() {
-    if (
-      !confirm(
-        `Revoke ${member.name}'s signing key?\n\nDo this when a device that could sign as them was lost or stolen. Everything they already signed stays valid, but the key stops working everywhere — they'll set up signing again and be vouched for again in person.`
-      )
-    ) {
+    if (!confirm(t("revokeKeyConfirm", { name: member.name }))) {
       return;
     }
     setBusy(true);
@@ -68,7 +68,7 @@ function RoleButtons({
         onClick={revokeKey}
         data-testid={`revoke-key-${member.userId}`}
       >
-        revoke key
+        {t("revokeKey")}
       </button>
       {member.role === "approver" || member.role === "treasurer" ? (
         <button
@@ -76,7 +76,9 @@ function RoleButtons({
           disabled={busy}
           onClick={() => set(member.role as "approver" | "treasurer", true)}
         >
-          revoke {member.role}
+          {t("revokeRole", {
+            role: tRole(member.role as "approver" | "treasurer"),
+          })}
         </button>
       ) : (
         <>
@@ -86,7 +88,7 @@ function RoleButtons({
             onClick={() => set("approver", false)}
             data-testid={`grant-approver-${member.userId}`}
           >
-            make approver
+            {t("grantApprover")}
           </button>
           <button
             className="rounded-lg border border-indigo-200 px-2 py-0.5 text-xs text-indigo-700 hover:bg-indigo-50"
@@ -94,7 +96,7 @@ function RoleButtons({
             onClick={() => set("treasurer", false)}
             data-testid={`grant-treasurer-${member.userId}`}
           >
-            make treasurer
+            {t("grantTreasurer")}
           </button>
         </>
       )}
@@ -121,6 +123,11 @@ function decodeSubject(c: string): VouchSubject | null {
 }
 
 function VouchInner() {
+  const t = useTranslations("Vouch");
+  const tEsign = useTranslations("Esign");
+  const tCommon = useTranslations("Common");
+  const tRole = useTranslations("Common.role");
+  const thrown = useThrownErrorMessage();
   const params = useSearchParams();
   const [env, setEnv] = useState<EsignEnv | null>(null);
   const [subject, setSubject] = useState<VouchSubject | null>(null);
@@ -156,7 +163,7 @@ function VouchInner() {
         setEnv(loaded);
         if (encoded) {
           const s = decodeSubject(encoded);
-          if (!s) setError("This vouch link is malformed — rescan the QR");
+          if (!s) setError(t("malformedLink"));
           else {
             setSubject(s);
             setFingerprint(await keyFingerprint(s.publicKey));
@@ -177,9 +184,10 @@ function VouchInner() {
           setActiveKeys(byUid);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Could not load");
+        setError(thrown(err, tEsign("loadFailed")));
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [encoded]);
 
   const canVouch = env?.enabled === true && env?.me.identityStatus === "attested";
@@ -204,31 +212,37 @@ function VouchInner() {
       // (and, for the root, the role buttons for the new member).
       await refreshMembers();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Vouch failed");
+      setError(thrown(err, t("vouchFailed")));
     } finally {
       setBusy(false);
     }
   }
 
-  if (!env) return <p className="text-sm text-stone-500">Loading…</p>;
+  if (!env) return <p className="text-sm text-stone-500">{tCommon("loading")}</p>;
+
+  const roleName = (role: string) =>
+    (["member", "approver", "treasurer", "admin"] as const).find((r) => r === role);
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
-      <h1 className="text-2xl font-bold">Vouch for a member</h1>
+      <h1 className="text-2xl font-bold">{t("title")}</h1>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
       {!canVouch ? (
         <p className="card p-5 text-sm text-stone-600">
-          Only attested members can vouch. Enable signing on your{" "}
-          <a href="/profile" className="text-indigo-600 underline">profile</a> and get vouched first.
+          {t.rich("onlyAttested", {
+            link: (chunks) => (
+              <a href="/profile" className="text-indigo-600 underline">
+                {chunks}
+              </a>
+            ),
+          })}
         </p>
       ) : done ? (
         <div className="card space-y-2 p-5" data-testid="vouch-done">
           <div className="text-3xl">✅</div>
-          <p className="font-medium">Vouch recorded for {subject?.name}.</p>
-          <p className="text-sm text-stone-500">
-            They need two member vouches (or one from an approver) to become attested.
-          </p>
+          <p className="font-medium">{t("doneTitle", { name: subject?.name ?? "" })}</p>
+          <p className="text-sm text-stone-500">{t("doneBody")}</p>
         </div>
       ) : subject ? (
         <div className="card space-y-4 p-5">
@@ -237,17 +251,17 @@ function VouchInner() {
             <div className="text-sm text-stone-500">{subject.email}</div>
             {fingerprint && (
               <details className="mt-1 text-xs text-stone-500">
-                <summary className="cursor-pointer select-none">Audit details</summary>
+                <summary className="cursor-pointer select-none">{tEsign("auditDetails")}</summary>
                 <code className="mt-1 block font-mono">{fingerprintDisplay(fingerprint)}</code>
               </details>
             )}
           </div>
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            <p className="font-semibold">Before you vouch, confirm in person:</p>
+            <p className="font-semibold">{t("beforeTitle")}</p>
             <ul className="mt-1 list-inside list-disc space-y-1">
-              <li>The person is physically with you right now.</li>
-              <li>This name and email really belong to them.</li>
-              <li>You scanned the QR from THEIR screen (not a forwarded link).</li>
+              <li>{t("bullet1")}</li>
+              <li>{t("bullet2")}</li>
+              <li>{t("bullet3")}</li>
             </ul>
           </div>
           {(activeKeys[subject.uid] ?? []).some((k) => k !== subject.publicKey) && (
@@ -255,29 +269,22 @@ function VouchInner() {
               className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-900"
               data-testid="rekey-notice"
             >
-              <p className="font-semibold">This replaces {subject.name}&apos;s previous signing key.</p>
-              <p className="mt-1">
-                Usually that means a lost device. The moment they&apos;re vouched back in,
-                the old key stops counting — everything they signed before stays valid. Be
-                extra sure it&apos;s really them.
-              </p>
+              <p className="font-semibold">{t("rekeyTitle", { name: subject.name })}</p>
+              <p className="mt-1">{t("rekeyBody")}</p>
             </div>
           )}
           {!encoded && (
             <div className="space-y-1">
-              <label className="text-sm font-medium">
-                Type their full key fingerprint (from their screen — the spoken 6-digit code is
-                never enough):
-              </label>
+              <label className="text-sm font-medium">{t("manualLabel")}</label>
               <input
                 className="input font-mono text-xs"
-                placeholder="64 hex characters (≥32 accepted)"
+                placeholder={t("manualPlaceholder")}
                 value={manualFp}
                 onChange={(e) => setManualFp(e.target.value)}
                 data-testid="manual-fingerprint"
               />
               {!manualMatches && manualFp.length > 0 && (
-                <p className="text-xs text-red-600">Fingerprint does not match.</p>
+                <p className="text-xs text-red-600">{t("fpMismatch")}</p>
               )}
             </div>
           )}
@@ -289,7 +296,10 @@ function VouchInner() {
               data-testid="vouch-confirm"
             />
             <span>
-              I am with <strong>{subject.name}</strong> in person and confirm this identity is theirs.
+              {t.rich("confirmLabel", {
+                name: subject.name,
+                b: (chunks) => <strong>{chunks}</strong>,
+              })}
             </span>
           </label>
           <button
@@ -298,18 +308,16 @@ function VouchInner() {
             onClick={submitVouch}
             data-testid="vouch-submit"
           >
-            {busy ? "Signing…" : "Sign the vouch"}
+            {busy ? tEsign("signing") : t("signVouch")}
           </button>
         </div>
       ) : (
         <div className="card space-y-4 p-5">
           <p className="text-sm text-stone-600">
-            Scan the candidate&apos;s QR with your phone camera — it opens this page with their
-            identity attached. No QR handy? Pick them below and type their <strong>full key
-            fingerprint</strong> (read from their screen; the short spoken code is not enough).
+            {t.rich("scanIntro", { b: (chunks) => <strong>{chunks}</strong> })}
           </p>
           {pending.length === 0 ? (
-            <p className="text-sm text-stone-500">Nobody is currently awaiting vouches.</p>
+            <p className="text-sm text-stone-500">{t("nobodyPending")}</p>
           ) : (
             <ul className="space-y-2">
               {pending.map((p) => (
@@ -332,15 +340,15 @@ function VouchInner() {
 
       {members.length > 0 && (
         <div className="card p-5">
-          <h2 className="text-sm font-semibold text-stone-500">Attested members</h2>
+          <h2 className="text-sm font-semibold text-stone-500">{t("attestedMembers")}</h2>
           <ul className="mt-2 space-y-2 text-sm">
             {members.map((m) => (
               <li key={m.userId} className="flex flex-wrap items-center justify-between gap-2">
                 <span>
                   {m.name}
                   {m.role !== "member" && (
-                    <span className="ml-2 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold capitalize text-indigo-700">
-                      {m.role}
+                    <span className="ml-2 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                      {roleName(m.role) ? tRole(roleName(m.role)!) : m.role}
                     </span>
                   )}
                 </span>
@@ -362,8 +370,13 @@ function VouchInner() {
 
 export default function VouchScreen() {
   return (
-    <Suspense fallback={<p className="text-sm text-stone-500">Loading…</p>}>
+    <Suspense fallback={<Fallback />}>
       <VouchInner />
     </Suspense>
   );
+}
+
+function Fallback() {
+  const tCommon = useTranslations("Common");
+  return <p className="text-sm text-stone-500">{tCommon("loading")}</p>;
 }

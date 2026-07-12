@@ -2,9 +2,11 @@
 
 **Numbers** is a lightweight, multi-tenant web app that takes the friction out of church expense
 reimbursements for Chinese For Christ Church. Snap a photo of a receipt the moment you buy
-("Shoebox" model), batch receipts into a claim once a month, let an LLM draft the line items,
+(the "shoebox" model — the page is simply called **Receipts**), batch receipts into a claim
+once a month, let an LLM draft the line items,
 verify every row by hand, and download a print-ready PDF of the **official CFCC Invoice Payment /
-Expense Reimbursement Form** with all receipts attached.
+Expense Reimbursement Form** with all receipts attached. The whole UI is available in **English,
+简体中文, and 繁體中文** — and Chinese receipt content prints correctly on the official form.
 
 It self-hosts as a **single Docker container** with SQLite and local file storage — backups are
 just a copy of the `/data` folder.
@@ -16,12 +18,13 @@ just a copy of the `/data` folder.
 
 ## The user journey
 
-1. **Shoebox (capture).** Upload a photo or PDF of a receipt from your phone (installable PWA).
+1. **Receipts (capture).** Upload a photo or PDF of a receipt from your phone (installable PWA).
    Images are compressed to ~100 KB on the server; no AI runs at this stage.
-2. **Batch & generate.** Select receipts and hit *Generate Claim*. Each receipt goes to a
-   vision model via OpenRouter or Google AI Studio (one call per receipt) with a strict prompt:
-   line items extracted verbatim, taxes/fees as their own rows, returns/refunds as negative
-   quantities and amounts.
+2. **Batch & generate.** Select receipts and hit *✨ New Claim*. Each receipt goes to a
+   vision model via OpenRouter or Google AI Studio (one call per receipt) with a strict
+   transcription prompt: merchant, date, printed total, refund total, and a one-line item
+   summary — **one row per receipt**, its amount the printed net (splitting a row is how
+   multi-ministry receipts are handled).
 3. **Review & validate.** One card per receipt shows the original image beside its editable
    rows, with a live subtotal to match against the printed total. Most claims are for one
    thing, so new claims start in **single-ministry mode**: pick the ministry & event once at
@@ -45,6 +48,40 @@ just a copy of the `/data` folder.
    stamp to pull up the digital packet — no sign-in needed, the unguessable link is the
    credential.
 
+## Languages — English · 简体中文 · 繁體中文
+
+The UI ships in English, Simplified Chinese (mainland-China audience), and Traditional Chinese
+(Taiwan/Hong Kong audience — real Taiwan vocabulary, not a character conversion of the
+Simplified catalog). A language picker sits in the nav bar and on the sign-in page; the choice
+is kept in a cookie, persisted to the account, and restored at sign-in on a new device.
+First-time visitors get their browser's language.
+
+Untranslated on purpose: the official CFCC form itself (the treasurer's document), ministry
+names (the church's chart of accounts — stored data, printed on the form, and the
+AI-suggestion vocabulary), money (`$12.34` in every language), and anything a user typed.
+Chinese **content** — descriptions, names, receipt notes — renders correctly on the generated
+PDF through an embedded CJK font subset; without it, non-Latin text printed as "…".
+
+### Maintaining translations
+
+`messages/en.json` is the source of truth; `zh-Hans.json` / `zh-Hant.json` mirror it. The
+guard rails: a typo'd key fails `npm run build` (keys are typed against the English catalog);
+a missing translation, a reworded English string, or wording that drifted between linked keys
+fails `npm test`. To update:
+
+```bash
+npm run translate              # draft missing/stale keys via the configured AI provider
+npm run translate -- --todo    # no AI key: fill with English placeholders instead
+```
+
+`messages/translation-state.json` records, per key, the verbatim English source, an optional
+translator hint (`context`), and a per-locale review status (`todo → machine → reviewed`) — a
+bilingual reviewer edits the catalog value and flips the status, and reviewed keys are never
+overwritten without `--force`. Terminology lives in [`messages/GLOSSARY.md`](messages/GLOSSARY.md);
+wording shared across screens is declared (`SAME_VALUE_GROUPS` / `QUOTED_IN` in
+`src/lib/translation-state.ts`) and test-enforced in every language. Both Chinese catalogs are
+currently machine drafts awaiting review by a native speaker.
+
 ## Tech stack
 
 | Component | Technology |
@@ -54,7 +91,8 @@ just a copy of the `/data` folder.
 | File storage | Local filesystem under `DATA_DIR` (Docker volume `/data`) |
 | Image compression | sharp (~100 KB JPEG target, EXIF-rotation safe) |
 | AI parsing | OpenRouter (default) or Google AI Studio / Gemini API (`AI_PROVIDER=google`), strict JSON output validated with zod |
-| PDF engine | pdf-lib — fills + flattens the official form's AcroForm fields, merges receipts |
+| PDF engine | pdf-lib — fills + flattens the official form's AcroForm fields, merges receipts; CJK values drawn with a bundled Noto face (subset-embedded via fontkit) |
+| Localization | next-intl — `en` / `zh-Hans` / `zh-Hant` catalogs in `messages/`, typed keys, AI-drafted + human-reviewed translation pipeline |
 
 Money is stored as **integer cents** everywhere; users only ever see dollars.
 
@@ -83,7 +121,9 @@ The e2e suite builds the app, boots a production server on port 3100 with an iso
 matrix: the desktop projects cover the complete journey — upload → claim → review
 (exclude/split/tax-adjust/verify-all) → PDF download (page count + content assertions) — plus
 extraction-log telemetry, multi-tenant isolation, the verification gate, and deletion/discard
-housekeeping; the mobile projects (Pixel 7 / iPhone 14) cover the phone-first capture flow.
+housekeeping; `i18n.spec.ts` covers language switching and its persistence (the rest of the
+suite runs pinned to English); the mobile projects (Pixel 7 / iPhone 14) cover the phone-first
+capture flow.
 Screenshots of every screen land in `screenshots/`.
 
 Run `npx playwright install --with-deps chromium webkit` once. To limit engines (e.g. where
@@ -176,6 +216,7 @@ See [`config.json.example`](config.json.example) for a full template (`cp config
 | `CHURCH_CONTEXT_PATH` | Optional path to [the church context document](#the-church-context-document); default `<DATA_DIR>/church-context.md` |
 | `DATA_DIR` / `DATABASE_URL` | Preset in the image (`/data`, `file:/data/numbers.db`) |
 | `TEMPLATE_PDF` | Optional path to a replacement blank form (must keep the same AcroForm field names) |
+| `CJK_FONT_PATH` | Optional replacement font for Chinese text on generated PDFs (default: the bundled Noto Sans CJK face) |
 | `AI_MOCK`, `AUTH_TEST_MODE` | Dev/test only — never set in production |
 
 ### iOS / in-app-browser sign-in
@@ -246,16 +287,20 @@ named AcroForm fields (`Make check payable to`, `Description QuantityRow1..13`, 
 the result, so output aligns with the printed form exactly. Claims longer than 13 rows produce
 multiple form pages — earlier pages show "(continued)" in the total cell and a page number in
 the total row's ministry cell; the grand total appears on the last form page. "Approved by" and
-the treasurer section are left blank for ink. When the QR self-link stamp is enabled, the
-"Note:" box is redrawn slightly narrower at generation time (same text, re-flowed) and the QR
-code is placed in the freed space beside it — the bundled template file itself is never
-modified.
+the treasurer section are left blank for ink. Values the form's built-in Helvetica can't encode —
+Chinese descriptions, names, receipt notes — are drawn with a bundled Noto CJK face instead,
+embedded as a subset (a packet grows by kilobytes, not the font's 16 MB). When the QR
+self-link stamp is enabled, the "Note:" box is redrawn slightly narrower at generation time
+(same text, re-flowed) and the QR code is placed in the freed space beside it — the bundled
+template file itself is never modified.
 
 ## Data model
 
-- `users` — Firebase identity, full name, mailing address (printed on the form), role
-- `receipts` — file path, MIME type, size, status `unassigned → processed`
+- `users` — Firebase identity, full name, mailing address (printed on the form), role,
+  UI language (`locale`)
+- `receipts` — file path, MIME type, size, status `unassigned → processed`, extraction-stamped
+  merchant/date/printed totals
 - `reimbursements` — status `draft → generated`, total in cents, QR capability token
-- `line_items` — description, quantity, amount (cents, negative = refund), ministry,
-  `is_verified`, `is_excluded`, sort order
+- `line_items` — description, amount (cents, negative = refund), ministry & event,
+  `is_verified`, `is_excluded`, sort order, frozen `original*` AI values
 - `reimbursement_receipts` — join table linking claims to their receipts

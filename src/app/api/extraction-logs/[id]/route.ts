@@ -18,7 +18,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     const { id } = await ctx.params;
 
     const log = await prisma.extractionLog.findFirst({ where: { id, userId } });
-    if (!log) throw new ApiError(404, "Extraction log not found");
+    if (!log) throw new ApiError(404, "Extraction log not found", "extractionLogNotFound");
 
     const [lineItems, auditEvents] = await Promise.all([
       log.reimbursementId

@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useFormatter, useTranslations } from "next-intl";
 
 /** Thumbnail for a PDF receipt: the top slice of the server-rasterized preview
  *  (browsers can't thumbnail a PDF), falling back to a plain chip if it fails. */
 function PdfThumb({ id }: { id: string }) {
+  const t = useTranslations("ReceiptGrid");
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (
       <div className="text-center text-stone-400">
         <div className="text-4xl">📄</div>
-        <div className="text-xs font-semibold">PDF</div>
+        <div className="text-xs font-semibold">{t("pdfChip")}</div>
       </div>
     );
   }
@@ -19,7 +21,7 @@ function PdfThumb({ id }: { id: string }) {
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={`/api/receipts/${id}/preview?page=1`}
-      alt="PDF receipt"
+      alt={t("pdfThumbAlt")}
       loading="lazy"
       onError={() => setFailed(true)}
       className="h-full w-full object-cover object-top"
@@ -70,6 +72,9 @@ export default function ReceiptGrid({
   fileUrl?: (id: string) => string;
   onView?: (r: ReceiptSummary) => void;
 }) {
+  const t = useTranslations("ReceiptGrid");
+  const tStatus = useTranslations("Common.status");
+  const format = useFormatter();
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
       {receipts.map((r) => {
@@ -104,7 +109,7 @@ export default function ReceiptGrid({
                   e.stopPropagation();
                   onDelete(r.id);
                 }}
-                aria-label={`Delete ${r.originalName}`}
+                aria-label={t("deleteReceipt", { name: r.originalName })}
               >
                 🗑
               </button>
@@ -128,8 +133,8 @@ export default function ReceiptGrid({
                     e.stopPropagation();
                     onView(r);
                   }}
-                  aria-label={`View ${r.originalName} larger`}
-                  title="View larger"
+                  aria-label={t("viewLarger", { name: r.originalName })}
+                  title={t("viewLargerTitle")}
                   data-testid={`receipt-view-${r.id}`}
                 >
                   <svg
@@ -158,22 +163,25 @@ export default function ReceiptGrid({
                   key={`note-${r.id}-${r.note}`}
                   className="w-full rounded border border-transparent bg-transparent px-1 py-0.5 text-[11px] text-stone-600 placeholder:italic hover:border-stone-200 focus:border-stone-300 focus:outline-none"
                   defaultValue={r.note}
-                  placeholder="Add description…"
+                  placeholder={t("notePlaceholder")}
                   maxLength={300}
                   onClick={(e) => e.stopPropagation()}
                   onBlur={(e) => {
                     const v = e.target.value.trim();
                     if (v !== r.note) onSaveNote(r.id, v);
                   }}
-                  aria-label={`Description for ${r.originalName}`}
+                  aria-label={t("noteAria", { name: r.originalName })}
                   data-testid={`receipt-note-${r.id}`}
                 />
               ) : (
                 r.note && <div className="truncate text-[11px] text-stone-600">{r.note}</div>
               )}
               <div className="text-[11px] text-stone-400">
-                {new Date(r.createdAt).toLocaleDateString()} · {(r.sizeBytes / 1024).toFixed(0)} KB
-                {r.status !== "unassigned" && " · processed"}
+                {t("meta", {
+                  date: format.dateTime(new Date(r.createdAt)),
+                  kb: (r.sizeBytes / 1024).toFixed(0),
+                })}
+                {r.status !== "unassigned" && t("processedSuffix")}
               </div>
               {r.claims.length > 0 && (
                 <div className="flex flex-wrap gap-1">
@@ -185,7 +193,8 @@ export default function ReceiptGrid({
                       className="rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] text-indigo-700 hover:bg-indigo-100"
                       data-testid={`claim-link-${r.id}-${c.id}`}
                     >
-                      {c.status === "draft" ? "Draft" : "Claim"} {new Date(c.createdAt).toLocaleDateString()}
+                      {c.status === "draft" ? tStatus("draft") : t("claimChip")}{" "}
+                      {format.dateTime(new Date(c.createdAt))}
                     </Link>
                   ))}
                 </div>

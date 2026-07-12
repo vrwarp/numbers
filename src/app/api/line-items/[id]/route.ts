@@ -27,7 +27,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     const userId = await requireUserId();
     const { id } = await ctx.params;
     const parsed = PatchSchema.safeParse(await req.json().catch(() => null));
-    if (!parsed.success) throw new ApiError(400, "Invalid line item update");
+    if (!parsed.success) throw new ApiError(400, "Invalid line item update", "invalidLineItemUpdate");
     const patch = parsed.data;
 
     const item = await prisma.lineItem.findFirst({
@@ -38,14 +38,14 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         },
       },
     });
-    if (!item) throw new ApiError(404, "Line item not found");
+    if (!item) throw new ApiError(404, "Line item not found", "lineItemNotFound");
     if (item.reimbursement.status !== "draft") {
-      throw new ApiError(409, "Claim already generated; line items are frozen");
+      throw new ApiError(409, "Claim already generated; line items are frozen", "claimFrozen");
     }
     // Verification is an explicit human sign-off, and the ministry is part of
     // it — the AI never assigns one, so the user must choose before approving.
     if (patch.isVerified === true && !(patch.ministry ?? item.ministry)) {
-      throw new ApiError(400, "Choose a ministry before verifying this row");
+      throw new ApiError(400, "Choose a ministry before verifying this row", "ministryRequiredToVerify");
     }
     // A row restored in single-ministry mode missed any fan-out that happened
     // while it was excluded — stamp it back to the claim's ministry/event.

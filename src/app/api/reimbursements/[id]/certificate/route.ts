@@ -10,7 +10,8 @@ import { claimAccessRole, signedPacketPath } from "@/lib/esign/claim-server";
 import { getRegistry, mirroredRawDocs } from "@/lib/esign/server";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
-import { signatureAnchor, stampSignatureAt } from "@/lib/pdf/generate";
+import { embedCjkFont } from "@/lib/pdf/fonts";
+import { signatureAnchor, stampSignatureAt, toEncodableText } from "@/lib/pdf/generate";
 import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
 import { FORM_ROWS_PER_PAGE } from "@/lib/config";
 
@@ -40,7 +41,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     if (!claim) throw new ApiError(404, "Claim not found");
     await claimAccessRole(claim, userId);
     if (!["approved", "paid"].includes(claim.status)) {
-      throw new ApiError(409, "Certificates exist once a claim is approved");
+      throw new ApiError(409, "Certificates exist once a claim is approved", "esign.certNotReady");
     }
     const registry = await getRegistry();
     if (!registry || !claim.signatureLedgerId || !claim.signatureLedgerKey || !claim.packetSha256) {
@@ -86,28 +87,35 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const doc = await PDFDocument.create();
     const helv = await doc.embedFont(StandardFonts.Helvetica);
     const helvBold = await doc.embedFont(StandardFonts.HelveticaBold);
+    // Names, typed signatures, and comments are user data — Chinese values
+    // outgrow WinAnsi, so each string picks Helvetica or the CJK face
+    // (invariant #8; same per-string strategy as the form fill).
+    let cjk: import("pdf-lib").PDFFont | null = null;
+    const cjkFont = async () => (cjk ??= await embedCjkFont(doc));
     const page = doc.addPage([612, 792]);
     let y = 740;
-    const text = (s: string, opts: { size?: number; bold?: boolean; x?: number; color?: [number, number, number] } = {}) => {
-      page.drawText(s, {
+    const text = async (s: string, opts: { size?: number; bold?: boolean; x?: number; color?: [number, number, number] } = {}) => {
+      let font = opts.bold ? helvBold : helv;
+      if (toEncodableText(s, font) !== s) font = await cjkFont();
+      page.drawText(toEncodableText(s, font), {
         x: opts.x ?? 56,
         y,
         size: opts.size ?? 10,
-        font: opts.bold ? helvBold : helv,
+        font,
         color: opts.color ? rgb(...opts.color) : rgb(0.1, 0.09, 0.08),
       });
       y -= (opts.size ?? 10) + 6;
     };
 
-    text("Reimbursement Approval Certificate", { size: 18, bold: true });
-    text("Cornerstone Faith Community Church — electronic signature record", {
+    await text("Reimbursement Approval Certificate", { size: 18, bold: true });
+    await text("Chinese For Christ Church of Hayward — electronic signature record", {
       size: 9,
       color: [0.4, 0.38, 0.35],
     });
     y -= 8;
-    text(`Requested by: ${claim.user.fullName || claim.user.email}`, { size: 11 });
-    text(`Claim: ${id}`, { size: 9, color: [0.4, 0.38, 0.35] });
-    text(
+    await text(`Requested by: ${claim.user.fullName || claim.user.email}`, { size: 11 });
+    await text(`Claim: ${id}`, { size: 9, color: [0.4, 0.38, 0.35] });
+    await text(
       `Status: ${claim.status.toUpperCase()}${claim.checkNumber ? `  ·  Check #${claim.checkNumber}` : ""}`,
       { size: 11, bold: true }
     );
@@ -117,43 +125,43 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       const payload = JSON.parse(record.payloadJson) as { ts?: number; consentVersion?: string; comment?: string };
       const fp = fingerprintDisplay(await keyFingerprint(record.signerPublicKey));
       const when = payload.ts ? new Date(payload.ts).toISOString() : record.createdAt.toISOString();
-      text(
+      await text(
         `${record.kind.toUpperCase()} — ${signerNames.get(record.signerUserId) ?? "unknown"}`,
         { size: 12, bold: true }
       );
-      if (record.typedName) text(`Signed name: "${record.typedName}"`, { size: 10 });
-      text(`Time (signer clock): ${when}    Consent: ${payload.consentVersion ?? "—"}`, {
+      if (record.typedName) await text(`Signed name: "${record.typedName}"`, { size: 10 });
+      await text(`Time (signer clock): ${when}    Consent: ${payload.consentVersion ?? "—"}`, {
         size: 9,
         color: [0.35, 0.33, 0.3],
       });
-      text(`Key fingerprint: ${fp}    Event: ${record.ledgerEventId}`, {
+      await text(`Key fingerprint: ${fp}    Event: ${record.ledgerEventId}`, {
         size: 9,
         color: [0.35, 0.33, 0.3],
       });
-      if (payload.comment) text(`Comment: "${payload.comment}"`, { size: 9 });
+      if (payload.comment) await text(`Comment: "${payload.comment}"`, { size: 9 });
       y -= 4;
     }
 
     y -= 4;
-    text(`Packet SHA-256: ${claim.packetSha256}`, { size: 8, color: [0.35, 0.33, 0.3] });
+    await text(`Packet SHA-256: ${claim.packetSha256}`, { size: 8, color: [0.35, 0.33, 0.3] });
     const rootFp = await keyFingerprint(registry.rootPublicKey);
-    text(`Church root fingerprint: ${rootFp}`, { size: 8, color: [0.35, 0.33, 0.3] });
-    text("Compare the root fingerprint against the value your church published.", {
+    await text(`Church root fingerprint: ${rootFp}`, { size: 8, color: [0.35, 0.33, 0.3] });
+    await text("Compare the root fingerprint against the value your church published.", {
       size: 8,
       color: [0.5, 0.35, 0.1],
     });
     const pin = esignRootFingerprint();
-    if (pin) text(`Deployment pin (prefix): ${pin}`, { size: 8, color: [0.35, 0.33, 0.3] });
+    if (pin) await text(`Deployment pin (prefix): ${pin}`, { size: 8, color: [0.35, 0.33, 0.3] });
     y -= 6;
-    text(
+    await text(
       "The pages after this cover are the signed packet, with the approval signature stamped on",
       { size: 8, color: [0.4, 0.38, 0.35] }
     );
-    text(
+    await text(
       "for filing. The untouched original is archived and one QR scan away; this PDF also embeds",
       { size: 8, color: [0.4, 0.38, 0.35] }
     );
-    text(
+    await text(
       "verification-bundle.json — verify offline with scripts/verify-bundle.mjs and the root fingerprint.",
       { size: 8, color: [0.4, 0.38, 0.35] }
     );
@@ -249,11 +257,13 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       for (let i = 1; i <= Math.min(formPageCount, pages.length); i++) {
         const page = doc.getPage(i);
         if (nameRect) {
-          page.drawText(approveRecord.typedName || "", {
+          const typed = approveRecord.typedName || "";
+          const nameFont = toEncodableText(typed, helv) === typed ? helv : await cjkFont();
+          page.drawText(toEncodableText(typed, nameFont), {
             x: nameRect.x + 2,
             y: nameRect.y + 3,
             size: 10,
-            font: helv,
+            font: nameFont,
             color: rgb(0.1, 0.09, 0.08),
           });
         }

@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTranslations } from "next-intl";
 import qrcode from "qrcode-generator";
 
 /** SVG QR of a /vouch URL — scanned with the voucher's native phone camera
  *  (no in-app decoder needed; iOS Safari has no BarcodeDetector). */
 export default function IdentityQr({ url }: { url: string }) {
+  const t = useTranslations("Identity");
   const svg = useMemo(() => {
     const qr = qrcode(0, "M");
     qr.addData(url);
@@ -26,7 +28,7 @@ export default function IdentityQr({ url }: { url: string }) {
         viewBox={`-2 -2 ${svg.n + 4} ${svg.n + 4}`}
         className="h-48 w-48 rounded-lg bg-white p-1 shadow-sm"
         role="img"
-        aria-label="Vouching QR code"
+        aria-label={t("qrAria")}
         data-testid="identity-qr"
       >
         <rect x={-2} y={-2} width={svg.n + 4} height={svg.n + 4} fill="#fff" />

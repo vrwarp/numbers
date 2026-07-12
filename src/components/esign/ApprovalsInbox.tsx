@@ -9,9 +9,11 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 import { formatCents } from "@/lib/money";
 import { runDecisionCeremony } from "@/lib/esign/client";
-import { CONSENT_TEXT, INTENT_AFFIRMATION } from "@/lib/esign/consent";
+import { CONSENT_TEXT } from "@/lib/esign/consent";
+import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
 import { AuditDetails, ThreadSignatures, VerifiedBanner, useClaimChain } from "./chain";
 import DocumentSignField from "./DocumentSignField";
 import type { SignaturePlacement } from "@/lib/esign/placement";
@@ -32,7 +34,10 @@ export interface InboxClaim {
   rows: { description: string; amountCents: number; ministry: string; event: string }[];
 }
 
-export default function ApprovalsInbox({ endpoint = "/api/approvals", title = "Approvals" }) {
+export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoint?: string }) {
+  const t = useTranslations("Approvals");
+  const tEsign = useTranslations("Esign");
+  const apiError = useApiErrorMessage();
   const [claims, setClaims] = useState<InboxClaim[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,11 +45,11 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals", title = "A
   const load = useCallback(async () => {
     const res = await fetch(endpoint);
     if (!res.ok) {
-      setError((await res.json().catch(() => null))?.error ?? "Could not load");
+      setError(apiError(await res.json().catch(() => null), tEsign("loadFailed")));
       return;
     }
     setClaims((await res.json()).claims ?? []);
-  }, [endpoint]);
+  }, [endpoint, apiError, tEsign]);
   useEffect(() => {
     void load();
   }, [load]);
@@ -55,17 +60,15 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals", title = "A
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">{title}</h1>
-        <p className="text-sm text-stone-500">
-          Open a claim to check it and sign.
-        </p>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <p className="text-sm text-stone-500">{t("subtitle")}</p>
       </div>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
       {pending.length === 0 ? (
         <div className="card p-8 text-center text-stone-500">
           <div className="text-3xl">🕊️</div>
-          <p className="mt-2">Nothing waiting on you.</p>
+          <p className="mt-2">{t("empty")}</p>
         </div>
       ) : (
         <ul className="space-y-3">
@@ -78,7 +81,7 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals", title = "A
       {history.length > 0 && (
         <div>
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-stone-400">
-            Decided
+            {t("decided")}
           </h2>
           <ul className="space-y-2">
             {history.map((c) => (
@@ -97,21 +100,19 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals", title = "A
 }
 
 export function StatusChip({ status }: { status: string }) {
+  const tStatus = useTranslations("Common.status");
   const styles: Record<string, string> = {
     submitted: "bg-sky-100 text-sky-800",
     approved: "bg-emerald-100 text-emerald-800",
     rejected: "bg-red-100 text-red-800",
     paid: "bg-indigo-100 text-indigo-800",
   };
-  const labels: Record<string, string> = {
-    submitted: "Awaiting approval",
-    approved: "Approved",
-    rejected: "Rejected",
-    paid: "Paid",
-  };
+  const known = (["submitted", "approved", "rejected", "paid"] as const).find(
+    (k) => k === status
+  );
   return (
     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${styles[status] ?? "bg-stone-100 text-stone-600"}`}>
-      {labels[status] ?? status}
+      {known ? tStatus(known) : status}
     </span>
   );
 }
@@ -127,14 +128,24 @@ function ClaimRow({
   onToggle: () => void;
   onChanged: () => Promise<void>;
 }) {
+  const t = useTranslations("Approvals");
+  const tEsign2 = useTranslations("Esign");
+  const format = useFormatter();
   return (
     <li className="card p-4" data-testid={`approval-${claim.id}`}>
       <button className="flex w-full items-center justify-between gap-3 text-left" onClick={onToggle}>
         <div>
           <div className="font-semibold">{claim.ownerName}</div>
           <div className="text-sm text-stone-500">
-            {claim.claimDescription || `${claim.rows.length} item(s)`}
-            {claim.submittedAt && ` · submitted ${new Date(claim.submittedAt).toLocaleDateString()}`}
+            {claim.claimDescription || tEsign2("itemsCount", { count: claim.rows.length })}
+            {claim.submittedAt &&
+              ` · ${t("submittedOn", {
+                date: format.dateTime(new Date(claim.submittedAt), {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                }),
+              })}`}
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -148,6 +159,9 @@ function ClaimRow({
 }
 
 function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () => Promise<void> }) {
+  const t = useTranslations("Approvals");
+  const tEsign = useTranslations("Esign");
+  const thrown = useThrownErrorMessage();
   const { state, error, loading } = useClaimChain(claim);
   const [typedName, setTypedName] = useState("");
   const [comment, setComment] = useState("");
@@ -197,21 +211,21 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
       );
       await onChanged();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Ceremony failed");
+      setActionError(thrown(err, tEsign("ceremonyFailed")));
       setBusy(false);
     }
   }
 
   return (
     <div className="mt-4 space-y-3 border-t border-stone-100 pt-4">
-      {loading && <p className="text-sm text-stone-500">Verifying the signature chain…</p>}
+      {loading && <p className="text-sm text-stone-500">{tEsign("verifyingChain")}</p>}
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {state && (
         <>
           <VerifiedBanner state={state} />
           {!verified && (
             <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="failclosed-note">
-              Signing is disabled until everything checks out.
+              {tEsign("failClosed")}
             </p>
           )}
           <ThreadSignatures state={state} />
@@ -242,25 +256,27 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
               target="_blank"
               rel="noreferrer"
             >
-              Open the verified packet
+              {tEsign("openVerifiedPacket")}
             </a>
           ) : null}
           <AuditDetails state={state} />
           <label className="block text-sm font-medium">
-            Comment (required to reject)
+            {t("commentLabel")}
             <input className="input mt-1" value={comment} onChange={(e) => setComment(e.target.value)} data-testid="decision-comment" />
           </label>
           <label className="block text-sm font-medium">
-            Type your full name to sign
+            {tEsign("typedNameLabel")}
             <input className="input mt-1" value={typedName} onChange={(e) => setTypedName(e.target.value)} data-testid="decision-typed-name" />
           </label>
           <details className="rounded-lg bg-stone-50 p-3 text-xs text-stone-600">
-            <summary className="cursor-pointer font-medium">Electronic records consent</summary>
+            <summary className="cursor-pointer font-medium">{tEsign("consentSummary")}</summary>
+            {/* Hash-bound English ueta-v1 text — see EsignPanel's note. */}
+            <p className="mt-2 text-stone-400">{tEsign("consentEnglishNote")}</p>
             <pre className="mt-2 whitespace-pre-wrap">{CONSENT_TEXT}</pre>
           </details>
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" checked={affirmed} onChange={(e) => setAffirmed(e.target.checked)} data-testid="decision-intent" />
-            <span>{INTENT_AFFIRMATION}</span>
+            <span>{tEsign("intentAffirmation")}</span>
           </label>
           {actionError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{actionError}</p>}
           <div className="flex justify-end gap-2">
@@ -269,9 +285,9 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
               disabled={!verified || busy || !comment.trim()}
               onClick={() => decide("reject")}
               data-testid="reject-button"
-              title={!comment.trim() ? "Add a comment explaining the rejection" : undefined}
+              title={!comment.trim() ? t("rejectNeedsComment") : undefined}
             >
-              ✗ Reject
+              {t("reject")}
             </button>
             <button
               className="btn-primary disabled:opacity-50"
@@ -281,7 +297,7 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
               onClick={() => decide("approve")}
               data-testid="approve-button"
             >
-              {busy ? "Signing…" : "✓ Approve & sign"}
+              {busy ? tEsign("signing") : t("approveAndSign")}
             </button>
           </div>
         </>

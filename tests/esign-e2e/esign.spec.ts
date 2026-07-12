@@ -137,7 +137,8 @@ async function submitForApproval(persona: Persona, id: string) {
   await persona.page.goto(`${BASE}/claims/${id}`);
   await persona.page.click('[data-testid="submit-for-approval"]');
   await persona.page.waitForSelector('[data-testid="document-sign-field"]', { timeout: 30_000 });
-  await persona.page.selectOption('[data-testid="approver-select"]', { label: "Bob Chen (approver)" });
+  // The option label renders the role through Common.role.* ("Approver").
+  await persona.page.selectOption('[data-testid="approver-select"]', { label: "Bob Chen (Approver)" });
   await persona.page.check('[data-testid="intent-checkbox"]');
   await persona.page.click('[data-testid="tap-to-sign"]');
   await persona.page.click('[data-testid="sign-submit"]');

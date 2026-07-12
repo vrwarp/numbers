@@ -32,7 +32,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     } else if (claim.status === "generated") {
       relPath = generatedPdfPath(claim.userId, id);
     } else {
-      throw new ApiError(404, "No packet for this claim yet");
+      throw new ApiError(404, "No packet for this claim yet", "esign.noPacket");
     }
     const bytes = await readStoredFile(relPath).catch(() => {
       throw new ApiError(404, "Packet not found");

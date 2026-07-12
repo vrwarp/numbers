@@ -36,26 +36,26 @@ export async function PATCH(
     const userId = await requireUserId();
     const { id, receiptId } = await ctx.params;
     const parsed = ManualEntrySchema.safeParse(await req.json().catch(() => null));
-    if (!parsed.success) throw new ApiError(400, "Invalid manual-entry fields");
+    if (!parsed.success) throw new ApiError(400, "Invalid manual-entry fields", "invalidManualEntry");
     const { merchant, purchaseDate, totalAmount, refundAmount, summary } = parsed.data;
 
     const reimbursement = await prisma.reimbursement.findFirst({
       where: { id, userId },
       include: { receipts: { select: { receiptId: true } } },
     });
-    if (!reimbursement) throw new ApiError(404, "Claim not found");
+    if (!reimbursement) throw new ApiError(404, "Claim not found", "claimNotFound");
     if (reimbursement.status !== "draft") {
-      throw new ApiError(409, "Claim already generated; line items are frozen");
+      throw new ApiError(409, "Claim already generated; line items are frozen", "claimFrozen");
     }
     if (!reimbursement.receipts.some((rr) => rr.receiptId === receiptId)) {
-      throw new ApiError(404, "Receipt not found in this claim");
+      throw new ApiError(404, "Receipt not found in this claim", "receiptNotOnClaim");
     }
 
     // The placeholder is the receipt's lone row; if it has been split already
     // there is no single row to fill — edit the rows directly instead.
     const rows = await prisma.lineItem.findMany({ where: { reimbursementId: id, receiptId } });
     if (rows.length !== 1) {
-      throw new ApiError(409, "This receipt's row has already been edited — adjust it directly");
+      throw new ApiError(409, "This receipt's row has already been edited — adjust it directly", "rowAlreadyEdited");
     }
     const row = rows[0];
 
@@ -120,14 +120,14 @@ export async function DELETE(
       where: { id, userId },
       include: { receipts: { include: { receipt: { select: { originalName: true } } } } },
     });
-    if (!reimbursement) throw new ApiError(404, "Claim not found");
+    if (!reimbursement) throw new ApiError(404, "Claim not found", "claimNotFound");
     if (reimbursement.status !== "draft") {
-      throw new ApiError(409, "Claim already generated; receipts are frozen");
+      throw new ApiError(409, "Claim already generated; receipts are frozen", "claimReceiptsFrozen");
     }
     const joined = reimbursement.receipts.find((rr) => rr.receiptId === receiptId);
-    if (!joined) throw new ApiError(404, "Receipt not found in this claim");
+    if (!joined) throw new ApiError(404, "Receipt not found in this claim", "receiptNotOnClaim");
     if (reimbursement.receipts.length === 1) {
-      throw new ApiError(409, "This is the only receipt in the claim — discard the claim instead");
+      throw new ApiError(409, "This is the only receipt in the claim — discard the claim instead", "lastReceiptOnClaim");
     }
 
     const removed = await prisma.lineItem.findMany({ where: { reimbursementId: id, receiptId } });

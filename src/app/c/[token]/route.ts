@@ -20,13 +20,13 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
   return handleApi(async () => {
     const { token } = await ctx.params;
     // Cheap shape check before touching the db (also keeps junk out of logs).
-    if (!/^[A-Za-z0-9_-]{16,128}$/.test(token)) throw new ApiError(404, "Not found");
+    if (!/^[A-Za-z0-9_-]{16,128}$/.test(token)) throw new ApiError(404, "Not found", "notFound");
 
     const reimbursement = await prisma.reimbursement.findUnique({
       where: { publicToken: token },
       select: { id: true, userId: true },
     });
-    if (!reimbursement) throw new ApiError(404, "Not found");
+    if (!reimbursement) throw new ApiError(404, "Not found", "notFound");
 
     let pdf: Buffer;
     try {
@@ -34,7 +34,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
     } catch {
       // Token exists but the packet file is gone (e.g. volume restored from
       // an older backup) — same 404 as an unknown token.
-      throw new ApiError(404, "Not found");
+      throw new ApiError(404, "Not found", "notFound");
     }
 
     return new NextResponse(new Uint8Array(pdf), {

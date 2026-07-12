@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import ReceiptViewer from "./ReceiptViewer";
 import PdfReceiptPreview from "@/components/PdfReceiptPreview";
@@ -9,6 +10,7 @@ import ReceiptGrid, { type ReceiptSummary as Receipt } from "./ReceiptGrid";
 import { prepareImageUpload, renderTransformedImage } from "@/lib/image-client";
 import { readNdjsonStream } from "@/lib/ndjson";
 import type { ClaimStreamMessage } from "@/lib/claim-stream";
+import { useApiErrorMessage } from "@/lib/use-api-error";
 
 /** A picked image waiting in the prepare step — nothing is uploaded yet.
  *  `edited` holds the client-side rotate/crop render (native resolution);
@@ -33,6 +35,10 @@ interface UploadedPending {
 type PendingItem = LocalPending | UploadedPending;
 
 export default function Shoebox() {
+  const t = useTranslations("Shoebox");
+  const tCommon = useTranslations("Common");
+  const tErrors = useTranslations("Errors");
+  const apiError = useApiErrorMessage();
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const [receipts, setReceipts] = useState<Receipt[] | null>(null);
@@ -128,7 +134,7 @@ export default function Shoebox() {
       const form = new FormData();
       for (const f of files) form.append("files", f);
       const res = await fetch("/api/receipts", { method: "POST", body: form });
-      if (!res.ok) throw new Error((await res.json()).error ?? "Upload failed");
+      if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("uploadFailed")));
       const { receipts: created } = (await res.json()) as { receipts: Receipt[] };
       setPending((q) => [
         ...q,
@@ -140,7 +146,7 @@ export default function Shoebox() {
       ]);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
+      setError(e instanceof Error ? e.message : t("uploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -169,7 +175,7 @@ export default function Shoebox() {
       }
       if (note) form.append("note", note);
       const res = await fetch("/api/receipts", { method: "POST", body: form });
-      if (!res.ok) throw new Error((await res.json()).error ?? "Upload failed");
+      if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("uploadFailed")));
       const done = new Set(items.map((i) => i.key));
       for (const item of items) URL.revokeObjectURL(item.previewUrl);
       setPending((q) => q.filter((i) => !done.has(i.key)));
@@ -177,7 +183,7 @@ export default function Shoebox() {
       await load();
       return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
+      setError(e instanceof Error ? e.message : t("uploadFailed"));
       return false;
     } finally {
       setUploading(false);
@@ -261,14 +267,14 @@ export default function Shoebox() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ note }),
     });
-    if (!res.ok) setError((await res.json()).error ?? "Could not save the description");
+    if (!res.ok) setError(apiError(await res.json().catch(() => null), t("noteSaveFailed")));
     await load();
   }
 
   async function deleteReceipt(id: string) {
-    if (!confirm("Delete this receipt?")) return;
+    if (!confirm(t("deleteConfirm"))) return;
     const res = await fetch(`/api/receipts/${id}`, { method: "DELETE" });
-    if (!res.ok) setError((await res.json()).error ?? "Delete failed");
+    if (!res.ok) setError(apiError(await res.json().catch(() => null), t("deleteFailed")));
     setSelected((prev) => {
       const next = new Set(prev);
       next.delete(id);
@@ -284,18 +290,18 @@ export default function Shoebox() {
     bailingToManual.current = true;
     generateAbort.current?.abort();
     setWaiting(false);
-    setStatus("Setting up manual entry…");
+    setStatus(t("manualSetup"));
     try {
       const res = await fetch("/api/reimbursements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ receiptIds: Array.from(selected), manual: true }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? "Could not start manual entry");
+      if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("manualStartFailed")));
       const { reimbursement } = await res.json();
       router.push(`/claims/${reimbursement.id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not start manual entry");
+      setError(e instanceof Error ? e.message : t("manualStartFailed"));
       setGenerating(false);
       setStatus(null);
     }
@@ -315,7 +321,7 @@ export default function Shoebox() {
     setGenerating(true);
     setWaiting(false);
     setError(null);
-    setStatus("Reading receipts with AI…");
+    setStatus(t("readingInitial"));
     bailingToManual.current = false;
     const abort = new AbortController();
     generateAbort.current = abort;
@@ -330,7 +336,7 @@ export default function Shoebox() {
       // A pre-stream failure (auth/validation) comes back as plain JSON.
       if (!res.ok || !res.body) {
         const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? "Claim generation failed");
+        throw new Error(apiError(json, t("generateFailed")));
       }
 
       let claimId: string | null = null;
@@ -338,34 +344,40 @@ export default function Shoebox() {
       const handle = (ev: ClaimStreamMessage) => {
         switch (ev.type) {
           case "status":
-            setStatus(`Reading ${ev.total} receipt${ev.total > 1 ? "s" : ""} with AI…`);
+            setStatus(t("readingCount", { total: ev.total }));
             break;
           case "receipt-done":
             setWaiting(false);
-            setStatus(`Read ${ev.completed} of ${ev.total} receipts…`);
+            setStatus(t("readProgress", { completed: ev.completed, total: ev.total }));
             break;
           case "quota-wait":
             setWaiting(true);
             setWaitCooldownMs(ev.cooldownMs);
             setWaitKey((k) => k + 1);
-            setStatus(ev.message);
+            setStatus(
+              tErrors("quotaWait", {
+                seconds: Math.round(ev.cooldownMs / 1000),
+                attempt: ev.attempt,
+                maxRetries: ev.maxRetries,
+              })
+            );
             break;
           case "done":
             claimId = ev.reimbursementId;
             break;
           case "error":
-            throw new Error(ev.message);
+            throw new Error(apiError(ev, t("generateFailed")));
         }
       };
 
       await readNdjsonStream<ClaimStreamMessage>(res.body, handle);
 
-      if (!claimId) throw new Error("Claim generation ended unexpectedly");
+      if (!claimId) throw new Error(t("generateEnded"));
       router.push(`/claims/${claimId}`);
     } catch (e) {
       // The user bailed to manual entry — generateManualClaim now owns the UI.
       if (bailingToManual.current) return;
-      setError(e instanceof Error ? e.message : "Claim generation failed");
+      setError(e instanceof Error ? e.message : t("generateFailed"));
       setGenerating(false);
       setWaiting(false);
       setStatus(null);
@@ -391,14 +403,14 @@ export default function Shoebox() {
         >
           <div className="card flex flex-col items-center gap-2 border-2 border-dashed border-indigo-400 bg-white/95 px-10 py-8 text-center shadow-lg">
             <div className="text-4xl">📥</div>
-            <p className="font-semibold text-indigo-900">Drop receipts to upload</p>
-            <p className="text-sm text-stone-500">Images or PDFs</p>
+            <p className="font-semibold text-indigo-900">{t("dropTitle")}</p>
+            <p className="text-sm text-stone-500">{t("dropBody")}</p>
           </div>
         </div>
       )}
       <div>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-3xl font-bold">Shoebox</h1>
+          <h1 className="text-3xl font-bold">{t("title")}</h1>
           <div className="shrink-0">
             <input
               ref={fileInput}
@@ -415,13 +427,11 @@ export default function Shoebox() {
               disabled={uploading}
               data-testid="upload-button"
             >
-              {uploading ? "Uploading…" : "📷 Upload Receipt"}
+              {uploading ? t("uploading") : t("upload")}
             </button>
           </div>
         </div>
-        <p className="mt-1.5 text-sm text-stone-500">
-          Drop receipts here as you go. Select some when you&apos;re ready to file a claim.
-        </p>
+        <p className="mt-1.5 text-sm text-stone-500">{t("intro")}</p>
       </div>
 
       {error && (
@@ -447,8 +457,8 @@ export default function Shoebox() {
                 }`}
               >
                 {selected.size > 0
-                  ? `${selected.size} receipt${selected.size > 1 ? "s" : ""} selected`
-                  : "Select receipts below to start a claim"}
+                  ? t("selectedCount", { count: selected.size })
+                  : t("selectPrompt")}
               </span>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1">
@@ -463,16 +473,16 @@ export default function Shoebox() {
               >
                 {generating
                   ? waiting
-                    ? "Waiting on rate limit…"
-                    : "Reading receipts…"
-                  : "✨ New Claim"}
+                    ? t("waitingRateLimit")
+                    : t("readingShort")
+                  : t("newClaim")}
               </button>
               {showSelectHint && (
                 <span
                   className="text-xs font-medium text-indigo-700"
                   data-testid="select-receipt-hint"
                 >
-                  Select a receipt first ↑
+                  {t("selectHint")}
                 </span>
               )}
             </div>
@@ -496,7 +506,7 @@ export default function Shoebox() {
                   onClick={generateManualClaim}
                   data-testid="generate-claim-manual"
                 >
-                  Enter manually instead
+                  {t("manualInstead")}
                 </button>
               )}
             </div>
@@ -505,17 +515,20 @@ export default function Shoebox() {
       )}
 
       {receipts === null ? (
-        <p className="text-sm text-stone-500">Loading…</p>
+        <p className="text-sm text-stone-500">{tCommon("loading")}</p>
       ) : unassigned.length === 0 && processed.length === 0 ? (
         <div className="card p-10 text-center text-stone-500">
-          <div className="text-4xl">🥿</div>
-          <p className="mt-2 font-medium">Your shoebox is empty</p>
-          <p className="text-sm">Upload a photo or PDF of a receipt to get started.</p>
+          <div className="text-4xl">🧾</div>
+          <p className="mt-2 font-medium">{t("emptyTitle")}</p>
+          <p className="text-sm">{t("emptyBody")}</p>
           <ol className="mx-auto mt-8 grid max-w-3xl gap-3 text-left text-sm text-stone-600 sm:grid-cols-4">
-            <li><span className="font-semibold text-indigo-700">1. Snap.</span> Photograph receipts into your Shoebox the moment you buy.</li>
-            <li><span className="font-semibold text-indigo-700">2. Batch.</span> Later, when you&apos;re ready, select receipts and hit New Claim.</li>
-            <li><span className="font-semibold text-indigo-700">3. Verify.</span> Check every row against the receipt. Fix, split, or exclude items.</li>
-            <li><span className="font-semibold text-indigo-700">4. Print.</span> Download the filled CFCC form with receipts attached, sign, and drop it off.</li>
+            {(["step1", "step2", "step3", "step4"] as const).map((step) => (
+              <li key={step}>
+                {t.rich(step, {
+                  step: (chunks) => <span className="font-semibold text-indigo-700">{chunks}</span>,
+                })}
+              </li>
+            ))}
           </ol>
         </div>
       ) : (
@@ -533,12 +546,9 @@ export default function Shoebox() {
           {processed.length > 0 && (
             <details className="pt-2">
               <summary className="cursor-pointer text-sm font-medium text-stone-500">
-                Processed receipts ({processed.length})
+                {t("processedSummary", { count: processed.length })}
               </summary>
-              <p className="mt-1 text-xs text-stone-400">
-                Already on a generated claim — still selectable if part of the purchase belongs
-                on another claim.
-              </p>
+              <p className="mt-1 text-xs text-stone-400">{t("processedNote")}</p>
               <div className="mt-3">
                 <ReceiptGrid
                   receipts={processed}
@@ -564,9 +574,9 @@ export default function Shoebox() {
         >
           <div className="card w-full max-w-md p-6">
             <h2 className="font-bold">
-              Describe this receipt
+              {t("prepareTitle")}
               {pending.length > 1 && (
-                <span className="ml-1 font-normal text-stone-400">({pending.length} left)</span>
+                <span className="ml-1 font-normal text-stone-400">{t("prepareLeft", { count: pending.length })}</span>
               )}
             </h2>
             <div className="mt-1 flex items-center justify-between gap-2">
@@ -578,10 +588,10 @@ export default function Shoebox() {
                   className="shrink-0 rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700"
                   onClick={() => setEditingUpload(true)}
                   disabled={uploading}
-                  title="Rotate or crop this receipt photo"
+                  title={t("prepareEditTitle")}
                   data-testid={`edit-image-pending-${preparing.key}`}
                 >
-                  ✂ Rotate / crop
+                  {t("prepareEditButton")}
                 </button>
               )}
             </div>
@@ -607,11 +617,11 @@ export default function Shoebox() {
               )}
             </div>
             <label className="mt-4 block text-sm font-medium">
-              Description (optional)
+              {t("noteLabel")}
               <input
                 key={preparing.key}
                 className="input mt-1"
-                placeholder="e.g. VBS craft supplies"
+                placeholder={t("notePlaceholder")}
                 value={uploadNote}
                 onChange={(e) => setUploadNote(e.target.value)}
                 onKeyDown={(e) => {
@@ -623,9 +633,7 @@ export default function Shoebox() {
               />
             </label>
             <p className="mt-2 text-xs text-stone-400">
-              {preparing.kind === "local"
-                ? "Uploads when you save or skip. You can edit the description on the card later."
-                : "You can edit the description on the card later."}
+              {preparing.kind === "local" ? t("prepareHintLocal") : t("prepareHintUploaded")}
             </p>
             <div className="mt-5 flex items-center justify-end gap-2">
               {pending.length > 1 && (
@@ -635,7 +643,7 @@ export default function Shoebox() {
                   disabled={uploading}
                   data-testid="upload-note-skip-all"
                 >
-                  Skip all
+                  {t("skipAll")}
                 </button>
               )}
               <button
@@ -644,7 +652,7 @@ export default function Shoebox() {
                 disabled={uploading}
                 data-testid="upload-note-cancel"
               >
-                Skip
+                {t("skip")}
               </button>
               <button
                 className="btn-primary"
@@ -652,7 +660,7 @@ export default function Shoebox() {
                 disabled={uploading}
                 data-testid="upload-note-confirm"
               >
-                {uploading ? "Uploading…" : "Save"}
+                {uploading ? t("uploading") : tCommon("save")}
               </button>
             </div>
           </div>
@@ -664,12 +672,12 @@ export default function Shoebox() {
           src={preparing.previewUrl}
           onClose={() => setEditingUpload(false)}
           onSaved={() => setEditingUpload(false)}
-          onApply={async (t) => {
+          onApply={async (transform) => {
             // Render the rotate/crop on this device at the photo's native
             // resolution; the result replaces the pending file's working image.
             const rendered = await renderTransformedImage(
               preparing.edited ?? preparing.file,
-              t
+              transform
             );
             const url = URL.createObjectURL(rendered);
             URL.revokeObjectURL(preparing.previewUrl);
@@ -705,6 +713,7 @@ export default function Shoebox() {
  * to restart it for a new wait.
  */
 function QuotaWaitRing({ durationMs }: { durationMs: number }) {
+  const t = useTranslations("Shoebox");
   const R = 14;
   const C = 2 * Math.PI * R;
   const [offset, setOffset] = useState(C); // start empty
@@ -736,7 +745,7 @@ function QuotaWaitRing({ durationMs }: { durationMs: number }) {
       viewBox="0 0 36 36"
       className="shrink-0"
       role="img"
-      aria-label={`Retrying in about ${remaining} second${remaining === 1 ? "" : "s"}`}
+      aria-label={t("quotaRingAria", { seconds: remaining })}
     >
       <circle cx="18" cy="18" r={R} fill="none" strokeWidth="3" className="stroke-amber-200" />
       <circle

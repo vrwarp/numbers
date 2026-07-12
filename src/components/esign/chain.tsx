@@ -8,6 +8,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   loadEnv,
   reconcileClaim,
@@ -69,6 +70,8 @@ export function useClaimChain(claim: ClaimRef | null) {
       // Opportunistic reconciliation (§5.5): fill mirror gaps we can see.
       void reconcileClaim(claim.id, chain.claimDocs).catch(() => {});
     } catch (err) {
+      // Protocol/audit failures keep their English detail on purpose — this
+      // text exists for whoever helps debug a broken chain.
       setError(err instanceof Error ? err.message : "Verification failed");
     } finally {
       setLoading(false);
@@ -105,6 +108,7 @@ export function chainLooksGood(state: ChainState): boolean {
 }
 
 export function VerifiedBanner({ state }: { state: ChainState }) {
+  const t = useTranslations("Esign");
   const ok = chainLooksGood(state);
   return (
     <div
@@ -113,9 +117,7 @@ export function VerifiedBanner({ state }: { state: ChainState }) {
       }`}
       data-testid="verified-banner"
     >
-      {ok
-        ? "✓ Everything checks out — this is the genuine paperwork, unchanged."
-        : "✗ Something doesn't check out. Don't sign — ask the person who sent this (details below for whoever helps you)."}
+      {ok ? t("bannerOk") : t("bannerBad")}
     </div>
   );
 }
@@ -124,19 +126,23 @@ export function VerifiedBanner({ state }: { state: ChainState }) {
  *  whoever is auditing (docs/ESIGN_DESIGN.md UX rule: technical material
  *  lives behind a disclosure, never on the main path). */
 export function AuditDetails({ state }: { state: ChainState }) {
+  const t = useTranslations("Esign");
   const anchorOk = state.chain.anchor.ok;
   const threadOk = !!state.thread?.submit;
   const anomalies = state.chain.evaluation.anomalies;
   return (
     <details className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-600">
       <summary className="cursor-pointer select-none font-medium text-stone-500">
-        Audit details
+        {t("auditDetails")}
       </summary>
       <div className="mt-2 space-y-2">
         <div className="flex flex-wrap gap-1.5" data-testid="chain-pills">
-          <Pill ok={anchorOk} label={anchorOk ? `root pinned (${state.chain.anchor.pinnedBy})` : "root anchor FAILED"} />
-          <Pill ok={threadOk} label="signature chain" />
-          <Pill ok={state.packetOk} label="packet bytes" />
+          <Pill
+            ok={anchorOk}
+            label={anchorOk ? t("pillRootPinned", { by: state.chain.anchor.pinnedBy }) : t("pillRootFailed")}
+          />
+          <Pill ok={threadOk} label={t("pillChain")} />
+          <Pill ok={state.packetOk} label={t("pillPacket")} />
         </div>
         {!anchorOk && "reason" in state.chain.anchor && (
           <p className="text-red-700">{state.chain.anchor.reason}</p>
@@ -145,7 +151,7 @@ export function AuditDetails({ state }: { state: ChainState }) {
         {anomalies.length > 0 && (
           <div>
             <p className="font-medium text-amber-700">
-              {anomalies.length} invalid event(s) on the ledger (kept visible, never hidden):
+              {t("anomaliesHeader", { count: anomalies.length })}
             </p>
             <ul className="list-inside list-disc">
               {anomalies.map((a, i) => (
@@ -157,9 +163,9 @@ export function AuditDetails({ state }: { state: ChainState }) {
           </div>
         )}
         <p className="text-stone-400">
-          Independent check: download the certificate and run{" "}
-          <code className="font-mono">scripts/verify-bundle.mjs</code> with the church&apos;s
-          published root fingerprint.
+          {t.rich("independentCheck", {
+            code: (chunks) => <code className="font-mono">{chunks}</code>,
+          })}
         </p>
       </div>
     </details>
@@ -167,27 +173,28 @@ export function AuditDetails({ state }: { state: ChainState }) {
 }
 
 function SignerFingerprints({ state }: { state: ChainState }) {
+  const t = useTranslations("Esign");
   const [rows, setRows] = useState<{ name: string; fp: string }[]>([]);
   useEffect(() => {
     void (async () => {
-      const t = state.thread;
-      if (!t?.submit) return;
-      const events = [t.submit, t.decision, t.paid].filter(Boolean);
+      const th = state.thread;
+      if (!th?.submit) return;
+      const events = [th.submit, th.decision, th.paid].filter(Boolean);
       const out: { name: string; fp: string }[] = [];
       for (const e of events) {
         const member = state.chain.roster.memberAt(e!.signerPublicKey, e!.createdAtMs);
         out.push({
-          name: member?.name ?? "unknown",
+          name: member?.name ?? t("unknownMember"),
           fp: fingerprintDisplay(await keyFingerprint(e!.signerPublicKey)),
         });
       }
       setRows(out);
     })();
-  }, [state]);
+  }, [state, t]);
   if (rows.length === 0) return null;
   return (
     <div>
-      <p className="font-medium">Signer key fingerprints:</p>
+      <p className="font-medium">{t("signerFingerprints")}</p>
       {rows.map((r, i) => (
         <div key={i}>
           {r.name}: <code className="font-mono">{r.fp}</code>
@@ -212,6 +219,7 @@ function SignatureBlock({
   ts?: number;
   extra?: string;
 }) {
+  const t = useTranslations("Esign");
   const member = roster.members.find((m) => m.publicKey === signerKey);
   return (
     <div className="rounded-lg border border-stone-200 bg-stone-50 p-3 text-sm">
@@ -223,7 +231,7 @@ function SignatureBlock({
       </div>
       <div className="mt-1">
         {typedName && <span className="font-medium italic">“{typedName}” — </span>}
-        {member?.name ?? "Unknown signer"}
+        {member?.name ?? t("unknownSigner")}
       </div>
       {extra && <div className="mt-1 text-xs text-stone-600">{extra}</div>}
     </div>
@@ -231,13 +239,14 @@ function SignatureBlock({
 }
 
 export function ThreadSignatures({ state }: { state: ChainState }) {
+  const t = useTranslations("Esign");
   const thread = state.thread;
   const blocks = useMemo(() => {
     if (!thread?.submit) return [];
     const submit = thread.submit.action as SubmitAction;
     const out: React.ComponentProps<typeof SignatureBlock>[] = [
       {
-        title: `Submitted (seq ${thread.seq})`,
+        title: t("blockSubmitted", { seq: thread.seq }),
         typedName: submit.typedName,
         signerKey: thread.submit.signerPublicKey,
         roster: state.chain.roster,
@@ -247,7 +256,7 @@ export function ThreadSignatures({ state }: { state: ChainState }) {
     if (thread.decision) {
       const d = thread.decision.action as { t: string; typedName?: string; ts: number; comment?: string };
       out.push({
-        title: d.t === "APPROVE" ? "Approved" : "Rejected",
+        title: d.t === "APPROVE" ? t("blockApproved") : t("blockRejected"),
         typedName: d.typedName,
         signerKey: thread.decision.signerPublicKey,
         roster: state.chain.roster,
@@ -258,16 +267,16 @@ export function ThreadSignatures({ state }: { state: ChainState }) {
     if (thread.paid) {
       const p = thread.paid.action as { typedName?: string; ts: number; checkNumber?: string };
       out.push({
-        title: "Paid",
+        title: t("blockPaid"),
         typedName: p.typedName,
         signerKey: thread.paid.signerPublicKey,
         roster: state.chain.roster,
         ts: p.ts,
-        extra: p.checkNumber ? `Check #${p.checkNumber}` : undefined,
+        extra: p.checkNumber ? t("checkNumber", { number: p.checkNumber }) : undefined,
       });
     }
     return out;
-  }, [thread, state.chain.roster]);
+  }, [thread, state.chain.roster, t]);
   if (blocks.length === 0) return null;
   return (
     <div className="space-y-2" data-testid="thread-signatures">

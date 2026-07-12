@@ -46,7 +46,19 @@ export async function buildRecoverySheetPdf(input: RecoverySheetInput): Promise<
   });
   y -= 24;
 
-  page.drawText(`For: ${input.name}  (${input.email})`, { x: margin, y, size: 12, font: helv, color: ink });
+  // Built client-side with the standard fonts only, so a name outside
+  // WinAnsi (e.g. Chinese) can't be drawn — fall back to the email, which
+  // identifies the member just as well on a sheet they keep at home.
+  const canEncode = (s: string) => {
+    try {
+      helv.widthOfTextAtSize(s, 12);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const forLine = canEncode(input.name) ? `For: ${input.name}  (${input.email})` : `For: ${input.email}`;
+  page.drawText(forLine, { x: margin, y, size: 12, font: helv, color: ink });
   y -= 16;
   page.drawText(`Printed: ${new Date().toLocaleDateString()}`, { x: margin, y, size: 12, font: helv, color: ink });
   y -= 30;

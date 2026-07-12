@@ -13,7 +13,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const userId = await requireUserId();
     const { id } = await ctx.params;
     const receipt = await prisma.receipt.findFirst({ where: { id, userId } });
-    if (!receipt) throw new ApiError(404, "Receipt not found");
+    if (!receipt) throw new ApiError(404, "Receipt not found", "receiptNotFound");
     const wantOriginal = new URL(req.url).searchParams.get("original") === "1";
     const relPath =
       wantOriginal && receipt.originalFilePath ? receipt.originalFilePath : receipt.filePath;
