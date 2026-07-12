@@ -2290,6 +2290,36 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Identity.openLink": {
+    "source": "Open link",
+    "context": "Compact label on the candidate's vouching QR — a link to the /vouch URL for a voucher whose phone camera opens it directly. Replaces the previously displayed full URL.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Identity.manualFallbackTitle": {
+    "source": "Can't scan the code?",
+    "context": "Summary of a disclosure under the candidate's vouching QR, revealing the key fingerprint to read out when the camera can't scan.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Identity.manualFallbackBody": {
+    "source": "Have your voucher pick you from the list on their Vouch screen and type this key fingerprint by hand:",
+    "context": "Body of the camera-less fallback: the voucher picks the candidate from the pending list and types the full key fingerprint (never the short spoken code). Mirrors Vouch.scanIntro.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Identity.copyCode": {
+    "source": "Copy",
+    "context": "Button that copies the key fingerprint to the clipboard.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Identity.copiedCode": {
+    "source": "Copied",
+    "context": "Transient confirmation shown on the copy button after the fingerprint is copied.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
   "Identity.qrAria": {
     "source": "Vouching QR code",
     "context": "aria-label of the vouching QR code image.",

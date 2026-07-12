@@ -34,8 +34,8 @@ export default function IdentityQr({ url }: { url: string }) {
         <rect x={-2} y={-2} width={svg.n + 4} height={svg.n + 4} fill="#fff" />
         <path d={svg.path} fill="#1c1917" />
       </svg>
-      <a href={url} className="break-all text-center text-[10px] text-stone-400 underline">
-        {url}
+      <a href={url} className="text-xs text-stone-400 underline" data-testid="vouch-url">
+        {t("openLink")}
       </a>
     </div>
   );
