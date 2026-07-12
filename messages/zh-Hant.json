@@ -524,7 +524,8 @@
     "revokeKeyConfirm": "吊銷 {name} 的簽名金鑰？\n\n當能以他身分簽名的裝置遺失或被盜時才這樣做。他已簽署的內容依然有效，但該金鑰將立即在所有地方失效——他需要重新開通簽名，並再次當面獲得擔保。",
     "grantApprover": "設為審批人",
     "grantTreasurer": "設為財務同工",
-    "revokeRole": "撤銷{role}",
+    "revokeApprover": "撤銷審批人",
+    "revokeTreasurer": "撤銷財務同工",
     "vouchFailed": "擔保失敗",
     "malformedLink": "擔保連結已損壞——請重新掃描"
   },

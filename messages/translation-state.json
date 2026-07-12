@@ -2860,8 +2860,8 @@
     "zh-Hant": "machine"
   },
   "Vouch.revokeKey": {
-    "source": "revoke key",
-    "context": "Admin button (lowercase chip) revoking a member's signing key.",
+    "source": "Revoke key",
+    "context": "Admin button revoking a member's signing key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -2872,20 +2872,26 @@
     "zh-Hant": "machine"
   },
   "Vouch.grantApprover": {
-    "source": "make approver",
-    "context": "Admin button (lowercase chip) granting the approver role.",
+    "source": "Make approver",
+    "context": "Admin button granting the approver role.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Vouch.grantTreasurer": {
-    "source": "make treasurer",
-    "context": "Admin button (lowercase chip) granting the treasurer role.",
+    "source": "Make treasurer",
+    "context": "Admin button granting the treasurer role.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Vouch.revokeRole": {
-    "source": "revoke {role}",
-    "context": "Admin button (lowercase chip) revoking a role; {role} is the translated role name.",
+  "Vouch.revokeApprover": {
+    "source": "Revoke approver",
+    "context": "Admin button revoking a member's approver role.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.revokeTreasurer": {
+    "source": "Revoke treasurer",
+    "context": "Admin button revoking a member's treasurer role.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
