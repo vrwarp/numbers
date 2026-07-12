@@ -61,6 +61,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   (drafts the Chinese, updates `messages/translation-state.json`) — or
   `npm run translate -- --todo` without an AI key. Reviewed keys are never overwritten
   without `--force`. Terminology lives in `messages/GLOSSARY.md`.
+- Wording shared across the UI is DECLARED, not remembered: `SAME_VALUE_GROUPS` and
+  `QUOTED_IN` in `src/lib/translation-state.ts`. Same-value members are auto-copied from
+  their canonical key (translate the canonical); a message that quotes another element
+  drafts after it with the live translation injected as `mustContain`; both invariants are
+  test-enforced in every locale, so drafting order can never silently diverge them.
 - Locale resolution: `numbers_locale` cookie → Accept-Language → en
   (src/i18n/request.ts); `User.locale` is the durable copy, reconciled at sign-in
   (src/i18n/cookie.ts). No URL locale routing, no middleware.

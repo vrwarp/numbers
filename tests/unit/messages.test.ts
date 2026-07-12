@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 import fs from "fs";
 import path from "path";
 import { LOCALES } from "@/lib/locales";
-import { flatten, messageArguments, type Messages, type TranslationState } from "@/lib/translation-state";
+import {
+  QUOTED_IN,
+  SAME_VALUE_GROUPS,
+  flatten,
+  messageArguments,
+  type Messages,
+  type TranslationState,
+} from "@/lib/translation-state";
 
 /**
  * Catalog integrity. en.json is the source of truth; every other catalog must
@@ -67,6 +74,51 @@ describe("message catalogs", () => {
       });
     });
   }
+
+  describe("linked keys (cross-key wording dependencies)", () => {
+    // Every locale that exists, en included — the invariants hold everywhere.
+    const catalogs = LOCALES.map((l) => [l, loadCatalog(l)] as const).filter(
+      (entry): entry is readonly [string, Messages] => entry[1] !== null
+    );
+
+    it("references real keys", () => {
+      for (const group of SAME_VALUE_GROUPS) {
+        for (const key of group) expect(enFlat.has(key), `unknown key in SAME_VALUE_GROUPS: ${key}`).toBe(true);
+      }
+      for (const { message, quotes } of QUOTED_IN) {
+        expect(enFlat.has(message), `unknown message in QUOTED_IN: ${message}`).toBe(true);
+        expect(enFlat.has(quotes), `unknown quoted key in QUOTED_IN: ${quotes}`).toBe(true);
+      }
+    });
+
+    it("same-value groups render identically", () => {
+      for (const [locale, catalog] of catalogs) {
+        const flat = flatten(catalog);
+        for (const [canonical, ...members] of SAME_VALUE_GROUPS) {
+          for (const member of members) {
+            expect(
+              flat.get(member),
+              `${locale}: ${member} must equal ${canonical} (same UI element in two places)`
+            ).toBe(flat.get(canonical));
+          }
+        }
+      }
+    });
+
+    it("messages that quote another element contain its exact wording", () => {
+      for (const [locale, catalog] of catalogs) {
+        const flat = flatten(catalog);
+        for (const { message, quotes, strip } of QUOTED_IN) {
+          let quoted = flat.get(quotes) ?? "";
+          if (strip && quoted.startsWith(strip)) quoted = quoted.slice(strip.length);
+          expect(
+            flat.get(message)?.includes(quoted),
+            `${locale}: ${message} must quote ${quotes} verbatim (${JSON.stringify(quoted)})`
+          ).toBe(true);
+        }
+      }
+    });
+  });
 
   it("translations are not stale (translation-state source matches en)", () => {
     if (!fs.existsSync(STATE_FILE)) return; // arrives with the Chinese catalogs

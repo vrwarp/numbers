@@ -25,6 +25,45 @@ export interface StateEntry {
 
 export type TranslationState = Record<string, StateEntry>;
 
+/**
+ * Cross-key wording dependencies, made first-class instead of prose hints so
+ * they can't drift: the parity test enforces both kinds in EVERY locale, and
+ * scripts/translate-messages.ts uses them to draft in dependency order.
+ */
+
+/**
+ * Keys that must render IDENTICALLY (the same UI element appearing in more
+ * than one place). The first key is canonical: it is the one translated;
+ * the script copies its value onto the rest.
+ */
+export const SAME_VALUE_GROUPS: readonly (readonly string[])[] = [
+  ["Shoebox.title", "NavBar.shoebox"],
+  ["Claims.title", "NavBar.claims"],
+  ["Profile.title", "NavBar.profile"],
+  ["Shoebox.upload", "AddReceipts.upload"],
+  ["Shoebox.uploading", "AddReceipts.uploading"],
+  ["Shoebox.uploadFailed", "AddReceipts.uploadFailed"],
+  ["Shoebox.manualInstead", "AddReceipts.manualInstead"],
+  ["Shoebox.readingInitial", "AddReceipts.readingInitial"],
+  ["Shoebox.readingCount", "AddReceipts.readingCount"],
+  ["Shoebox.readProgress", "AddReceipts.readProgress"],
+  ["Shoebox.prepareEditButton", "Review.editPhotoButton", "Viewer.editButton"],
+  ["Shoebox.prepareEditTitle", "Review.editPhotoTitle"],
+  ["Viewer.rendering", "PdfPreview.rendering"],
+];
+
+/**
+ * Messages that quote another UI element's wording inside a sentence. The
+ * quoted key's value (minus `strip`, e.g. a leading emoji that isn't spoken
+ * of in prose) must appear verbatim inside the message, in every locale.
+ */
+export const QUOTED_IN: readonly { message: string; quotes: string; strip?: string }[] = [
+  { message: "Claims.emptyBody", quotes: "Shoebox.newClaim", strip: "✨ " },
+  { message: "Shoebox.step2", quotes: "Shoebox.newClaim", strip: "✨ " },
+  { message: "Review.multiHint", quotes: "Review.modeOne" },
+  { message: "Review.revertConfirm", quotes: "Common.status.processed" },
+];
+
 export function flatten(obj: Messages, prefix = ""): Map<string, string> {
   const out = new Map<string, string>();
   for (const [key, value] of Object.entries(obj)) {

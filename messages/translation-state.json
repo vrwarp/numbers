@@ -37,7 +37,7 @@
   },
   "Common.status.processed": {
     "source": "processed",
-    "context": "Lowercase on purpose — appended mid-sentence to the receipt card's date · size line.",
+    "context": "Lowercase on purpose — appended mid-sentence to the receipt card's date · size line. Review.revertConfirm quotes this wording (test-enforced).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -73,19 +73,19 @@
   },
   "NavBar.shoebox": {
     "source": "Shoebox",
-    "context": "Top-navigation link; must match the Shoebox page title (Shoebox.title).",
+    "context": "Top-navigation link. Auto-copied from Shoebox.title — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "NavBar.claims": {
     "source": "Claims",
-    "context": "Top-navigation link; must match the claims page title (Claims.title).",
+    "context": "Top-navigation link. Auto-copied from Claims.title — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "NavBar.profile": {
     "source": "Profile",
-    "context": "Top-navigation link; must match the profile page title (Profile.title).",
+    "context": "Top-navigation link. Auto-copied from Profile.title — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -181,7 +181,7 @@
   },
   "Claims.title": {
     "source": "Claims",
-    "context": "Page title of the claims list; must match NavBar.claims.",
+    "context": "Page title of the claims list. Canonical — the NavBar link auto-copies this value.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -199,7 +199,7 @@
   },
   "Claims.emptyBody": {
     "source": "Select receipts in your <link>Shoebox</link> and hit “New Claim”.",
-    "context": "Empty-state body; <link> opens the Shoebox; the quoted button name must match Shoebox.newClaim (minus the ✨).",
+    "context": "Empty-state body; <link> opens the Shoebox. Quotes the New Claim button — its exact current translation is provided as mustContain and must appear verbatim (test-enforced).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -211,7 +211,7 @@
   },
   "Profile.title": {
     "source": "Profile",
-    "context": "Page title; must match NavBar.profile.",
+    "context": "Page title. Canonical — the NavBar link auto-copies this value.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -336,7 +336,7 @@
   },
   "PdfPreview.rendering": {
     "source": "Rendering preview…",
-    "context": "Spinner text while the server renders preview pages.",
+    "context": "Auto-copied from Viewer.rendering — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -360,7 +360,7 @@
   },
   "Shoebox.title": {
     "source": "Shoebox",
-    "context": "Page title and core metaphor: the box you toss receipts into. Glossary: 收据盒/收據盒. Must match NavBar.shoebox.",
+    "context": "Page title and core metaphor: the box you toss receipts into. Glossary: 收据盒/收據盒. Canonical — the NavBar link auto-copies this value.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -372,18 +372,19 @@
   },
   "Shoebox.upload": {
     "source": "📷 Upload Receipt",
-    "context": "Primary upload button; keep the 📷. Same wording as AddReceipts.upload.",
+    "context": "Primary upload button; keep the 📷. Canonical — the add-receipts dialog auto-copies it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.uploading": {
     "source": "Uploading…",
-    "context": "That button while an upload runs. Keep the ellipsis.",
+    "context": "Upload button while a file is in flight; keep the ellipsis. Canonical for the add-receipts dialog.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.uploadFailed": {
     "source": "Upload failed",
+    "context": "Error when an upload fails. Canonical for the add-receipts dialog.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -431,7 +432,7 @@
   },
   "Shoebox.newClaim": {
     "source": "✨ New Claim",
-    "context": "THE primary call-to-action; keep the ✨. Quoted (without ✨) by Claims.emptyBody and Shoebox.step2 — keep all three consistent.",
+    "context": "THE primary call-to-action; keep the ✨. Claims.emptyBody and Shoebox.step2 quote this wording (minus ✨) — changing it re-drafts them (test-enforced).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -455,25 +456,25 @@
   },
   "Shoebox.readingInitial": {
     "source": "Reading receipts with AI…",
-    "context": "Live status line when extraction starts (count not yet known).",
+    "context": "Live status line when extraction starts (count not yet known). Canonical for the add-receipts dialog.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.readingCount": {
     "source": "Reading {total, plural, one {# receipt} other {# receipts}} with AI…",
-    "context": "Live status line once the receipt count is known (ICU).",
+    "context": "Live status line once the receipt count is known (ICU). Canonical for the add-receipts dialog.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.readProgress": {
     "source": "Read {completed} of {total} receipts…",
-    "context": "Live progress line: {completed} of {total} receipts done.",
+    "context": "Live progress line: {completed} of {total} receipts done. Canonical for the add-receipts dialog.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.manualInstead": {
     "source": "Enter manually instead",
-    "context": "Escape-hatch button during a rate-limit wait: skip the AI, type rows by hand. Same wording as AddReceipts.manualInstead.",
+    "context": "Escape-hatch button during a rate-limit wait: skip the AI, type rows by hand. Canonical for the add-receipts dialog.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -521,7 +522,7 @@
   },
   "Shoebox.step2": {
     "source": "<step>2. Batch.</step> Later, when you're ready, select receipts and hit New Claim.",
-    "context": "Onboarding step 2; mentions the New Claim button — match Shoebox.newClaim wording (minus ✨).",
+    "context": "Onboarding step 2; <step> wraps the numbered lead word. Quotes the New Claim button — its exact translation is provided as mustContain and must appear verbatim (test-enforced).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -563,13 +564,13 @@
   },
   "Shoebox.prepareEditTitle": {
     "source": "Rotate or crop this receipt photo",
-    "context": "Tooltip of the rotate/crop button inside the prepare dialog.",
+    "context": "Tooltip of the rotate/crop button. Canonical — the review screen auto-copies it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.prepareEditButton": {
     "source": "✂ Rotate / crop",
-    "context": "That button's label; keep the ✂. Same wording as Review.editPhotoButton.",
+    "context": "Rotate/crop button label; keep the ✂. Canonical — the review screen and viewer buttons auto-copy it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -647,7 +648,7 @@
   },
   "Viewer.rendering": {
     "source": "Rendering preview…",
-    "context": "Spinner text while the server rasterizes a PDF.",
+    "context": "Spinner text while the server rasterizes a PDF. Canonical — the inline PDF preview auto-copies it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -677,7 +678,7 @@
   },
   "Viewer.editButton": {
     "source": "✂ Rotate / crop",
-    "context": "That button's label; keep the ✂.",
+    "context": "Auto-copied from Shoebox.prepareEditButton — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -965,13 +966,13 @@
   },
   "Review.editPhotoTitle": {
     "source": "Rotate or crop this receipt photo",
-    "context": "Tooltip of the rotate/crop button over the receipt photo.",
+    "context": "Auto-copied from Shoebox.prepareEditTitle — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.editPhotoButton": {
     "source": "✂ Rotate / crop",
-    "context": "That button's label; keep the ✂. Same wording as Shoebox.prepareEditButton.",
+    "context": "Auto-copied from Shoebox.prepareEditButton — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1061,7 +1062,7 @@
   },
   "Review.revertConfirm": {
     "source": "Revert this claim to draft? Only do this if you have NOT filed the printed form yet. Rows become editable again and the receipts leave “processed”.",
-    "context": "Native confirm() before reverting; the quoted word is Common.status.processed — match it.",
+    "context": "Native confirm() before reverting. Quotes the 'processed' status word — its exact translation is provided as mustContain and must appear verbatim (test-enforced).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1205,7 +1206,7 @@
   },
   "Review.modeOne": {
     "source": "One ministry",
-    "context": "Left segment of the mode toggle; quoted by Review.multiHint — keep them matching. Keep short.",
+    "context": "Left segment of the mode toggle; keep short. Review.multiHint quotes this wording (test-enforced).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1331,7 +1332,7 @@
   },
   "Review.multiHint": {
     "source": "Each row picks its own ministry below. Switch to “One ministry” to set them all at once.",
-    "context": "Fine print in multi mode; the quoted toggle name must match Review.modeOne.",
+    "context": "Fine print in multi mode. Quotes the One-ministry toggle — its exact translation is provided as mustContain and must appear verbatim (test-enforced).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1807,13 +1808,13 @@
   },
   "AddReceipts.upload": {
     "source": "📷 Upload Receipt",
-    "context": "Upload button inside the dialog; keep the 📷. Match Shoebox.upload.",
+    "context": "Auto-copied from Shoebox.upload — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.uploading": {
     "source": "Uploading…",
-    "context": "That button while uploading. Keep the ellipsis.",
+    "context": "Auto-copied from Shoebox.uploading — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1831,7 +1832,7 @@
   },
   "AddReceipts.manualInstead": {
     "source": "Enter manually instead",
-    "context": "Escape hatch during a rate-limit wait; match Shoebox.manualInstead.",
+    "context": "Auto-copied from Shoebox.manualInstead — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1843,19 +1844,19 @@
   },
   "AddReceipts.readingInitial": {
     "source": "Reading receipts with AI…",
-    "context": "Status when extraction starts; match Shoebox.readingInitial.",
+    "context": "Auto-copied from Shoebox.readingInitial — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.readingCount": {
     "source": "Reading {total, plural, one {# receipt} other {# receipts}} with AI…",
-    "context": "Status with the count (ICU); match Shoebox.readingCount.",
+    "context": "Auto-copied from Shoebox.readingCount — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.readProgress": {
     "source": "Read {completed} of {total} receipts…",
-    "context": "Progress line; match Shoebox.readProgress.",
+    "context": "Auto-copied from Shoebox.readProgress — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1867,7 +1868,7 @@
   },
   "AddReceipts.uploadFailed": {
     "source": "Upload failed",
-    "context": "Error when an upload fails.",
+    "context": "Auto-copied from Shoebox.uploadFailed — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

@@ -24,6 +24,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import {
+  QUOTED_IN,
+  SAME_VALUE_GROUPS,
   flatten,
   messageArguments,
   unflatten,
@@ -98,7 +100,30 @@ function canonical(key: string, prev: StateEntry | undefined): StateEntry {
   return e;
 }
 
-async function draft(locale: TargetLocale, keys: string[]): Promise<Map<string, string>> {
+// Same-value members are never drafted — they copy their group's canonical.
+const SAME_VALUE_MEMBER = new Map<string, string>();
+for (const [canonical, ...members] of SAME_VALUE_GROUPS) {
+  for (const member of members) SAME_VALUE_MEMBER.set(member, canonical);
+}
+// Messages that quote another key draft AFTER it, with its live translation inlined.
+const QUOTES_BY_MESSAGE = new Map(QUOTED_IN.map((q) => [q.message, q]));
+
+function quotedValue(flat: Map<string, string>, quotes: string, strip?: string): string {
+  let value = flat.get(quotes) ?? en.get(quotes)!;
+  if (strip && value.startsWith(strip)) value = value.slice(strip.length);
+  return value;
+}
+
+interface DraftExtras {
+  /** Exact current translation of a UI element quoted inside this message. */
+  mustContain?: string;
+}
+
+async function draft(
+  locale: TargetLocale,
+  keys: string[],
+  extras?: Map<string, DraftExtras>
+): Promise<Map<string, string>> {
   if (MODE.todo) return new Map(keys.map((k) => [k, en.get(k)!]));
 
   const { callProvider, currentProvider, providerApiKey, providerModel } = await import(
@@ -118,6 +143,7 @@ async function draft(locale: TargetLocale, keys: string[]): Promise<Map<string, 
       en: en.get(key)!,
       context: state[key]?.context,
       previous: catalogs.get(locale)!.get(key),
+      ...extras?.get(key),
     }));
     const prompt = [
       `Translate these UI strings for a church expense-reimbursement app into ${LANGUAGE_NAMES[locale]}.`,
@@ -128,6 +154,7 @@ async function draft(locale: TargetLocale, keys: string[]): Promise<Map<string, 
       "- Keep leading/trailing punctuation and symbols (…, ✨, 📷, ↑, →, ⑂, ⤴, ↩, ⬇, ＋, $) in place.",
       '- "previous" is the prior translation of an older English source — preserve its terminology where still accurate.',
       '- "context" is a translator note about where the string appears.',
+      '- "mustContain" is the exact current translation of a UI element this message quotes — it must appear VERBATIM inside your translation.',
       "- Answer with ONLY a JSON object mapping each key to its translation.",
       "",
       "GLOSSARY:",
@@ -142,19 +169,45 @@ async function draft(locale: TargetLocale, keys: string[]): Promise<Map<string, 
     const parsed = JSON.parse(jsonText) as Record<string, string>;
     for (const key of batch) {
       const value = parsed[key];
+      const mustContain = extras?.get(key)?.mustContain;
       const argsMatch =
         typeof value === "string" &&
         JSON.stringify(messageArguments(value)) === JSON.stringify(messageArguments(en.get(key)!));
-      if (argsMatch) {
+      const quoteMatch = !mustContain || (typeof value === "string" && value.includes(mustContain));
+      if (argsMatch && quoteMatch) {
         out.set(key, value);
       } else {
-        console.warn(`  ✗ ${locale} ${key}: bad/missing draft — falling back to English (todo)`);
+        const why = argsMatch ? `missing quoted wording ${JSON.stringify(mustContain)}` : "bad/missing draft";
+        console.warn(`  ✗ ${locale} ${key}: ${why} — falling back to English (todo)`);
         out.set(key, en.get(key)!);
       }
     }
     console.log(`  ${locale}: drafted ${Math.min(i + BATCH, keys.length)}/${keys.length}`);
   }
   return out;
+}
+
+/** Mirror each group's canonical value + status onto its members. */
+function copySameValueMembers(locale: TargetLocale): void {
+  const flat = catalogs.get(locale)!;
+  for (const [canonicalKey, ...members] of SAME_VALUE_GROUPS) {
+    for (const member of members) {
+      flat.set(member, flat.get(canonicalKey) ?? en.get(member)!);
+      const e = (state[member] = canonical(member, state[member]));
+      e[locale] = state[canonicalKey]?.[locale] ?? "todo";
+    }
+  }
+}
+
+// Spec sanity: shallow dependencies only — a quoted key must be independently
+// draftable (not itself a quoting message or a copied member).
+for (const { message, quotes } of QUOTED_IN) {
+  if (QUOTES_BY_MESSAGE.has(quotes) || SAME_VALUE_MEMBER.has(quotes)) {
+    throw new Error(`QUOTED_IN: ${message} quotes ${quotes}, which is not independently drafted`);
+  }
+  if (SAME_VALUE_MEMBER.has(message)) {
+    throw new Error(`QUOTED_IN: ${message} is a same-value member — quote via its canonical`);
+  }
 }
 
 async function main() {
@@ -165,6 +218,7 @@ async function main() {
 
     if (MODE.syncState) {
       for (const key of enOrder) {
+        if (SAME_VALUE_MEMBER.has(key)) continue; // reconciled from canonical below
         const e = (state[key] = canonical(key, state[key]));
         e[locale] ??= flat.has(key) ? "machine" : "todo";
         if (!flat.has(key)) {
@@ -172,11 +226,13 @@ async function main() {
           e[locale] = "todo";
         }
       }
+      copySameValueMembers(locale);
       continue;
     }
 
     const work: string[] = [];
     for (const key of enOrder) {
+      if (SAME_VALUE_MEMBER.has(key)) continue; // copied from canonical, never drafted
       const status: TranslationStatus | undefined = state[key]?.[locale];
       const missing = !flat.has(key) || status === "todo";
       const stale = state[key] !== undefined && state[key].source !== en.get(key);
@@ -191,15 +247,32 @@ async function main() {
 
     if (work.length === 0) {
       console.log(`${locale}: nothing to do`);
+      copySameValueMembers(locale);
       continue;
     }
+    // Dependency order: keys whose wording others quote draft first, so the
+    // second pass can inline their FRESH translations as mustContain.
+    const pass1 = work.filter((key) => !QUOTES_BY_MESSAGE.has(key));
+    const pass2 = work.filter((key) => QUOTES_BY_MESSAGE.has(key));
     console.log(`${locale}: ${MODE.todo ? "filling" : "drafting"} ${work.length} key(s)…`);
-    const drafted = await draft(locale, work);
-    for (const [key, value] of drafted) {
-      flat.set(key, value);
-      const e = (state[key] = canonical(key, state[key]));
-      e[locale] = MODE.todo || value === en.get(key) ? "todo" : "machine";
+    const apply = (drafted: Map<string, string>) => {
+      for (const [key, value] of drafted) {
+        flat.set(key, value);
+        const e = (state[key] = canonical(key, state[key]));
+        e[locale] = MODE.todo || value === en.get(key) ? "todo" : "machine";
+      }
+    };
+    apply(await draft(locale, pass1));
+    if (pass2.length > 0) {
+      const extras = new Map(
+        pass2.map((key) => {
+          const { quotes, strip } = QUOTES_BY_MESSAGE.get(key)!;
+          return [key, { mustContain: quotedValue(flat, quotes, strip) }];
+        })
+      );
+      apply(await draft(locale, pass2, extras));
     }
+    copySameValueMembers(locale);
   }
 
   for (const locale of TARGET_LOCALES) {
