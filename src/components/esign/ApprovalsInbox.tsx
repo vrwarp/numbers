@@ -16,8 +16,8 @@ import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
 import { AuditDetails, ThreadSignatures, VerifiedBanner, useClaimChain } from "./chain";
 import { SigningConnectCard } from "./SigningConnect";
-import DocumentSignField from "./DocumentSignField";
-import type { SignaturePlacement } from "@/lib/esign/placement";
+import DocumentSignField, { type TextStamp } from "./DocumentSignField";
+import type { FieldAnchor, SignaturePlacement } from "@/lib/esign/placement";
 import type { SubmitAction } from "@/lib/esign/types";
 
 export interface InboxClaim {
@@ -86,11 +86,22 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
           </h2>
           <ul className="space-y-2">
             {history.map((c) => (
-              <li key={c.id} className="card flex items-center justify-between p-3 text-sm">
-                <span>
+              <li key={c.id} className="card flex items-center justify-between gap-3 p-3 text-sm">
+                <span className="min-w-0 truncate">
                   {c.ownerName} · {formatCents(c.totalCents)}
                 </span>
-                <StatusChip status={c.status} />
+                <span className="flex shrink-0 items-center gap-3">
+                  {(c.status === "approved" || c.status === "paid") && (
+                    <a
+                      className="text-indigo-600 underline"
+                      href={`/api/reimbursements/${c.id}/certificate`}
+                      data-testid={`certificate-${c.id}`}
+                    >
+                      {tEsign("certificateLink")}
+                    </a>
+                  )}
+                  <StatusChip status={c.status} />
+                </span>
               </li>
             ))}
           </ul>
@@ -171,7 +182,14 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<SignaturePlacement | null>(null);
+  const [nameField, setNameField] = useState<FieldAnchor | null>(null);
+  const [dateField, setDateField] = useState<FieldAnchor | null>(null);
   const [placement, setPlacement] = useState<SignaturePlacement | null>(null);
+  // The date the certificate route stamps is the signing time — "today" here.
+  const [today] = useState(() => {
+    const d = new Date();
+    return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+  });
 
   useEffect(() => {
     if (state && !typedName) setTypedName(state.env.me.name);
@@ -180,9 +198,21 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
   useEffect(() => {
     void fetch(`/api/reimbursements/${claim.id}/sign-anchor`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d && setAnchor(d.anchor as SignaturePlacement))
+      .then((d) => {
+        if (!d) return;
+        setAnchor(d.anchor as SignaturePlacement);
+        setNameField((d.nameField as FieldAnchor | null) ?? null);
+        setDateField((d.dateField as FieldAnchor | null) ?? null);
+      })
       .catch(() => {});
   }, [claim.id]);
+
+  // Printed name + date the approver's signature fills alongside the ink — the
+  // same values the certificate route bakes onto the delivery copy.
+  const signStamps: TextStamp[] = [
+    nameField && { key: "name", text: typedName, field: nameField },
+    dateField && { key: "date", text: today, field: dateField },
+  ].filter(Boolean) as TextStamp[];
 
   const signatureImage = state?.env.me.signatureImage ?? null;
 
@@ -237,7 +267,10 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
           <div className="grid gap-1 text-sm">
             {claim.rows.map((r, i) => (
               <div key={i} className="flex justify-between gap-3">
-                <span className="truncate">{r.description}</span>
+                {/* min-w-0 lets the flex item shrink below its content width so
+                    truncate actually ellipsizes — without it a long description
+                    refuses to shrink and overruns the ministry/amount column. */}
+                <span className="min-w-0 truncate">{r.description}</span>
                 <span className="whitespace-nowrap text-stone-500">
                   {r.ministry}
                   {r.event ? ` — ${r.event}` : ""} · {formatCents(r.amountCents)}
@@ -245,24 +278,31 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
               </div>
             ))}
           </div>
+          {/* The stamp surface previews only the first form page; this opens the
+              whole verified packet — every form page plus the appended
+              receipts — so the approver can review what they're signing. */}
+          {state.packetUrl && (
+            <a
+              className="btn-secondary inline-block self-start"
+              href={state.packetUrl}
+              target="_blank"
+              rel="noreferrer"
+              data-testid="open-packet"
+            >
+              {tEsign("openVerifiedPacketButton")}
+            </a>
+          )}
           {/* Click-to-stamp on the EXACT verified bytes (never a server
-              raster) — placing the approval signature where it goes. */}
+              raster) — placing the approval signature where it goes, with the
+              printed name + date the certificate stamps alongside it. */}
           {verified && state.chain.packetBytes && signatureImage && anchor ? (
             <DocumentSignField
               bytes={state.chain.packetBytes}
               signatureImage={signatureImage}
               anchor={anchor}
               onChange={setPlacement}
+              textStamps={signStamps}
             />
-          ) : state.packetUrl ? (
-            <a
-              className="text-sm text-indigo-600 underline"
-              href={state.packetUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {tEsign("openVerifiedPacket")}
-            </a>
           ) : null}
           <AuditDetails state={state} />
           <label className="block text-sm font-medium">

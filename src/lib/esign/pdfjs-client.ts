@@ -53,22 +53,36 @@ export interface RenderedPage {
   /** The page's intrinsic size in PDF points (for placement math). */
   widthPt: number;
   heightPt: number;
-  /** Rendered pixel size (device-independent CSS px at the chosen scale). */
+  /** Rendered bitmap pixel size — oversampled past the on-screen CSS width (see
+   *  renderFirstPage). Only the ratio is consumed (for the box aspect), so the
+   *  oversample never shifts layout. */
   widthPx: number;
   heightPx: number;
 }
 
-/** Render the first page of a packet to a bitmap sized to ~targetWidthPx. */
+/** Raster width is capped here so a big/hi-DPI page can't blow up the canvas or
+ *  the base64 data URL held in state. */
+const RASTER_CAP_PX = 2400;
+
+/**
+ * Render the first page of a packet to a bitmap. `cssWidthPx` is the width the
+ * page is *displayed* at; the bitmap itself is drawn at `oversample`× that
+ * (times the device pixel ratio, capped) so the signing surface stays crisp
+ * when zoomed in rather than blurring an under-sampled image.
+ */
 export async function renderFirstPage(
   data: ArrayBuffer,
-  targetWidthPx = 800
+  cssWidthPx = 800,
+  oversample = 2
 ): Promise<RenderedPage> {
   const loadingTask = pdfjs.getDocument({ data: new Uint8Array(data.slice(0)) });
   const doc = await loadingTask.promise;
   try {
     const page = await doc.getPage(1);
     const base = page.getViewport({ scale: 1 });
-    const scale = targetWidthPx / base.width;
+    const dpr = typeof window !== "undefined" ? Math.min(2, window.devicePixelRatio || 1) : 1;
+    const rasterWidth = Math.min(RASTER_CAP_PX, Math.round(cssWidthPx * oversample * dpr));
+    const scale = rasterWidth / base.width;
     const viewport = page.getViewport({ scale });
     const canvas = document.createElement("canvas");
     canvas.width = Math.ceil(viewport.width);

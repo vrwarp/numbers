@@ -25,7 +25,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { renderFirstPage, type RenderedPage } from "@/lib/esign/pdfjs-client";
-import { clampPlacement, fitWidthToHeight, roundPlacement, type SignaturePlacement } from "@/lib/esign/placement";
+import { clampPlacement, fitWidthToHeight, roundPlacement, type FieldAnchor, type SignaturePlacement } from "@/lib/esign/placement";
 import {
   MAX_SCALE,
   MIN_SCALE,
@@ -56,16 +56,30 @@ const HOLD_CANCEL_PX = 10;
 
 type Gesture = "none" | "hold" | "dragSig" | "pan" | "pinch";
 
+/** A value that fills a named form field on signing — the printed name and date
+ *  the certificate route stamps, previewed in place so the signer sees the whole
+ *  block complete, not just the signature. */
+export interface TextStamp {
+  key: string;
+  text: string;
+  field: FieldAnchor;
+}
+
 export default function DocumentSignField({
   bytes,
   signatureImage,
   anchor,
   onChange,
+  textStamps,
 }: {
   bytes: ArrayBuffer;
   signatureImage: string;
   anchor: SignaturePlacement;
   onChange: (placement: SignaturePlacement | null) => void;
+  /** Rendered once the signature is placed (bottom-left origin, page-relative);
+   *  omitted for the requestor, whose name/date are already baked into the
+   *  packet bytes being previewed. */
+  textStamps?: TextStamp[];
 }) {
   const t = useTranslations("Esign");
   const [page, setPage] = useState<RenderedPage | null>(null);
@@ -360,7 +374,10 @@ export default function DocumentSignField({
       <div
         ref={boxRef}
         className="relative w-full touch-none select-none overflow-hidden rounded-lg border border-stone-300 bg-white"
-        style={{ aspectRatio: `${page.widthPx} / ${page.heightPx}` }}
+        // containerType makes the box a query container so the overlaid
+        // name/date text can size in cqw — a fraction of the page width that
+        // the CSS zoom transform then scales, staying crisp at any zoom.
+        style={{ aspectRatio: `${page.widthPx} / ${page.heightPx}`, containerType: "inline-size" }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endPointer}
@@ -439,6 +456,30 @@ export default function DocumentSignField({
               )}
             </button>
           )}
+          {/* Printed name + date land with the signature: the certificate route
+              stamps these same values, so previewing them fills the whole
+              "Approved by" block, not just the signature line. Sized in cqw
+              (fraction of page width) so they scale with the zoom transform. */}
+          {placed &&
+            textStamps?.map((s) =>
+              s.text.trim() ? (
+                <span
+                  key={s.key}
+                  className="pointer-events-none absolute whitespace-nowrap font-medium leading-none text-stone-900"
+                  style={{
+                    left: `${s.field.xRatio * 100}%`,
+                    bottom: `${s.field.yRatio * 100}%`,
+                    // Match the certificate route's fixed 10pt stamp: 1cqw is 1%
+                    // of page width, and the zoom transform scales it from there.
+                    fontSize: `${(10 / page.widthPt) * 100}cqw`,
+                    paddingBottom: `${(2 / page.widthPt) * 100}cqw`,
+                  }}
+                  data-testid={`sign-fill-${s.key}`}
+                >
+                  {s.text}
+                </span>
+              ) : null
+            )}
         </div>
 
         {/* Zoom controls for mouse-only surfaces. Live in the viewport (not the
