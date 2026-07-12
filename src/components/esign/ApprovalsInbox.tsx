@@ -15,6 +15,7 @@ import { runDecisionCeremony } from "@/lib/esign/client";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
 import { AuditDetails, ThreadSignatures, VerifiedBanner, useClaimChain } from "./chain";
+import { SigningConnectCard } from "./SigningConnect";
 import DocumentSignField from "./DocumentSignField";
 import type { SignaturePlacement } from "@/lib/esign/placement";
 import type { SubmitAction } from "@/lib/esign/types";
@@ -162,7 +163,8 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
   const t = useTranslations("Approvals");
   const tEsign = useTranslations("Esign");
   const thrown = useThrownErrorMessage();
-  const { state, error, loading } = useClaimChain(claim);
+  const { state, error, loading, needsConnect, connect, connecting, connectError } =
+    useClaimChain(claim);
   const [typedName, setTypedName] = useState("");
   const [comment, setComment] = useState("");
   const [affirmed, setAffirmed] = useState(false);
@@ -218,6 +220,9 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
 
   return (
     <div className="mt-4 space-y-3 border-t border-stone-100 pt-4">
+      {needsConnect && (
+        <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
+      )}
       {loading && <p className="text-sm text-stone-500">{tEsign("verifyingChain")}</p>}
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {state && (

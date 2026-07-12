@@ -7,16 +7,21 @@
  * blocks every e-sign view renders. Mirror state is never trusted here.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
+  connectSigningSession,
+  hasSigningSession,
   loadEnv,
+  preloadSigningSession,
   reconcileClaim,
   verifyClaimChain,
   type ClaimChain,
   type EsignEnv,
 } from "@/lib/esign/client";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
+import { useThrownErrorMessage } from "@/lib/use-api-error";
+import { connectErrorMessage } from "./SigningConnect";
 import type { Thread } from "@/lib/esign/validity";
 import type { SubmitAction } from "@/lib/esign/types";
 
@@ -40,9 +45,15 @@ export interface ChainState {
 }
 
 export function useClaimChain(claim: ClaimRef | null) {
+  const t = useTranslations("Esign");
+  const thrown = useThrownErrorMessage();
   const [state, setState] = useState<ChainState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [needsConnect, setNeedsConnect] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
+  const envForConnect = useRef<EsignEnv | null>(null);
 
   const refresh = useCallback(async () => {
     if (!claim?.signatureLedgerId || !claim.signatureLedgerKey) return;
@@ -50,6 +61,17 @@ export function useClaimChain(claim: ClaimRef | null) {
     setError(null);
     try {
       const env = await loadEnv();
+      envForConnect.current = env;
+      // Verification reads the ledger backend, which on production Firestore
+      // means a Google popup. Don't touch it until this device has a signing
+      // session — the connect card establishes one from a click, the only way
+      // iOS/Safari lets the popup through.
+      await preloadSigningSession(env);
+      if (!(await hasSigningSession(env))) {
+        setNeedsConnect(true);
+        return;
+      }
+      setNeedsConnect(false);
       const chain = await verifyClaimChain(env, {
         id: claim.id,
         ownerUid: claim.ownerUid,
@@ -78,11 +100,27 @@ export function useClaimChain(claim: ClaimRef | null) {
     }
   }, [claim?.id, claim?.signatureLedgerId, claim?.signatureLedgerKey, claim?.packetSha256, claim?.submitSeq, claim?.ownerUid]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const connect = useCallback(async () => {
+    const env = envForConnect.current;
+    if (!env) return;
+    setConnecting(true);
+    setConnectError(null);
+    try {
+      await connectSigningSession(env); // gesture-safe popup (warmed on refresh)
+      await refresh();
+    } catch (err) {
+      const message = connectErrorMessage(err, t, thrown);
+      if (message) setConnectError(message);
+    } finally {
+      setConnecting(false);
+    }
+  }, [refresh, t, thrown]);
+
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  return { state, error, loading, refresh };
+  return { state, error, loading, refresh, needsConnect, connect, connecting, connectError };
 }
 
 function Pill({ ok, label }: { ok: boolean; label: string }) {

@@ -1798,6 +1798,36 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Esign.connectTitle": {
+    "source": "Connect signing on this device",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.connectBody": {
+    "source": "Sign in with your church Google account to sign securely. You only need to do this once on this device.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.connectButton": {
+    "source": "Connect signing",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.connecting": {
+    "source": "Connecting…",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.connectFailed": {
+    "source": "Could not connect signing",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.connectBlocked": {
+    "source": "Your browser blocked the sign-in window. Tap “Connect signing” again to allow it.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Esign.itemsCount": {
     "source": "{count, plural, one {# item} other {# items}}",
     "context": "Fallback list-row description when a claim has no description: its line-item count.",

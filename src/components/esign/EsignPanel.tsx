@@ -22,6 +22,7 @@ import { formatCents } from "@/lib/money";
 import type { SignaturePlacement } from "@/lib/esign/placement";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { AuditDetails, ThreadSignatures, VerifiedBanner, useClaimChain, type ClaimRef } from "./chain";
+import { SigningConnectCard, useSigningSession } from "./SigningConnect";
 import DocumentSignField from "./DocumentSignField";
 
 export interface EsignClaim extends ClaimRef {
@@ -52,7 +53,8 @@ export default function EsignPanel({
   // On the owner's review screen the claim's ownerUid IS the signed-in user.
   const chainClaim =
     signed && env ? { ...claim, ownerUid: claim.ownerUid || env.me.userId } : null;
-  const { state, error: chainError, refresh } = useClaimChain(chainClaim);
+  const { state, error: chainError, refresh, needsConnect, connect, connecting, connectError } =
+    useClaimChain(chainClaim);
 
   useEffect(() => {
     void loadEnv().then(setEnv).catch(() => {});
@@ -105,6 +107,9 @@ export default function EsignPanel({
               : t("panelPaid"))}
         </h2>
       </div>
+      {needsConnect && (
+        <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
+      )}
       {state && <VerifiedBanner state={state} />}
       {chainError && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{chainError}</p>}
       {decision?.t === "REJECT" && decision.comment && (
@@ -184,6 +189,7 @@ function SubmitDialog({
   const tCommon = useTranslations("Common");
   const tRole = useTranslations("Common.role");
   const thrown = useThrownErrorMessage();
+  const { phase, connect, connecting, error: connectError } = useSigningSession(env);
   const [members, setMembers] = useState<Member[]>([]);
   const [approverUserId, setApproverUserId] = useState("");
   const [typedName, setTypedName] = useState(env.me.name);
@@ -256,6 +262,21 @@ function SubmitDialog({
               ),
             })}
           </p>
+        ) : phase !== "ready" ? (
+          // Establish the signing session before showing the sign controls, so
+          // the Google popup opens from the connect click and never mid-sign.
+          <>
+            {phase === "connect" ? (
+              <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
+            ) : (
+              <p className="text-sm text-stone-500">{tCommon("loading")}</p>
+            )}
+            <div className="flex justify-end">
+              <button className="btn-secondary" onClick={onClose}>
+                {tCommon("cancel")}
+              </button>
+            </div>
+          </>
         ) : (
           <>
             <p className="text-sm text-stone-600">

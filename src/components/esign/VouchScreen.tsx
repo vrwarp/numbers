@@ -18,6 +18,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { useTranslations } from "next-intl";
 import {
+  backendNeedsPopup,
   grantRole,
   loadEnv,
   loadRoster,
@@ -30,6 +31,7 @@ import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
 import { decodeSubject } from "@/lib/esign/vouch-scan";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import VouchQrScanner from "./VouchQrScanner";
+import { SigningConnectCard, useSigningSession } from "./SigningConnect";
 
 function RoleButtons({
   env,
@@ -168,14 +170,6 @@ function VouchInner() {
         }
         const membersRes = await fetch("/api/esign/members");
         if (membersRes.ok) setMembers((await membersRes.json()).members ?? []);
-        if (loaded.enabled && loaded.me.identityStatus && loaded.rosterLedgerKey) {
-          const { roster } = await loadRoster(loaded);
-          const byUid: Record<string, string[]> = {};
-          for (const m of roster.members) {
-            if (m.revokedAtMs === undefined) (byUid[m.uid] ??= []).push(m.publicKey);
-          }
-          setActiveKeys(byUid);
-        }
       } catch (err) {
         setError(thrown(err, tEsign("loadFailed")));
       }
@@ -183,8 +177,31 @@ function VouchInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [encoded]);
 
+  const { phase, connect, connecting, error: connectError } = useSigningSession(env);
+
+  // Active roster keys read the ledger backend (a Google popup on prod), so
+  // only load them once this device has a signing session (below the connect
+  // gate) — never on mount, where a fresh Safari load would pop.
+  useEffect(() => {
+    if (phase !== "ready" || !env) return;
+    if (!(env.enabled && env.me.identityStatus && env.rosterLedgerKey)) return;
+    void (async () => {
+      try {
+        const { roster } = await loadRoster(env);
+        const byUid: Record<string, string[]> = {};
+        for (const m of roster.members) {
+          if (m.revokedAtMs === undefined) (byUid[m.uid] ??= []).push(m.publicKey);
+        }
+        setActiveKeys(byUid);
+      } catch {
+        // A missing roster read just hides the re-key notice; not fatal here.
+      }
+    })();
+  }, [phase, env]);
+
   const canVouch =
     env?.enabled === true && env.allowed !== false && env.me.identityStatus === "attested";
+  const mustConnect = !!env && backendNeedsPopup(env) && phase !== "ready";
   // URL `c` and camera scan are both binding channels; a pending-list pick is not.
   const strongBinding = Boolean(encoded) || scannedBinding;
   const manualMatches = useMemo(() => {
@@ -240,6 +257,12 @@ function VouchInner() {
             ),
           })}
         </p>
+      ) : mustConnect ? (
+        // Connect the signing session before any vouch / role action, so the
+        // Google popup opens from this click (iOS/Safari popup rule).
+        <div className="card p-5">
+          <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
+        </div>
       ) : done ? (
         <div className="card space-y-2 p-5" data-testid="vouch-done">
           <div className="text-3xl">✅</div>
@@ -360,8 +383,9 @@ function VouchInner() {
                 </span>
                 <span className="flex items-center gap-2">
                   {/* Role grants are root-signed roster events (§4.3) — only
-                      the root's browser can produce them. */}
-                  {env.me.role === "admin" && m.userId !== env.me.userId && (
+                      the root's browser can produce them, and only once its
+                      signing session is connected (they sign a roster event). */}
+                  {env.me.role === "admin" && phase === "ready" && m.userId !== env.me.userId && (
                     <RoleButtons env={env} member={m} onDone={refreshMembers} />
                   )}
                 </span>

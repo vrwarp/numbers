@@ -24,11 +24,19 @@
 
 import type { FirebaseApp } from "firebase/app";
 import type { FirestoreSettings } from "firebase/firestore";
+import type { Auth } from "firebase/auth";
 import type { FirebaseWebConfig } from "@/components/SignInCard";
+
+type FirebaseAuthModule = typeof import("firebase/auth");
 
 let config: FirebaseWebConfig | null = null;
 let expectedEmail: string | null = null;
 let appPromise: Promise<FirebaseApp> | null = null;
+// Modules + auth handle kept synchronously reachable once preloaded, so
+// ensureFirebaseAuth() can open the Google popup with no `await` before
+// window.open — the only way iOS/Safari lets a popup through (§9.2, and the
+// same trap SignInCard preloads around).
+let warm: { auth: Auth; fb: FirebaseAuthModule } | null = null;
 
 export function configureFirebase(cfg: FirebaseWebConfig, email: string) {
   config = cfg;
@@ -113,7 +121,49 @@ function matchesExpected(user: { email?: string | null } | null): boolean {
 
 let authInFlight: Promise<void> | null = null;
 
+/**
+ * Warm the SDK + restore the persisted session ahead of time so a later
+ * ensureFirebaseAuth() can reach signInWithPopup synchronously (see `warm`).
+ * Never opens the popup itself — safe to call on mount / outside a gesture.
+ * No-op on the emulator, which signs in silently with no popup to warm.
+ */
+export async function preloadFirebase(): Promise<void> {
+  if (!config || config.emulator) return;
+  const theApp = await app();
+  const fb = await import("firebase/auth");
+  const auth = fb.getAuth(theApp);
+  await auth.authStateReady();
+  warm = { auth, fb };
+}
+
+/**
+ * Is a Firebase session for THIS numbers account already restored on this
+ * device? Popup-free (never calls signInWithPopup) so the connect gate can
+ * decide whether the interactive step is needed without prompting. On the
+ * emulator there is no popup to gate, so callers treat it as "no gate needed"
+ * upstream; here we report the literal session state.
+ */
+export async function hasMatchingFirebaseSession(): Promise<boolean> {
+  const theApp = await app();
+  const fb = await import("firebase/auth");
+  const auth = fb.getAuth(theApp);
+  await auth.authStateReady();
+  warm ??= { auth, fb };
+  return matchesExpected(auth.currentUser);
+}
+
 export async function ensureFirebaseAuth(): Promise<void> {
+  // Gesture-safe fast path (iOS/Safari): once preloaded, reach signInWithPopup
+  // with NO intervening await, so window.open fires inside the click that
+  // called us — anything else and the popup is blocked. The emulator never
+  // pops, so it always takes the slow (silent) path below.
+  if (warm && !config?.emulator) {
+    if (matchesExpected(warm.auth.currentUser)) return;
+    authInFlight ??= signIn(warm.auth, warm.fb).finally(() => {
+      authInFlight = null;
+    });
+    return authInFlight;
+  }
   const theApp = await app();
   const fb = await import("firebase/auth");
   const auth = fb.getAuth(theApp);
@@ -121,6 +171,7 @@ export async function ensureFirebaseAuth(): Promise<void> {
   // session; deciding before authStateReady() would re-open the Google popup
   // at an already-signed-in member on every full page load.
   await auth.authStateReady();
+  warm ??= { auth, fb };
   if (matchesExpected(auth.currentUser)) return;
   // Single-flight the sign-in: e-sign surfaces bootstrap concurrently, and a
   // second signInWithPopup while one is pending cancels the first popup
