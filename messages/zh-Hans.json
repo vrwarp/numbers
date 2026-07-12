@@ -427,7 +427,18 @@
     "redrawTitle": "重新画签名",
     "redrawBody": "新签名用于今后的文件；已签署的内容不会改变。",
     "saveSignature": "保存签名",
-    "couldNotSave": "保存失败"
+    "couldNotSave": "保存失败",
+    "scopeTitle": "谁可以电子签名",
+    "scopeAllowlist": "仅限我选择的成员",
+    "scopeEveryone": "所有人",
+    "allowlistTitle": "可以使用电子签名的成员",
+    "allowlistNote": "您允许的成员会看到签名功能并可以注册；但仍需经过当面担保才能签名。移除某人只是对其隐藏签名功能——其已签署的内容仍然有效。",
+    "allowlistLoading": "正在加载成员…",
+    "allowlistAllow": "允许",
+    "allowlistRemove": "移除",
+    "allowlistAlwaysOn": "管理员——始终开启",
+    "allowlistLoadFailed": "无法加载成员列表",
+    "allowlistUpdateFailed": "无法更新该成员"
   },
   "Devices": {
     "newDeviceTitle": "这似乎是一台新设备。",
@@ -606,7 +617,9 @@
       "noPacket": "此报销单还没有 PDF 文件",
       "certNotReady": "报销单获批准后才有证书",
       "notEnrolled": "尚未开通签名",
-      "notSetUp": "教会尚未设置电子签名"
+      "notSetUp": "教会尚未设置电子签名",
+      "switchedOff": "电子签名已关闭",
+      "notAllowed": "您的账号尚未开通电子签名"
     }
   },
   "AddReceipts": {

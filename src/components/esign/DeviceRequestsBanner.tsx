@@ -24,7 +24,8 @@ export default function DeviceRequestsBanner() {
       try {
         const loaded = await loadEnv();
         if (cancelled) return;
-        if (!loaded.bootstrapped || !loaded.enabled || !loaded.me.identityStatus) return;
+        if (!loaded.bootstrapped || !loaded.enabled || loaded.allowed === false || !loaded.me.identityStatus)
+          return;
         // Only a device that can actually unwrap the keys can approve.
         if ((await custodyFor(loaded).deviceStatus()) !== "ready") return;
         if (cancelled) return;

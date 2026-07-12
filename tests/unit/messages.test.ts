@@ -78,7 +78,7 @@ describe("message catalogs", () => {
   describe("linked keys (cross-key wording dependencies)", () => {
     // Every locale that exists, en included — the invariants hold everywhere.
     const catalogs = LOCALES.map((l) => [l, loadCatalog(l)] as const).filter(
-      (entry): entry is readonly [string, Messages] => entry[1] !== null
+      (entry): entry is readonly [(typeof LOCALES)[number], Messages] => entry[1] !== null
     );
 
     it("references real keys", () => {

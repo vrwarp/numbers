@@ -4,7 +4,7 @@ import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { currentUser } from "@/auth";
 import { esignRootEmail, esignRootFingerprint, isEsignMock } from "@/lib/config";
 import { firebaseWebConfig } from "@/lib/firebase-admin";
-import { getRegistry, reportRosterEvents } from "@/lib/esign/server";
+import { esignAccessAllowed, getRegistry, reportRosterEvents } from "@/lib/esign/server";
 import { openLedger } from "@/lib/esign/envelope";
 import { replayRoster } from "@/lib/esign/roster";
 import { keyFingerprint } from "@/lib/esign/canonical";
@@ -48,11 +48,15 @@ export async function GET() {
       });
     }
     const enrolled = !!identity;
+    // Rollout scope (A8): per-member allowlist under the master switch.
+    const allowed = esignAccessAllowed(registry, user!);
     return NextResponse.json({
       bootstrapped: true,
       // Master switch (A5): OFF by default; only the admin's toggle turns the
       // system on. Key material is not relayed while disabled.
       enabled: registry.enabled,
+      scope: registry.scope,
+      allowed,
       canToggle: user!.role === "admin",
       backend: isEsignMock() ? "mock" : "firestore",
       firebaseConfig: isEsignMock() ? null : firebaseWebConfig(),
@@ -62,13 +66,13 @@ export async function GET() {
       // Deployment pin (§4.6) — clients refuse a registry that mismatches it.
       configuredRootFingerprint: esignRootFingerprint() ?? null,
       rosterLedgerId: registry.rosterLedgerId,
-      rosterLedgerKey: registry.enabled && enrolled ? registry.rosterLedgerKey : null,
+      rosterLedgerKey: registry.enabled && enrolled && allowed ? registry.rosterLedgerKey : null,
       me,
     });
   });
 }
 
-/** The admin's master switch (docs/ESIGN_DESIGN.md A5). Audited. */
+/** The admin's master switch + rollout scope (docs/ESIGN_DESIGN.md A5/A8). Audited. */
 export async function PATCH(req: Request) {
   return handleApi(async () => {
     const userId = await requireUserId();
@@ -76,22 +80,34 @@ export async function PATCH(req: Request) {
     if (user!.role !== "admin") throw new ApiError(404, "Not found");
     const registry = await getRegistry();
     if (!registry) throw new ApiError(404, "E-sign is not set up yet", "esign.notSetUp");
-    const body = (await req.json().catch(() => ({}))) as { enabled?: boolean };
-    if (typeof body.enabled !== "boolean") throw new ApiError(400, "enabled must be a boolean");
+    const body = (await req.json().catch(() => ({}))) as { enabled?: boolean; scope?: string };
+    const patch: { enabled?: boolean; scope?: string } = {};
+    if (body.enabled !== undefined) {
+      if (typeof body.enabled !== "boolean") throw new ApiError(400, "enabled must be a boolean");
+      patch.enabled = body.enabled;
+    }
+    if (body.scope !== undefined) {
+      if (body.scope !== "allowlist" && body.scope !== "everyone") {
+        throw new ApiError(400, "scope must be 'allowlist' or 'everyone'");
+      }
+      patch.scope = body.scope;
+    }
+    if (Object.keys(patch).length === 0) throw new ApiError(400, "Nothing to change");
     await prisma.$transaction([
-      prisma.esignRegistry.update({
-        where: { id: registry.id },
-        data: { enabled: body.enabled },
-      }),
+      prisma.esignRegistry.update({ where: { id: registry.id }, data: patch }),
       prisma.auditEvent.create({
         data: {
           userId,
           action: "esign-toggle",
-          detail: JSON.stringify({ enabled: body.enabled }),
+          detail: JSON.stringify(patch),
         },
       }),
     ]);
-    return NextResponse.json({ ok: true, enabled: body.enabled });
+    return NextResponse.json({
+      ok: true,
+      enabled: patch.enabled ?? registry.enabled,
+      scope: patch.scope ?? registry.scope,
+    });
   });
 }
 

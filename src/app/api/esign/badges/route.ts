@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi } from "@/lib/api";
-import { getRegistry } from "@/lib/esign/server";
+import { esignAccessAllowed, getRegistry } from "@/lib/esign/server";
 
 export const runtime = "nodejs";
 
@@ -13,7 +13,12 @@ export async function GET() {
     const registry = await getRegistry();
     // Master switch off ⇒ the nav shows nothing e-sign related (A5).
     if (!registry?.enabled) return NextResponse.json({ enabled: false });
-    const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    const me = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, esignAllowed: true },
+    });
+    // Outside the rollout allowlist (A8) ⇒ same nothing-to-see as switched off.
+    if (me && !esignAccessAllowed(registry, me)) return NextResponse.json({ enabled: false });
     const approvals = await prisma.reimbursement.count({
       where: { approverUserId: userId, status: "submitted" },
     });

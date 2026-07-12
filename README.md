@@ -94,9 +94,12 @@ verifiable by a skeptical auditor years later.
   everything on a new device; removing a device rotates the account master key. Losing every
   device just means being re-vouched next Sunday — the new attestation automatically retires
   the old key, and everything it signed stays valid.
-- **The admin holds a master switch, OFF by default.** Bootstrapping creates the registry
-  switched off; nothing e-sign-related is visible to members until the admin flips it.
-  Verification of already-signed records never turns off.
+- **The admin holds a master switch, OFF by default — and a rollout allowlist.**
+  Bootstrapping creates the registry switched off; nothing e-sign-related is visible to
+  members until the admin flips it. Even then the scope defaults to **only members the
+  admin chooses** (a pilot group), managed from the same card — widen it to everyone with
+  one click when ready. Removing someone hides the feature from them; nothing they signed
+  changes, and verification of already-signed records never turns off.
 
 The full trust model, ledger thread rules, and attack/defense matrix live in
 [`docs/ESIGN_DESIGN.md`](docs/ESIGN_DESIGN.md); multi-device design and its

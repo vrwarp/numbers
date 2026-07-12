@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi } from "@/lib/api";
-import { requireEnabledRegistry } from "@/lib/esign/server";
+import { requireEsignAccess } from "@/lib/esign/server";
 import { claimSummary } from "@/lib/esign/claim-server";
 
 export const runtime = "nodejs";
@@ -15,7 +15,7 @@ export const runtime = "nodejs";
 export async function GET() {
   return handleApi(async () => {
     const userId = await requireUserId();
-    await requireEnabledRegistry();
+    await requireEsignAccess(userId);
     const claims = await prisma.reimbursement.findMany({
       where: {
         approverUserId: userId,

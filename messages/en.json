@@ -427,7 +427,18 @@
     "redrawTitle": "Redraw your signature",
     "redrawBody": "The new drawing is used on paperwork you sign from now on; nothing already signed changes.",
     "saveSignature": "Save signature",
-    "couldNotSave": "Could not save"
+    "couldNotSave": "Could not save",
+    "scopeTitle": "Who can sign electronically",
+    "scopeAllowlist": "Only members I choose",
+    "scopeEveryone": "Everyone",
+    "allowlistTitle": "Members who can use electronic signing",
+    "allowlistNote": "People you allow see the signing features and can enroll; being vouched for is still required to sign. Removing someone hides signing from them — anything they already signed stays valid.",
+    "allowlistLoading": "Loading members…",
+    "allowlistAllow": "Allow",
+    "allowlistRemove": "Remove",
+    "allowlistAlwaysOn": "Admin — always on",
+    "allowlistLoadFailed": "Could not load the member list",
+    "allowlistUpdateFailed": "Could not update that member"
   },
   "Devices": {
     "newDeviceTitle": "This looks like a new device.",
@@ -606,7 +617,9 @@
       "noPacket": "No packet for this claim yet",
       "certNotReady": "Certificates exist once a claim is approved",
       "notEnrolled": "Not enrolled",
-      "notSetUp": "E-sign is not set up yet"
+      "notSetUp": "E-sign is not set up yet",
+      "switchedOff": "Electronic signing is turned off",
+      "notAllowed": "Electronic signing is not enabled for your account"
     }
   },
   "AddReceipts": {

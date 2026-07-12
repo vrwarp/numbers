@@ -427,7 +427,18 @@
     "redrawTitle": "重新畫簽名",
     "redrawBody": "新簽名用於今後的文件；已簽署的內容不會改變。",
     "saveSignature": "儲存簽名",
-    "couldNotSave": "儲存失敗"
+    "couldNotSave": "儲存失敗",
+    "scopeTitle": "誰可以電子簽名",
+    "scopeAllowlist": "僅限我選擇的成員",
+    "scopeEveryone": "所有人",
+    "allowlistTitle": "可以使用電子簽名的成員",
+    "allowlistNote": "您允許的成員會看到簽名功能並可以註冊；但仍須經過當面擔保才能簽名。移除某人只是對其隱藏簽名功能——其已簽署的內容仍然有效。",
+    "allowlistLoading": "正在載入成員…",
+    "allowlistAllow": "允許",
+    "allowlistRemove": "移除",
+    "allowlistAlwaysOn": "管理員——一律開啟",
+    "allowlistLoadFailed": "無法載入成員清單",
+    "allowlistUpdateFailed": "無法更新該成員"
   },
   "Devices": {
     "newDeviceTitle": "這似乎是一台新裝置。",
@@ -606,7 +617,9 @@
       "noPacket": "此報銷單還沒有 PDF 文件",
       "certNotReady": "報銷單獲批准後才有證書",
       "notEnrolled": "尚未開通簽名",
-      "notSetUp": "教會尚未設定電子簽名"
+      "notSetUp": "教會尚未設定電子簽名",
+      "switchedOff": "電子簽名已關閉",
+      "notAllowed": "您的帳號尚未開通電子簽名"
     }
   },
   "AddReceipts": {

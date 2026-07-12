@@ -27,6 +27,7 @@ export interface RegistryRow {
   rootUserId: string;
   consentVersion: string;
   enabled: boolean;
+  scope: string; // "allowlist" | "everyone" (A8)
 }
 
 export async function getRegistry(): Promise<RegistryRow | null> {
@@ -46,7 +47,43 @@ export async function requireRegistry(): Promise<RegistryRow> {
  *  ceremony, queue, and enrollment route (docs/ESIGN_DESIGN.md A5). */
 export async function requireEnabledRegistry(): Promise<RegistryRow> {
   const registry = await requireRegistry();
-  if (!registry.enabled) throw new ApiError(409, "Electronic signing is turned off");
+  if (!registry.enabled) {
+    throw new ApiError(409, "Electronic signing is turned off", "esign.switchedOff");
+  }
+  return registry;
+}
+
+/** Whether this user clears the A8 rollout scope (admins always do —
+ *  they operate the switch and the allowlist). */
+export function esignAccessAllowed(
+  registry: RegistryRow,
+  user: { role: string; esignAllowed: boolean }
+): boolean {
+  return registry.scope !== "allowlist" || user.role === "admin" || user.esignAllowed;
+}
+
+/**
+ * Per-member gate under the master switch (A8): with scope "allowlist" only
+ * allowlisted members may enroll or run ceremonies/queues. Like A5 this gates
+ * the APP's surfaces only — roster validity is cryptographic and unaffected;
+ * signatures collected while allowed stay valid forever, and verification
+ * surfaces never check it.
+ */
+export async function requireEsignAccess(userId: string): Promise<RegistryRow> {
+  const registry = await requireEnabledRegistry();
+  if (registry.scope === "allowlist") {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, esignAllowed: true },
+    });
+    if (!user || !esignAccessAllowed(registry, user)) {
+      throw new ApiError(
+        409,
+        "Electronic signing is not enabled for your account",
+        "esign.notAllowed"
+      );
+    }
+  }
   return registry;
 }
 

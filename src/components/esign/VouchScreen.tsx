@@ -190,7 +190,8 @@ function VouchInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [encoded]);
 
-  const canVouch = env?.enabled === true && env?.me.identityStatus === "attested";
+  const canVouch =
+    env?.enabled === true && env.allowed !== false && env.me.identityStatus === "attested";
   const manualMatches = useMemo(() => {
     const typed = manualFp.toLowerCase().replace(/[^0-9a-f]/g, "");
     return typed.length >= 32 && fingerprint?.startsWith(typed);
