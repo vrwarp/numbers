@@ -50,7 +50,10 @@ export class FirestoreLedgerStore implements LedgerStore {
       };
       return {
         eventId: d.id,
-        createdAtMs: data.createdAt?.toMillis() ?? 0,
+        // toMillis() carries Firestore's nanosecond precision as FRACTIONAL
+        // millis; the protocol's ordering value is integer ms everywhere
+        // (the mirror stores it as a BigInt).
+        createdAtMs: Math.round(data.createdAt?.toMillis() ?? 0),
         encryptedData: data.encryptedData,
         iv: data.iv,
       };

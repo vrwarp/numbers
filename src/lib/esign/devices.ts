@@ -110,7 +110,11 @@ export async function watchAuthorizedDevices(
   onUpdate: (devices: AuthorizedDevice[]) => void
 ): Promise<() => void> {
   const cp = await lib(env);
-  return cp.subscribeAuthorizedDevices((devices) => onUpdate(devices as AuthorizedDevice[]));
+  return cp.subscribeAuthorizedDevices((devices) =>
+    // Firestore map fields come back sorted by KEY (device id), not by when
+    // they joined — order chronologically so the list reads sanely.
+    onUpdate([...(devices as AuthorizedDevice[])].sort((a, b) => a.createdAt - b.createdAt))
+  );
 }
 
 /** Sign a device out of the fleet: rotates the AMK for everyone remaining. */

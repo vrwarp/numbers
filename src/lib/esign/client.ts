@@ -63,7 +63,9 @@ async function jsonOrThrow(res: Response) {
 
 export async function loadEnv(): Promise<EsignEnv> {
   const env = (await jsonOrThrow(await fetch("/api/esign/registry"))) as EsignEnv;
-  if (env.bootstrapped && env.backend === "firestore" && env.firebaseConfig) {
+  // Configure Firebase whenever the real backend is in play — including
+  // BEFORE bootstrap, whose genesis ceremony already writes the ledger.
+  if (env.backend === "firestore" && env.firebaseConfig) {
     const { configureFirebase } = await import("./firebase-client");
     configureFirebase(env.firebaseConfig, env.me.email);
   }

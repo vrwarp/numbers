@@ -1,11 +1,28 @@
 # Multi-device plan — e-sign identity across a member's devices
 
-Status: **M1–M4 implemented and e2e-verified in mock mode** (design amendment A6);
-**M5 (live Firestore validation) pending** — it needs a real Firebase project plus the
-phase-1 `ensureFirebaseAuth()` platform item. Companion to `docs/ESIGN_DESIGN.md` §4.5
-(the ratified behavior) and §11 phase 5 (where this work sits). Reference implementation
-of the UX: [LetUsMeet](https://github.com/vrwarp/LetUsMeet) (`frontend/src/hooks/useAuth.ts`,
-`components/Layout.tsx`), which ships this exact charproof ceremony in production.
+Status: **M1–M4 implemented; the full 36-screen walkthrough passes on BOTH backends** —
+`ESIGN_MOCK` and the REAL Firestore backend via the Firebase emulator suite with the
+production `firestore.rules` (design amendment A6; recipe in `docs/agent/TESTING.md`).
+**M5 residue: a live-project smoke** (real Google sign-in popup, real WebAuthn passkeys,
+rules deploy) — everything else, including `runTransaction` custody, real snapshots,
+and the rules fork, is now exercised by the emulator e2e. Companion to
+`docs/ESIGN_DESIGN.md` §4.5 (the ratified behavior) and §11 phase 5. Reference
+implementation of the UX: [LetUsMeet](https://github.com/vrwarp/LetUsMeet)
+(`frontend/src/hooks/useAuth.ts`, `components/Layout.tsx`), which ships this exact
+charproof ceremony in production.
+
+Real bugs the emulator run caught that the mock could not (why this suite exists):
+1. Firestore `toMillis()` returns FRACTIONAL ms → the mirror's `BigInt()` threw and a
+   broad duplicate-catch swallowed it → events silently vanished from the mirror.
+2. Firebase app init wasn't single-flight → a concurrent custody caller raced past the
+   emulator connects and talked to PRODUCTION Google endpoints.
+3. The mirror sync was uid-keyed → it clobbered an in-flight re-enrollment (start-over)
+   back to the old attested key; now it judges rows by their DECLARED key.
+4. Firestore returns map fields key-sorted, not join-ordered → devices panel now sorts
+   by `createdAt`; the vouch screen's re-key notice now reads the ROSTER (the members
+   mirror can't see a pending re-key — the old heuristic only worked because of bug 3).
+5. LetUsMeet's WebKit-only 5s long-poll cycle starves `runTransaction` (rotateKeys does
+   its crypto inside the transaction) — force long polling WITHOUT the aggressive cycle.
 
 Implementation notes (deltas discovered while building):
 - charproof v1.0.8 ships everything needed, including `subscribeAuthorizedDevices`

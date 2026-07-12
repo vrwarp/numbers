@@ -99,6 +99,55 @@ exclusion event). If you change mock values, update these expectations coherentl
 - `Executable doesn't exist …chrome-headless-shell` → set `PLAYWRIGHT_CHROMIUM_PATH` (do not
   `playwright install` in the sandbox).
 
+## E-sign e2e against the Firebase emulator (the real backend, no mock)
+
+`ESIGN_MOCK` is a reimplementation and reimplementations drift — the emulator
+suite runs the REAL Firestore ledger store, charproof custody, and the
+production `firestore.rules` with no live project (LetUsMeet's pattern).
+Requires Java (Firestore emulator) and the `firebase-tools` dev dependency.
+
+```bash
+npm run esign:emulators          # auth :9099 + firestore :8080, rules loaded
+# then run the server WITHOUT ESIGN_MOCK, pointing at the emulators:
+FIREBASE_PROJECT_ID=demo-numbers \
+FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
+AUTH_TEST_MODE=1 AI_MOCK=1 ESIGN_ROOT_EMAIL=<root email> npm run dev
+npm run esign:rules-canary       # with the same env: backdated write must be DENIED
+```
+
+How it works: when the emulator host pair is set, the registry relays an
+`emulator` block inside `firebaseConfig`; the browser connects both SDK
+emulators (forced long polling — do NOT add the 5s poll cycle, it starves
+`runTransaction`), swaps the Google popup for silent email/password sign-in
+as the session's email, and injects the mock passkey (headless can't do
+WebAuthn). Same email ⇒ same emulator uid ⇒ a member's browser contexts share
+one account doc, like production. Restart the emulators for a clean slate —
+state is in-memory.
+
+The COMMITTED suite for this backend is `tests/esign-e2e/esign.spec.ts`
+(own config `playwright.esign.config.ts`, own server script, port 3101,
+strictly serial — one multi-context story from bootstrap through key
+supersession, including a server-side REST assert that AMK rotation actually
+committed). Entry points, LetUsMeet's Docker pattern:
+
+```bash
+npm run test:e2e:esign          # inner command — run it under emulators:exec
+npm run test:e2e:esign:local    # emulators:exec wrapper (needs Java locally)
+npm run test:e2e:esign:docker   # Dockerfile.e2e: playwright image + Java; what CI runs
+```
+
+CI runs the docker variant as the `esign-e2e` job in
+`.github/workflows/ci.yml` (emulator jars cached; HTML report uploaded on
+failure). `Dockerfile.e2e`'s base image pin must match `@playwright/test` in
+package.json — bump them together.
+
+Real bugs the emulator caught that the mock could not (keep it in the loop):
+fractional `toMillis()` breaking the mirror's BigInt, a Firebase-init
+single-flight race that sent a concurrent caller to production endpoints, the
+uid-keyed mirror sync clobbering in-flight re-enrollments, and Firestore's
+key-sorted maps breaking join-order assumptions.
+
 ## Visual verification
 
 `node scripts/render-pdf.mjs screenshots/claim-packet.pdf screenshots/packet` → `packet-pN.png`.

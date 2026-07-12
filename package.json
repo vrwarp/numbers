@@ -2,7 +2,7 @@
   "name": "numbers",
   "version": "1.0.0",
   "private": true,
-  "description": "CFCC Reimbursement App — shoebox receipt capture, AI extraction, human-verified PDF generation",
+  "description": "CFCC Reimbursement App \u2014 shoebox receipt capture, AI extraction, human-verified PDF generation",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,7 +14,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "esign:emulators": "firebase emulators:start --only auth,firestore",
+    "esign:rules-canary": "node scripts/check-rules.mjs",
+    "test:e2e:esign": "playwright test -c playwright.esign.config.ts",
+    "test:e2e:esign:local": "firebase emulators:exec --only auth,firestore --project demo-numbers \"npm run test:e2e:esign\"",
+    "test:e2e:esign:docker": "docker build -t numbers-esign-e2e -f Dockerfile.e2e . && docker run --rm -e CI -v ~/.cache/firebase/emulators:/root/.cache/firebase/emulators numbers-esign-e2e"
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.2",
@@ -37,6 +42,7 @@
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "firebase-tools": "^15.23.0",
     "pdfjs-dist": "^6.1.200",
     "prisma": "^6.16.0",
     "tailwindcss": "^4.1.0",

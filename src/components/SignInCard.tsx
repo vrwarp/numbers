@@ -8,6 +8,9 @@ export type FirebaseWebConfig = {
   authDomain: string;
   projectId: string;
   appId?: string;
+  /** Present only in emulator e2e runs (never production): connect the SDK
+   *  to the local auth/firestore emulator suite instead of live Firebase. */
+  emulator?: { auth: string; firestore: string };
 };
 
 type FirebaseAuth = typeof import("firebase/auth");
