@@ -1,6 +1,6 @@
 {
   "Meta": {
-    "title": "Numbers — CFCC 报销系统",
+    "title": "Numbers — 中华归主海沃教会报销系统",
     "description": "随手拍下教会收据，之后再提交报销申请。",
     "appName": "Numbers"
   },
@@ -28,7 +28,7 @@
     "profileNudge": "您的<link>个人资料</link>还缺少姓名或邮寄地址——两者都会打印在报销表上。"
   },
   "SignIn": {
-    "tagline": "CFCC 费用报销——随手拍下收据，之后再提交申请。",
+    "tagline": "中华归主海沃教会费用报销——随手拍下收据，之后再提交申请。",
     "failed": "登录失败",
     "popupBlocked": "浏览器拦截了登录弹窗。如果您是从其他应用内打开本页，请点按菜单选择“在 Safari 中打开”（或 Chrome），然后重试。",
     "embeddedTitle": "您正在应用内置浏览器中",
@@ -109,7 +109,7 @@
     "step1": "<step>1. 拍照。</step>买完东西立刻拍下收据。",
     "step2": "<step>2. 汇总。</step>之后有空时，选择收据并点“新建报销单”。",
     "step3": "<step>3. 核对。</step>逐行对照收据检查，可修改、拆分或排除项目。",
-    "step4": "<step>4. 打印。</step>下载已填好的 CFCC 表格（附收据），签字后交回。",
+    "step4": "<step>4. 打印。</step>下载已填好的教会报销表（附收据），签字后交回。",
     "processedSummary": "已处理的收据（{count}）",
     "processedNote": "已在某张已生成的报销单上——如果这笔消费的一部分属于另一张报销单，仍可再次选择。",
     "prepareTitle": "为这张收据写个说明",

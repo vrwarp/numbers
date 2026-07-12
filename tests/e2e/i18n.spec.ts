@@ -50,6 +50,9 @@ test("sign-in page offers the switcher before authentication", async ({ page }) 
   await page.goto("/signin");
   await page.getByTestId("locale-switcher").selectOption("zh-Hans");
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hans");
-  // Tagline from the zh-Hans catalog.
-  await expect(page.getByText("CFCC 费用报销", { exact: false })).toBeVisible();
+  // Tagline from the zh-Hans catalog (full text — the church name alone also
+  // matches the route announcer carrying the localized page title).
+  await expect(
+    page.getByText("中华归主海沃教会费用报销——随手拍下收据，之后再提交申请。")
+  ).toBeVisible();
 });

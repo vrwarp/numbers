@@ -1,6 +1,6 @@
 {
   "Meta": {
-    "title": "Numbers — CFCC 報銷系統",
+    "title": "Numbers — 中華歸主海沃教會報銷系統",
     "description": "隨手拍下教會收據，之後再提交報銷申請。",
     "appName": "Numbers"
   },
@@ -28,7 +28,7 @@
     "profileNudge": "您的<link>個人資料</link>還缺少姓名或郵寄地址——兩者都會列印在報銷表上。"
   },
   "SignIn": {
-    "tagline": "CFCC 費用報銷——隨手拍下收據，之後再提交申請。",
+    "tagline": "中華歸主海沃教會費用報銷——隨手拍下收據，之後再提交申請。",
     "failed": "登入失敗",
     "popupBlocked": "瀏覽器攔截了登入彈出視窗。如果您是從其他應用程式內開啟本頁，請點按選單選擇「在 Safari 中開啟」（或 Chrome），然後再試一次。",
     "embeddedTitle": "您正在應用程式內建瀏覽器中",
@@ -109,7 +109,7 @@
     "step1": "<step>1. 拍照。</step>買完東西立刻拍下收據。",
     "step2": "<step>2. 彙整。</step>之後有空時，選取收據並按「新增報銷單」。",
     "step3": "<step>3. 核對。</step>逐行對照收據檢查，可修改、拆分或排除項目。",
-    "step4": "<step>4. 列印。</step>下載已填好的 CFCC 表格（附收據），簽名後交回。",
+    "step4": "<step>4. 列印。</step>下載已填好的教會報銷表（附收據），簽名後交回。",
     "processedSummary": "已處理的收據（{count}）",
     "processedNote": "已在某張已產生的報銷單上——如果這筆消費的一部分屬於另一張報銷單，仍可再次選取。",
     "prepareTitle": "為這張收據寫個說明",

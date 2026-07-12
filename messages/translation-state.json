@@ -1,7 +1,7 @@
 {
   "Meta.title": {
     "source": "Numbers — CFCC Reimbursements",
-    "context": "Browser-tab / PWA title. “Numbers” (app name) and “CFCC” (church acronym) stay verbatim.",
+    "context": "Browser-tab / PWA title. “Numbers” stays verbatim. “CFCC” is the ENGLISH abbreviation only — Chinese uses the church's Chinese name, 中华归主海沃教会 / 中華歸主海沃教會 (see GLOSSARY).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -109,7 +109,7 @@
   },
   "SignIn.tagline": {
     "source": "CFCC expense reimbursements — snap receipts now, file the claim later.",
-    "context": "One-liner under the app name on the sign-in card. “CFCC” stays verbatim.",
+    "context": "One-liner under the app name on the sign-in card. English uses the CFCC abbreviation; Chinese uses the church's full Chinese name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -534,7 +534,7 @@
   },
   "Shoebox.step4": {
     "source": "<step>4. Print.</step> Download the filled CFCC form with receipts attached, sign, and drop it off.",
-    "context": "Onboarding step 4; 'CFCC' stays verbatim.",
+    "context": "Onboarding step 4; 'the filled CFCC form' means the church's official reimbursement form — Chinese says 教会报销表 / 教會報銷表 rather than the English abbreviation.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

@@ -12,6 +12,7 @@ zh-Hans (登录→登錄 would be wrong; Taiwan says 登入).
 | en | zh-Hans | zh-Hant | note |
 | :-- | :-- | :-- | :-- |
 | receipt | 收据 | 收據 | measure word: 张 / 張 |
+| CFCC / Chinese For Christ Church of Hayward | 中华归主海沃教会 | 中華歸主海沃教會 | the English abbreviation never appears in Chinese text; “the CFCC form” → 教会报销表 / 教會報銷表 |
 | claim / reimbursement | 报销单 / 报销 | 報銷單 / 報銷 | |
 | Receipts (the capture page) | 收据 | 收據 | tab/page name; the code still calls it “Shoebox” internally |
 | ministry | 事工 | 事工 | standard church usage |
@@ -38,7 +39,7 @@ zh-Hans (登录→登錄 would be wrong; Taiwan says 登入).
 | crop | 裁剪 | 裁切 | |
 | retreat | 退修会 | 退修會 | church register |
 
-Never translated: **Numbers** (app name), **CFCC**, ministry canonical values
+Never translated: **Numbers** (app name), ministry canonical values
 (`237 Office Supplies` — they are stored data, printed on the official form,
 and the AI-suggestion validation key), account numbers, merchant names, file
 names, anything the user typed. Quotation marks follow each script's
