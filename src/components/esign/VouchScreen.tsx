@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { useTranslations } from "next-intl";
@@ -233,9 +234,9 @@ function VouchInner() {
         <p className="card p-5 text-sm text-stone-600">
           {t.rich("onlyAttested", {
             link: (chunks) => (
-              <a href="/profile" className="text-indigo-600 underline">
+              <Link href="/profile" className="text-indigo-600 underline">
                 {chunks}
-              </a>
+              </Link>
             ),
           })}
         </p>
