@@ -61,7 +61,7 @@ const shot = (name, opts = {}) => page.screenshot({ path: `${OUT}/${name}.png`, 
 await page.goto(`${BASE}/signin`);
 await shot("01-signin-en");
 await page.getByTestId("locale-switcher").selectOption("zh-Hans");
-await page.getByText("CFCC 费用报销", { exact: false }).waitFor();
+await page.getByText("中华归主海沃教会", { exact: false }).first().waitFor();
 await shot("02-signin-zh");
 
 // 3: dev sign-in → empty Shoebox with the four-step onboarding.

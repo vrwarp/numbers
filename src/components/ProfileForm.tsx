@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { LOCALES, LOCALE_LABELS } from "@/lib/locales";
+import { signOut } from "@/lib/sign-out";
 import { useApiErrorMessage } from "@/lib/use-api-error";
 
 interface Profile {
@@ -16,6 +17,7 @@ interface Profile {
 export default function ProfileForm() {
   const t = useTranslations("Profile");
   const tCommon = useTranslations("Common");
+  const tNav = useTranslations("NavBar");
   const router = useRouter();
   const activeLocale = useLocale();
   const apiError = useApiErrorMessage();
@@ -125,6 +127,17 @@ export default function ProfileForm() {
           {error && <span className="text-sm text-red-700">{error}</span>}
         </div>
       </form>
+      {/* The NavBar's sign-out is hidden on phone widths — this is the mobile home for it. */}
+      <div className="flex justify-center sm:hidden">
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => signOut()}
+          data-testid="profile-sign-out"
+        >
+          {tNav("signOut")}
+        </button>
+      </div>
     </div>
   );
 }

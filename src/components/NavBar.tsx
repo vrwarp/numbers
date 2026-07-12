@@ -5,11 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import LocaleSwitcher from "./LocaleSwitcher";
-
-async function signOut() {
-  await fetch("/api/auth/session", { method: "DELETE" }).catch(() => {});
-  window.location.assign("/signin");
-}
+import { signOut } from "@/lib/sign-out";
 
 interface Badges {
   enabled: boolean;
@@ -49,7 +45,7 @@ export default function NavBar({ userName }: { userName: string }) {
     <header className="sticky top-0 z-40 border-b border-stone-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 sm:px-4">
         <Link href="/" className="flex shrink-0 items-center gap-1.5 text-lg font-bold text-indigo-700">
-          <span aria-hidden>⛪</span> <span className="hidden min-[380px]:inline">Numbers</span>
+          <span aria-hidden>⛪</span> <span className="hidden sm:inline">Numbers</span>
         </Link>
         <nav className="flex min-w-0 items-center gap-0.5 overflow-x-auto sm:gap-2" aria-label="Main">
           {links.map((l) => {
@@ -74,7 +70,7 @@ export default function NavBar({ userName }: { userName: string }) {
               </Link>
             );
           })}
-          <LocaleSwitcher signedIn className="ml-1 shrink-0" />
+          <LocaleSwitcher signedIn variant="compact" className="ml-1" />
           <button
             onClick={() => signOut()}
             className="ml-1 hidden rounded-lg px-3 py-1.5 text-sm text-stone-500 hover:bg-stone-100 sm:block"

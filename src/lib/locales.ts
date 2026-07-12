@@ -20,6 +20,13 @@ export const LOCALE_LABELS: Record<Locale, string> = {
   "zh-Hant": "繁體中文",
 };
 
+/** One-glyph badges for the NavBar's compact switcher chip. */
+export const LOCALE_SHORT_LABELS: Record<Locale, string> = {
+  en: "EN",
+  "zh-Hans": "简",
+  "zh-Hant": "繁",
+};
+
 export function isLocale(value: unknown): value is Locale {
   return typeof value === "string" && (LOCALES as readonly string[]).includes(value);
 }
