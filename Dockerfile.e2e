@@ -1,0 +1,30 @@
+# E-sign e2e image (docs/agent/TESTING.md), modeled on LetUsMeet's
+# Dockerfile.e2e: the Playwright image (browsers preinstalled, version pinned
+# to package.json's @playwright/test) plus Java for the Firestore emulator.
+# CI builds this and runs the full e-sign suite against the REAL Firestore
+# backend — production firestore.rules, real charproof custody, no ESIGN_MOCK.
+# Never deployed anywhere.
+FROM mcr.microsoft.com/playwright:v1.61.1-jammy
+
+# Java for the Firestore emulator; Node 22 to match the repo toolchain.
+RUN apt-get update && \
+    apt-get install -y openjdk-21-jre-headless && \
+    apt-get remove -y nodejs && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+# Prisma client + production Next build baked into the image so the test run
+# starts at `next start` (tests/esign-e2e/start-server.sh skips the build when
+# .next exists).
+RUN npx prisma generate && npx next build
+
+# Run the suite under the emulator pair; firestore.rules loads from firebase.json.
+CMD ["npx", "firebase", "emulators:exec", "--only", "auth,firestore", "--project", "demo-numbers", "npm run test:e2e:esign"]

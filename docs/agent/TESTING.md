@@ -125,6 +125,23 @@ WebAuthn). Same email ⇒ same emulator uid ⇒ a member's browser contexts shar
 one account doc, like production. Restart the emulators for a clean slate —
 state is in-memory.
 
+The COMMITTED suite for this backend is `tests/esign-e2e/esign.spec.ts`
+(own config `playwright.esign.config.ts`, own server script, port 3101,
+strictly serial — one multi-context story from bootstrap through key
+supersession, including a server-side REST assert that AMK rotation actually
+committed). Entry points, LetUsMeet's Docker pattern:
+
+```bash
+npm run test:e2e:esign          # inner command — run it under emulators:exec
+npm run test:e2e:esign:local    # emulators:exec wrapper (needs Java locally)
+npm run test:e2e:esign:docker   # Dockerfile.e2e: playwright image + Java; what CI runs
+```
+
+CI runs the docker variant as the `esign-e2e` job in
+`.github/workflows/ci.yml` (emulator jars cached; HTML report uploaded on
+failure). `Dockerfile.e2e`'s base image pin must match `@playwright/test` in
+package.json — bump them together.
+
 Real bugs the emulator caught that the mock could not (keep it in the loop):
 fractional `toMillis()` breaking the mirror's BigInt, a Firebase-init
 single-flight race that sent a concurrent caller to production endpoints, the

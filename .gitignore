@@ -37,3 +37,6 @@ tests/e2e/.fixtures/
 # Firebase emulator logs
 firebase-debug.log
 firestore-debug.log
+.esign-e2e-data/
+test-results-esign/
+playwright-report-esign/

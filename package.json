@@ -16,7 +16,10 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "esign:emulators": "firebase emulators:start --only auth,firestore",
-    "esign:rules-canary": "node scripts/check-rules.mjs"
+    "esign:rules-canary": "node scripts/check-rules.mjs",
+    "test:e2e:esign": "playwright test -c playwright.esign.config.ts",
+    "test:e2e:esign:local": "firebase emulators:exec --only auth,firestore --project demo-numbers \"npm run test:e2e:esign\"",
+    "test:e2e:esign:docker": "docker build -t numbers-esign-e2e -f Dockerfile.e2e . && docker run --rm -e CI -v ~/.cache/firebase/emulators:/root/.cache/firebase/emulators numbers-esign-e2e"
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.2",

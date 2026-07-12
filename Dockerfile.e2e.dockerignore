@@ -1,0 +1,19 @@
+# Ignore rules for Dockerfile.e2e ONLY (BuildKit picks this over .dockerignore).
+# Unlike the production image, the e2e image needs tests/ and the playwright
+# configs in its context.
+.git
+node_modules
+.next
+data
+.e2e-data
+.esign-e2e-data
+screenshots
+test-results
+test-results-esign
+playwright-report
+playwright-report-esign
+tests/e2e/.fixtures
+*.log
+.env
+.env.*
+!.env.example

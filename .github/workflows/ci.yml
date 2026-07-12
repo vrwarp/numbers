@@ -52,3 +52,37 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  # E-sign against the REAL Firestore backend (docs/agent/TESTING.md):
+  # LetUsMeet's pattern — a Docker image with Playwright + Java runs the full
+  # multi-device suite under `firebase emulators:exec` with the production
+  # firestore.rules. No ESIGN_MOCK anywhere in this job.
+  esign-e2e:
+    name: "E-sign E2E: real Firestore backend (Docker + emulators)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Firebase emulator jars
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: ${{ runner.os }}-firebase-emulators-${{ hashFiles('firebase.json') }}
+      - name: Build the e2e image
+        run: docker build -t numbers-esign-e2e -f Dockerfile.e2e .
+      - name: Run the e-sign suite in the container
+        run: |
+          mkdir -p ~/.cache/firebase/emulators playwright-report-esign test-results-esign
+          docker run --rm -e CI=true \
+            -v ~/.cache/firebase/emulators:/root/.cache/firebase/emulators \
+            -v "$PWD/playwright-report-esign:/app/playwright-report-esign" \
+            -v "$PWD/test-results-esign:/app/test-results-esign" \
+            numbers-esign-e2e
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-esign
+          path: |
+            playwright-report-esign/
+            test-results-esign/
+          retention-days: 7
