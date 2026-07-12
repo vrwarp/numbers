@@ -343,6 +343,7 @@ export default function SigningIdentityCard() {
                 {t.rich("pendingVouch", { b: (chunks) => <b>{chunks}</b> })}
               </p>
               <IdentityQr url={vouchUrl} />
+              {fingerprint && <ManualCodeFallback fingerprint={fingerprint} />}
             </div>
           )}
 
@@ -409,6 +410,54 @@ export default function SigningIdentityCard() {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Camera-less fallback for the pending candidate (§4.3). The QR scan is the
+ * primary binding channel; when the voucher can't scan, they pick the
+ * candidate from the pending list and type this **full key fingerprint** — the
+ * only manual channel the ceremony accepts (a short spoken code is grindable,
+ * so it's never sufficient). Grouped for readability and copyable; kept behind
+ * a disclosure so the plain-language main path stays a QR and nothing more.
+ */
+function ManualCodeFallback({ fingerprint }: { fingerprint: string }) {
+  const t = useTranslations("Identity");
+  const [copied, setCopied] = useState(false);
+  const grouped = fingerprint.match(/.{1,4}/g)?.join(" ") ?? fingerprint;
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(fingerprint);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard unavailable (insecure context / denied) — the code is still
+      // selectable by hand, so this is a no-op, not an error.
+    }
+  }
+  return (
+    <details className="rounded-lg border border-amber-200 bg-white/70 px-3 py-2 text-xs">
+      <summary className="cursor-pointer select-none font-medium text-amber-900">
+        {t("manualFallbackTitle")}
+      </summary>
+      <p className="mt-2 text-stone-600">{t("manualFallbackBody")}</p>
+      <div className="mt-2 flex items-start gap-2">
+        <code
+          className="flex-1 break-all select-all rounded bg-stone-50 p-2 font-mono text-[11px] leading-5 text-stone-700"
+          data-testid="manual-vouch-fingerprint"
+        >
+          {grouped}
+        </code>
+        <button
+          type="button"
+          className="shrink-0 rounded-lg border border-stone-200 px-2 py-1 text-xs text-stone-600 hover:bg-stone-50"
+          onClick={copy}
+          data-testid="copy-fingerprint"
+        >
+          {copied ? t("copiedCode") : t("copyCode")}
+        </button>
+      </div>
+    </details>
   );
 }
 
