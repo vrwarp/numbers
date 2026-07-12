@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {
   bootstrapRegistry,
@@ -240,9 +241,11 @@ export default function SigningIdentityCard() {
 
           {status === "attested" && (
             <div className="flex flex-wrap gap-2">
-              <a href="/vouch" className="btn-secondary inline-block" data-testid="vouch-link">
+              {/* Client-side nav keeps the in-memory Firebase session alive —
+                  a full reload would re-prompt if persistence restore fails. */}
+              <Link href="/vouch" className="btn-secondary inline-block" data-testid="vouch-link">
                 {t("vouchForMember")}
-              </a>
+              </Link>
             </div>
           )}
 
