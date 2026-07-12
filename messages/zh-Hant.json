@@ -408,7 +408,7 @@
     "yourSignature": "你的簽名",
     "redraw": "重新畫",
     "addSignature": "✍️ 新增你的簽名",
-    "pendingVouch": "最後一步：<b>當面</b>把這個 QR 碼出示給兩位會友（或一位審批人）。他們用手機相機掃描，確認是你本人。",
+    "pendingVouch": "最後一步：<b>當面</b>把這個 QR 碼出示給兩位會友（或一位審批人）。他們開啟<b>為會友擔保</b>，掃描後確認是你本人。",
     "vouchForMember": "🤝 為會友擔保",
     "roleLabel": "角色:",
     "yourFingerprint": "你的金鑰指紋：",
@@ -504,7 +504,8 @@
     "fpMismatch": "指紋不符。",
     "confirmLabel": "我與<b>{name}</b>本人在一起，確認這個身分屬於他。",
     "signVouch": "簽署擔保",
-    "scanIntro": "用手機相機掃描對方的 QR 碼——會開啟本頁並附帶其身分資訊。沒有 QR 碼？在下方選擇他，並輸入其<b>完整金鑰指紋</b>（從他的螢幕上讀取；口頭唸的短碼不夠）。",
+    "scanIntro": "直接用相機在此掃描對方的 QR 碼。無法使用相機？請從清單中選擇他，並輸入其<b>完整金鑰指紋</b>（從他的螢幕上讀取；口頭唸的短碼不夠）。",
+    "orPick": "或選擇他並輸入其指紋",
     "nobodyPending": "目前沒有人等待擔保。",
     "attestedMembers": "已認證會友",
     "revokeKey": "吊銷金鑰",
@@ -514,6 +515,15 @@
     "revokeRole": "撤銷{role}",
     "vouchFailed": "擔保失敗",
     "malformedLink": "擔保連結已損壞——請重新掃描"
+  },
+  "VouchScan": {
+    "open": "📷 掃描對方的 QR 碼",
+    "cancel": "關閉相機",
+    "aim": "對準對方的 QR 碼",
+    "notVouch": "這不是擔保 QR 碼——請對準對方的 QR 碼。",
+    "insecure": "此裝置無法在此開啟相機。請改用下方的清單。",
+    "denied": "相機權限遭拒。請在瀏覽器設定中允許，或改用下方的清單。",
+    "startFailed": "無法啟動相機。請改用下方的清單。"
   },
   "Verify": {
     "verifying": "正在你的瀏覽器中驗證簽名…",

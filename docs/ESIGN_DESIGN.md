@@ -189,13 +189,19 @@ The Submit/Approve/Mark-paid buttons prompt un-enrolled users into this wizard.
   `{uid, email, name, publicKey}` plus the key fingerprint and a 6-digit code
   (`getVerificationCodeForPublicKey`).
 - The voucher opens **Vouch for a member** and **scans the QR from the candidate's
-  screen — the scan is the binding channel.** Scanning uses an in-page camera decoder
-  (`jsQR` or `@zxing/browser`; iOS Safari has no `BarcodeDetector`, and church devices
-  skew iOS — the dependency and camera-permission UX are phase-2 scope). The manual
-  fallback is typing the **16-byte fingerprint** (§3 conventions) — never the 6-digit
-  code alone, which at 10⁶ keyspace is grindable and serves only as a spoken sanity
-  check. The voucher confirms the person standing in front of them is who the screen
-  claims, then their client appends:
+  screen — the scan is the binding channel.** Scanning runs in-page
+  (`VouchQrScanner` → nimiq `qr-scanner`, loaded on demand; it uses the native
+  `BarcodeDetector` where present and a bundled worker on iOS Safari, which has none).
+  Doing it in-page — rather than relying on the candidate's link opening in the
+  phone's *default* browser — keeps the ceremony inside the voucher's own browser,
+  the one already holding their session cookie and signing key (a link opened in a
+  different or in-app browser lands in a fresh, unauthenticated, un-enrolled context).
+  The legacy path still works: a voucher whose camera app opened `/vouch?c=` lands here
+  with the subject pre-filled. When the camera can't be used, the fallback is picking the
+  candidate from the pending list and typing their **16-byte fingerprint** (§3
+  conventions) — never the 6-digit code alone, which at 10⁶ keyspace is grindable and
+  serves only as a spoken sanity check. The voucher confirms the person standing in
+  front of them is who the screen claims, then their client appends:
 
 ```jsonc
 { "t": "ATTEST", "v": 1, "ledger": "<rosterLedgerId>", "ts": 1760000000000,

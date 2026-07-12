@@ -2219,7 +2219,7 @@
     "zh-Hant": "machine"
   },
   "Identity.pendingVouch": {
-    "source": "One last step: show this to two members (or one approver) <b>in person</b>. They scan it with their phone camera and confirm it's really you.",
+    "source": "One last step: show this to two members (or one approver) <b>in person</b>. They open <b>Vouch for a member</b>, scan it, and confirm it's really you.",
     "context": "Amber instructions above the QR while awaiting vouches. <b> wraps 'in person'. Two members or one approver must scan.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -2705,8 +2705,13 @@
     "zh-Hant": "machine"
   },
   "Vouch.scanIntro": {
-    "source": "Scan the candidate's QR with your phone camera — it opens this page with their identity attached. No QR handy? Pick them below and type their <b>full key fingerprint</b> (read from their screen; the short spoken code is not enough).",
+    "source": "Scan the candidate's QR right here with your camera. Can't use the camera? Pick them from the list and type their <b>full key fingerprint</b> (read from their screen; the short spoken code is not enough).",
     "context": "Intro on the vouch page without a QR parameter: scan with the phone camera, or pick a candidate and type the full fingerprint (<b> wraps it).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.orPick": {
+    "source": "Or pick them and type their fingerprint",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -2761,6 +2766,41 @@
   "Vouch.malformedLink": {
     "source": "This vouch link is malformed — rescan the QR",
     "context": "Error when the scanned vouch URL is corrupt: rescan the QR.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "VouchScan.open": {
+    "source": "📷 Scan their QR code",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "VouchScan.cancel": {
+    "source": "Stop camera",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "VouchScan.aim": {
+    "source": "Point at the candidate's QR code",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "VouchScan.notVouch": {
+    "source": "That's not a vouch code — line up the candidate's QR code.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "VouchScan.insecure": {
+    "source": "This device can't open the camera here. Use the list below instead.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "VouchScan.denied": {
+    "source": "Camera access was blocked. Allow it in your browser settings, or use the list below.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "VouchScan.startFailed": {
+    "source": "Couldn't start the camera. Use the list below instead.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3177,9 +3217,9 @@
   },
   "Errors.onlyGeneratedRevertible": {
     "source": "Only generated or under-signature claims can be reverted to draft",
+    "context": "409 error. “Generated” and “under signature” are claim statuses — match the Common.status wording. Under-signature means submitted/rejected/approved (not yet paid).",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "409 error. “Generated” and “under signature” are claim statuses — match the Common.status wording. Under-signature means submitted/rejected/approved (not yet paid)."
+    "zh-Hant": "machine"
   },
   "Errors.descriptionRequired": {
     "source": "Describe the claim in a sentence first",

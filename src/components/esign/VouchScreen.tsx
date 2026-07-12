@@ -2,10 +2,14 @@
 
 /**
  * Voucher's side of the in-person ceremony (docs/ESIGN_DESIGN.md §4.3).
- * The QR scan (native camera → this URL) is the binding channel; the manual
- * fallback requires the candidate's FULL 64-hex key fingerprint — never the
- * 6-digit spoken code, which is grindable. The voucher's one job here is
- * confirming the human in front of them matches the identity on screen.
+ * The QR scan is the binding channel — either a `/vouch?c=` URL the voucher
+ * opened (their phone's camera app followed the link) or, better on
+ * multi-browser devices, an in-page scan (VouchQrScanner) that reads the
+ * candidate's QR right here in the browser already holding the voucher's key
+ * and session. The pending-list fallback carries no binding, so it requires
+ * the candidate's FULL 64-hex key fingerprint — never the 6-digit spoken
+ * code, which is grindable. The voucher's one job is confirming the human in
+ * front of them matches the identity on screen.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -23,7 +27,9 @@ import {
   type VouchSubject,
 } from "@/lib/esign/client";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
+import { decodeSubject } from "@/lib/esign/vouch-scan";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
+import VouchQrScanner from "./VouchQrScanner";
 
 function RoleButtons({
   env,
@@ -105,24 +111,6 @@ function RoleButtons({
   );
 }
 
-function decodeSubject(c: string): VouchSubject | null {
-  try {
-    const json = atob(c.replace(/-/g, "+").replace(/_/g, "/"));
-    const parsed = JSON.parse(json) as Partial<VouchSubject>;
-    if (parsed.uid && parsed.email && parsed.publicKey) {
-      return {
-        uid: parsed.uid,
-        email: parsed.email,
-        name: parsed.name || parsed.email,
-        publicKey: parsed.publicKey,
-      };
-    }
-  } catch {
-    // fall through
-  }
-  return null;
-}
-
 function VouchInner() {
   const t = useTranslations("Vouch");
   const tEsign = useTranslations("Esign");
@@ -151,6 +139,10 @@ function VouchInner() {
   // the old one).
   const [activeKeys, setActiveKeys] = useState<Record<string, string[]>>({});
   const [confirmed, setConfirmed] = useState(false);
+  // True once the subject arrived over a binding channel — the QR in the URL
+  // (`c`) or an in-page camera scan — as opposed to being hand-picked from the
+  // pending list, which still demands the full fingerprint (§4.3).
+  const [scannedBinding, setScannedBinding] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -193,6 +185,8 @@ function VouchInner() {
 
   const canVouch =
     env?.enabled === true && env.allowed !== false && env.me.identityStatus === "attested";
+  // URL `c` and camera scan are both binding channels; a pending-list pick is not.
+  const strongBinding = Boolean(encoded) || scannedBinding;
   const manualMatches = useMemo(() => {
     const typed = manualFp.toLowerCase().replace(/[^0-9a-f]/g, "");
     return typed.length >= 32 && fingerprint?.startsWith(typed);
@@ -201,6 +195,12 @@ function VouchInner() {
   async function refreshMembers() {
     const res = await fetch("/api/esign/members");
     if (res.ok) setMembers((await res.json()).members ?? []);
+  }
+
+  async function handleScanned(s: VouchSubject) {
+    setSubject(s);
+    setScannedBinding(true);
+    setFingerprint(await keyFingerprint(s.publicKey));
   }
 
   async function submitVouch() {
@@ -275,7 +275,7 @@ function VouchInner() {
               <p className="mt-1">{t("rekeyBody")}</p>
             </div>
           )}
-          {!encoded && (
+          {!strongBinding && (
             <div className="space-y-1">
               <label className="text-sm font-medium">{t("manualLabel")}</label>
               <input
@@ -306,7 +306,7 @@ function VouchInner() {
           </label>
           <button
             className="btn-primary w-full disabled:opacity-50"
-            disabled={!confirmed || busy || (!encoded && !manualMatches)}
+            disabled={!confirmed || busy || (!strongBinding && !manualMatches)}
             onClick={submitVouch}
             data-testid="vouch-submit"
           >
@@ -318,25 +318,29 @@ function VouchInner() {
           <p className="text-sm text-stone-600">
             {t.rich("scanIntro", { b: (chunks) => <strong>{chunks}</strong> })}
           </p>
-          {pending.length === 0 ? (
-            <p className="text-sm text-stone-500">{t("nobodyPending")}</p>
-          ) : (
-            <ul className="space-y-2">
-              {pending.map((p) => (
-                <li key={p.uid}>
-                  <button
-                    className="btn-secondary w-full text-left"
-                    onClick={async () => {
-                      setSubject(p);
-                      setFingerprint(await keyFingerprint(p.publicKey));
-                    }}
-                  >
-                    {p.name} <span className="text-stone-400">({p.email})</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <VouchQrScanner onScan={handleScanned} />
+          <div className="space-y-2 border-t border-stone-100 pt-3">
+            <p className="text-sm font-medium text-stone-500">{t("orPick")}</p>
+            {pending.length === 0 ? (
+              <p className="text-sm text-stone-500">{t("nobodyPending")}</p>
+            ) : (
+              <ul className="space-y-2">
+                {pending.map((p) => (
+                  <li key={p.uid}>
+                    <button
+                      className="btn-secondary w-full text-left"
+                      onClick={async () => {
+                        setSubject(p);
+                        setFingerprint(await keyFingerprint(p.publicKey));
+                      }}
+                    >
+                      {p.name} <span className="text-stone-400">({p.email})</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
 

@@ -2,7 +2,7 @@
   "name": "numbers",
   "version": "1.0.0",
   "private": true,
-  "description": "CFCC Reimbursement App \u2014 shoebox receipt capture, AI extraction, human-verified PDF generation",
+  "description": "CFCC Reimbursement App — shoebox receipt capture, AI extraction, human-verified PDF generation",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -34,6 +34,7 @@
     "next": "^15.5.0",
     "next-intl": "^4.13.2",
     "pdf-lib": "^1.17.1",
+    "qr-scanner": "^1.4.2",
     "qrcode-generator": "^2.0.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

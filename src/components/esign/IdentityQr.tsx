@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import { useTranslations } from "next-intl";
 import qrcode from "qrcode-generator";
 
-/** SVG QR of a /vouch URL — scanned with the voucher's native phone camera
- *  (no in-app decoder needed; iOS Safari has no BarcodeDetector). */
+/** SVG QR of a /vouch URL — scanned by the voucher, either in-page
+ *  (VouchQrScanner) or with their phone's camera app opening the link. */
 export default function IdentityQr({ url }: { url: string }) {
   const t = useTranslations("Identity");
   const svg = useMemo(() => {
