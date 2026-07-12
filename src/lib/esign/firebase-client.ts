@@ -23,6 +23,7 @@
  */
 
 import type { FirebaseApp } from "firebase/app";
+import type { FirestoreSettings } from "firebase/firestore";
 import type { FirebaseWebConfig } from "@/components/SignInCard";
 
 let config: FirebaseWebConfig | null = null;
@@ -39,6 +40,37 @@ export function isEmulatorConfigured(): boolean {
 }
 
 /**
+ * Webchannel transport for BOTH backends: XMLHttpRequest, NEVER the Fetch
+ * API. WebKit surfaces the fetch transport's aborts and post-sleep failures
+ * as "Fetch API cannot load …/Listen/channel … due to access control
+ * checks", and in production Safari the Listen+Write backchannels then
+ * retry-fail with long polling ALREADY active (CI=0 in the failing URLs) —
+ * so the long-poll knobs alone cannot fix it; the XHR transport is immune.
+ * `useFetchStreams` is honored by the SDK but missing from the public
+ * settings type, hence the casts. Exported for the unit canary
+ * (tests/unit/esign-transport.test.ts), which feeds both objects to the
+ * real SDK so a firebase upgrade that rejects either combination fails
+ * fast instead of at the first production ceremony.
+ */
+export const FIRESTORE_SETTINGS = {
+  // The SDK default, made explicit: autodetect keeps streaming on Chrome
+  // and engages long polling on WebKit/buffering proxies.
+  experimentalAutoDetectLongPolling: true,
+  useFetchStreams: false,
+} as FirestoreSettings;
+
+/** Emulator delta: additionally force long polling (LetUsMeet's hard-won
+ *  configuration). Do NOT add the aggressive 5s poll cycle — that is their
+ *  WebKit-only workaround, and it starves long-running RPCs like
+ *  runTransaction (rotateKeys' in-transaction crypto) of a stable stream.
+ *  The SDK also rejects force+autoDetect together, so force stays
+ *  emulator-only. */
+export const EMULATOR_FIRESTORE_SETTINGS = {
+  experimentalForceLongPolling: true,
+  useFetchStreams: false,
+} as FirestoreSettings;
+
+/**
  * Single-flight app init: several e-sign surfaces (identity card, device
  * banner, ceremony dialogs) bootstrap custody concurrently, and EVERY caller
  * must wait for the emulator connections — a second caller racing past
@@ -53,22 +85,17 @@ function app(): Promise<FirebaseApp> {
     const existing = getApps()[0];
     if (existing) return existing;
     const created = initializeApp(cfg);
+    const fs = await import("firebase/firestore");
     if (cfg.emulator) {
-      const fs = await import("firebase/firestore");
-      // Force long polling against the emulator (LetUsMeet's hard-won
-      // configuration). Do NOT add the aggressive 5s poll cycle — that is
-      // their WebKit-only workaround, and it starves long-running RPCs like
-      // runTransaction (rotateKeys' in-transaction crypto) of a stable
-      // stream. This SDK version also rejects force+autoDetect together.
-      fs.initializeFirestore(created, {
-        experimentalForceLongPolling: true,
-      });
+      fs.initializeFirestore(created, EMULATOR_FIRESTORE_SETTINGS);
       const [fsHost, fsPort] = cfg.emulator.firestore.split(":");
       fs.connectFirestoreEmulator(fs.getFirestore(created), fsHost, Number(fsPort));
       const fb = await import("firebase/auth");
       fb.connectAuthEmulator(fb.getAuth(created), `http://${cfg.emulator.auth}`, {
         disableWarnings: true,
       });
+    } else {
+      fs.initializeFirestore(created, FIRESTORE_SETTINGS);
     }
     return created;
   })();

@@ -172,6 +172,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     uses `node server.js` from the standalone bundle.
 12. **Buffer typing**: sharp returns `Buffer<ArrayBufferLike>`; annotate `let data: Buffer`
     when reassigning from `Buffer.from(await file.arrayBuffer())` or tsc complains.
+13. **Safari × Firestore webchannel**: WebKit breaks the SDK's default fetch-based transport
+    ("Fetch API cannot load …/Listen/channel … due to access control checks") even with long
+    polling already active. The e-sign client pins `useFetchStreams: false` (XHR) for both
+    backends in `src/lib/esign/firebase-client.ts` — keep it when touching Firebase init or
+    bumping `firebase`, and re-verify on Safari after a bump (the `esign-transport.test.ts`
+    canary only proves the SDK still *accepts* the settings, not that it honors them).
 
 ## Telemetry duty (when adding mutations)
 
