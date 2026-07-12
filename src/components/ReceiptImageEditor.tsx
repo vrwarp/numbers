@@ -64,6 +64,9 @@ export default function ReceiptImageEditor({
   onClose,
   onSaved,
   onApply,
+  embedded,
+  onChange,
+  maxStageHeight = MAX_STAGE_HEIGHT,
 }: {
   /** Stored-receipt mode: Save POSTs the transform to /api/receipts/[id]/edit.
    *  Omit in local mode (with onApply). */
@@ -72,12 +75,19 @@ export default function ReceiptImageEditor({
    *  (e.g. the Shoebox viewer). */
   reimbursementId?: string;
   src: string;
-  onClose: () => void;
-  onSaved: () => void;
+  onClose?: () => void;
+  onSaved?: () => void;
   /** Local mode (pre-upload): Save hands the transform back instead of POSTing —
    *  the caller renders it client-side. Restore-original is unavailable (nothing
    *  is stored yet); a thrown error becomes the dialog's error message. */
   onApply?: (transform: { rotate: 0 | 90 | 180 | 270; crop?: Crop }) => Promise<void> | void;
+  /** Embedded mode: render the stage + rotate/crop controls inline (no modal
+   *  chrome, no Save/Cancel) and report the live transform via onChange. The
+   *  host owns Save — it applies the returned transform when it uploads. */
+  embedded?: boolean;
+  onChange?: (transform: { rotate: 0 | 90 | 180 | 270; crop?: Crop }) => void;
+  /** Cap the stage height (px); lower it when the editor shares a small dialog. */
+  maxStageHeight?: number;
 }) {
   const measureRef = useRef<HTMLDivElement>(null);
   const [stageMaxWidth, setStageMaxWidth] = useState(0);
@@ -128,12 +138,21 @@ export default function ReceiptImageEditor({
   const rotatedW = natural ? (rotate % 180 === 0 ? natural.w : natural.h) : 0;
   const rotatedH = natural ? (rotate % 180 === 0 ? natural.h : natural.w) : 0;
   const scale =
-    natural && stageMaxWidth ? Math.min(stageMaxWidth / rotatedW, MAX_STAGE_HEIGHT / rotatedH) : 0;
+    natural && stageMaxWidth ? Math.min(stageMaxWidth / rotatedW, maxStageHeight / rotatedH) : 0;
   const dispW = Math.round(rotatedW * scale);
   const dispH = Math.round(rotatedH * scale);
 
   const isFullCrop = crop.width > 0.999 && crop.height > 0.999;
   const hasChanges = rotate !== 0 || !isFullCrop || restoring;
+
+  // Embedded mode has no Save button of its own — stream the live transform to
+  // the host, which applies it when the user saves the surrounding form.
+  useEffect(() => {
+    if (embedded) onChange?.({ rotate, crop: isFullCrop ? undefined : crop });
+    // onChange is expected to be stable (a setState updater); excluded to avoid
+    // re-firing on every host render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [embedded, rotate, crop, isFullCrop]);
 
   function turn(delta: 90 | 270) {
     setRotate((r) => ((r + delta) % 360) as 0 | 90 | 180 | 270);
@@ -261,7 +280,7 @@ export default function ReceiptImageEditor({
         setBusy(false);
         return;
       }
-      onSaved();
+      onSaved?.();
       return;
     }
     const res = await fetch(`/api/receipts/${receiptId}/edit`, {
@@ -282,18 +301,12 @@ export default function ReceiptImageEditor({
       setBusy(false);
       return;
     }
-    onSaved();
+    onSaved?.();
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal>
-      <div className="card w-full max-w-2xl p-6">
-        <h2 className="font-bold">{t("title")}</h2>
-        <p className="mt-1 text-sm text-stone-500">
-          {restoring ? t("introRestoring") : onApply ? t("introLocal") : t("introStored")}
-        </p>
-
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+  const body = (
+    <>
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
           <button className="btn-secondary flex h-12 w-12 items-center justify-center rounded-full text-lg" onClick={() => turn(270)} disabled={busy} data-testid="rotate-left" aria-label={t("rotateLeft")} title={t("rotateLeft")}>
             ↺
           </button>
@@ -380,11 +393,26 @@ export default function ReceiptImageEditor({
           )}
         </div>
 
-        {error && (
-          <p className="mt-3 text-sm text-red-700" role="alert">
-            {error}
-          </p>
-        )}
+      {error && (
+        <p className="mt-3 text-sm text-red-700" role="alert">
+          {error}
+        </p>
+      )}
+    </>
+  );
+
+  // Embedded: the host frame owns the title, description field, and Save.
+  if (embedded) return <div className="w-full">{body}</div>;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal>
+      <div className="card w-full max-w-2xl p-6">
+        <h2 className="font-bold">{t("title")}</h2>
+        <p className="mt-1 text-sm text-stone-500">
+          {restoring ? t("introRestoring") : onApply ? t("introLocal") : t("introStored")}
+        </p>
+
+        {body}
 
         <div className="mt-6 flex items-center justify-center gap-3">
           <button className="btn-secondary flex h-12 items-center justify-center rounded-full px-8 text-sm font-semibold" onClick={onClose} disabled={busy} data-testid="image-editor-cancel">

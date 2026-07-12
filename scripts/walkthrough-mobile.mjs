@@ -72,8 +72,8 @@ await page.getByRole("heading", { name: "收据" }).waitFor();
 await page.getByText("还没有收据").waitFor();
 await shot("03-shoebox-empty", { fullPage: true });
 
-// 4: pick two photos — the per-file prepare dialog (note + rotate/crop) comes
-// first; Save/Skip is what actually uploads.
+// 4: pick two photos — the per-file prepare dialog (note + inline rotate/crop)
+// comes first; Save is what actually uploads.
 await page.getByTestId("file-input").setInputFiles([costco, refund]);
 const noteInput = page.getByTestId("upload-note");
 await noteInput.waitFor();
@@ -81,7 +81,7 @@ await noteInput.fill("青少年退修会点心 youth retreat snacks");
 await shot("04-prepare-dialog");
 await page.getByTestId("upload-note-confirm").click();
 await noteInput.waitFor();
-await page.getByTestId("upload-note-cancel").click();
+await page.getByTestId("upload-note-confirm").click();
 await page.locator('[data-testid^="receipt-card-"]').nth(1).waitFor();
 
 // 5: select both receipts → the sticky action bar arms New Claim.

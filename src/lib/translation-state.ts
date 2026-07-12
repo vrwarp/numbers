@@ -47,8 +47,7 @@ export const SAME_VALUE_GROUPS: readonly (readonly string[])[] = [
   ["Shoebox.readingInitial", "AddReceipts.readingInitial"],
   ["Shoebox.readingCount", "AddReceipts.readingCount"],
   ["Shoebox.readProgress", "AddReceipts.readProgress"],
-  ["Shoebox.prepareEditButton", "Review.editPhotoButton", "Viewer.editButton"],
-  ["Shoebox.prepareEditTitle", "Review.editPhotoTitle"],
+  ["Review.editPhotoButton", "Viewer.editButton"],
   ["Viewer.rendering", "PdfPreview.rendering"],
   // E-sign: the nav links repeat the page titles; the status word must be the
   // same everywhere a claim's state is named (list chip, panel heading,

@@ -127,14 +127,11 @@
     "processedNote": "Already on a generated claim. You can still pick it if part of the purchase belongs on another claim.",
     "prepareTitle": "Describe this receipt",
     "prepareLeft": "({count} left)",
-    "prepareEditTitle": "Rotate or crop this receipt photo",
-    "prepareEditButton": "✂ Rotate / crop",
     "noteLabel": "Description (optional)",
     "notePlaceholder": "e.g. VBS craft supplies",
-    "prepareHintLocal": "Uploads when you save or skip. You can edit the description on the card later.",
+    "prepareHintLocal": "Uploads when you save. You can edit the description on the card later.",
     "prepareHintUploaded": "You can edit the description on the card later.",
     "skipAll": "Skip all",
-    "skip": "Skip",
     "quotaRingAria": "Retrying in about {seconds, plural, one {# second} other {# seconds}}"
   },
   "Viewer": {

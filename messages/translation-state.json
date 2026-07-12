@@ -628,18 +628,6 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Shoebox.prepareEditTitle": {
-    "source": "Rotate or crop this receipt photo",
-    "context": "Tooltip of the rotate/crop button. Canonical — the review screen auto-copies it.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Shoebox.prepareEditButton": {
-    "source": "✂ Rotate / crop",
-    "context": "Rotate/crop button label; keep the ✂. Canonical — the review screen and viewer buttons auto-copy it.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
   "Shoebox.noteLabel": {
     "source": "Description (optional)",
     "context": "Label of the optional description input in the prepare dialog.",
@@ -653,8 +641,8 @@
     "zh-Hant": "machine"
   },
   "Shoebox.prepareHintLocal": {
-    "source": "Uploads when you save or skip. You can edit the description on the card later.",
-    "context": "Fine print for photos: nothing uploads until Save/Skip.",
+    "source": "Uploads when you save. You can edit the description on the card later.",
+    "context": "Fine print for photos: nothing uploads until Save.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -667,12 +655,6 @@
   "Shoebox.skipAll": {
     "source": "Skip all",
     "context": "Dialog button: upload ALL queued photos without descriptions. It skips the notes, not the uploads.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Shoebox.skip": {
-    "source": "Skip",
-    "context": "Dialog button: upload THIS photo without a description. It skips the note, not the upload.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -744,7 +726,7 @@
   },
   "Viewer.editButton": {
     "source": "✂ Rotate / crop",
-    "context": "Auto-copied from Shoebox.prepareEditButton — translate that key.",
+    "context": "Auto-copied from Review.editPhotoButton — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1032,13 +1014,13 @@
   },
   "Review.editPhotoTitle": {
     "source": "Rotate or crop this receipt photo",
-    "context": "Auto-copied from Shoebox.prepareEditTitle — translate that key.",
+    "context": "Tooltip of the rotate/crop button on the claim review screen.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.editPhotoButton": {
     "source": "✂ Rotate / crop",
-    "context": "Auto-copied from Shoebox.prepareEditButton — translate that key.",
+    "context": "Rotate/crop button label; keep the ✂. Canonical — the viewer button auto-copies it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

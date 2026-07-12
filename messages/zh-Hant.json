@@ -127,14 +127,11 @@
     "processedNote": "已在某張已產生的報銷單上。如果這筆消費的一部分屬於另一張報銷單，仍可選取它。",
     "prepareTitle": "為這張收據寫個說明",
     "prepareLeft": "（還剩 {count} 張）",
-    "prepareEditTitle": "旋轉或裁切這張收據相片",
-    "prepareEditButton": "✂ 旋轉 / 裁切",
     "noteLabel": "說明（選填）",
     "notePlaceholder": "例如：VBS 手工材料",
-    "prepareHintLocal": "儲存或略過時上傳。之後也可以在卡片上修改說明。",
+    "prepareHintLocal": "儲存時上傳。之後也可以在卡片上修改說明。",
     "prepareHintUploaded": "之後也可以在卡片上修改說明。",
     "skipAll": "全部略過",
-    "skip": "略過",
     "quotaRingAria": "約 {seconds, plural, other {# 秒}}後重試"
   },
   "Viewer": {
