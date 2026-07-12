@@ -17,6 +17,16 @@ export interface SignaturePlacement {
   widthRatio: number;
 }
 
+/** A form text field's rectangle, page-normalized (bottom-left origin) — lets
+ *  the signing preview overlay the printed name/date exactly where the
+ *  certificate route stamps them. */
+export interface FieldAnchor {
+  xRatio: number;
+  yRatio: number;
+  widthRatio: number;
+  heightRatio: number;
+}
+
 /** 4-decimal rounding so client and server serialize byte-identically
  *  (canonicalStringify hashes the exact numbers — no drift allowed). */
 export function roundPlacement(p: SignaturePlacement): SignaturePlacement {

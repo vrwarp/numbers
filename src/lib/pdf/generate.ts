@@ -3,7 +3,7 @@ import { paginateItems } from "./paginate";
 import { applyQrStamp } from "./qr";
 import { embedCjkFont } from "./fonts";
 import { centsToDollarString } from "@/lib/money";
-import type { SignaturePlacement } from "@/lib/esign/placement";
+import type { FieldAnchor, SignaturePlacement } from "@/lib/esign/placement";
 
 /**
  * The official CFCC "Invoice Payment / Expense Reimbursement Form" is a
@@ -361,6 +361,34 @@ export async function signatureAnchor(
     // customized template without the field — fall back to the constant
   }
   return { page: 0, xRatio: 96 / pageW, yRatio: y / pageH, widthRatio: 144 / pageW };
+}
+
+/**
+ * Page-normalized rect of a named text field on the first template page — used
+ * by the click-to-stamp preview to show the printed name/date landing where the
+ * certificate route bakes them. Returns null for a customized template that
+ * dropped the field.
+ */
+export async function fieldAnchor(
+  templateBytes: Uint8Array,
+  fieldName: string
+): Promise<FieldAnchor | null> {
+  const tpl = await PDFDocument.load(templateBytes);
+  const page = tpl.getPage(0);
+  const pageW = page.getWidth();
+  const pageH = page.getHeight();
+  try {
+    const rect = tpl.getForm().getTextField(fieldName).acroField.getWidgets()[0]?.getRectangle();
+    if (!rect) return null;
+    return {
+      xRatio: rect.x / pageW,
+      yRatio: rect.y / pageH,
+      widthRatio: rect.width / pageW,
+      heightRatio: rect.height / pageH,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**
