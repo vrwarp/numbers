@@ -42,6 +42,10 @@ export interface EsignEnv {
   bootstrapped: boolean;
   /** Admin master switch (A5) — OFF by default; UI treats disabled like absent. */
   enabled?: boolean;
+  /** Rollout scope (A8): "allowlist" (default) or "everyone". */
+  scope?: "allowlist" | "everyone";
+  /** Whether the signed-in user clears the rollout scope (admins always do). */
+  allowed?: boolean;
   canToggle?: boolean;
   backend: EsignBackend;
   canBootstrap?: boolean;

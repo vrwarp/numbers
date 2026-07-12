@@ -26,6 +26,7 @@ import type { DeviceStatus } from "@/lib/esign/custody";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
+import AllowlistPanel from "./AllowlistPanel";
 import { DevicesPanel, NewDeviceCard, RecoveryCard } from "./DeviceManager";
 import IdentityQr from "./IdentityQr";
 import SignaturePad from "./SignaturePad";
@@ -65,14 +66,14 @@ export default function SigningIdentityCard() {
     }
   }, [t, thrown]);
 
-  async function toggleEnabled(next: boolean) {
+  async function patchRegistry(patch: { enabled?: boolean; scope?: "allowlist" | "everyone" }) {
     setBusy(true);
     setError(null);
     try {
       const res = await fetch("/api/esign/registry", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled: next }),
+        body: JSON.stringify(patch),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? t("switchFailed"));
       await refresh();
@@ -82,6 +83,7 @@ export default function SigningIdentityCard() {
       setBusy(false);
     }
   }
+  const toggleEnabled = (next: boolean) => patchRegistry({ enabled: next });
   useEffect(() => {
     void refresh();
   }, [refresh]);
@@ -116,9 +118,10 @@ export default function SigningIdentityCard() {
 
   if (!env) return null;
 
-  // Master switch off (A5): the system is invisible to regular members — only
-  // the admin sees the card, reduced to the switch itself.
-  if (env.bootstrapped && !env.enabled && !env.canToggle) return null;
+  // Master switch off (A5) or outside the rollout allowlist (A8): the system
+  // is invisible to regular members — only the admin sees the card, reduced
+  // to the switch and rollout controls.
+  if (env.bootstrapped && (!env.enabled || env.allowed === false) && !env.canToggle) return null;
 
   const status = env.me.identityStatus;
   const statusChip =
@@ -166,6 +169,42 @@ export default function SigningIdentityCard() {
           >
             {busy ? "…" : env.enabled ? t("turnOff") : t("turnOn")}
           </button>
+        </div>
+      )}
+
+      {/* Rollout scope (A8): staged rollout to an allowlist, or everyone. */}
+      {env.bootstrapped && env.canToggle && env.enabled && (
+        <div className="space-y-3 rounded-xl border border-stone-200 bg-white p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold">{t("scopeTitle")}</p>
+            <div className="flex gap-1">
+              <button
+                className={`rounded-lg border px-2 py-1 text-xs ${
+                  env.scope !== "everyone"
+                    ? "border-indigo-300 bg-indigo-50 font-semibold text-indigo-700"
+                    : "border-stone-200 text-stone-500 hover:bg-stone-50"
+                }`}
+                disabled={busy}
+                onClick={() => void patchRegistry({ scope: "allowlist" })}
+                data-testid="scope-allowlist"
+              >
+                {t("scopeAllowlist")}
+              </button>
+              <button
+                className={`rounded-lg border px-2 py-1 text-xs ${
+                  env.scope === "everyone"
+                    ? "border-indigo-300 bg-indigo-50 font-semibold text-indigo-700"
+                    : "border-stone-200 text-stone-500 hover:bg-stone-50"
+                }`}
+                disabled={busy}
+                onClick={() => void patchRegistry({ scope: "everyone" })}
+                data-testid="scope-everyone"
+              >
+                {t("scopeEveryone")}
+              </button>
+            </div>
+          </div>
+          {env.scope !== "everyone" && <AllowlistPanel />}
         </div>
       )}
 

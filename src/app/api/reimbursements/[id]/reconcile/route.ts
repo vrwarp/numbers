@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { claimAccessRole } from "@/lib/esign/claim-server";
-import { claimEvaluation, recordSignature, requireEnabledRegistry } from "@/lib/esign/server";
+import { claimEvaluation, recordSignature, requireEsignAccess } from "@/lib/esign/server";
 import type { RawLedgerEventDoc } from "@/lib/esign/types";
 
 export const runtime = "nodejs";
@@ -19,7 +19,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   return handleApi(async () => {
     const userId = await requireUserId();
     const { id } = await ctx.params;
-    const registry = await requireEnabledRegistry();
+    const registry = await requireEsignAccess(userId);
     const claim = await prisma.reimbursement.findUnique({ where: { id } });
     if (!claim) throw new ApiError(404, "Claim not found");
     await claimAccessRole(claim, userId);

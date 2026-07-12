@@ -191,6 +191,36 @@ test("root bootstraps the registry, switched off, then turns it on", async () =>
   });
 });
 
+test("rollout is allowlist-scoped by default; the admin allows the pilot group", async () => {
+  test.setTimeout(180_000);
+  // A8: with the switch ON but the scope at its "allowlist" default, an
+  // un-allowed member sees NOTHING e-sign related…
+  await alice.page.goto(`${BASE}/profile`);
+  await expect(alice.page.getByText("Full name")).toBeVisible({ timeout: 30_000 });
+  await expect(alice.page.locator('[data-testid="signing-identity-card"]')).toHaveCount(0);
+  // …and the enrollment route refuses server-side (the UI gate is cosmetic).
+  const denied = await alice.context.request.post(`${BASE}/api/esign/identity`, {
+    data: { signatureImage: "" },
+  });
+  expect(denied.status()).toBe(409);
+  expect((await denied.json()).code).toBe("esign.notAllowed");
+
+  // The admin's allowlist panel sits under the switch; allow the pilot trio.
+  await root.page.goto(`${BASE}/profile`);
+  await root.page.waitForSelector('[data-testid="allowlist-panel"]', { timeout: 30_000 });
+  for (const email of ["alice@example.com", "bob@example.com", "carol@example.com"]) {
+    const row = root.page.locator('[data-testid="allowlist-panel"] li', { hasText: email });
+    await row.locator('[data-testid^="allow-"]').click();
+    await expect(row.locator('[data-testid^="disallow-"]')).toBeVisible({ timeout: 15_000 });
+  }
+
+  // Alice is in: the card appears with the enroll call-to-action.
+  await alice.page.goto(`${BASE}/profile`);
+  await expect(alice.page.locator('[data-testid="enable-signing"]')).toBeVisible({
+    timeout: 30_000,
+  });
+});
+
 test("members enroll; vouches + roles attest them", async () => {
   test.setTimeout(240_000);
   bobVouchUrl = await enroll(bob);

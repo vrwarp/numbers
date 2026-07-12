@@ -43,7 +43,8 @@ export default function DeviceRequestsBanner() {
       try {
         const loaded = await loadEnv();
         if (cancelled) return;
-        if (!loaded.bootstrapped || !loaded.enabled || !loaded.me.identityStatus) return;
+        if (!loaded.bootstrapped || !loaded.enabled || loaded.allowed === false || !loaded.me.identityStatus)
+          return;
         if (loaded.backend === "firestore") {
           // Attach only once a matching Firebase session exists (see header).
           let fired = false;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
-import { reportRosterEvents, requireEnabledRegistry } from "@/lib/esign/server";
+import { reportRosterEvents, requireEsignAccess } from "@/lib/esign/server";
 
 export const runtime = "nodejs";
 
@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   return handleApi(async () => {
     const userId = await requireUserId();
-    const registry = await requireEnabledRegistry();
+    const registry = await requireEsignAccess(userId);
     const enrolled = await prisma.signerIdentity.findUnique({ where: { userId } });
     if (!enrolled) throw new ApiError(404, "Not enrolled", "esign.notEnrolled");
     const body = (await req.json()) as { events?: unknown };

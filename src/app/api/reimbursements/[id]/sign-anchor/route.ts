@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { claimAccessRole } from "@/lib/esign/claim-server";
-import { requireEnabledRegistry } from "@/lib/esign/server";
+import { requireEsignAccess } from "@/lib/esign/server";
 import { signatureAnchor } from "@/lib/pdf/generate";
 import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
 
@@ -18,7 +18,7 @@ export const runtime = "nodejs";
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   return handleApi(async () => {
     const userId = await requireUserId();
-    await requireEnabledRegistry();
+    await requireEsignAccess(userId);
     const { id } = await ctx.params;
     const claim = await prisma.reimbursement.findUnique({ where: { id } });
     if (!claim) throw new ApiError(404, "Claim not found");
