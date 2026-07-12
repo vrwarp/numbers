@@ -498,11 +498,11 @@ function VouchInner() {
       {members.length > 0 && (
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-stone-500">{t("attestedMembers")}</h2>
-          <ul className="mt-1 divide-y divide-stone-100 text-sm">
+          <ul className="mt-3 space-y-3 text-sm">
             {members.map((m) => (
               <li
                 key={m.userId}
-                className="flex flex-col gap-3 py-4 first:pt-2 last:pb-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                className="flex flex-col gap-3 rounded-xl border border-stone-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4"
               >
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
