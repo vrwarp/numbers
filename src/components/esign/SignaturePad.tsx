@@ -10,16 +10,18 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
-// Drawing-surface resolution. The canvas overlays only the white writing cell
-// of the form's "Requested by" signature box (public/esign/signature-guide.png,
-// cropped from the template). W/H matches that cell's wide, short aspect so
-// strokes map without distortion; the fractions below place it on the backdrop.
+// Drawing-surface resolution. The canvas overlays the writing area of the form's
+// "Requested by" signature box (public/esign/signature-guide.png, cropped from
+// the template). W/H matches that area's wide, short aspect so strokes map
+// without distortion; the fractions below place it on the backdrop.
 const W = 720;
-const H = 70;
-/** White cell position within the backdrop, measured from the template: it sits
- *  just under the "Requested by" bar (top) and down to the signature line. */
-const CELL_TOP = 28; // % from the top of the backdrop
-const CELL_HEIGHT = 33; // % (bar bottom → signature line)
+const H = 94;
+/** Drawable zone within the backdrop, measured from the template: it starts just
+ *  under the "Requested by" bar and runs past the signature line into the gap
+ *  above the "(Signature)" caption, so a signature can cross the line the way a
+ *  real one does. */
+const CELL_TOP = 28; // % from the top of the backdrop (bar bottom)
+const CELL_HEIGHT = 44; // % (down to just above the "(Signature)" caption)
 const CELL_INSET = 1.2; // % horizontal inset to clear the box's side borders
 
 export default function SignaturePad({
