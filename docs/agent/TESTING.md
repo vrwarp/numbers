@@ -30,7 +30,10 @@ npx playwright test tests/e2e/journey.spec.ts --project=chromium-desktop   # one
 
 Reusable helper: `pdfVisibleText(bytes)` in `pdf.test.ts` — inflates flate streams and decodes
 hex strings so you can assert on rendered PDF text. pdf tests load the real template from
-`assets/` in `beforeAll`.
+`assets/` in `beforeAll`. ⚠ CJK-bearing values are CID-encoded through the subset font, so
+their glyph hex is NOT the text (the whole field, embedded Latin included) — assert via the
+ToUnicode CMap instead (`<gid> <unicodeHex>` pairs; see "generateClaimPdf with Chinese
+content"), or rasterize with `scripts/render-pdf.mjs` / `scripts/verify-cjk-pdf.mjs` and look.
 
 ## E2E suite (`tests/e2e/`, Playwright)
 

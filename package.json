@@ -28,6 +28,7 @@
     "charproof": "^1.0.8",
     "firebase": "^12.15.0",
     "firebase-admin": "^14.1.0",
+    "fontkit": "^2.0.4",
     "next": "^15.5.0",
     "pdf-lib": "^1.17.1",
     "qrcode-generator": "^2.0.4",
@@ -39,6 +40,7 @@
   "devDependencies": {
     "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4.1.0",
+    "@types/fontkit": "^2.0.9",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

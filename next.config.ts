@@ -5,13 +5,15 @@ const nextConfig: NextConfig = {
   output: "standalone",
   // sharp and @prisma/client contain native binaries that must not be bundled;
   // firebase-admin resolves internal modules at runtime and breaks if inlined;
-  // pdfjs-dist loads its native canvas backend (@napi-rs/canvas) at runtime
+  // pdfjs-dist loads its native canvas backend (@napi-rs/canvas) at runtime;
+  // fontkit must resolve its node build (bundling picks the browser module)
   serverExternalPackages: [
     "sharp",
     "@prisma/client",
     "firebase-admin",
     "pdfjs-dist",
     "@napi-rs/canvas",
+    "fontkit",
   ],
   // pdfjs rasterizes via runtime requires the standalone tracer can't follow —
   // its native canvas backend (@napi-rs/canvas *.node) and its worker/font/cmap

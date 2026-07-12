@@ -9,6 +9,7 @@ import {
   generateClaimPdf,
   splitAddress,
   toEncodableText,
+  wrapTextMeasured,
   type PdfLineItem,
 } from "@/lib/pdf/generate";
 
@@ -291,11 +292,16 @@ describe("fittingFontSize (description column auto-shrink)", () => {
   });
 });
 
-describe("toEncodableText (WinAnsi sanitizing)", () => {
+describe("toEncodableText (per-font sanitizing net)", () => {
   async function helvetica() {
     const doc = await PDFDocument.create();
     const { StandardFonts } = await import("pdf-lib");
     return doc.embedFont(StandardFonts.Helvetica);
+  }
+  async function cjk() {
+    const doc = await PDFDocument.create();
+    const { embedCjkFont } = await import("@/lib/pdf/fonts");
+    return embedCjkFont(doc);
   }
 
   it("passes plain descriptions through untouched, incl. em-dash and accents", async () => {
@@ -304,17 +310,108 @@ describe("toEncodableText (WinAnsi sanitizing)", () => {
     expect(toEncodableText(s, font)).toBe(s);
   });
 
-  it("keeps the Latin part of a CJK description instead of a blank field", async () => {
-    // Unsanitized, pdf-lib renders the ENTIRE field blank for this input.
+  it("flags CJK against Helvetica — the signal generate.ts uses to switch fonts", async () => {
     const font = await helvetica();
     expect(toEncodableText("大華超市 99 Ranch Market 06/28 — 燒臘, rice", font)).toBe(
       "… 99 Ranch Market 06/28 — …, rice"
     );
+    expect(toEncodableText("中文事工 Chinese Ministry", font)).toBe("… Chinese Ministry");
   });
 
-  it("collapses an unencodable run to a single ellipsis", async () => {
-    const font = await helvetica();
-    expect(toEncodableText("中文事工 Chinese Ministry", font)).toBe("… Chinese Ministry");
+  it("passes Traditional and Simplified Chinese through the bundled CJK face", async () => {
+    const font = await cjk();
+    for (const s of [
+      "大華超市 99 Ranch Market 06/28 — 燒臘, rice, 青菜",
+      "中文事工 — 退修會",
+      "简体测试：办公用品 华人教会",
+      "陳恩典 Grace Chen",
+    ]) {
+      expect(toEncodableText(s, font)).toBe(s);
+    }
+  });
+
+  it("still collapses characters even the CJK face lacks (emoji) to an ellipsis", async () => {
+    const font = await cjk();
+    expect(toEncodableText("VBS 手工材料 📷 receipts", font)).toBe("VBS 手工材料 … receipts");
+  });
+});
+
+describe("wrapTextMeasured (pre-wrapping for unspaced CJK runs)", () => {
+  async function cjk() {
+    const doc = await PDFDocument.create();
+    const { embedCjkFont } = await import("@/lib/pdf/fonts");
+    return embedCjkFont(doc);
+  }
+
+  it("breaks an unspaced CJK run at measured width; every line fits", async () => {
+    const font = await cjk();
+    const text = "青菜豆腐燒臘叉燒飯外帶餐盒紙巾雞蛋牛奶麵包"; // no break points for pdf-lib
+    const width = 80;
+    const wrapped = wrapTextMeasured(text, font, width, 8);
+    const lines = wrapped.split("\n");
+    expect(lines.length).toBeGreaterThan(1);
+    for (const line of lines) {
+      expect(font.widthOfTextAtSize(line, 8)).toBeLessThanOrEqual(width);
+    }
+    expect(lines.join("")).toBe(text); // nothing lost
+  });
+
+  it("keeps whitespace word-wrapping for Latin text (words stay whole)", async () => {
+    const font = await cjk();
+    const wrapped = wrapTextMeasured("folding table and paper towels", font, 60, 8);
+    for (const line of wrapped.split("\n")) {
+      expect(font.widthOfTextAtSize(line, 8)).toBeLessThanOrEqual(60);
+    }
+    expect(wrapped.replace(/\n/g, " ")).toBe("folding table and paper towels");
+  });
+});
+
+describe("generateClaimPdf with Chinese content (the P0 bug fix)", () => {
+  it("renders CJK descriptions/ministries/names instead of stripping them to ellipses", async () => {
+    const bytes = await generateClaimPdf({
+      ...baseInput(),
+      requesterName: "陳恩典 Grace Chen",
+      items: [
+        {
+          description: "大華超市 06/28 — 燒臘, 青菜豆腐外帶餐盒紙巾雞蛋牛奶, rice",
+          amountCents: 10210,
+          ministry: "450 Joshua Fellowship - Mandarin",
+        },
+        { description: "简体测试：办公用品", amountCents: 2500, ministry: "中文事工" },
+      ],
+      receipts: [
+        {
+          data: await jpegReceipt(),
+          mimeType: "image/jpeg",
+          originalName: "ranch99.jpg",
+          note: "退修會食物",
+        },
+      ],
+    });
+    const doc = await PDFDocument.load(bytes);
+    expect(doc.getPageCount()).toBe(2);
+
+    const text = pdfVisibleText(bytes);
+    // The subset CJK face is embedded (BaseFont carries the Noto name)…
+    expect(text).toContain("NotoSansCJK");
+    // …and its ToUnicode CMap maps glyphs back to the exact source characters
+    // (CID hex streams aren't decodable by pdfVisibleText, so assert via CMap).
+    for (const ch of ["大", "燒", "陳", "简", "退"]) {
+      const unicodeHex = ch.codePointAt(0)!.toString(16).padStart(4, "0");
+      expect(text).toMatch(new RegExp(`<[0-9a-fA-F]{4}> <${unicodeHex}>`, "i"));
+    }
+    // Fields whose values stay WinAnsi still render through Helvetica and
+    // remain byte-visible (a CJK-bearing field is CID-encoded wholesale).
+    expect(text).toContain("102.10");
+    expect(text).toContain("07/03/2026");
+    expect(text).toContain("123 Main St");
+    // A subset, not the whole 16 MB font, ships in the packet.
+    expect(bytes.length).toBeLessThan(1_500_000);
+  });
+
+  it("keeps pure-Latin claims on Helvetica only (no CJK face embedded)", async () => {
+    const bytes = await generateClaimPdf({ ...baseInput(), items: items(2), receipts: [] });
+    expect(pdfVisibleText(bytes)).not.toContain("NotoSansCJK");
   });
 });
 
