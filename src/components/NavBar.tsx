@@ -47,7 +47,7 @@ export default function NavBar({ userName }: { userName: string }) {
         <Link href="/" className="flex shrink-0 items-center gap-1.5 text-lg font-bold text-indigo-700">
           <span aria-hidden>⛪</span> <span className="hidden sm:inline">Numbers</span>
         </Link>
-        <nav className="flex min-w-0 items-center gap-0.5 overflow-x-auto sm:gap-2" aria-label="Main">
+        <nav className="-my-1 flex min-w-0 items-center gap-0.5 overflow-x-auto py-1 sm:gap-2" aria-label="Main">
           {links.map((l) => {
             const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
             return (
@@ -61,11 +61,9 @@ export default function NavBar({ userName }: { userName: string }) {
                 {l.label}
                 {l.badge ? (
                   <span
-                    className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
+                    className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"
                     data-testid={`badge-${l.href.slice(1) || "shoebox"}`}
-                  >
-                    {l.badge}
-                  </span>
+                  />
                 ) : null}
               </Link>
             );
