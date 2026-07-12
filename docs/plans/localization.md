@@ -380,11 +380,12 @@ audience (骨/说/門 differ between SC and TC faces).
 - **New `i18n.spec.ts` smoke**: switch language via the NavBar menu → assert `<html lang>`,
   one translated heading (`收據盒` etc.), persistence across reload, and that the profile
   PATCH round-trips `locale`.
-- **Catalog parity unit test** (Vitest, runs in `npm test`): the three JSON files have
-  identical key sets, and every message's ICU argument names match the English source. This is
-  the guard that makes "add a string, forget a translation" a red build instead of a silent
-  English leak. Missing-translation policy during development: parity test allows an explicit
-  `"@todo"` marker value that renders the English fallback — grep-able, but never invisible.
+- **Catalog parity + staleness unit test** (Vitest, runs in `npm test`): the three JSON files
+  have identical key sets; every message's ICU argument names match the English source; and
+  every key's `sourceHash` in `messages/translation-state.json` matches the current English
+  value. Together these make both failure modes a red build instead of a silent leak: "added a
+  string, forgot the translation" *and* "reworded the English, the Chinese is now stale"
+  (workflow mechanics in §11).
 - **Type-checked keys**: `t("Shoebox.emptyTitl")` fails `npm run build` (§2 augmentation).
 - **PDF tests**: replace the ellipsis-contract tests with CJK round-trip tests (§5).
 - Hardcoded-string *lint* (e.g. `eslint-plugin-i18next/no-literal-string`) is **not** proposed
@@ -392,13 +393,59 @@ audience (骨/说/門 differ between SC and TC faces).
   i18n needs. The typed keys + parity test + review discipline carry it; revisit if English
   literals keep sneaking in.
 
-### 11. Translation workflow and glossary
+### 11. Translation workflow: adding, re-running, and feeding context
 
 `messages/en.json` changes in the same PR as the code. Chinese catalogs are drafted by machine
-and **reviewed by a bilingual member of the congregation** before release — the church has
-Mandarin-named ministries, so reviewers exist. A small `scripts/translate-messages.mjs` can
-reuse the existing AI provider plumbing (`src/lib/ai/providers.ts`) to fill only missing keys,
-with the glossary pinned in the prompt; output lands as `"@todo"`-marked entries for review.
+and **reviewed by a bilingual member of the congregation** — the church has Mandarin-named
+ministries, so reviewers exist. Everything lives in git; no external translation platform (a
+TMS is overkill for three locales and one reviewer per script — revisit only if that grows).
+
+Three files carry the pipeline:
+
+- `scripts/translate-messages.mjs` (npm alias `npm run translate`) — reuses the existing AI
+  provider plumbing (`src/lib/ai/providers.ts`), so the deployment's OpenRouter/Gemini key is
+  the translation key too.
+- `messages/GLOSSARY.md` — the glossary table below, moved into the repo. Pinned into every
+  translation prompt; the authority reviewers enforce.
+- `messages/translation-state.json` (committed) — per-key bookkeeping that makes re-runs safe:
+
+```jsonc
+"ReviewClaim.splitButton": {
+  "sourceHash": "9f2c1a",                            // hash of the en value translated from
+  "zh-Hans": "reviewed", "zh-Hant": "machine",       // todo | machine | reviewed
+  "context": "Button on a line-item row; splits it in two. Keep short."  // optional
+}
+```
+
+The parity test (§10) checks `sourceHash` against the current English value, which turns
+"someone reworded the English and the Chinese is now stale" from a silent lie into a red
+build. The day-to-day loops:
+
+- **New string**: add `t("Ns.key")` + the `en.json` entry → `npm test` goes red (key missing
+  in zh catalogs) → `npm run translate` drafts both Chinese entries (status `machine`) and
+  writes the state row → commit all four files in the PR. No AI key on hand?
+  `npm run translate -- --todo` copies the English value as a placeholder (status `todo`,
+  renders English, grep-able) so the build stays green and the draft happens later.
+- **Reworded English string**: `npm test` goes red on the hash mismatch →
+  `npm run translate` re-drafts exactly the stale keys. The prompt includes the *previous*
+  translation as reference ("preserve its terminology where still accurate"), so a reviewed
+  phrasing isn't thrown away — but the status drops back to `machine`, because the old human
+  approval no longer covers the new meaning.
+- **Glossary or context changed**: `npm run translate -- --all` re-drafts every
+  `machine`-status key with the updated context. `reviewed` keys are never overwritten by any
+  mode without `--force` — human work is protected by default; the run report lists reviewed
+  keys so the reviewer can spot-check whether the change affects them.
+- **Review**: the reviewer edits the zh value if needed and flips the status to `reviewed` in
+  `translation-state.json` — an ordinary git-audited PR, no tooling to learn.
+- Keys deleted from `en.json` are pruned from the catalogs and state by the script; the parity
+  test catches orphans regardless.
+
+Context flows into the prompt from three layers: the glossary (global), the per-key `context`
+field (worth writing for ambiguous short strings — "Draft", "Split", "Claims"), and the key's
+namespace plus sibling messages (automatic, tells the model what screen it is on). If the
+operator's `church-context.md` vocabulary doc (§`src/lib/church-context.ts`) exists, the
+script can ingest it too — the same church terminology that guides ministry suggestions
+guides translation.
 
 Starter glossary — the ~15 load-bearing terms, chosen once, used everywhere. Note the
 Hans/Hant pairs that differ by *vocabulary*, not just script (why two catalogs, §1):
@@ -439,7 +486,7 @@ refactor harness for every extraction PR, and nothing user-visible changes until
 | **P1 — plumbing, en only** | `next-intl` dep, `messages/en.json` skeleton, `src/i18n/request.ts` (cookie → Accept-Language → en), provider in layout, `<html lang>`, typed keys, parity test. Zero visible change | S |
 | **P2 — string extraction** | Component-by-component PRs (suggested order: NavBar+pages → Shoebox → ReviewClaim → the rest), applying authoring rules 1–7: ICU plurals, `t.rich` sentences, `confirm()` prompts, status-label centralization, date formatting via `useFormatter`, full-width digit parse | M–L (~330 strings; ReviewClaim+Shoebox ≈ half) |
 | **P3 — locale switching** | `User.locale` migration, profile field + zod enum, NavBar & sign-in switchers, session-sets-cookie, `generateMetadata`, CJK font stacks, `i18n.spec.ts` | S–M |
-| **P4 — Chinese catalogs** | Glossary sign-off → machine-draft `zh-Hans`/`zh-Hant` → native review → ship. Content work, not code | M (review-bound) |
+| **P4 — Chinese catalogs** | `messages/GLOSSARY.md` sign-off, `scripts/translate-messages.mjs` + `translation-state.json` (the §11 pipeline), machine-draft `zh-Hans`/`zh-Hant`, native review, staleness check joins the parity test | M (review-bound) |
 | **P5 — error codes** | `ApiError` code+params, `apiErrorMessage` helper replacing the `?? "fallback"` idiom, NDJSON `code`, `Errors.*` catalog | M (~45 codes, many call sites) |
 | **P6 — optional follow-ups** | Ministry display labels (church-supplied), AI output-language steering (policy decision), localized PDF filename stem, ESLint literal-string guard | as demanded |
 
