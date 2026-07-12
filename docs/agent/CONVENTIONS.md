@@ -66,6 +66,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   (src/i18n/cookie.ts). No URL locale routing, no middleware.
 - API errors are translated CLIENT-side (`useApiErrorMessage()` — src/lib/use-api-error.ts);
   the server stays locale-free. New error string ⇒ new code ⇒ new `Errors.*` entry ×3.
+  Codes are typed (`ApiErrorCode = keyof en.Errors`) — a code without a catalog entry
+  fails the build. Give ambiguous short strings a translator hint via the `context`
+  field in `messages/translation-state.json` (fed into drafting prompts).
 - Server-side errors that never surface (config/programming errors) stay plain English —
   don't invent codes for them.
 - Money display stays `$12.34` in every locale (shared with the PDF); dates go through

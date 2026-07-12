@@ -1,8 +1,11 @@
+import type { ApiErrorCode } from "@/lib/api";
+
 /**
  * NDJSON progress lines streamed by the claim-building POSTs
  * (POST /api/reimbursements and POST /api/reimbursements/[id]/receipts).
- * Dependency-free so client components can share it with the server routes;
- * the two event shapes mirror ExtractionEvent in src/lib/ai/extract.ts.
+ * Dependency-free at runtime so client components can share it with the
+ * server routes (the api.ts import is type-only, erased on compile); the two
+ * event shapes mirror ExtractionEvent in src/lib/ai/extract.ts.
  */
 export type ClaimStreamMessage =
   | { type: "status"; phase: "extracting"; total: number }
@@ -30,6 +33,6 @@ export type ClaimStreamMessage =
       /** English text — display fallback and log line. */
       message: string;
       /** Machine-readable identity for client-side translation (Errors.*). */
-      code?: string;
+      code?: ApiErrorCode;
       params?: Record<string, string | number>;
     };

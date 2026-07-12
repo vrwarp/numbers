@@ -32,7 +32,8 @@
   "Common.status.processed": {
     "sourceHash": "58190ffa",
     "zh-Hans": "machine",
-    "zh-Hant": "machine"
+    "zh-Hant": "machine",
+    "context": "Lowercase on purpose — appended mid-sentence to the receipt card's date · size line."
   },
   "Common.cancel": {
     "sourceHash": "19766ed6",
@@ -857,7 +858,8 @@
   "Review.discard": {
     "sourceHash": "eb1a70e3",
     "zh-Hans": "machine",
-    "zh-Hant": "machine"
+    "zh-Hant": "machine",
+    "context": "Action-bar button that deletes the draft claim; keep it to one or two words."
   },
   "Review.revert": {
     "sourceHash": "8b6d8838",

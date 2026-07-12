@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
+import type en from "../../messages/en.json";
 import { currentUserId } from "@/auth";
+
+/**
+ * Error codes are compile-checked against the Errors.* catalog: a code with
+ * no catalog entry (or a typo) fails `npm run build`, same as a bad t() key.
+ * Type-only import — nothing from en.json reaches the runtime bundle here.
+ */
+export type ApiErrorCode = keyof (typeof en)["Errors"];
 
 /**
  * `message` stays English (logs, curl, and the client's last-resort display);
@@ -11,7 +19,7 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
-    public code?: string,
+    public code?: ApiErrorCode,
     public params?: Record<string, string | number>
   ) {
     super(message);
