@@ -2869,33 +2869,63 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Vouch.roleLabel": {
+    "source": "Role",
+    "context": "Label before the role select in the attested-members list.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.roleDialogTitle": {
+    "source": "Change {name}'s role",
+    "context": "Confirm-dialog title for changing a member's role; {name} is the member.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.roleDialogFromTo": {
+    "source": "This changes their role from <b>{from}</b> to <b>{to}</b>.",
+    "context": "Confirm-dialog line; {from}/{to} are translated role names (Member/Approver/Treasurer). Keep the <b> tags.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.roleExplainMember": {
+    "source": "Members can prepare and sign their own reimbursements, but can't approve or pay others'.",
+    "context": "Confirm-dialog blurb: what a plain member can do.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.roleExplainApprover": {
+    "source": "Approvers can approve reimbursement claims for payment.",
+    "context": "Confirm-dialog blurb: what an approver can do.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.roleExplainTreasurer": {
+    "source": "Treasurers can approve claims and also mark them paid.",
+    "context": "Confirm-dialog blurb: what a treasurer can do (approver powers plus marking paid).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.roleDialogConfirm": {
+    "source": "Update role",
+    "context": "Confirm button on the role-change dialog.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Vouch.revokeKey": {
-    "source": "revoke key",
-    "context": "Admin button (lowercase chip) revoking a member's signing key.",
+    "source": "Revoke key",
+    "context": "Signing-key action button, and the confirm button on its dialog.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Vouch.revokeKeyConfirm": {
-    "source": "Revoke {name}'s signing key?\n\nDo this when a device that could sign as them was lost or stolen. Everything they already signed stays valid, but the key stops working everywhere — they'll set up signing again and be vouched for again in person.",
-    "context": "confirm() for key revocation; {name} is the member. Keep the blank line (\\n\\n). Old signatures stay valid.",
+  "Vouch.keyDialogTitle": {
+    "source": "Revoke {name}'s signing key?",
+    "context": "Confirm-dialog title for revoking a member's signing key; {name} is the member.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Vouch.grantApprover": {
-    "source": "make approver",
-    "context": "Admin button (lowercase chip) granting the approver role.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Vouch.grantTreasurer": {
-    "source": "make treasurer",
-    "context": "Admin button (lowercase chip) granting the treasurer role.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Vouch.revokeRole": {
-    "source": "revoke {role}",
-    "context": "Admin button (lowercase chip) revoking a role; {role} is the translated role name.",
+  "Vouch.keyDialogBody": {
+    "source": "Do this only when a device that could sign as them was lost or stolen. Everything they've already signed stays valid, but the key stops working everywhere — they'll set up signing again and get vouched back in person.",
+    "context": "Confirm-dialog body explaining what revoking the signing key does. Old signatures stay valid.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

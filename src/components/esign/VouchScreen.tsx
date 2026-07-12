@@ -12,7 +12,7 @@
  * front of them matches the identity on screen.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -33,7 +33,64 @@ import { useThrownErrorMessage } from "@/lib/use-api-error";
 import VouchQrScanner from "./VouchQrScanner";
 import { SigningConnectCard, useSigningSession } from "./SigningConnect";
 
-function RoleButtons({
+/** Bottom-sheet-on-mobile / centered-on-desktop confirm modal (matches the
+ *  submit ceremony's chrome), used for both role changes and key revocation. */
+function ConfirmDialog({
+  title,
+  confirmLabel,
+  danger = false,
+  busy = false,
+  error,
+  onConfirm,
+  onCancel,
+  children,
+}: {
+  title: string;
+  confirmLabel: string;
+  danger?: boolean;
+  busy?: boolean;
+  error?: string | null;
+  onConfirm: () => void;
+  onCancel: () => void;
+  children: ReactNode;
+}) {
+  const tCommon = useTranslations("Common");
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="max-h-[92vh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-2xl bg-white p-6 sm:rounded-2xl">
+        <h3 className="text-lg font-bold">{title}</h3>
+        <div className="space-y-2 text-sm text-stone-600">{children}</div>
+        {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <button className="btn-secondary" onClick={onCancel} disabled={busy}>
+            {tCommon("cancel")}
+          </button>
+          <button
+            className={danger ? "btn-danger" : "btn-primary"}
+            onClick={onConfirm}
+            disabled={busy}
+            data-testid="confirm-dialog-submit"
+          >
+            {busy ? "…" : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Admin controls for one attested member, split along the two axes they live
+ * on: their ROLE (a select — one of member/approver/treasurer) and their
+ * SIGNING KEY (a separate, quieter destructive action). Both changes route
+ * through a ConfirmDialog that spells out what will happen — the select never
+ * commits on its own, and the key revocation replaces the old confirm().
+ */
+function RoleControls({
   env,
   member,
   onDone,
@@ -44,72 +101,143 @@ function RoleButtons({
 }) {
   const t = useTranslations("Vouch");
   const tRole = useTranslations("Common.role");
+  const thrown = useThrownErrorMessage();
+  type Role = "member" | "approver" | "treasurer";
+  const currentRole: Role =
+    member.role === "approver" || member.role === "treasurer" ? member.role : "member";
+  const [selectValue, setSelectValue] = useState<Role>(currentRole);
+  const [dialog, setDialog] = useState<null | "role" | "key">(null);
   const [busy, setBusy] = useState(false);
-  async function set(role: "approver" | "treasurer", revoke: boolean) {
+  const [error, setError] = useState<string | null>(null);
+
+  // Re-sync the select when a roster refresh moves the mirror role under us.
+  useEffect(() => {
+    setSelectValue(currentRole);
+  }, [currentRole]);
+
+  const roleBlurb = (r: Role) =>
+    t(
+      r === "approver"
+        ? "roleExplainApprover"
+        : r === "treasurer"
+          ? "roleExplainTreasurer"
+          : "roleExplainMember"
+    );
+
+  function pickRole(next: Role) {
+    if (next === currentRole) return;
+    setSelectValue(next);
+    setError(null);
+    setDialog("role");
+  }
+  function cancelRole() {
+    setSelectValue(currentRole);
+    setError(null);
+    setDialog(null);
+  }
+
+  // Role change is one or two root-signed roster events (§4.3): switching
+  // between two roles revokes the old before granting the new; to/from member
+  // is a single revoke or grant.
+  async function applyRole() {
     setBusy(true);
+    setError(null);
     try {
-      await grantRole(env, member.userId, role, revoke);
+      if (currentRole !== "member") await grantRole(env, member.userId, currentRole, true);
+      if (selectValue !== "member") await grantRole(env, member.userId, selectValue, false);
+      setDialog(null);
       await onDone();
+    } catch (err) {
+      setError(thrown(err, t("vouchFailed")));
     } finally {
       setBusy(false);
     }
   }
-  // §4.5 compromised-device path: the member reports the loss in person and
-  // the root retires the KEY itself. Their history stays valid; they enroll a
-  // fresh key and get re-vouched.
-  async function revokeKey() {
-    if (!confirm(t("revokeKeyConfirm", { name: member.name }))) {
-      return;
-    }
+
+  // §4.5 compromised-device path: the member reports the loss in person and the
+  // root retires the KEY itself. Their history stays valid; they enroll a fresh
+  // key and get re-vouched.
+  async function applyRevokeKey() {
     setBusy(true);
+    setError(null);
     try {
       await revokeMemberKey(env, member.publicKey);
+      setDialog(null);
       await onDone();
+    } catch (err) {
+      setError(thrown(err, t("vouchFailed")));
     } finally {
       setBusy(false);
     }
   }
+
   return (
-    <span className="flex gap-1">
-      <button
-        className="rounded-lg border border-red-200 px-2 py-0.5 text-xs text-red-700 hover:bg-red-50"
-        disabled={busy}
-        onClick={revokeKey}
-        data-testid={`revoke-key-${member.userId}`}
-      >
-        {t("revokeKey")}
-      </button>
-      {member.role === "approver" || member.role === "treasurer" ? (
-        <button
-          className="rounded-lg border border-stone-200 px-2 py-0.5 text-xs text-stone-500 hover:bg-stone-50"
+    <div className="flex flex-col gap-2.5 sm:items-end">
+      <label className="flex items-center gap-2">
+        <span className="text-xs font-medium text-stone-500">{t("roleLabel")}</span>
+        <select
+          className="min-h-[42px] rounded-lg border border-stone-300 bg-white py-2 pl-3 pr-8 text-sm text-stone-800 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
+          value={selectValue}
           disabled={busy}
-          onClick={() => set(member.role as "approver" | "treasurer", true)}
+          onChange={(e) => pickRole(e.target.value as Role)}
+          data-testid={`role-select-${member.userId}`}
         >
-          {t("revokeRole", {
-            role: tRole(member.role as "approver" | "treasurer"),
-          })}
+          <option value="member">{tRole("member")}</option>
+          <option value="approver">{tRole("approver")}</option>
+          <option value="treasurer">{tRole("treasurer")}</option>
+        </select>
+      </label>
+      <div className="w-full border-t border-dashed border-stone-200 pt-1.5 sm:flex sm:justify-end">
+        <button
+          className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+          disabled={busy}
+          onClick={() => {
+            setError(null);
+            setDialog("key");
+          }}
+          data-testid={`revoke-key-${member.userId}`}
+        >
+          <span aria-hidden>🔑</span>
+          {t("revokeKey")}
         </button>
-      ) : (
-        <>
-          <button
-            className="rounded-lg border border-indigo-200 px-2 py-0.5 text-xs text-indigo-700 hover:bg-indigo-50"
-            disabled={busy}
-            onClick={() => set("approver", false)}
-            data-testid={`grant-approver-${member.userId}`}
-          >
-            {t("grantApprover")}
-          </button>
-          <button
-            className="rounded-lg border border-indigo-200 px-2 py-0.5 text-xs text-indigo-700 hover:bg-indigo-50"
-            disabled={busy}
-            onClick={() => set("treasurer", false)}
-            data-testid={`grant-treasurer-${member.userId}`}
-          >
-            {t("grantTreasurer")}
-          </button>
-        </>
+      </div>
+
+      {dialog === "role" && (
+        <ConfirmDialog
+          title={t("roleDialogTitle", { name: member.name })}
+          confirmLabel={t("roleDialogConfirm")}
+          busy={busy}
+          error={error}
+          onConfirm={applyRole}
+          onCancel={cancelRole}
+        >
+          <p>
+            {t.rich("roleDialogFromTo", {
+              from: tRole(currentRole),
+              to: tRole(selectValue),
+              b: (chunks) => <strong className="font-semibold text-stone-800">{chunks}</strong>,
+            })}
+          </p>
+          <p className="text-stone-500">{roleBlurb(selectValue)}</p>
+        </ConfirmDialog>
       )}
-    </span>
+      {dialog === "key" && (
+        <ConfirmDialog
+          title={t("keyDialogTitle", { name: member.name })}
+          confirmLabel={t("revokeKey")}
+          danger
+          busy={busy}
+          error={error}
+          onConfirm={applyRevokeKey}
+          onCancel={() => {
+            setError(null);
+            setDialog(null);
+          }}
+        >
+          <p>{t("keyDialogBody")}</p>
+        </ConfirmDialog>
+      )}
+    </div>
   );
 }
 
@@ -370,25 +498,29 @@ function VouchInner() {
       {members.length > 0 && (
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-stone-500">{t("attestedMembers")}</h2>
-          <ul className="mt-2 space-y-2 text-sm">
+          <ul className="mt-3 space-y-3 text-sm">
             {members.map((m) => (
-              <li key={m.userId} className="flex flex-wrap items-center justify-between gap-2">
-                <span>
-                  {m.name}
-                  {m.role !== "member" && (
-                    <span className="ml-2 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
-                      {roleName(m.role) ? tRole(roleName(m.role)!) : m.role}
-                    </span>
-                  )}
-                </span>
-                <span className="flex items-center gap-2">
-                  {/* Role grants are root-signed roster events (§4.3) — only
-                      the root's browser can produce them, and only once its
-                      signing session is connected (they sign a roster event). */}
-                  {env.me.role === "admin" && phase === "ready" && m.userId !== env.me.userId && (
-                    <RoleButtons env={env} member={m} onDone={refreshMembers} />
-                  )}
-                </span>
+              <li
+                key={m.userId}
+                className="flex flex-col gap-3 rounded-xl border border-stone-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+              >
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-stone-800">{m.name}</span>
+                    {m.role !== "member" && (
+                      <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                        {roleName(m.role) ? tRole(roleName(m.role)!) : m.role}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 text-xs text-stone-400">{m.email}</div>
+                </div>
+                {/* Role grants are root-signed roster events (§4.3) — only the
+                    root's browser can produce them, and only once its signing
+                    session is connected (they sign a roster event). */}
+                {env.me.role === "admin" && phase === "ready" && m.userId !== env.me.userId && (
+                  <RoleControls env={env} member={m} onDone={refreshMembers} />
+                )}
               </li>
             ))}
           </ul>
