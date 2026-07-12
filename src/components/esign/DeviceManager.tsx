@@ -117,7 +117,7 @@ export function NewDeviceCard({
           {code}
         </div>
         <p className="text-xs text-indigo-800/70">
-          {t.rich("waitingNote", { em: (chunks) => <em>{chunks}</em> })}
+          {t("waitingNote")}
         </p>
       </div>
     );

@@ -887,7 +887,7 @@
     "zh-Hant": "machine"
   },
   "ImageEditor.introLocal": {
-    "source": "Straighten the photo and drag the box to trim away the background. This happens on your device, before anything uploads.",
+    "source": "Straighten the photo and drag the box to trim away the background.",
     "context": "Intro in the pre-upload flow: the edit happens on-device.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -1211,7 +1211,7 @@
     "zh-Hant": "machine"
   },
   "Review.splitModeBody": {
-    "source": "Splitting divides one receipt between different ministries, but this claim is set to use <strong>one ministry</strong> for every row.",
+    "source": "This claim is set to use <strong>one ministry</strong> for every row.",
     "context": "Dialog body; <strong> emphasizes the one-ministry setting.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -1235,7 +1235,7 @@
     "zh-Hant": "machine"
   },
   "Review.modeSwitchBody": {
-    "source": "Every row will be set to <strong>{value}</strong> (what most rows already use{distinct, plural, =1 {} other {, of the # different ministries currently picked}}).",
+    "source": "Every row will be set to <strong>{value}</strong> — the ministry most rows already use.",
     "context": "Dialog body; <strong>{value} is the adopted ministry. The ICU '=1' branch is DELIBERATELY EMPTY — the clause about N different ministries only appears when more than one is picked.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -2183,7 +2183,7 @@
     "zh-Hant": "machine"
   },
   "Identity.bootstrapIntro": {
-    "source": "You're the person who turns on electronic signing for this church. Setting up makes you its anchor — the trusted starting point everything else builds on. It begins switched <b>off</b>, so nothing changes for members until you turn it on.",
+    "source": "You're the person who sets up electronic signing for this church. It starts switched <b>off</b>, so nothing changes for members until you turn it on.",
     "context": "Shown only to the designated first admin before setup. <b> wraps 'off'. Explains setup creates the registry with them as anchor.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -2543,7 +2543,7 @@
     "zh-Hant": "machine"
   },
   "Devices.waitingNote": {
-    "source": "Waiting for the other device… this page continues by itself once it's approved. The code proves the other device is talking to <em>this</em> browser and not an impostor.",
+    "source": "Waiting for the other device… this page continues by itself once it's approved.",
     "context": "Small print while waiting; <em> wraps 'this'. Explains the code binds the approval to this browser.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -3363,7 +3363,7 @@
     "zh-Hant": "machine"
   },
   "Errors.aiQuotaExhausted": {
-    "source": "The AI provider is over its limit ({rpm} requests/minute). The server waited and retried, but it's still busy — please wait a minute and try again. Affected: {names}",
+    "source": "The AI provider is busy right now — please wait a minute and try again. Affected: {names}",
     "context": "429 after retries; {rpm} requests/minute target, {names} is a list of receipt file names.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"

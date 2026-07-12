@@ -109,9 +109,7 @@ export async function extractClaimRows(
     const names = quotaFailed.map((f) => f.receipt.originalName).join(", ");
     throw new ApiError(
       429,
-      `AI provider rate limit / quota exhausted (target ${rpmTarget()} requests/minute). ` +
-        `The server waited and retried but the quota hasn't cleared — please wait a minute ` +
-        `and try again. Affected: ${names}`,
+      `The AI provider is busy right now — please wait a minute and try again. Affected: ${names}`,
       "aiQuotaExhausted",
       { rpm: rpmTarget(), names }
     );
