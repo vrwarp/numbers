@@ -22,6 +22,7 @@ import {
   loadRoster,
   repairEnrollment,
   reportRoster,
+  subscribeRoster,
   updateSignatureImage,
   type EsignEnv,
 } from "@/lib/esign/client";
@@ -138,6 +139,21 @@ export default function SigningIdentityCard() {
   useEffect(() => {
     if (phase === "ready") void refresh();
   }, [phase, refresh]);
+
+  // Live-update: while enrolled with a roster session, watch the roster ledger
+  // so a vouch (pending → attested), role grant, or key revocation made
+  // elsewhere updates this card without a manual reload (Firestore onSnapshot on
+  // prod, polling on the mock backend). Keyed on the stable roster identifiers,
+  // not the whole env object, so a refresh()-driven setEnv doesn't tear down and
+  // re-attach the listener.
+  useEffect(() => {
+    if (phase !== "ready" || !env) return;
+    if (!(env.enabled && env.me.identityStatus && env.rosterLedgerId && env.rosterLedgerKey)) return;
+    return subscribeRoster(env, () => void refresh());
+    // env is read only for its roster identifiers (all in the deps below); the
+    // fresh env is re-read inside refresh(), so a stale closure is harmless.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, env?.rosterLedgerId, env?.rosterLedgerKey, env?.me.identityStatus, env?.enabled, env?.backend, refresh]);
 
   const vouchUrl = useMemo(() => {
     if (!env?.me.publicKey) return null;
