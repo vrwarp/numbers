@@ -133,7 +133,7 @@ async function seedClaim(persona: Persona, event: string): Promise<string> {
   return id;
 }
 
-/** Tap-to-sign submit ceremony for the claim currently open at /claims/:id. */
+/** Hold-to-sign submit ceremony for the claim currently open at /claims/:id. */
 async function submitForApproval(persona: Persona, id: string) {
   await persona.page.goto(`${BASE}/claims/${id}`);
   await persona.page.click('[data-testid="submit-for-approval"]');
@@ -141,7 +141,8 @@ async function submitForApproval(persona: Persona, id: string) {
   // The option label renders the role through Common.role.* ("Approver").
   await persona.page.selectOption('[data-testid="approver-select"]', { label: "Bob Chen (Approver)" });
   await persona.page.check('[data-testid="intent-checkbox"]');
-  await persona.page.click('[data-testid="tap-to-sign"]');
+  // Signing is a long-press now: hold the tab past HOLD_MS via click delay.
+  await persona.page.click('[data-testid="tap-to-sign"]', { delay: 900 });
   await persona.page.click('[data-testid="sign-submit"]');
   await expect(persona.page.getByText("Awaiting approval").first()).toBeVisible({
     timeout: 30_000,
@@ -291,13 +292,13 @@ test("submit → approve → pay, fail-closed ceremonies throughout", async () =
   claimId = await seedClaim(alice, "VBS 2026");
   await submitForApproval(alice, claimId);
 
-  // Bob's decision ceremony: approve enables only after chain verify + tap.
+  // Bob's decision ceremony: approve enables only after chain verify + hold.
   await bob.page.goto(`${BASE}/approvals`);
   await bob.page.waitForSelector(`[data-testid="approval-${claimId}"]`, { timeout: 30_000 });
   await bob.page.click(`[data-testid="approval-${claimId}"] button`);
   await bob.page.waitForSelector('[data-testid="document-sign-field"]', { timeout: 30_000 });
   await bob.page.check('[data-testid="decision-intent"]');
-  await bob.page.click('[data-testid="tap-to-sign"]');
+  await bob.page.click('[data-testid="tap-to-sign"]', { delay: 900 });
   await bob.page.waitForSelector('[data-testid="approve-button"]:not([disabled])', {
     timeout: 30_000,
   });

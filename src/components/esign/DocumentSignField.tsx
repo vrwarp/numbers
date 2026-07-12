@@ -1,18 +1,25 @@
 "use client";
 
 /**
- * Click-to-stamp signing surface (docs/ESIGN_DESIGN.md click-to-stamp): shows
- * the actual document with a "Tap to sign" placeholder ON the signature line.
- * Nothing is stamped until the signer taps it — the tap is the required
- * affirmative act (good UETA evidence, and the familiar sign-here pattern).
- * After tapping, the signature sits on the line and can be dragged anywhere;
- * removing it returns to the placeholder state and disables signing again.
+ * Hold-to-stamp signing surface (docs/ESIGN_DESIGN.md click-to-stamp): shows
+ * the actual document with a "Hold to sign" placeholder ON the signature line.
+ * Nothing is stamped until the signer presses and HOLDS the tab — a deliberate
+ * long-press (with a visible progress ring) is the required affirmative act
+ * (good UETA evidence) and, unlike a bare tap, it never collides with the
+ * pan/zoom/drag gestures that share this surface. Keyboard users get the same
+ * act via Enter/Space on the focused tab.
+ *
+ * The surface is pinch-to-zoom and pan (plus explicit zoom buttons for
+ * mouse-only devices); once the signature is placed it can be dragged to
+ * reposition. Because signing is a hold rather than a tap, a plain
+ * touch/click-and-drag pans (or drags the stamp) without accidentally signing.
  *
  * The page image is rendered from the EXACT bytes passed in (client-side
  * pdf.js), never a server raster — so what you place your signature on is
  * provably the document being signed. Emits a page-normalized placement
  * (bottom-left origin) that the browser overlay and the server's pdf-lib
- * stamp agree on exactly, or null while unplaced.
+ * stamp agree on exactly, or null while unplaced. Zoom/pan is a pure CSS
+ * transform on the preview and never touches the emitted ratios.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -28,6 +35,20 @@ import { clampPlacement, fitWidthToHeight, roundPlacement, type SignaturePlaceme
  * even a real signature overran the line.
  */
 const SIG_MAX_HEIGHT_PT = 18;
+
+/** How long the sign tab must be held before the signature stamps. */
+const HOLD_MS = 550;
+/** Pointer travel (px) that aborts an in-progress hold — it was a pan, not a press. */
+const HOLD_CANCEL_PX = 10;
+
+const MIN_SCALE = 1;
+const MAX_SCALE = 4;
+const ZOOM_STEP = 1.5;
+
+type View = { scale: number; tx: number; ty: number };
+type Gesture = "none" | "hold" | "dragSig" | "pan" | "pinch";
+
+const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
 export default function DocumentSignField({
   bytes,
@@ -46,8 +67,26 @@ export default function DocumentSignField({
   const [placed, setPlaced] = useState(false);
   const [placement, setPlacement] = useState<SignaturePlacement>(anchor);
   const [imgAspect, setImgAspect] = useState(0.35); // naturalH / naturalW
+  const [view, setViewState] = useState<View>({ scale: 1, tx: 0, ty: 0 });
+  const [holdProgress, setHoldProgress] = useState(0);
+
   const boxRef = useRef<HTMLDivElement>(null);
-  const dragging = useRef(false);
+  const pageRef = useRef<HTMLImageElement>(null);
+
+  // Mutable gesture state kept in refs so pointer handlers never read a stale
+  // closure between renders.
+  const viewRef = useRef(view);
+  const gesture = useRef<Gesture>("none");
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const holdRaf = useRef<number | null>(null);
+  const holdStart = useRef({ x: 0, y: 0, t: 0 });
+  const panStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
+  const pinchStart = useRef({ dist: 0, scale: 1, cx: 0, cy: 0 });
+
+  const setView = useCallback((next: View) => {
+    viewRef.current = next;
+    setViewState(next);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,29 +133,213 @@ export default function DocumentSignField({
     if (placed) commit(placementRef.current);
   }, [placed, commit]);
 
-  /** The required affirmative act: tapping the sign-here tab stamps the
+  /** The required affirmative act: holding the sign-here tab stamps the
    *  signature on the line. Until then the parent holds no placement and
    *  the sign button stays disabled. */
-  function placeAtAnchor() {
+  const placeAtAnchor = useCallback(() => {
     setPlaced(true);
     commit(anchor);
-  }
+  }, [anchor, commit]);
 
   function unplace() {
     setPlaced(false);
-    dragging.current = false;
+    gesture.current = "none";
     setPlacement(anchor);
     onChange(null);
   }
 
-  function moveTo(clientX: number, clientY: number) {
+  // Map a client point to a page-normalized placement, using the page image's
+  // on-screen rect — which already reflects the zoom/pan transform, so ratios
+  // stay correct at any scale.
+  const moveTo = useCallback(
+    (clientX: number, clientY: number) => {
+      const rect = pageRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const cur = placementRef.current;
+      const stampWpx = cur.widthRatio * rect.width;
+      // Drop point = bottom-center of the stamp.
+      const xRatio = (clientX - rect.left - stampWpx / 2) / rect.width;
+      const yRatio = (rect.height - (clientY - rect.top)) / rect.height;
+      commit({ ...cur, xRatio, yRatio });
+    },
+    [commit]
+  );
+
+  // ----- zoom / pan -----------------------------------------------------
+
+  const clampPan = useCallback((v: View): View => {
+    const box = boxRef.current?.getBoundingClientRect();
+    if (!box || v.scale <= 1) return { scale: v.scale, tx: 0, ty: 0 };
+    const minTx = box.width * (1 - v.scale);
+    const minTy = box.height * (1 - v.scale);
+    return { scale: v.scale, tx: clamp(v.tx, minTx, 0), ty: clamp(v.ty, minTy, 0) };
+  }, []);
+
+  // Zoom about a fixed viewport point, keeping the content under it anchored.
+  const zoomAbout = useCallback(
+    (boxX: number, boxY: number, nextScale: number) => {
+      const v = viewRef.current;
+      const scale = clamp(nextScale, MIN_SCALE, MAX_SCALE);
+      const cx = (boxX - v.tx) / v.scale;
+      const cy = (boxY - v.ty) / v.scale;
+      setView(clampPan({ scale, tx: boxX - cx * scale, ty: boxY - cy * scale }));
+    },
+    [clampPan, setView]
+  );
+
+  const zoomByButton = useCallback(
+    (factor: number) => {
+      const box = boxRef.current?.getBoundingClientRect();
+      if (!box) return;
+      zoomAbout(box.width / 2, box.height / 2, viewRef.current.scale * factor);
+    },
+    [zoomAbout]
+  );
+
+  const resetZoom = useCallback(() => setView({ scale: 1, tx: 0, ty: 0 }), [setView]);
+
+  // ----- long-press to sign ---------------------------------------------
+
+  const cancelHold = useCallback(() => {
+    if (holdRaf.current != null) cancelAnimationFrame(holdRaf.current);
+    holdRaf.current = null;
+    setHoldProgress(0);
+    if (gesture.current === "hold") gesture.current = "none";
+  }, []);
+
+  const startHold = useCallback(
+    (clientX: number, clientY: number) => {
+      gesture.current = "hold";
+      holdStart.current = { x: clientX, y: clientY, t: performance.now() };
+      const tick = () => {
+        const elapsed = performance.now() - holdStart.current.t;
+        const p = Math.min(1, elapsed / HOLD_MS);
+        setHoldProgress(p);
+        if (p >= 1) {
+          cancelHold();
+          placeAtAnchor();
+          return;
+        }
+        holdRaf.current = requestAnimationFrame(tick);
+      };
+      holdRaf.current = requestAnimationFrame(tick);
+    },
+    [cancelHold, placeAtAnchor]
+  );
+
+  useEffect(() => () => cancelHold(), [cancelHold]);
+
+  // ----- unified pointer routing ----------------------------------------
+
+  function midpoint() {
+    const pts = [...pointers.current.values()];
+    return { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+  }
+  function pointerDist() {
+    const pts = [...pointers.current.values()];
+    return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  }
+
+  function beginPinch() {
+    cancelHold();
     const box = boxRef.current?.getBoundingClientRect();
     if (!box) return;
-    const stampWpx = placement.widthRatio * box.width;
-    // Drop point = bottom-center of the stamp.
-    const xRatio = (clientX - box.left - stampWpx / 2) / box.width;
-    const yRatio = (box.height - (clientY - box.top)) / box.height;
-    commit({ ...placement, xRatio, yRatio });
+    const m = midpoint();
+    const v = viewRef.current;
+    const mx = m.x - box.left;
+    const my = m.y - box.top;
+    gesture.current = "pinch";
+    pinchStart.current = {
+      dist: pointerDist(),
+      scale: v.scale,
+      cx: (mx - v.tx) / v.scale,
+      cy: (my - v.ty) / v.scale,
+    };
+  }
+
+  function onPointerDown(e: React.PointerEvent) {
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    e.currentTarget.setPointerCapture(e.pointerId);
+
+    if (pointers.current.size >= 2) {
+      beginPinch();
+      return;
+    }
+
+    const role = (e.target as HTMLElement).closest("[data-role]")?.getAttribute("data-role");
+    const v = viewRef.current;
+
+    if (placed) {
+      if (v.scale > 1 && role !== "stamp") {
+        gesture.current = "pan";
+        panStart.current = { x: e.clientX, y: e.clientY, tx: v.tx, ty: v.ty };
+      } else {
+        gesture.current = "dragSig";
+        moveTo(e.clientX, e.clientY);
+      }
+      return;
+    }
+
+    if (role === "sign-tab") {
+      startHold(e.clientX, e.clientY);
+    } else if (v.scale > 1) {
+      gesture.current = "pan";
+      panStart.current = { x: e.clientX, y: e.clientY, tx: v.tx, ty: v.ty };
+    }
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    if (!pointers.current.has(e.pointerId)) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    switch (gesture.current) {
+      case "pinch": {
+        if (pointers.current.size < 2) return;
+        const box = boxRef.current?.getBoundingClientRect();
+        if (!box) return;
+        const { dist, scale, cx, cy } = pinchStart.current;
+        const nextScale = clamp((scale * pointerDist()) / (dist || 1), MIN_SCALE, MAX_SCALE);
+        const m = midpoint();
+        const mx = m.x - box.left;
+        const my = m.y - box.top;
+        setView(clampPan({ scale: nextScale, tx: mx - cx * nextScale, ty: my - cy * nextScale }));
+        break;
+      }
+      case "hold": {
+        const dx = e.clientX - holdStart.current.x;
+        const dy = e.clientY - holdStart.current.y;
+        if (Math.hypot(dx, dy) > HOLD_CANCEL_PX) cancelHold();
+        break;
+      }
+      case "dragSig":
+        moveTo(e.clientX, e.clientY);
+        break;
+      case "pan": {
+        const v = viewRef.current;
+        setView(
+          clampPan({
+            scale: v.scale,
+            tx: panStart.current.tx + (e.clientX - panStart.current.x),
+            ty: panStart.current.ty + (e.clientY - panStart.current.y),
+          })
+        );
+        break;
+      }
+    }
+  }
+
+  function endPointer(e: React.PointerEvent) {
+    pointers.current.delete(e.pointerId);
+    if (gesture.current === "hold") cancelHold();
+    if (pointers.current.size === 0) {
+      gesture.current = "none";
+    } else if (pointers.current.size === 1 && gesture.current === "pinch") {
+      // Lift one finger mid-pinch → continue as a pan from the survivor.
+      const [pt] = [...pointers.current.values()];
+      const v = viewRef.current;
+      gesture.current = "pan";
+      panStart.current = { x: pt.x, y: pt.y, tx: v.tx, ty: v.ty };
+    }
   }
 
   if (error) {
@@ -140,54 +363,138 @@ export default function DocumentSignField({
   const stampHeightFracOfHeight = placement.widthRatio * heightRatioPerWidth;
   const topPct = (1 - placement.yRatio - stampHeightFracOfHeight) * 100;
 
+  const holding = holdProgress > 0;
+  // Progress-ring geometry (circle circumference for stroke-dashoffset sweep).
+  const RING_R = 15;
+  const RING_C = 2 * Math.PI * RING_R;
+
   return (
     <div className="space-y-2">
-      <p className="text-sm text-stone-600">
-        {placed ? t("signedDragHint") : t("tapTabHint")}
-      </p>
+      <p className="text-sm text-stone-600">{placed ? t("signedDragHint") : t("holdTabHint")}</p>
       <div
         ref={boxRef}
         className="relative w-full touch-none select-none overflow-hidden rounded-lg border border-stone-300 bg-white"
         style={{ aspectRatio: `${page.widthPx} / ${page.heightPx}` }}
-        onPointerDown={(e) => {
-          if (!placed) return; // signing requires tapping the tab first
-          e.currentTarget.setPointerCapture(e.pointerId);
-          dragging.current = true;
-          moveTo(e.clientX, e.clientY);
-        }}
-        onPointerMove={(e) => {
-          if (dragging.current) moveTo(e.clientX, e.clientY);
-        }}
-        onPointerUp={() => {
-          dragging.current = false;
-        }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endPointer}
+        onPointerCancel={endPointer}
         data-testid="document-sign-field"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={page.dataUrl} alt={t("docAlt")} className="pointer-events-none block w-full" />
-        {placed ? (
-          <div
-            className="pointer-events-none absolute"
-            style={{ left: `${leftPct}%`, top: `${topPct}%`, width: `${widthPct}%` }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={signatureImage} alt={t("signatureAlt")} className="block w-full" />
-          </div>
-        ) : (
+        <div
+          className="absolute left-0 top-0 w-full origin-top-left"
+          style={{ transform: `translate(${view.tx}px, ${view.ty}px) scale(${view.scale})` }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            ref={pageRef}
+            src={page.dataUrl}
+            alt={t("docAlt")}
+            className="pointer-events-none block w-full"
+          />
+          {placed ? (
+            <div
+              data-role="stamp"
+              className="absolute cursor-grab active:cursor-grabbing"
+              style={{ left: `${leftPct}%`, top: `${topPct}%`, width: `${widthPct}%` }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={signatureImage} alt={t("signatureAlt")} className="pointer-events-none block w-full" />
+            </div>
+          ) : (
+            <button
+              type="button"
+              data-role="sign-tab"
+              // Keyboard activation (Enter/Space → click with detail 0) signs
+              // immediately; pointer clicks (detail ≥ 1) are handled by the
+              // hold gesture instead, so a quick tap never signs.
+              onClick={(e) => {
+                if (e.detail === 0) placeAtAnchor();
+              }}
+              className={`absolute flex items-center justify-center gap-1 overflow-hidden rounded-md border-2 border-amber-500 bg-amber-300/90 py-1.5 text-xs font-bold text-amber-950 shadow-md ${
+                holding ? "" : "animate-pulse motion-reduce:animate-none"
+              }`}
+              style={{
+                left: `${anchor.xRatio * 100}%`,
+                bottom: `${anchor.yRatio * 100}%`,
+                width: `${anchor.widthRatio * 100}%`,
+              }}
+              data-testid="tap-to-sign"
+            >
+              {holding && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-y-0 left-0 bg-amber-400/70"
+                  style={{ width: `${holdProgress * 100}%` }}
+                />
+              )}
+              {holding ? (
+                <span className="relative flex items-center gap-1.5">
+                  <svg viewBox="0 0 36 36" className="h-4 w-4" aria-hidden>
+                    <circle cx="18" cy="18" r={RING_R} fill="none" stroke="currentColor" strokeOpacity="0.25" strokeWidth="4" />
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r={RING_R}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      strokeDasharray={RING_C}
+                      strokeDashoffset={RING_C * (1 - holdProgress)}
+                      transform="rotate(-90 18 18)"
+                    />
+                  </svg>
+                  {t("holdingToSign")}
+                </span>
+              ) : (
+                <span className="relative">{t("tapToSign")}</span>
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Zoom controls for mouse-only surfaces. Live in the viewport (not the
+            transformed content) so they stay pinned and unscaled; their own
+            pointer-down is stopped so it never starts a pan. */}
+        <div
+          className="absolute right-2 top-2 flex flex-col overflow-hidden rounded-lg border border-stone-300 bg-white/90 shadow-sm backdrop-blur"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
           <button
             type="button"
-            onClick={placeAtAnchor}
-            className="absolute flex animate-pulse items-center justify-center gap-1 rounded-md border-2 border-amber-500 bg-amber-300/90 py-1.5 text-xs font-bold text-amber-950 shadow-md motion-reduce:animate-none"
-            style={{
-              left: `${anchor.xRatio * 100}%`,
-              bottom: `${anchor.yRatio * 100}%`,
-              width: `${anchor.widthRatio * 100}%`,
-            }}
-            data-testid="tap-to-sign"
+            className="flex h-8 w-8 items-center justify-center text-lg text-stone-700 hover:bg-stone-100 disabled:text-stone-300"
+            onClick={() => zoomByButton(ZOOM_STEP)}
+            disabled={view.scale >= MAX_SCALE}
+            aria-label={t("zoomIn")}
+            title={t("zoomIn")}
+            data-testid="zoom-in"
           >
-            {t("tapToSign")}
+            +
           </button>
-        )}
+          <button
+            type="button"
+            className="flex h-8 w-8 items-center justify-center border-y border-stone-200 text-xs text-stone-700 hover:bg-stone-100 disabled:text-stone-300"
+            onClick={resetZoom}
+            disabled={view.scale === 1 && view.tx === 0 && view.ty === 0}
+            aria-label={t("zoomReset")}
+            title={t("zoomReset")}
+            data-testid="zoom-reset"
+          >
+            {Math.round(view.scale * 100)}%
+          </button>
+          <button
+            type="button"
+            className="flex h-8 w-8 items-center justify-center text-lg text-stone-700 hover:bg-stone-100 disabled:text-stone-300"
+            onClick={() => zoomByButton(1 / ZOOM_STEP)}
+            disabled={view.scale <= MIN_SCALE}
+            aria-label={t("zoomOut")}
+            title={t("zoomOut")}
+            data-testid="zoom-out"
+          >
+            −
+          </button>
+        </div>
       </div>
       <div className="flex items-center justify-between text-xs text-stone-400">
         {placed ? (
