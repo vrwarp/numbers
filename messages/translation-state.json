@@ -1919,8 +1919,14 @@
     "zh-Hant": "machine"
   },
   "Esign.tapToSign": {
-    "source": "✍️ Tap to sign",
-    "context": "Pulsing yellow tab ON the document's signature line — tapping it stamps the signature (the legally required act). Keep the ✍️ and keep it short.",
+    "source": "✍️ Hold to sign",
+    "context": "Pulsing yellow tab ON the document's signature line — pressing and HOLDING it stamps the signature (the legally required act). Keep the ✍️ and keep it short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.holdingToSign": {
+    "source": "Keep holding…",
+    "context": "Label shown on the sign tab while the signer is mid-hold and a progress ring is filling. Keep it short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1930,9 +1936,9 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Esign.tapTabHint": {
-    "source": "Tap the yellow tab to sign on the line.",
-    "context": "Hint before stamping: tells the signer to tap the yellow tab.",
+  "Esign.holdTabHint": {
+    "source": "Press and hold the yellow tab to sign on the line.",
+    "context": "Hint before stamping: tells the signer to press and hold the yellow tab.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1944,13 +1950,31 @@
   },
   "Esign.removeSignature": {
     "source": "Remove signature",
-    "context": "Small link that removes the stamped signature (returns to the tap-to-sign state).",
+    "context": "Small link that removes the stamped signature (returns to the hold-to-sign state).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Esign.appearsAfterTap": {
-    "source": "Your signature appears only after you tap.",
-    "context": "Small reassurance below the document before any tap happened.",
+    "source": "Your signature appears after you hold the yellow tab.",
+    "context": "Small reassurance below the document before the signer has held the tab.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.zoomIn": {
+    "source": "Zoom in",
+    "context": "aria-label/tooltip for the zoom-in (+) button on the document preview.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.zoomOut": {
+    "source": "Zoom out",
+    "context": "aria-label/tooltip for the zoom-out (−) button on the document preview.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.zoomReset": {
+    "source": "Reset zoom",
+    "context": "aria-label/tooltip for the button (shows the current zoom %) that resets the document preview to 100%.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
