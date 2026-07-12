@@ -69,10 +69,14 @@ function RoleButtons({
       setBusy(false);
     }
   }
+  // Compact pill actions, but each sized to a comfortable mobile touch target
+  // (≥44px tall) and spaced so adjacent buttons aren't easy to mis-tap.
+  const pill =
+    "inline-flex min-h-[44px] items-center justify-center rounded-lg border px-3 text-xs font-medium transition-colors disabled:opacity-50";
   return (
-    <span className="flex gap-1">
+    <div className="flex flex-wrap gap-2 sm:justify-end">
       <button
-        className="rounded-lg border border-red-200 px-2 py-0.5 text-xs text-red-700 hover:bg-red-50"
+        className={`${pill} border-red-200 text-red-700 hover:bg-red-50`}
         disabled={busy}
         onClick={revokeKey}
         data-testid={`revoke-key-${member.userId}`}
@@ -81,7 +85,7 @@ function RoleButtons({
       </button>
       {member.role === "approver" || member.role === "treasurer" ? (
         <button
-          className="rounded-lg border border-stone-200 px-2 py-0.5 text-xs text-stone-500 hover:bg-stone-50"
+          className={`${pill} border-stone-200 text-stone-500 hover:bg-stone-50`}
           disabled={busy}
           onClick={() => set(member.role as "approver" | "treasurer", true)}
         >
@@ -92,7 +96,7 @@ function RoleButtons({
       ) : (
         <>
           <button
-            className="rounded-lg border border-indigo-200 px-2 py-0.5 text-xs text-indigo-700 hover:bg-indigo-50"
+            className={`${pill} border-indigo-200 text-indigo-700 hover:bg-indigo-50`}
             disabled={busy}
             onClick={() => set("approver", false)}
             data-testid={`grant-approver-${member.userId}`}
@@ -100,7 +104,7 @@ function RoleButtons({
             {t("grantApprover")}
           </button>
           <button
-            className="rounded-lg border border-indigo-200 px-2 py-0.5 text-xs text-indigo-700 hover:bg-indigo-50"
+            className={`${pill} border-indigo-200 text-indigo-700 hover:bg-indigo-50`}
             disabled={busy}
             onClick={() => set("treasurer", false)}
             data-testid={`grant-treasurer-${member.userId}`}
@@ -109,7 +113,7 @@ function RoleButtons({
           </button>
         </>
       )}
-    </span>
+    </div>
   );
 }
 
@@ -370,25 +374,29 @@ function VouchInner() {
       {members.length > 0 && (
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-stone-500">{t("attestedMembers")}</h2>
-          <ul className="mt-2 space-y-2 text-sm">
+          <ul className="mt-3 space-y-2 text-sm">
             {members.map((m) => (
-              <li key={m.userId} className="flex flex-wrap items-center justify-between gap-2">
-                <span>
-                  {m.name}
-                  {m.role !== "member" && (
-                    <span className="ml-2 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
-                      {roleName(m.role) ? tRole(roleName(m.role)!) : m.role}
-                    </span>
-                  )}
-                </span>
-                <span className="flex items-center gap-2">
-                  {/* Role grants are root-signed roster events (§4.3) — only
-                      the root's browser can produce them, and only once its
-                      signing session is connected (they sign a roster event). */}
-                  {env.me.role === "admin" && phase === "ready" && m.userId !== env.me.userId && (
-                    <RoleButtons env={env} member={m} onDone={refreshMembers} />
-                  )}
-                </span>
+              <li
+                key={m.userId}
+                className="flex flex-col gap-3 rounded-xl border border-stone-100 bg-stone-50/60 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{m.name}</span>
+                    {m.role !== "member" && (
+                      <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                        {roleName(m.role) ? tRole(roleName(m.role)!) : m.role}
+                      </span>
+                    )}
+                  </div>
+                  <div className="truncate text-xs text-stone-400">{m.email}</div>
+                </div>
+                {/* Role grants are root-signed roster events (§4.3) — only the
+                    root's browser can produce them, and only once its signing
+                    session is connected (they sign a roster event). */}
+                {env.me.role === "admin" && phase === "ready" && m.userId !== env.me.userId && (
+                  <RoleButtons env={env} member={m} onDone={refreshMembers} />
+                )}
               </li>
             ))}
           </ul>
