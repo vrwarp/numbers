@@ -2,16 +2,16 @@ import { describe, expect, it } from "vitest";
 import fs from "fs";
 import path from "path";
 import { LOCALES } from "@/lib/locales";
-import { flatten, messageArguments, sourceHash, type Messages } from "@/lib/translation-state";
+import { flatten, messageArguments, type Messages, type TranslationState } from "@/lib/translation-state";
 
 /**
  * Catalog integrity. en.json is the source of truth; every other catalog must
  * mirror its key set and each message's ICU arguments / rich-text tags — a
  * missing or drifted translation is a red build, not a silent English leak
  * (or worse, a stale Chinese one). translation-state.json (written by
- * `npm run translate`) additionally pins the hash of the English source each
+ * `npm run translate`) additionally records the verbatim English source each
  * translation was made from, so rewording English without re-running the
- * translation script fails here.
+ * translation script fails here — with both versions in the failure output.
  */
 
 const MESSAGES_DIR = path.join(process.cwd(), "messages");
@@ -68,15 +68,15 @@ describe("message catalogs", () => {
     });
   }
 
-  it("translations are not stale (translation-state sourceHash matches en)", () => {
+  it("translations are not stale (translation-state source matches en)", () => {
     if (!fs.existsSync(STATE_FILE)) return; // arrives with the Chinese catalogs
-    const state: Record<string, { sourceHash: string }> = JSON.parse(
-      fs.readFileSync(STATE_FILE, "utf8")
-    );
+    const state: TranslationState = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
     const stale: string[] = [];
     for (const [key, entry] of Object.entries(state)) {
       const enValue = enFlat.get(key);
-      if (enValue !== undefined && entry.sourceHash !== sourceHash(enValue)) stale.push(key);
+      if (enValue !== undefined && entry.source !== enValue) {
+        stale.push(`${key}\n  translated from: ${JSON.stringify(entry.source)}\n  en.json now:     ${JSON.stringify(enValue)}`);
+      }
     }
     expect(stale, "English changed since translation — run `npm run translate`").toEqual([]);
     const untracked = [...enFlat.keys()].filter((k) => !(k in state));

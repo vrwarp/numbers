@@ -51,7 +51,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   That includes placeholders, tooltips, `title`/`aria-label`s, `confirm()` prompts, and
   client-side error fallbacks. Keys are typed against `messages/en.json` (global.d.ts) —
   a typo'd key fails `npm run build`; a missing/drifted translation fails `npm test`
-  (tests/unit/messages.test.ts: key parity, ICU-argument parity, sourceHash staleness).
+  (tests/unit/messages.test.ts: key parity, ICU-argument parity, source staleness).
 - Authoring rules: whole sentences per key (never assemble from fragments — inline
   links/bold via `t.rich` with `<link>`/`<strong>` chunks); ICU plurals instead of
   `${n > 1 ? "s" : ""}`; named arguments; each ternary branch is its own key; enum → label

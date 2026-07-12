@@ -1,1623 +1,1623 @@
 {
   "Meta.title": {
-    "sourceHash": "cb90091c",
+    "source": "Numbers — CFCC Reimbursements",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Meta.description": {
-    "sourceHash": "046c7b9f",
+    "source": "Snap church receipts now, submit reimbursement claims later.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Meta.appName": {
-    "sourceHash": "b0640f0f",
+    "source": "Numbers",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.status.draft": {
-    "sourceHash": "ebf12ef4",
+    "source": "Draft",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.status.generated": {
-    "sourceHash": "827ec8d9",
+    "source": "Generated",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.status.needsReview": {
-    "sourceHash": "07297fa9",
+    "source": "Needs review",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.status.processed": {
-    "sourceHash": "58190ffa",
+    "source": "processed",
+    "context": "Lowercase on purpose — appended mid-sentence to the receipt card's date · size line.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Lowercase on purpose — appended mid-sentence to the receipt card's date · size line."
+    "zh-Hant": "machine"
   },
   "Common.cancel": {
-    "sourceHash": "19766ed6",
+    "source": "Cancel",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.save": {
-    "sourceHash": "1509f561",
+    "source": "Save",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.saving": {
-    "sourceHash": "23e39291",
+    "source": "Saving…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.loading": {
-    "sourceHash": "ba3bbbe1",
+    "source": "Loading…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.language": {
-    "sourceHash": "a4fe6526",
+    "source": "Language",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "NavBar.shoebox": {
-    "sourceHash": "0dc34753",
+    "source": "Shoebox",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "NavBar.claims": {
-    "sourceHash": "1c85c122",
+    "source": "Claims",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "NavBar.profile": {
-    "sourceHash": "d696a35b",
+    "source": "Profile",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "NavBar.signOut": {
-    "sourceHash": "48f0d3d3",
+    "source": "Sign out",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "NavBar.signedInAs": {
-    "sourceHash": "599a82d9",
+    "source": "Signed in as {name}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Home.profileNudge": {
-    "sourceHash": "d030a0ba",
+    "source": "Your <link>profile</link> is missing a name or mailing address — both get printed on the reimbursement form.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.tagline": {
-    "sourceHash": "116c1ad4",
+    "source": "CFCC expense reimbursements — snap receipts now, file the claim later.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.failed": {
-    "sourceHash": "5ee01ca9",
+    "source": "Sign-in failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.popupBlocked": {
-    "sourceHash": "d2c438fa",
+    "source": "Your browser blocked the sign-in popup. If you opened this from inside another app, tap the menu and choose “Open in Safari” (or Chrome), then try again.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.embeddedTitle": {
-    "sourceHash": "c1091a57",
+    "source": "You're in an in-app browser",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.embeddedBody": {
-    "sourceHash": "4f3556fe",
+    "source": "Google sign-in may not work in in-app browsers. If it doesn't, open this page in Safari or Chrome — tap the menu (⋯ or the share icon) and choose “Open in Safari”.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.googleSignIn": {
-    "sourceHash": "1dbcee68",
+    "source": "Sign in with Google",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.googleTryAnyway": {
-    "sourceHash": "7ce1e01f",
+    "source": "Try Google sign-in anyway",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.notConfigured": {
-    "sourceHash": "22a11ea9",
+    "source": "No sign-in method is configured. Set <code>FIREBASE_API_KEY</code>, <code>FIREBASE_AUTH_DOMAIN</code> and <code>FIREBASE_PROJECT_ID</code> in the environment.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.devLogin": {
-    "sourceHash": "d93da15d",
+    "source": "Dev login (test mode)",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.devEmailPlaceholder": {
-    "sourceHash": "53e6cdc3",
+    "source": "you@example.com",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.devNamePlaceholder": {
-    "sourceHash": "2c6b2e25",
+    "source": "Your name",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.devSignIn": {
-    "sourceHash": "d7e71266",
+    "source": "Sign in (dev)",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Claims.title": {
-    "sourceHash": "1c85c122",
+    "source": "Claims",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Claims.subtitle": {
-    "sourceHash": "c2b4613a",
+    "source": "Draft claims need review; generated claims are ready to print and sign.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Claims.emptyTitle": {
-    "sourceHash": "49b92b70",
+    "source": "No claims yet",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Claims.emptyBody": {
-    "sourceHash": "e0cde773",
+    "source": "Select receipts in your <link>Shoebox</link> and hit “New Claim”.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Claims.counts": {
-    "sourceHash": "03d503f1",
+    "source": "{items} items · {receipts, plural, one {# receipt} other {# receipts}}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.title": {
-    "sourceHash": "d696a35b",
+    "source": "Profile",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.subtitle": {
-    "sourceHash": "0f64c9a3",
+    "source": "Printed onto the “Name” and “Address” lines of the reimbursement form.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.email": {
-    "sourceHash": "969ccbd3",
+    "source": "Email",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.fullName": {
-    "sourceHash": "f13a64ba",
+    "source": "Full name",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.fullNamePlaceholder": {
-    "sourceHash": "5a27688b",
+    "source": "e.g. Grace Chen",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.mailingAddress": {
-    "sourceHash": "88a4628a",
+    "source": "Mailing address",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.mailingAddressPlaceholder": {
-    "sourceHash": "59e0bb8d",
+    "source": "123 Main St, San Jose, CA 95110",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.saved": {
-    "sourceHash": "9ec0cf9f",
+    "source": "Saved ✓",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.loadFailed": {
-    "sourceHash": "92907d8c",
+    "source": "Failed to load profile",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.saveFailed": {
-    "sourceHash": "53ad6f99",
+    "source": "Save failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.pdfChip": {
-    "sourceHash": "1d393b00",
+    "source": "PDF",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.pdfThumbAlt": {
-    "sourceHash": "1011a2fd",
+    "source": "PDF receipt",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.deleteReceipt": {
-    "sourceHash": "3cf8146e",
+    "source": "Delete {name}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.viewLarger": {
-    "sourceHash": "414b07b2",
+    "source": "View {name} larger",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.viewLargerTitle": {
-    "sourceHash": "f7ab0572",
+    "source": "View larger",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.notePlaceholder": {
-    "sourceHash": "b57e0a47",
+    "source": "Add description…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.noteAria": {
-    "sourceHash": "e60c778a",
+    "source": "Description for {name}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.meta": {
-    "sourceHash": "b0061e7b",
+    "source": "{date} · {kb} KB",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.processedSuffix": {
-    "sourceHash": "364ebf05",
+    "source": " · processed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.claimChip": {
-    "sourceHash": "4ca41db0",
+    "source": "Claim",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "PdfPreview.chip": {
-    "sourceHash": "1011a2fd",
+    "source": "PDF receipt",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "PdfPreview.rendering": {
-    "sourceHash": "62c00342",
+    "source": "Rendering preview…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "PdfPreview.pageAlt": {
-    "sourceHash": "2027f61a",
+    "source": "PDF receipt page {page}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "PdfPreview.omitted": {
-    "sourceHash": "664020a2",
+    "source": "+{omitted, plural, one {# more page not shown — open the PDF receipt to view it.} other {# more pages not shown — open the PDF receipt to view them.}}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "PdfPreview.open": {
-    "sourceHash": "1d5847d1",
+    "source": "Open PDF receipt ↗",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.title": {
-    "sourceHash": "0dc34753",
+    "source": "Shoebox",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.intro": {
-    "sourceHash": "f357fe4a",
+    "source": "Drop receipts here as you go. Select some when you're ready to file a claim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.upload": {
-    "sourceHash": "7e2f3dab",
+    "source": "📷 Upload Receipt",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.uploading": {
-    "sourceHash": "5ce44dd7",
+    "source": "Uploading…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.uploadFailed": {
-    "sourceHash": "6efc5d27",
+    "source": "Upload failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.dropTitle": {
-    "sourceHash": "f7aa3b14",
+    "source": "Drop receipts to upload",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.dropBody": {
-    "sourceHash": "898058c7",
+    "source": "Images or PDFs",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.noteSaveFailed": {
-    "sourceHash": "02a4ab70",
+    "source": "Could not save the description",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.deleteConfirm": {
-    "sourceHash": "d387f6de",
+    "source": "Delete this receipt?",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.deleteFailed": {
-    "sourceHash": "8727e2ba",
+    "source": "Delete failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.selectedCount": {
-    "sourceHash": "a5dfb011",
+    "source": "{count, plural, one {# receipt} other {# receipts}} selected",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.selectPrompt": {
-    "sourceHash": "f0a7d9b7",
+    "source": "Select receipts below to start a claim",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.newClaim": {
-    "sourceHash": "6d320711",
+    "source": "✨ New Claim",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.waitingRateLimit": {
-    "sourceHash": "2a78ee5d",
+    "source": "Waiting on rate limit…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.readingShort": {
-    "sourceHash": "88e7c770",
+    "source": "Reading receipts…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.selectHint": {
-    "sourceHash": "2d3d4f36",
+    "source": "Select a receipt first ↑",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.readingInitial": {
-    "sourceHash": "947f665b",
+    "source": "Reading receipts with AI…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.readingCount": {
-    "sourceHash": "62f56e05",
+    "source": "Reading {total, plural, one {# receipt} other {# receipts}} with AI…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.readProgress": {
-    "sourceHash": "69d8d214",
+    "source": "Read {completed} of {total} receipts…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.manualInstead": {
-    "sourceHash": "cfb5c92d",
+    "source": "Enter manually instead",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.manualSetup": {
-    "sourceHash": "6e84eeda",
+    "source": "Setting up manual entry…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.manualStartFailed": {
-    "sourceHash": "61d3aad5",
+    "source": "Could not start manual entry",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.generateFailed": {
-    "sourceHash": "7fb39103",
+    "source": "Claim generation failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.generateEnded": {
-    "sourceHash": "c26f520a",
+    "source": "Claim generation ended unexpectedly",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.emptyTitle": {
-    "sourceHash": "2b593409",
+    "source": "Your shoebox is empty",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.emptyBody": {
-    "sourceHash": "3dc9fd93",
+    "source": "Upload a photo or PDF of a receipt to get started.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.step1": {
-    "sourceHash": "f63c6ad2",
+    "source": "<step>1. Snap.</step> Photograph receipts into your Shoebox the moment you buy.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.step2": {
-    "sourceHash": "dfd587c9",
+    "source": "<step>2. Batch.</step> Later, when you're ready, select receipts and hit New Claim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.step3": {
-    "sourceHash": "053aa985",
+    "source": "<step>3. Verify.</step> Check every row against the receipt. Fix, split, or exclude items.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.step4": {
-    "sourceHash": "bdd7dd1c",
+    "source": "<step>4. Print.</step> Download the filled CFCC form with receipts attached, sign, and drop it off.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.processedSummary": {
-    "sourceHash": "ac1ce33e",
+    "source": "Processed receipts ({count})",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.processedNote": {
-    "sourceHash": "116ed258",
+    "source": "Already on a generated claim — still selectable if part of the purchase belongs on another claim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.prepareTitle": {
-    "sourceHash": "afc8687e",
+    "source": "Describe this receipt",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.prepareLeft": {
-    "sourceHash": "93d2bb2c",
+    "source": "({count} left)",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.prepareEditTitle": {
-    "sourceHash": "0b3e3698",
+    "source": "Rotate or crop this receipt photo",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.prepareEditButton": {
-    "sourceHash": "c21a7444",
+    "source": "✂ Rotate / crop",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.noteLabel": {
-    "sourceHash": "f6cbe2f0",
+    "source": "Description (optional)",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.notePlaceholder": {
-    "sourceHash": "1643733a",
+    "source": "e.g. VBS craft supplies",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.prepareHintLocal": {
-    "sourceHash": "c776fe3a",
+    "source": "Uploads when you save or skip. You can edit the description on the card later.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.prepareHintUploaded": {
-    "sourceHash": "a14f233f",
+    "source": "You can edit the description on the card later.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.skipAll": {
-    "sourceHash": "5fc42805",
+    "source": "Skip all",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.skip": {
-    "sourceHash": "28d03596",
+    "source": "Skip",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.quotaRingAria": {
-    "sourceHash": "e119166e",
+    "source": "Retrying in about {seconds, plural, one {# second} other {# seconds}}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.ariaTitle": {
-    "sourceHash": "51085e21",
+    "source": "Receipt: {name}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.openNewTab": {
-    "sourceHash": "306ef19c",
+    "source": "Open in a new tab",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.close": {
-    "sourceHash": "7b25a882",
+    "source": "Close viewer",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.closeTitle": {
-    "sourceHash": "961b2a04",
+    "source": "Close (Esc)",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.previewUnavailable": {
-    "sourceHash": "52a2d6df",
+    "source": "Preview unavailable — use ↗ to open the PDF",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.rendering": {
-    "sourceHash": "62c00342",
+    "source": "Rendering preview…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.pageAlt": {
-    "sourceHash": "be3b96a4",
+    "source": "{name} page {page}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.omitted": {
-    "sourceHash": "f10c7407",
+    "source": "+{omitted, plural, one {# more page not shown — use ↗ to open the full PDF.} other {# more pages not shown — use ↗ to open the full PDF.}}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.editAria": {
-    "sourceHash": "7b25b7e4",
+    "source": "Rotate or crop this receipt",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.editTitle": {
-    "sourceHash": "87cdebdb",
+    "source": "Rotate or crop",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.editButton": {
-    "sourceHash": "c21a7444",
+    "source": "✂ Rotate / crop",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.zoomOut": {
-    "sourceHash": "bc7b631a",
+    "source": "Zoom out",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.zoomIn": {
-    "sourceHash": "0e47f09a",
+    "source": "Zoom in",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.resetZoom": {
-    "sourceHash": "91a661b2",
+    "source": "Reset zoom",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.zoomLevel": {
-    "sourceHash": "02a35530",
+    "source": "{percent}%",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.title": {
-    "sourceHash": "5e7fc845",
+    "source": "Enter this receipt's details",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.intro": {
-    "sourceHash": "34d4b7fe",
+    "source": "The AI couldn't read <strong>{name}</strong>. Type in what's printed on it so the row can be verified.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.openPdf": {
-    "sourceHash": "ccfb3a41",
+    "source": "Open PDF receipt",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.merchant": {
-    "sourceHash": "1da9a042",
+    "source": "Merchant",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.merchantPlaceholder": {
-    "sourceHash": "54f27665",
+    "source": "e.g. Costco Wholesale",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.purchaseDate": {
-    "sourceHash": "e4237738",
+    "source": "Purchase date",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.optional": {
-    "sourceHash": "0059798b",
+    "source": "(optional)",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.printedTotal": {
-    "sourceHash": "2134abc8",
+    "source": "Printed total ($)",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.refunded": {
-    "sourceHash": "0f603523",
+    "source": "Refunded ($)",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.amountPlaceholder": {
-    "sourceHash": "561b2814",
+    "source": "0.00",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.summary": {
-    "sourceHash": "d85b9d47",
+    "source": "Item summary",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.summaryPlaceholder": {
-    "sourceHash": "578f780f",
+    "source": "e.g. Paper towels, snack variety pack, folding table",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.rowAmount": {
-    "sourceHash": "1b26362c",
+    "source": "Row amount: <strong>{amount}</strong>",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.totalMinusRefunded": {
-    "sourceHash": "9b3d609d",
+    "source": " (total − refunded)",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.later": {
-    "sourceHash": "203cad4e",
+    "source": "I'll do it later",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.saveDetails": {
-    "sourceHash": "bb76faab",
+    "source": "Save details",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.saveFailed": {
-    "sourceHash": "1bae1c82",
+    "source": "Could not save the details",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.title": {
-    "sourceHash": "127b00b3",
+    "source": "Rotate & crop receipt",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.introRestoring": {
-    "sourceHash": "e9dea65b",
+    "source": "Showing the originally uploaded image. Save to keep it, or Cancel to leave the current one.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.introLocal": {
-    "sourceHash": "7ed7df51",
+    "source": "Straighten the photo and drag the box to trim away the background. The edit happens on this device before anything uploads.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.introStored": {
-    "sourceHash": "f870d071",
+    "source": "Straighten the photo and drag the box to trim away the background. Saving replaces the stored image.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.rotateLeft": {
-    "sourceHash": "54c46b33",
+    "source": "Rotate left",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.rotateRight": {
-    "sourceHash": "9938c21d",
+    "source": "Rotate right",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.reset": {
-    "sourceHash": "daee7606",
+    "source": "Reset",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.resetTitle": {
-    "sourceHash": "fc2806ad",
+    "source": "Reset to the originally uploaded image",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.editedAlt": {
-    "sourceHash": "37e4ef01",
+    "source": "Receipt being edited",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.loadFailed": {
-    "sourceHash": "a9c8aada",
+    "source": "Could not load the receipt image",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.loadingImage": {
-    "sourceHash": "1a0c3289",
+    "source": "Loading image…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.editFailed": {
-    "sourceHash": "3e75f243",
+    "source": "Image edit failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.saveDisabledTitle": {
-    "sourceHash": "73ba9f23",
+    "source": "Rotate or draw a crop first",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.loadFailed": {
-    "sourceHash": "da3631e2",
+    "source": "Failed to load claim",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.backToClaims": {
-    "sourceHash": "1561cfc6",
+    "source": "back to claims",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.loadingClaim": {
-    "sourceHash": "14ac1dc3",
+    "source": "Loading claim…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.updateFailed": {
-    "sourceHash": "e58282fd",
+    "source": "Update failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.mergeFailed": {
-    "sourceHash": "3b6a5653",
+    "source": "Merge failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.title": {
-    "sourceHash": "2215c7d5",
+    "source": "Review claim",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.instruction": {
-    "sourceHash": "a698df35",
+    "source": "Check each amount against what you actually paid, pick a ministry, then check it off.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.receiptHeader": {
-    "sourceHash": "ac0c559d",
+    "source": "Receipt {index}: {label}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.headerNote": {
-    "sourceHash": "249cf606",
+    "source": "· {note}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.removeDisabledTitle": {
-    "sourceHash": "ab97736b",
+    "source": "This is the only receipt — discard the claim instead",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.removeTitle": {
-    "sourceHash": "f06dc74e",
+    "source": "Remove receipt from claim (returns to Shoebox)",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.removeButton": {
-    "sourceHash": "3534eb63",
+    "source": "✕ Remove",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.derivation": {
-    "sourceHash": "0788b30f",
+    "source": "Charged {charged} − refunded {refunded} → suggested {suggested}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.editPhotoTitle": {
-    "sourceHash": "0b3e3698",
+    "source": "Rotate or crop this receipt photo",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.editPhotoButton": {
-    "sourceHash": "c21a7444",
+    "source": "✂ Rotate / crop",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.receiptNote": {
-    "sourceHash": "327a31b4",
+    "source": "Note: <strong>{note}</strong>",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.aiFailed": {
-    "sourceHash": "0ce24225",
+    "source": "⚠ The AI couldn't read this receipt.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.enterDetails": {
-    "sourceHash": "ebaf7334",
+    "source": "Enter details",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.subtotal": {
-    "sourceHash": "8cf83a44",
+    "source": "Subtotal:",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.claimTotal": {
-    "sourceHash": "ce8da665",
+    "source": "Claim total",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.verifiedProgress": {
-    "sourceHash": "535737ce",
+    "source": "{verified} / {total} verified",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.generatedFrozen": {
-    "sourceHash": "5ad92e86",
+    "source": "Generated — rows are frozen.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.addReceipts": {
-    "sourceHash": "18e8a79f",
+    "source": "＋ Add receipts",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.discard": {
-    "sourceHash": "eb1a70e3",
+    "source": "Discard",
+    "context": "Action-bar button that deletes the draft claim; keep it to one or two words.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Action-bar button that deletes the draft claim; keep it to one or two words."
+    "zh-Hant": "machine"
   },
   "Review.revert": {
-    "sourceHash": "8b6d8838",
+    "source": "↩ Revert to draft",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.chooseMinistryFirst": {
-    "sourceHash": "c649077c",
+    "source": "Choose a ministry first",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.buildingPdf": {
-    "sourceHash": "c60fa0e6",
+    "source": "Building PDF…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.generatePdf": {
-    "sourceHash": "a0fcce63",
+    "source": "⬇ Generate PDF",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.downloadAgain": {
-    "sourceHash": "b92fe659",
+    "source": "⬇ Download PDF again",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.revertConfirm": {
-    "sourceHash": "4b15da15",
+    "source": "Revert this claim to draft? Only do this if you have NOT filed the printed form yet. Rows become editable again and the receipts leave “processed”.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.revertFailed": {
-    "sourceHash": "6ee28234",
+    "source": "Revert failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.removeConfirm": {
-    "sourceHash": "07f1a08c",
+    "source": "Remove this receipt from the claim? Its rows are deleted and the receipt returns to your Shoebox.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.removeFailed": {
-    "sourceHash": "7a91db72",
+    "source": "Remove failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.discardConfirm": {
-    "sourceHash": "31ce3b6f",
+    "source": "Discard this draft claim? Receipts return to your Shoebox.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.deleteFailed": {
-    "sourceHash": "8727e2ba",
+    "source": "Delete failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.pdfFailed": {
-    "sourceHash": "9f904800",
+    "source": "PDF generation failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.suggestionFailed": {
-    "sourceHash": "7bd7c09d",
+    "source": "Suggestion failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.fanOutSet": {
-    "sourceHash": "938c3eaf",
+    "source": "Set {label} on {count, plural, one {# row} other {# rows}}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.quotedValue": {
-    "sourceHash": "000f22b6",
+    "source": "“{value}”",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.noMinistry": {
-    "sourceHash": "dc03fe3a",
+    "source": "no ministry",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.undo": {
-    "sourceHash": "a8283ade",
+    "source": "Undo",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.dismissAria": {
-    "sourceHash": "48845bff",
+    "source": "Dismiss",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitModeTitle": {
-    "sourceHash": "4c84a6cb",
+    "source": "Split across ministries?",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitModeBody": {
-    "sourceHash": "f934fcb1",
+    "source": "Splitting divides one receipt between different ministries, but this claim is set to use <strong>one ministry</strong> for every row.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitModeBody2": {
-    "sourceHash": "0f0c92ce",
+    "source": "Switch the claim to multiple ministries to split this row.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.switchAndSplit": {
-    "sourceHash": "f65d9ebe",
+    "source": "Switch & split",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.modeSwitchTitle": {
-    "sourceHash": "59a1083e",
+    "source": "Use one ministry for the whole claim?",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.modeSwitchBody": {
-    "sourceHash": "7b88b7bb",
+    "source": "Every row will be set to <strong>{value}</strong> (what most rows already use{distinct, plural, =1 {} other {, of the # different ministries currently picked}}).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.modeSwitchBodyNoMinistry": {
-    "sourceHash": "ac8273ed",
+    "source": "Rows keep no ministry until you pick one at the top.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.modeSwitchUnverify": {
-    "sourceHash": "d3472d50",
+    "source": "{count, plural, one {# verified row} other {# verified rows}} will need re-verifying.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.switchAndApply": {
-    "sourceHash": "25c99424",
+    "source": "Switch & apply",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.panelTitleSingle": {
-    "sourceHash": "d6ac57de",
+    "source": "Ministry & event for this claim",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.panelTitle": {
-    "sourceHash": "fd76afd6",
+    "source": "Ministry & event",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.modeOne": {
-    "sourceHash": "aba3c122",
+    "source": "One ministry",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.modeMultiple": {
-    "sourceHash": "14070fdb",
+    "source": "Multiple",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.descPlaceholder": {
-    "sourceHash": "0331bac9",
+    "source": "What’s this claim for? e.g. “snacks for the youth retreat”",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.descAria": {
-    "sourceHash": "dda0585a",
+    "source": "Claim description",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.suggestTitle": {
-    "sourceHash": "3499dddb",
+    "source": "Let the AI suggest a ministry & event from your description — you still apply it",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.thinking": {
-    "sourceHash": "a02f1cea",
+    "source": "Thinking…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.suggest": {
-    "sourceHash": "b795107e",
+    "source": "✨ Suggest",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.suggestionApplied": {
-    "sourceHash": "748ad720",
+    "source": "Applied: <strong>{value}</strong>",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.suggestionSuggested": {
-    "sourceHash": "7c1ba208",
+    "source": "Suggested: <strong>{value}</strong>",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.applyAllRows": {
-    "sourceHash": "3652bdf8",
+    "source": "Apply to all rows",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.apply": {
-    "sourceHash": "31e392d1",
+    "source": "Apply",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.dismiss": {
-    "sourceHash": "48845bff",
+    "source": "Dismiss",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.noConfidentMatch": {
-    "sourceHash": "3053adda",
+    "source": "No confident match — pick a ministry below.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.pickMinistry": {
-    "sourceHash": "c47d7fab",
+    "source": "— pick ministry —",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.otherOption": {
-    "sourceHash": "1e375292",
+    "source": "Other…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.customMinistryPlaceholder": {
-    "sourceHash": "c2ac508d",
+    "source": "Custom ministry",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.claimMinistryAria": {
-    "sourceHash": "31f61c96",
+    "source": "Claim ministry",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.customClaimMinistryAria": {
-    "sourceHash": "2a942749",
+    "source": "Custom claim ministry",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.eventPlaceholder": {
-    "sourceHash": "04f39e5a",
+    "source": "Event (optional)",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.claimEventAria": {
-    "sourceHash": "4f678a55",
+    "source": "Claim event",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.appliedEveryRow": {
-    "sourceHash": "1109d0dd",
+    "source": "Applied to every row — you still confirm each amount below.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.multiHint": {
-    "sourceHash": "fe4e2838",
+    "source": "Each row picks its own ministry below. Switch to “One ministry” to set them all at once.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.rowDescPlaceholder": {
-    "sourceHash": "88f637be",
+    "source": "Describe what was purchased",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.rowDescAria": {
-    "sourceHash": "526e0087",
+    "source": "Description",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.badgeTitle": {
-    "sourceHash": "f84a865d",
+    "source": "Ministry applies claim-wide — set it at the top",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.ministrySetAbove": {
-    "sourceHash": "682e29bd",
+    "source": "Ministry set above ↑",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.ministryAria": {
-    "sourceHash": "32fe91f7",
+    "source": "Ministry",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.customMinistryAria": {
-    "sourceHash": "c2ac508d",
+    "source": "Custom ministry",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.eventAria": {
-    "sourceHash": "4e1f49a9",
+    "source": "Event",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.amountAria": {
-    "sourceHash": "49e96d7c",
+    "source": "Amount",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.refundBadge": {
-    "sourceHash": "731464fb",
+    "source": "REFUND",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitRowTitle": {
-    "sourceHash": "85d13a62",
+    "source": "Split into two rows",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitButton": {
-    "sourceHash": "84b656ce",
+    "source": "⑂ Split",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.mergeBlockedTitle": {
-    "sourceHash": "b0b70ba6",
+    "source": "Restore the excluded row before merging",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.mergeTitle": {
-    "sourceHash": "8790d3f9",
+    "source": "Merge back into the row above (undo split)",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.mergeButton": {
-    "sourceHash": "0e0e636a",
+    "source": "⤴ Merge up",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.restoreTitle": {
-    "sourceHash": "49abac37",
+    "source": "Restore item",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.excludeTitle": {
-    "sourceHash": "5d982de2",
+    "source": "Exclude item (personal / not reimbursable)",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.restoreButton": {
-    "sourceHash": "7cc09637",
+    "source": "↩ Restore",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.excludeButton": {
-    "sourceHash": "70a37ac2",
+    "source": "🗑 Exclude",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.nudgeVerify": {
-    "sourceHash": "cdf18a1b",
+    "source": "Click to verify →",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.nudgeSetAbove": {
-    "sourceHash": "7f545088",
+    "source": "Set the ministry at the top, then verify →",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.nudgePick": {
-    "sourceHash": "47f72921",
+    "source": "Pick a ministry, then verify →",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.verifyTitleVerified": {
-    "sourceHash": "a65a9b2f",
+    "source": "Verified! Click to undo verification.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.verifyTitle": {
-    "sourceHash": "cd93a3b8",
+    "source": "Click to certify that description, ministry, and amount are correct.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.looksCorrect": {
-    "sourceHash": "e6b3873e",
+    "source": "Looks correct",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitDialogTitle": {
-    "sourceHash": "ffc225b0",
+    "source": "Split line item",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitTotal": {
-    "sourceHash": "37159fc2",
+    "source": "Total: {amount}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.firstPart": {
-    "sourceHash": "0cfb4d63",
+    "source": "First part ($)",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.secondPart": {
-    "sourceHash": "1e9acf2f",
+    "source": "Second part: <strong>{amount}</strong>",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitFailed": {
-    "sourceHash": "931d8a52",
+    "source": "Split failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitConfirm": {
-    "sourceHash": "32afaa78",
+    "source": "Split",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.notSignedIn": {
-    "sourceHash": "491fc91c",
+    "source": "Not signed in",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.signInNotConfigured": {
-    "sourceHash": "21704b3a",
+    "source": "Firebase sign-in is not configured",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.idTokenRequired": {
-    "sourceHash": "6b5603ee",
+    "source": "idToken required",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.invalidIdToken": {
-    "sourceHash": "83d20bb7",
+    "source": "Invalid Firebase ID token",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.verifiedEmailRequired": {
-    "sourceHash": "eaf32c20",
+    "source": "A verified email address is required",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.emailRequired": {
-    "sourceHash": "aff08329",
+    "source": "email required",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.notFound": {
-    "sourceHash": "e3ebaa16",
+    "source": "Not found",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.receiptNotFound": {
-    "sourceHash": "9cc969fa",
+    "source": "Receipt not found",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.invalidReceiptUpdate": {
-    "sourceHash": "2255d4de",
+    "source": "Invalid receipt update",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.receiptOnClaim": {
-    "sourceHash": "94c6df6a",
+    "source": "Receipt is part of a claim and cannot be deleted",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.noFilesUploaded": {
-    "sourceHash": "e53623e0",
+    "source": "No files uploaded",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.unsupportedFileType": {
-    "sourceHash": "1e9e765d",
+    "source": "Unsupported file type: {type}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.emptyFile": {
-    "sourceHash": "497fc7bb",
+    "source": "Empty file: {name}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.previewPdfOnly": {
-    "sourceHash": "2203948a",
+    "source": "Preview is only available for PDF receipts",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.invalidPreviewPage": {
-    "sourceHash": "727c935c",
+    "source": "Invalid preview page",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.invalidImageEdit": {
-    "sourceHash": "3166683f",
+    "source": "Invalid image edit",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.nothingToChange": {
-    "sourceHash": "78aa4421",
+    "source": "Nothing to change",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.imageEditImagesOnly": {
-    "sourceHash": "1bbe2285",
+    "source": "Only image receipts can be rotated or cropped",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.receiptFrozenByClaim": {
-    "sourceHash": "e15d57c9",
+    "source": "This receipt is on a generated claim — revert that claim before editing the image",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.nothingToRestore": {
-    "sourceHash": "480f2245",
+    "source": "This receipt has no earlier version to restore",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.cropTooSmall": {
-    "sourceHash": "0b64cd2c",
+    "source": "Crop region is too small to stay legible",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.lineItemNotFound": {
-    "sourceHash": "05de1cdd",
+    "source": "Line item not found",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.claimFrozen": {
-    "sourceHash": "1e782b41",
+    "source": "Claim already generated; line items are frozen",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.invalidLineItemUpdate": {
-    "sourceHash": "f49bdd04",
+    "source": "Invalid line item update",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.ministryRequiredToVerify": {
-    "sourceHash": "2efdb40e",
+    "source": "Choose a ministry before verifying this row",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.invalidSplitRequest": {
-    "sourceHash": "f3313ae9",
+    "source": "Invalid split request",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.splitAmountsInvalid": {
-    "sourceHash": "558f416a",
+    "source": "Split amounts must be non-zero and sum to the original amount",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.nothingToMergeInto": {
-    "sourceHash": "e2e3a651",
+    "source": "No row above from the same receipt to merge into",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.restoreBeforeMerge": {
-    "sourceHash": "b0b70ba6",
+    "source": "Restore the excluded row before merging",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.claimNotFound": {
-    "sourceHash": "32ef08be",
+    "source": "Claim not found",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.invalidClaimUpdate": {
-    "sourceHash": "9bf1f1c1",
+    "source": "Invalid claim update",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.claimSettingsFrozen": {
-    "sourceHash": "c9c429a9",
+    "source": "Claim already generated; review settings are frozen",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.onlyDraftDeletable": {
-    "sourceHash": "1893670a",
+    "source": "Only draft claims can be deleted",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.receiptIdsRequired": {
-    "sourceHash": "e5e86e79",
+    "source": "receiptIds (non-empty array) required",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.receiptsNotFound": {
-    "sourceHash": "7af26c6c",
+    "source": "One or more receipts were not found",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.claimReceiptsFrozen": {
-    "sourceHash": "b18b6fa1",
+    "source": "Claim already generated; receipts are frozen",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.receiptsAlreadyOnClaim": {
-    "sourceHash": "e21ac06a",
+    "source": "One or more receipts are already on this claim",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.claimEmpty": {
-    "sourceHash": "0343a5a3",
+    "source": "Claim has no line items to reimburse",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.rowsUnverified": {
-    "sourceHash": "2c8995ee",
+    "source": "{count} row(s) still need verification before the PDF can be generated",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.rowsMissingMinistry": {
-    "sourceHash": "3c873dbe",
+    "source": "{count} row(s) still need a ministry before the PDF can be generated",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.invalidManualEntry": {
-    "sourceHash": "a80b1a86",
+    "source": "Invalid manual-entry fields",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.receiptNotOnClaim": {
-    "sourceHash": "dc6f2fe3",
+    "source": "Receipt not found in this claim",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.rowAlreadyEdited": {
-    "sourceHash": "a612973f",
+    "source": "This receipt's row has already been edited — adjust it directly",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.lastReceiptOnClaim": {
-    "sourceHash": "76cf50f0",
+    "source": "This is the only receipt in the claim — discard the claim instead",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.onlyGeneratedRevertible": {
-    "sourceHash": "498b0efd",
+    "source": "Only generated claims can be reverted to draft",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.descriptionRequired": {
-    "sourceHash": "d822959e",
+    "source": "Describe the claim in a sentence first",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.aiRateLimited": {
-    "sourceHash": "0a21c2bf",
+    "source": "The AI provider is rate-limited right now — try again in a minute or pick a ministry manually",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.aiNoSuggestion": {
-    "sourceHash": "5797c386",
+    "source": "The AI couldn't produce a suggestion — pick a ministry manually",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.aiQuotaExhausted": {
-    "sourceHash": "49ed4be9",
+    "source": "AI provider rate limit / quota exhausted (target {rpm} requests/minute). The server waited and retried but the quota hasn't cleared — please wait a minute and try again. Affected: {names}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.userNotFound": {
-    "sourceHash": "4a1793e9",
+    "source": "User not found",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.invalidProfileUpdate": {
-    "sourceHash": "6900330e",
+    "source": "Invalid profile update",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.extractionLogNotFound": {
-    "sourceHash": "86a099e2",
+    "source": "Extraction log not found",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.quotaWait": {
-    "sourceHash": "9db3efed",
+    "source": "Rate limit reached — waiting {seconds}s before retrying ({attempt}/{maxRetries})…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.title": {
-    "sourceHash": "528b98d9",
+    "source": "Add receipts to this claim",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.intro": {
-    "sourceHash": "7584d93c",
+    "source": "Pick from your Shoebox or upload new ones — each is read with AI and gets its own row to verify.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.upload": {
-    "sourceHash": "7e2f3dab",
+    "source": "📷 Upload Receipt",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.uploading": {
-    "sourceHash": "5ce44dd7",
+    "source": "Uploading…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.emptyTitle": {
-    "sourceHash": "b07bac9b",
+    "source": "No other receipts in your Shoebox",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.emptyBody": {
-    "sourceHash": "f3ee41e9",
+    "source": "Upload a photo or PDF of a receipt to add it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.manualInstead": {
-    "sourceHash": "cfb5c92d",
+    "source": "Enter manually instead",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.addingManual": {
-    "sourceHash": "3410eb5d",
+    "source": "Adding for manual entry…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.readingInitial": {
-    "sourceHash": "947f665b",
+    "source": "Reading receipts with AI…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.readingCount": {
-    "sourceHash": "62f56e05",
+    "source": "Reading {total, plural, one {# receipt} other {# receipts}} with AI…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.readProgress": {
-    "sourceHash": "69d8d214",
+    "source": "Read {completed} of {total} receipts…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.loadFailed": {
-    "sourceHash": "dd8eceb8",
+    "source": "Failed to load receipts",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.uploadFailed": {
-    "sourceHash": "6efc5d27",
+    "source": "Upload failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.addFailed": {
-    "sourceHash": "23189375",
+    "source": "Adding receipts failed",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.endedUnexpectedly": {
-    "sourceHash": "776f7048",
+    "source": "Adding receipts ended unexpectedly",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.confirmReading": {
-    "sourceHash": "88e7c770",
+    "source": "Reading receipts…",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.confirmCount": {
-    "sourceHash": "b4809077",
+    "source": "✨ Add {count, plural, one {# receipt} other {# receipts}}",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.confirm": {
-    "sourceHash": "b346af24",
+    "source": "✨ Add receipts",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   }

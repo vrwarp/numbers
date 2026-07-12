@@ -7,11 +7,12 @@
  *   --todo         no AI: fill missing keys with the English text (renders as
  *                  a fallback, tracked as status "todo")
  *   --stale        also re-draft keys whose English source changed since the
- *                  last run (detected via sourceHash in translation-state.json)
+ *                  last run (entry.source in translation-state.json no longer
+ *                  matches en.json)
  *   --all          re-draft every machine-status key (after a glossary change)
  *   --sync-state   no AI: reconcile translation-state.json with the catalogs
  *                  (adopt hand-written translations as "machine", track gaps
- *                  as "todo", refresh hashes, prune orphans)
+ *                  as "todo", refresh sources, prune orphans)
  *   --force        allow re-drafting keys a human already marked "reviewed"
  *                  (they are otherwise reported and skipped)
  *
@@ -25,9 +26,9 @@ import path from "node:path";
 import {
   flatten,
   messageArguments,
-  sourceHash,
   unflatten,
   type Messages,
+  type StateEntry,
   type TranslationState,
   type TranslationStatus,
 } from "../src/lib/translation-state";
@@ -83,8 +84,18 @@ for (const flat of catalogs.values()) {
   }
 }
 
-function entry(key: string) {
-  return (state[key] ??= { sourceHash: sourceHash(en.get(key)!) });
+/**
+ * Canonical entry shape (field order is the readable order: English source,
+ * translator hint, per-locale statuses). Rebuilding on every write also
+ * drops legacy fields from older state formats.
+ */
+function canonical(key: string, prev: StateEntry | undefined): StateEntry {
+  const e: StateEntry = { source: en.get(key)! };
+  if (prev?.context) e.context = prev.context;
+  for (const locale of TARGET_LOCALES) {
+    if (prev?.[locale]) e[locale] = prev[locale];
+  }
+  return e;
 }
 
 async function draft(locale: TargetLocale, keys: string[]): Promise<Map<string, string>> {
@@ -154,8 +165,7 @@ async function main() {
 
     if (MODE.syncState) {
       for (const key of enOrder) {
-        const e = entry(key);
-        e.sourceHash = sourceHash(en.get(key)!);
+        const e = (state[key] = canonical(key, state[key]));
         e[locale] ??= flat.has(key) ? "machine" : "todo";
         if (!flat.has(key)) {
           flat.set(key, en.get(key)!); // visible English fallback, tracked as todo
@@ -169,7 +179,7 @@ async function main() {
     for (const key of enOrder) {
       const status: TranslationStatus | undefined = state[key]?.[locale];
       const missing = !flat.has(key) || status === "todo";
-      const stale = state[key] !== undefined && state[key].sourceHash !== sourceHash(en.get(key)!);
+      const stale = state[key] !== undefined && state[key].source !== en.get(key);
       const machineRedraft = MODE.all && status === "machine";
       if (!missing && !((MODE.stale || MODE.all) && stale) && !machineRedraft) continue;
       if (status === "reviewed" && !MODE.force) {
@@ -187,19 +197,18 @@ async function main() {
     const drafted = await draft(locale, work);
     for (const [key, value] of drafted) {
       flat.set(key, value);
-      const e = entry(key);
+      const e = (state[key] = canonical(key, state[key]));
       e[locale] = MODE.todo || value === en.get(key) ? "todo" : "machine";
     }
   }
 
-  // Hashes always reflect the en source the catalogs were last synced against.
-  for (const key of enOrder) entry(key).sourceHash = sourceHash(en.get(key)!);
-
   for (const locale of TARGET_LOCALES) {
     writeJson(path.join(MESSAGES_DIR, `${locale}.json`), unflatten(catalogs.get(locale)!, enOrder));
   }
+  // Rewrite every entry in canonical shape and en order; `source` always
+  // reflects the English the catalogs were just synced against.
   const sortedState: TranslationState = {};
-  for (const key of enOrder) sortedState[key] = state[key];
+  for (const key of enOrder) sortedState[key] = canonical(key, state[key]);
   writeJson(STATE_FILE, sortedState);
 
   if (reviewedSkipped.length > 0) {

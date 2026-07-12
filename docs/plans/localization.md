@@ -386,7 +386,7 @@ audience (骨/说/門 differ between SC and TC faces).
   PATCH round-trips `locale`.
 - **Catalog parity + staleness unit test** (Vitest, runs in `npm test`): the three JSON files
   have identical key sets; every message's ICU argument names match the English source; and
-  every key's `sourceHash` in `messages/translation-state.json` matches the current English
+  every key's `source` in `messages/translation-state.json` matches the current English
   value. Together these make both failure modes a red build instead of a silent leak: "added a
   string, forgot the translation" *and* "reworded the English, the Chinese is now stale"
   (workflow mechanics in §11).
@@ -414,14 +414,14 @@ Three files carry the pipeline:
 - `messages/translation-state.json` (committed) — per-key bookkeeping that makes re-runs safe:
 
 ```jsonc
-"ReviewClaim.splitButton": {
-  "sourceHash": "9f2c1a",                            // hash of the en value translated from
-  "zh-Hans": "reviewed", "zh-Hant": "machine",       // todo | machine | reviewed
-  "context": "Button on a line-item row; splits it in two. Keep short."  // optional
+"Review.splitButton": {
+  "source": "⑂ Split",                               // the verbatim en value translated from
+  "context": "Button on a line-item row; splits it in two. Keep short.",  // optional hint
+  "zh-Hans": "reviewed", "zh-Hant": "machine"        // todo | machine | reviewed
 }
 ```
 
-The parity test (§10) checks `sourceHash` against the current English value, which turns
+The parity test (§10) checks `source` against the current English value, which turns
 "someone reworded the English and the Chinese is now stale" from a silent lie into a red
 build. The day-to-day loops:
 

@@ -1,29 +1,29 @@
-import { createHash } from "crypto";
-
 /**
  * Shared helpers for the translation pipeline: the parity/staleness unit test
- * and scripts/translate-messages.ts must agree on hashing, flattening, and
- * ICU-argument extraction, so they live here (pure functions, no fs).
+ * and scripts/translate-messages.ts must agree on flattening and ICU-argument
+ * extraction, so they live here (pure functions, no fs).
  */
 
 export type Messages = { [key: string]: string | Messages };
 
 export type TranslationStatus = "todo" | "machine" | "reviewed";
 
+/**
+ * One entry per key in messages/translation-state.json. `source` is the
+ * verbatim English the translations were made from — kept as readable text
+ * (not a hash) so an entry is self-contained: key, English, translator hint,
+ * and per-locale review status all read together. Staleness is simply
+ * `entry.source !== en.json's current value`.
+ */
 export interface StateEntry {
-  /** Hash of the English source this key's translations were made from. */
-  sourceHash: string;
+  source: string;
+  /** Optional translator note (what/where the string is) fed into drafting prompts. */
+  context?: string;
   "zh-Hans"?: TranslationStatus;
   "zh-Hant"?: TranslationStatus;
-  /** Optional translator note fed into the drafting prompt. */
-  context?: string;
 }
 
 export type TranslationState = Record<string, StateEntry>;
-
-export function sourceHash(message: string): string {
-  return createHash("sha256").update(message, "utf8").digest("hex").slice(0, 8);
-}
 
 export function flatten(obj: Messages, prefix = ""): Map<string, string> {
   const out = new Map<string, string>();
