@@ -58,6 +58,9 @@ export default defineConfig({
   timeout: 60_000,
   use: {
     baseURL: "http://localhost:3100",
+    // The suites assert English text; pin the browser locale so Accept-Language
+    // negotiation always resolves to en regardless of the host machine.
+    locale: "en-US",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

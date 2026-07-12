@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { handleApi, ApiError } from "@/lib/api";
 import { isFirebaseConfigured, verifyFirebaseIdToken } from "@/lib/firebase-admin";
 import { setSessionCookie, clearSessionCookie } from "@/lib/session";
+import { syncLocalePreference } from "@/i18n/cookie";
 
 export const runtime = "nodejs";
 
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
       },
     });
     await setSessionCookie(user.id);
+    await syncLocalePreference(user.id, user.locale);
     return NextResponse.json({ ok: true });
   });
 }

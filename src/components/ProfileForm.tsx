@@ -1,20 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { LOCALES, LOCALE_LABELS } from "@/lib/locales";
 
 interface Profile {
   email: string;
   fullName: string | null;
   mailingAddress: string | null;
+  locale: string;
 }
 
 export default function ProfileForm() {
   const t = useTranslations("Profile");
   const tCommon = useTranslations("Common");
+  const router = useRouter();
+  const activeLocale = useLocale();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [fullName, setFullName] = useState("");
   const [mailingAddress, setMailingAddress] = useState("");
+  const [locale, setLocale] = useState<string>(activeLocale);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -26,6 +32,7 @@ export default function ProfileForm() {
         setProfile(user);
         setFullName(user.fullName ?? "");
         setMailingAddress(user.mailingAddress ?? "");
+        setLocale(user.locale ?? "en");
       })
       .catch(() => setError(t("loadFailed")));
   }, []);
@@ -38,10 +45,15 @@ export default function ProfileForm() {
     const res = await fetch("/api/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fullName, mailingAddress }),
+      body: JSON.stringify({ fullName, mailingAddress, locale }),
     });
-    if (res.ok) setSaved(true);
-    else setError((await res.json()).error ?? t("saveFailed"));
+    if (res.ok) {
+      setSaved(true);
+      // The route also set the locale cookie — re-render in the new language.
+      if (locale !== activeLocale) router.refresh();
+    } else {
+      setError((await res.json()).error ?? t("saveFailed"));
+    }
     setBusy(false);
   }
 
@@ -84,6 +96,24 @@ export default function ProfileForm() {
             placeholder={t("mailingAddressPlaceholder")}
             data-testid="profile-address"
           />
+        </div>
+        <div>
+          <label className="text-sm font-medium" htmlFor="locale">
+            {tCommon("language")}
+          </label>
+          <select
+            id="locale"
+            className="input mt-1"
+            value={locale}
+            onChange={(e) => setLocale(e.target.value)}
+            data-testid="profile-locale"
+          >
+            {LOCALES.map((l) => (
+              <option key={l} value={l}>
+                {LOCALE_LABELS[l]}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex items-center gap-3">
           <button type="submit" className="btn-primary" disabled={busy} data-testid="profile-save">

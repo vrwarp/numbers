@@ -4,6 +4,18 @@
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
+/* Per-script CJK stacks (no webfonts — every target OS ships these). The
+   point over bare system-ui is the *regional glyph forms*: zh-Hans gets
+   Simplified-styled faces, zh-Hant Traditional-styled ones (骨/说/門 differ). */
+html[lang="zh-Hans"] body {
+  font-family: var(--font-sans), "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans CJK SC", sans-serif;
+}
+html[lang="zh-Hant"] body {
+  font-family: var(--font-sans), "PingFang TC", "Microsoft JhengHei", "Noto Sans CJK TC",
+    sans-serif;
+}
+
 html, body {
   touch-action: pan-x pan-y;
 }

@@ -1,21 +1,24 @@
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages } from "next-intl/server";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import "./globals.css";
 import { currentUser } from "@/auth";
 import NavBar from "@/components/NavBar";
 import DeviceRequestsBanner from "@/components/esign/DeviceRequestsBanner";
 
-export const metadata: Metadata = {
-  title: "Numbers — CFCC Reimbursements",
-  description: "Snap church receipts now, submit reimbursement claims later.",
-  manifest: "/manifest.webmanifest",
-  icons: {
-    icon: "/icon-192.png",
-    apple: "/apple-touch-icon.png",
-  },
-  appleWebApp: { capable: true, title: "Numbers", statusBarStyle: "default" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("Meta");
+  return {
+    title: t("title"),
+    description: t("description"),
+    manifest: "/manifest.webmanifest",
+    icons: {
+      icon: "/icon-192.png",
+      apple: "/apple-touch-icon.png",
+    },
+    appleWebApp: { capable: true, title: t("appName"), statusBarStyle: "default" },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#4f46e5",

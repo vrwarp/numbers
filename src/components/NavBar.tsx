@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import LocaleSwitcher from "./LocaleSwitcher";
 
 async function signOut() {
   await fetch("/api/auth/session", { method: "DELETE" }).catch(() => {});
@@ -73,6 +74,7 @@ export default function NavBar({ userName }: { userName: string }) {
               </Link>
             );
           })}
+          <LocaleSwitcher signedIn className="ml-1 shrink-0" />
           <button
             onClick={() => signOut()}
             className="ml-1 hidden rounded-lg px-3 py-1.5 text-sm text-stone-500 hover:bg-stone-100 sm:block"

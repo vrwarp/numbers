@@ -4,6 +4,7 @@ import { currentUserId } from "@/auth";
 import { isAuthTestMode } from "@/lib/config";
 import { firebaseWebConfig } from "@/lib/firebase-admin";
 import SignInCard from "@/components/SignInCard";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
 
 export default async function SignInPage() {
   if (await currentUserId()) redirect("/");
@@ -19,6 +20,9 @@ export default async function SignInPage() {
         <p className="mt-1 text-sm text-stone-500">{t("tagline")}</p>
 
         <SignInCard firebaseConfig={firebaseWebConfig()} testMode={isAuthTestMode()} />
+      </div>
+      <div className="mt-4 flex justify-center">
+        <LocaleSwitcher />
       </div>
     </div>
   );

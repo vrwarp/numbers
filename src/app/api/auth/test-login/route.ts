@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { handleApi, ApiError } from "@/lib/api";
 import { isAuthTestMode } from "@/lib/config";
 import { setSessionCookie } from "@/lib/session";
+import { syncLocalePreference } from "@/i18n/cookie";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,7 @@ export async function POST(req: NextRequest) {
       create: { email, fullName: name },
     });
     await setSessionCookie(user.id);
+    await syncLocalePreference(user.id, user.locale);
     return NextResponse.json({ ok: true });
   });
 }
