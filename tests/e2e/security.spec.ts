@@ -142,25 +142,20 @@ test("receipt notes are visible everywhere and receipts can go on multiple claim
   await signInAs(page, `reuse-${testInfo.project.name}@example.com`, "Reuser");
 
   // Picking a file opens the prepare dialog BEFORE anything uploads, with the
-  // local file's PREVIEW next to the description field. (Driven manually here
+  // rotate/crop editor embedded in place of the preview. (Driven manually here
   // instead of via the helper to also assert the dialog and screenshot it.)
   await page.getByTestId("file-input").setInputFiles([await makeReceiptFixture("note-me.jpg")]);
   await expect(page.getByTestId("upload-note")).toBeVisible();
-  await expect(page.getByTestId("upload-preview").locator("img")).toBeVisible();
+  await expect(page.getByTestId("image-editor-stage")).toBeVisible();
   await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(0); // not uploaded yet
 
-  // The rotate/crop editor is available right in the prepare step — it edits
-  // the local photo on-device, still before any upload.
-  await page.locator('[data-testid^="edit-image-"]').click();
-  await expect(page.getByTestId("image-editor-stage")).toBeVisible();
+  // The rotate/crop editor is inline — it edits the local photo on-device,
+  // still before any upload. Rotating here is baked in when we Save.
   await page.getByTestId("rotate-right").click();
-  await page.getByTestId("image-editor-save").click();
-  await expect(page.getByTestId("image-editor-stage")).toBeHidden();
-  await expect(page.getByTestId("upload-preview").locator("img")).toBeVisible();
 
   await page.getByTestId("upload-note").fill("VBS craft supplies");
   await page.screenshot({ path: "screenshots/10-upload-dialog.png" });
-  await page.getByTestId("upload-note-confirm").click(); // Save = upload
+  await page.getByTestId("upload-note-confirm").click(); // Save = apply edit + upload
   await expect(page.getByTestId("upload-note")).toBeHidden({ timeout: 20_000 }); // queue drained
   await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(1, { timeout: 20_000 });
   const noteInput = page.locator('[data-testid^="receipt-note-"]');

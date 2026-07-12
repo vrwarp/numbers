@@ -127,14 +127,11 @@
     "processedNote": "已在某张已生成的报销单上。如果这笔消费的一部分属于另一张报销单，仍可选择它。",
     "prepareTitle": "为这张收据写个说明",
     "prepareLeft": "（还剩 {count} 张）",
-    "prepareEditTitle": "旋转或裁剪这张收据照片",
-    "prepareEditButton": "✂ 旋转 / 裁剪",
     "noteLabel": "说明（可选）",
     "notePlaceholder": "例如：VBS 手工材料",
-    "prepareHintLocal": "保存或跳过时上传。之后也可以在卡片上修改说明。",
+    "prepareHintLocal": "保存时上传。之后也可以在卡片上修改说明。",
     "prepareHintUploaded": "之后也可以在卡片上修改说明。",
     "skipAll": "全部跳过",
-    "skip": "跳过",
     "quotaRingAria": "约 {seconds, plural, other {# 秒}}后重试"
   },
   "Viewer": {

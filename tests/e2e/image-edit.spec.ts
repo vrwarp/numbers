@@ -130,10 +130,10 @@ test("upload-time crop happens on-device at full resolution; the original never 
     .getByTestId("file-input")
     .setInputFiles({ name: "big.jpg", mimeType: "image/jpeg", buffer: big });
 
-  // The prepare dialog opens before anything uploads; crop the top half by
-  // dragging the bottom-center handle of the crop box up to the middle.
+  // The prepare dialog opens before anything uploads with the crop tool already
+  // embedded in place of the preview; crop the top half by dragging the
+  // bottom-center handle of the crop box up to the middle.
   await expect(page.getByTestId("upload-note")).toBeVisible();
-  await page.locator('[data-testid^="edit-image-pending-"]').click();
   const stage = page.getByTestId("image-editor-stage");
   await expect(stage).toBeVisible();
   const box = (await page.getByTestId("crop-box").boundingBox())!;
@@ -143,11 +143,10 @@ test("upload-time crop happens on-device at full resolution; the original never 
   await page.mouse.down();
   await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2 - box.height / 2, { steps: 8 });
   await page.mouse.up();
-  await page.getByTestId("image-editor-save").click();
-  await expect(stage).toBeHidden();
 
-  // Skip the note — this is what actually uploads the (edited) file.
-  await page.getByTestId("upload-note-cancel").click();
+  // The single Save bakes in the crop and uploads the (edited) file.
+  await page.getByTestId("upload-note-confirm").click();
+  await expect(page.getByTestId("upload-note")).toBeHidden();
   await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(1, { timeout: 20_000 });
   const receiptId = (await (await page.request.get("/api/receipts")).json()).receipts[0].id;
 
@@ -187,7 +186,7 @@ test("picked PDFs upload immediately so the describe dialog can show the server 
   await expect(page.getByTestId("upload-note")).toBeVisible();
   await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(1, { timeout: 20_000 });
   await expect(page.getByTestId("upload-preview").getByText("Open PDF receipt ↗")).toBeVisible();
-  await expect(page.locator('[data-testid^="edit-image-pending-"]')).toHaveCount(0); // no crop for PDFs
+  await expect(page.getByTestId("image-editor-stage")).toHaveCount(0); // no crop tool for PDFs
 
   // Saving just attaches the note to the already-uploaded receipt.
   await page.getByTestId("upload-note").fill("church van insurance");

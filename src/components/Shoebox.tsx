@@ -7,7 +7,7 @@ import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import ReceiptViewer from "./ReceiptViewer";
 import PdfReceiptPreview from "@/components/PdfReceiptPreview";
 import ReceiptGrid, { type ReceiptSummary as Receipt } from "./ReceiptGrid";
-import { prepareImageUpload, renderTransformedImage } from "@/lib/image-client";
+import { prepareImageUpload, renderTransformedImage, type ClientTransform } from "@/lib/image-client";
 import { readNdjsonStream } from "@/lib/ndjson";
 import type { ClaimStreamMessage } from "@/lib/claim-stream";
 import { useApiErrorMessage } from "@/lib/use-api-error";
@@ -52,8 +52,10 @@ export default function Shoebox() {
   const pendingKey = useRef(0);
   const [uploadNote, setUploadNote] = useState("");
   const [uploading, setUploading] = useState(false);
-  // Rotate/crop editor open for the file currently in the prepare step.
-  const [editingUpload, setEditingUpload] = useState(false);
+  // Live rotate/crop for the photo currently in the prepare step. The editor is
+  // embedded in the dialog (no separate modal); the transform is applied when
+  // the item uploads on Save. Identity means "upload as shot".
+  const [editTransform, setEditTransform] = useState<ClientTransform>({ rotate: 0 });
   // Bumped after a rotate/crop so <img> cache-busts past the file route's max-age.
   const [fileVersions, setFileVersions] = useState<Record<string, number>>({});
 
@@ -224,32 +226,51 @@ export default function Shoebox() {
 
   const preparing: PendingItem | null = pending[0] ?? null;
 
-  async function skipPrepare(all = false) {
+  // Each item gets a fresh crop/rotate; clear the staged transform as the front
+  // of the queue advances (the embedded editor remounts and resets alongside).
+  useEffect(() => {
+    setEditTransform({ rotate: 0 });
+  }, [preparing?.key]);
+
+  // Skip-all is the batch escape hatch: dump every queued item as-is (no notes,
+  // no crop) so a big pile of receipts doesn't have to be saved one at a time.
+  async function skipAllPrepare() {
     if (!preparing) return;
-    setEditingUpload(false);
-    const items = all ? pending : [preparing];
     // Already-uploaded PDFs just leave the queue (their note is skipped) …
-    const done = new Set(items.filter((i) => i.kind === "uploaded").map((i) => i.key));
+    const done = new Set(pending.filter((i) => i.kind === "uploaded").map((i) => i.key));
     if (done.size > 0) {
       setUploadNote("");
       setPending((q) => q.filter((i) => !done.has(i.key)));
     }
-    // … while local images upload now.
-    const locals = items.filter((i): i is LocalPending => i.kind === "local");
+    // … while local images upload now, unedited.
+    const locals = pending.filter((i): i is LocalPending => i.kind === "local");
     if (locals.length > 0) await uploadPending(locals);
   }
 
   async function savePrepare() {
     if (!preparing) return;
-    setEditingUpload(false);
     const note = uploadNote.trim() || undefined;
     if (preparing.kind === "uploaded") {
       if (note) await saveNote(preparing.receipt.id, note);
       setUploadNote("");
       setPending((q) => q.slice(1));
-    } else {
-      await uploadPending([preparing], note);
+      return;
     }
+    // Local image: bake in any rotate/crop at the photo's native resolution
+    // before the (downscaled) upload — the full-res original stays on device.
+    let item: LocalPending = preparing;
+    if (editTransform.rotate !== 0 || editTransform.crop) {
+      setUploading(true);
+      setError(null);
+      try {
+        item = { ...preparing, edited: await renderTransformedImage(preparing.file, editTransform) };
+      } catch (e) {
+        setError(e instanceof Error ? e.message : t("uploadFailed"));
+        setUploading(false);
+        return;
+      }
+    }
+    await uploadPending([item], note);
   }
 
   function toggle(id: string) {
@@ -572,50 +593,40 @@ export default function Shoebox() {
           role="dialog"
           aria-modal
         >
-          <div className="card w-full max-w-md p-6">
+          <div className="card max-h-[92vh] w-full max-w-md overflow-y-auto p-6">
             <h2 className="font-bold">
               {t("prepareTitle")}
               {pending.length > 1 && (
                 <span className="ml-1 font-normal text-stone-400">{t("prepareLeft", { count: pending.length })}</span>
               )}
             </h2>
-            <div className="mt-1 flex items-center justify-between gap-2">
-              <p className="truncate text-sm text-stone-500">
-                {preparing.kind === "local" ? preparing.file.name : preparing.receipt.originalName}
-              </p>
-              {preparing.kind === "local" && (
-                <button
-                  className="shrink-0 rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 hover:text-stone-700"
-                  onClick={() => setEditingUpload(true)}
-                  disabled={uploading}
-                  title={t("prepareEditTitle")}
-                  data-testid={`edit-image-pending-${preparing.key}`}
-                >
-                  {t("prepareEditButton")}
-                </button>
-              )}
-            </div>
-            <div
-              className="mt-3 flex max-h-72 items-center justify-center overflow-hidden rounded-lg bg-stone-100"
-              data-testid="upload-preview"
-            >
-              {preparing.kind === "uploaded" ? (
+            <p className="mt-1 truncate text-sm text-stone-500">
+              {preparing.kind === "local" ? preparing.file.name : preparing.receipt.originalName}
+            </p>
+            {preparing.kind === "uploaded" ? (
+              <div
+                className="mt-3 flex max-h-72 items-center justify-center overflow-hidden rounded-lg bg-stone-100"
+                data-testid="upload-preview"
+              >
                 <div className="max-h-72 w-full overflow-y-auto">
                   <PdfReceiptPreview
                     receiptId={preparing.receipt.id}
                     fileHref={fileUrl(preparing.receipt.id)}
                   />
                 </div>
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={preparing.previewUrl}
+              </div>
+            ) : (
+              // The rotate/crop tool IS the preview — straighten/trim in place.
+              <div className="mt-1" data-testid="upload-preview">
+                <ReceiptImageEditor
+                  key={preparing.key}
+                  embedded
                   src={preparing.previewUrl}
-                  alt={preparing.file.name}
-                  className="max-h-72 w-auto"
+                  onChange={setEditTransform}
+                  maxStageHeight={300}
                 />
-              )}
-            </div>
+              </div>
+            )}
             <label className="mt-4 block text-sm font-medium">
               {t("noteLabel")}
               <input
@@ -639,21 +650,13 @@ export default function Shoebox() {
               {pending.length > 1 && (
                 <button
                   className="mr-auto rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100"
-                  onClick={() => skipPrepare(true)}
+                  onClick={skipAllPrepare}
                   disabled={uploading}
                   data-testid="upload-note-skip-all"
                 >
                   {t("skipAll")}
                 </button>
               )}
-              <button
-                className="btn-secondary"
-                onClick={() => skipPrepare()}
-                disabled={uploading}
-                data-testid="upload-note-cancel"
-              >
-                {t("skip")}
-              </button>
               <button
                 className="btn-primary"
                 onClick={savePrepare}
@@ -665,29 +668,6 @@ export default function Shoebox() {
             </div>
           </div>
         </div>
-      )}
-
-      {editingUpload && preparing?.kind === "local" && (
-        <ReceiptImageEditor
-          src={preparing.previewUrl}
-          onClose={() => setEditingUpload(false)}
-          onSaved={() => setEditingUpload(false)}
-          onApply={async (transform) => {
-            // Render the rotate/crop on this device at the photo's native
-            // resolution; the result replaces the pending file's working image.
-            const rendered = await renderTransformedImage(
-              preparing.edited ?? preparing.file,
-              transform
-            );
-            const url = URL.createObjectURL(rendered);
-            URL.revokeObjectURL(preparing.previewUrl);
-            setPending((q) =>
-              q.map((i) =>
-                i.key === preparing.key ? { ...i, edited: rendered, previewUrl: url } : i
-              )
-            );
-          }}
-        />
       )}
 
       {viewing && (

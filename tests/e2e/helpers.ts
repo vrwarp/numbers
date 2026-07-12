@@ -92,20 +92,16 @@ export async function signInAs(page: Page, email: string, name = "Test User"): P
 
 /** Upload fixture files through the Shoebox file input. Picking files opens a
  *  prepare dialog per file BEFORE anything uploads (client-side edit chance);
- *  Save/Skip sends that file — fill the optional note on the first, dismiss
- *  the rest, then wait for the cards to land. */
+ *  Save sends that file — fill the optional note on the first, save through the
+ *  rest, then wait for the cards to land. */
 export async function uploadReceipts(page: Page, filePaths: string[], note?: string): Promise<void> {
   const before = await page.locator('[data-testid^="receipt-card-"]').count();
   await page.getByTestId("file-input").setInputFiles(filePaths);
   const noteInput = page.getByTestId("upload-note");
   for (let i = 0; i < filePaths.length; i++) {
     await expect(noteInput).toBeVisible();
-    if (i === 0 && note) {
-      await noteInput.fill(note);
-      await page.getByTestId("upload-note-confirm").click();
-    } else {
-      await page.getByTestId("upload-note-cancel").click();
-    }
+    if (i === 0 && note) await noteInput.fill(note);
+    await page.getByTestId("upload-note-confirm").click();
   }
   await expect(noteInput).toBeHidden({ timeout: 20_000 });
   await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(before + filePaths.length, {
