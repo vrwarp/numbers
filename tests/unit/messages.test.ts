@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import fs from "fs";
 import path from "path";
-import { createHash } from "crypto";
 import { LOCALES } from "@/lib/locales";
+import { flatten, messageArguments, sourceHash, type Messages } from "@/lib/translation-state";
 
 /**
  * Catalog integrity. en.json is the source of truth; every other catalog must
@@ -17,34 +17,10 @@ import { LOCALES } from "@/lib/locales";
 const MESSAGES_DIR = path.join(process.cwd(), "messages");
 const STATE_FILE = path.join(MESSAGES_DIR, "translation-state.json");
 
-type Messages = { [key: string]: string | Messages };
-
 function loadCatalog(locale: string): Messages | null {
   const file = path.join(MESSAGES_DIR, `${locale}.json`);
   if (!fs.existsSync(file)) return null;
   return JSON.parse(fs.readFileSync(file, "utf8"));
-}
-
-function flatten(obj: Messages, prefix = ""): Map<string, string> {
-  const out = new Map<string, string>();
-  for (const [key, value] of Object.entries(obj)) {
-    const full = prefix ? `${prefix}.${key}` : key;
-    if (typeof value === "string") out.set(full, value);
-    else for (const [k, v] of flatten(value, full)) out.set(k, v);
-  }
-  return out;
-}
-
-/** ICU argument names ({count}, {merchant, plural, …}) + rich tags (<link>). */
-function messageArguments(message: string): string[] {
-  const args = new Set<string>();
-  for (const m of message.matchAll(/\{\s*([a-zA-Z0-9_]+)\s*[,}]/g)) args.add(`{${m[1]}}`);
-  for (const m of message.matchAll(/<([a-z][a-zA-Z0-9]*)>/g)) args.add(`<${m[1]}>`);
-  return [...args].sort();
-}
-
-export function sourceHash(message: string): string {
-  return createHash("sha256").update(message, "utf8").digest("hex").slice(0, 8);
 }
 
 const en = loadCatalog("en");

@@ -1,0 +1,1357 @@
+{
+  "Meta.title": {
+    "sourceHash": "cb90091c",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Meta.description": {
+    "sourceHash": "046c7b9f",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Meta.appName": {
+    "sourceHash": "b0640f0f",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.status.draft": {
+    "sourceHash": "ebf12ef4",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.status.generated": {
+    "sourceHash": "827ec8d9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.status.needsReview": {
+    "sourceHash": "07297fa9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.status.processed": {
+    "sourceHash": "58190ffa",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.cancel": {
+    "sourceHash": "19766ed6",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.save": {
+    "sourceHash": "1509f561",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.saving": {
+    "sourceHash": "23e39291",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.loading": {
+    "sourceHash": "ba3bbbe1",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.language": {
+    "sourceHash": "a4fe6526",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "NavBar.shoebox": {
+    "sourceHash": "0dc34753",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "NavBar.claims": {
+    "sourceHash": "1c85c122",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "NavBar.profile": {
+    "sourceHash": "d696a35b",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "NavBar.signOut": {
+    "sourceHash": "48f0d3d3",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "NavBar.signedInAs": {
+    "sourceHash": "599a82d9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.profileNudge": {
+    "sourceHash": "d030a0ba",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "SignIn.tagline": {
+    "sourceHash": "116c1ad4",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "SignIn.failed": {
+    "sourceHash": "5ee01ca9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "SignIn.popupBlocked": {
+    "sourceHash": "d2c438fa",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "SignIn.embeddedTitle": {
+    "sourceHash": "c1091a57",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "SignIn.embeddedBody": {
+    "sourceHash": "4f3556fe",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "SignIn.googleSignIn": {
+    "sourceHash": "1dbcee68",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "SignIn.googleTryAnyway": {
+    "sourceHash": "7ce1e01f",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "SignIn.notConfigured": {
+    "sourceHash": "22a11ea9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "SignIn.devLogin": {
+    "sourceHash": "d93da15d",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "SignIn.devEmailPlaceholder": {
+    "sourceHash": "53e6cdc3",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "SignIn.devNamePlaceholder": {
+    "sourceHash": "2c6b2e25",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "SignIn.devSignIn": {
+    "sourceHash": "d7e71266",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Claims.title": {
+    "sourceHash": "1c85c122",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Claims.subtitle": {
+    "sourceHash": "c2b4613a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Claims.emptyTitle": {
+    "sourceHash": "49b92b70",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Claims.emptyBody": {
+    "sourceHash": "e0cde773",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Claims.counts": {
+    "sourceHash": "03d503f1",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Profile.title": {
+    "sourceHash": "d696a35b",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Profile.subtitle": {
+    "sourceHash": "0f64c9a3",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Profile.email": {
+    "sourceHash": "969ccbd3",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Profile.fullName": {
+    "sourceHash": "f13a64ba",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Profile.fullNamePlaceholder": {
+    "sourceHash": "5a27688b",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Profile.mailingAddress": {
+    "sourceHash": "88a4628a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Profile.mailingAddressPlaceholder": {
+    "sourceHash": "59e0bb8d",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Profile.saved": {
+    "sourceHash": "9ec0cf9f",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Profile.loadFailed": {
+    "sourceHash": "92907d8c",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Profile.saveFailed": {
+    "sourceHash": "53ad6f99",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ReceiptGrid.pdfChip": {
+    "sourceHash": "1d393b00",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ReceiptGrid.pdfThumbAlt": {
+    "sourceHash": "1011a2fd",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ReceiptGrid.deleteReceipt": {
+    "sourceHash": "3cf8146e",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ReceiptGrid.viewLarger": {
+    "sourceHash": "414b07b2",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ReceiptGrid.viewLargerTitle": {
+    "sourceHash": "f7ab0572",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ReceiptGrid.notePlaceholder": {
+    "sourceHash": "b57e0a47",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ReceiptGrid.noteAria": {
+    "sourceHash": "e60c778a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ReceiptGrid.meta": {
+    "sourceHash": "b0061e7b",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ReceiptGrid.processedSuffix": {
+    "sourceHash": "364ebf05",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ReceiptGrid.claimChip": {
+    "sourceHash": "4ca41db0",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "PdfPreview.chip": {
+    "sourceHash": "1011a2fd",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "PdfPreview.rendering": {
+    "sourceHash": "62c00342",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "PdfPreview.pageAlt": {
+    "sourceHash": "2027f61a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "PdfPreview.omitted": {
+    "sourceHash": "664020a2",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "PdfPreview.open": {
+    "sourceHash": "1d5847d1",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.title": {
+    "sourceHash": "0dc34753",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.intro": {
+    "sourceHash": "f357fe4a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.upload": {
+    "sourceHash": "7e2f3dab",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.uploading": {
+    "sourceHash": "5ce44dd7",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.uploadFailed": {
+    "sourceHash": "6efc5d27",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.dropTitle": {
+    "sourceHash": "f7aa3b14",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.dropBody": {
+    "sourceHash": "898058c7",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.noteSaveFailed": {
+    "sourceHash": "02a4ab70",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.deleteConfirm": {
+    "sourceHash": "d387f6de",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.deleteFailed": {
+    "sourceHash": "8727e2ba",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.selectedCount": {
+    "sourceHash": "a5dfb011",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.selectPrompt": {
+    "sourceHash": "f0a7d9b7",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.newClaim": {
+    "sourceHash": "6d320711",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.waitingRateLimit": {
+    "sourceHash": "2a78ee5d",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.readingShort": {
+    "sourceHash": "88e7c770",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.selectHint": {
+    "sourceHash": "2d3d4f36",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.readingInitial": {
+    "sourceHash": "947f665b",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.readingCount": {
+    "sourceHash": "62f56e05",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.readProgress": {
+    "sourceHash": "69d8d214",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.manualInstead": {
+    "sourceHash": "cfb5c92d",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.manualSetup": {
+    "sourceHash": "6e84eeda",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.manualStartFailed": {
+    "sourceHash": "61d3aad5",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.generateFailed": {
+    "sourceHash": "7fb39103",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.generateEnded": {
+    "sourceHash": "c26f520a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.emptyTitle": {
+    "sourceHash": "2b593409",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.emptyBody": {
+    "sourceHash": "3dc9fd93",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.step1": {
+    "sourceHash": "f63c6ad2",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.step2": {
+    "sourceHash": "dfd587c9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.step3": {
+    "sourceHash": "053aa985",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.step4": {
+    "sourceHash": "bdd7dd1c",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.processedSummary": {
+    "sourceHash": "ac1ce33e",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.processedNote": {
+    "sourceHash": "116ed258",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.prepareTitle": {
+    "sourceHash": "afc8687e",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.prepareLeft": {
+    "sourceHash": "93d2bb2c",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.prepareEditTitle": {
+    "sourceHash": "0b3e3698",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.prepareEditButton": {
+    "sourceHash": "c21a7444",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.noteLabel": {
+    "sourceHash": "f6cbe2f0",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.notePlaceholder": {
+    "sourceHash": "1643733a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.prepareHintLocal": {
+    "sourceHash": "c776fe3a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.prepareHintUploaded": {
+    "sourceHash": "a14f233f",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.skipAll": {
+    "sourceHash": "5fc42805",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.skip": {
+    "sourceHash": "28d03596",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.quotaRingAria": {
+    "sourceHash": "e119166e",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.ariaTitle": {
+    "sourceHash": "51085e21",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.openNewTab": {
+    "sourceHash": "306ef19c",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.close": {
+    "sourceHash": "7b25a882",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.closeTitle": {
+    "sourceHash": "961b2a04",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.previewUnavailable": {
+    "sourceHash": "52a2d6df",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.rendering": {
+    "sourceHash": "62c00342",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.pageAlt": {
+    "sourceHash": "be3b96a4",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.omitted": {
+    "sourceHash": "f10c7407",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.editAria": {
+    "sourceHash": "7b25b7e4",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.editTitle": {
+    "sourceHash": "87cdebdb",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.editButton": {
+    "sourceHash": "c21a7444",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.zoomOut": {
+    "sourceHash": "bc7b631a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.zoomIn": {
+    "sourceHash": "0e47f09a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.resetZoom": {
+    "sourceHash": "91a661b2",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.zoomLevel": {
+    "sourceHash": "02a35530",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.title": {
+    "sourceHash": "5e7fc845",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.intro": {
+    "sourceHash": "34d4b7fe",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.openPdf": {
+    "sourceHash": "ccfb3a41",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.merchant": {
+    "sourceHash": "1da9a042",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.merchantPlaceholder": {
+    "sourceHash": "54f27665",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.purchaseDate": {
+    "sourceHash": "e4237738",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.optional": {
+    "sourceHash": "0059798b",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.printedTotal": {
+    "sourceHash": "2134abc8",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.refunded": {
+    "sourceHash": "0f603523",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.amountPlaceholder": {
+    "sourceHash": "561b2814",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.summary": {
+    "sourceHash": "d85b9d47",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.summaryPlaceholder": {
+    "sourceHash": "578f780f",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.rowAmount": {
+    "sourceHash": "1b26362c",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.totalMinusRefunded": {
+    "sourceHash": "9b3d609d",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.later": {
+    "sourceHash": "203cad4e",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.saveDetails": {
+    "sourceHash": "bb76faab",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ManualEntry.saveFailed": {
+    "sourceHash": "1bae1c82",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ImageEditor.title": {
+    "sourceHash": "127b00b3",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ImageEditor.introRestoring": {
+    "sourceHash": "e9dea65b",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ImageEditor.introLocal": {
+    "sourceHash": "7ed7df51",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ImageEditor.introStored": {
+    "sourceHash": "f870d071",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ImageEditor.rotateLeft": {
+    "sourceHash": "54c46b33",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ImageEditor.rotateRight": {
+    "sourceHash": "9938c21d",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ImageEditor.reset": {
+    "sourceHash": "daee7606",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ImageEditor.resetTitle": {
+    "sourceHash": "fc2806ad",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ImageEditor.editedAlt": {
+    "sourceHash": "37e4ef01",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ImageEditor.loadFailed": {
+    "sourceHash": "a9c8aada",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ImageEditor.loadingImage": {
+    "sourceHash": "1a0c3289",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ImageEditor.editFailed": {
+    "sourceHash": "3e75f243",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ImageEditor.saveDisabledTitle": {
+    "sourceHash": "73ba9f23",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.loadFailed": {
+    "sourceHash": "da3631e2",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.backToClaims": {
+    "sourceHash": "1561cfc6",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.loadingClaim": {
+    "sourceHash": "14ac1dc3",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.updateFailed": {
+    "sourceHash": "e58282fd",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.mergeFailed": {
+    "sourceHash": "3b6a5653",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.title": {
+    "sourceHash": "2215c7d5",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.instruction": {
+    "sourceHash": "a698df35",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.receiptHeader": {
+    "sourceHash": "ac0c559d",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.headerNote": {
+    "sourceHash": "249cf606",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.removeDisabledTitle": {
+    "sourceHash": "ab97736b",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.removeTitle": {
+    "sourceHash": "f06dc74e",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.removeButton": {
+    "sourceHash": "3534eb63",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.derivation": {
+    "sourceHash": "0788b30f",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.editPhotoTitle": {
+    "sourceHash": "0b3e3698",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.editPhotoButton": {
+    "sourceHash": "c21a7444",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.receiptNote": {
+    "sourceHash": "327a31b4",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.aiFailed": {
+    "sourceHash": "0ce24225",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.enterDetails": {
+    "sourceHash": "ebaf7334",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.subtotal": {
+    "sourceHash": "8cf83a44",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.claimTotal": {
+    "sourceHash": "ce8da665",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.verifiedProgress": {
+    "sourceHash": "535737ce",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.generatedFrozen": {
+    "sourceHash": "5ad92e86",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.addReceipts": {
+    "sourceHash": "18e8a79f",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.discard": {
+    "sourceHash": "eb1a70e3",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.revert": {
+    "sourceHash": "8b6d8838",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.chooseMinistryFirst": {
+    "sourceHash": "c649077c",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.buildingPdf": {
+    "sourceHash": "c60fa0e6",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.generatePdf": {
+    "sourceHash": "a0fcce63",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.downloadAgain": {
+    "sourceHash": "b92fe659",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.revertConfirm": {
+    "sourceHash": "4b15da15",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.revertFailed": {
+    "sourceHash": "6ee28234",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.removeConfirm": {
+    "sourceHash": "07f1a08c",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.removeFailed": {
+    "sourceHash": "7a91db72",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.discardConfirm": {
+    "sourceHash": "31ce3b6f",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.deleteFailed": {
+    "sourceHash": "8727e2ba",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.pdfFailed": {
+    "sourceHash": "9f904800",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.suggestionFailed": {
+    "sourceHash": "7bd7c09d",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.fanOutSet": {
+    "sourceHash": "938c3eaf",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.quotedValue": {
+    "sourceHash": "000f22b6",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.noMinistry": {
+    "sourceHash": "dc03fe3a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.undo": {
+    "sourceHash": "a8283ade",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.dismissAria": {
+    "sourceHash": "48845bff",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitModeTitle": {
+    "sourceHash": "4c84a6cb",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitModeBody": {
+    "sourceHash": "f934fcb1",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitModeBody2": {
+    "sourceHash": "0f0c92ce",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.switchAndSplit": {
+    "sourceHash": "f65d9ebe",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.modeSwitchTitle": {
+    "sourceHash": "59a1083e",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.modeSwitchBody": {
+    "sourceHash": "7b88b7bb",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.modeSwitchBodyNoMinistry": {
+    "sourceHash": "ac8273ed",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.modeSwitchUnverify": {
+    "sourceHash": "d3472d50",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.switchAndApply": {
+    "sourceHash": "25c99424",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.panelTitleSingle": {
+    "sourceHash": "d6ac57de",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.panelTitle": {
+    "sourceHash": "fd76afd6",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.modeOne": {
+    "sourceHash": "aba3c122",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.modeMultiple": {
+    "sourceHash": "14070fdb",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.descPlaceholder": {
+    "sourceHash": "0331bac9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.descAria": {
+    "sourceHash": "dda0585a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.suggestTitle": {
+    "sourceHash": "3499dddb",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.thinking": {
+    "sourceHash": "a02f1cea",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.suggest": {
+    "sourceHash": "b795107e",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.suggestionApplied": {
+    "sourceHash": "748ad720",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.suggestionSuggested": {
+    "sourceHash": "7c1ba208",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.applyAllRows": {
+    "sourceHash": "3652bdf8",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.apply": {
+    "sourceHash": "31e392d1",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.dismiss": {
+    "sourceHash": "48845bff",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.noConfidentMatch": {
+    "sourceHash": "3053adda",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.pickMinistry": {
+    "sourceHash": "c47d7fab",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.otherOption": {
+    "sourceHash": "1e375292",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.customMinistryPlaceholder": {
+    "sourceHash": "c2ac508d",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.claimMinistryAria": {
+    "sourceHash": "31f61c96",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.customClaimMinistryAria": {
+    "sourceHash": "2a942749",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.eventPlaceholder": {
+    "sourceHash": "04f39e5a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.claimEventAria": {
+    "sourceHash": "4f678a55",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.appliedEveryRow": {
+    "sourceHash": "1109d0dd",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.multiHint": {
+    "sourceHash": "fe4e2838",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.rowDescPlaceholder": {
+    "sourceHash": "88f637be",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.rowDescAria": {
+    "sourceHash": "526e0087",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.badgeTitle": {
+    "sourceHash": "f84a865d",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.ministrySetAbove": {
+    "sourceHash": "682e29bd",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.ministryAria": {
+    "sourceHash": "32fe91f7",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.customMinistryAria": {
+    "sourceHash": "c2ac508d",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.eventAria": {
+    "sourceHash": "4e1f49a9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.amountAria": {
+    "sourceHash": "49e96d7c",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.refundBadge": {
+    "sourceHash": "731464fb",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitRowTitle": {
+    "sourceHash": "85d13a62",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitButton": {
+    "sourceHash": "84b656ce",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.mergeBlockedTitle": {
+    "sourceHash": "b0b70ba6",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.mergeTitle": {
+    "sourceHash": "8790d3f9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.mergeButton": {
+    "sourceHash": "0e0e636a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.restoreTitle": {
+    "sourceHash": "49abac37",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.excludeTitle": {
+    "sourceHash": "5d982de2",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.restoreButton": {
+    "sourceHash": "7cc09637",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.excludeButton": {
+    "sourceHash": "70a37ac2",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.nudgeVerify": {
+    "sourceHash": "cdf18a1b",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.nudgeSetAbove": {
+    "sourceHash": "7f545088",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.nudgePick": {
+    "sourceHash": "47f72921",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.verifyTitleVerified": {
+    "sourceHash": "a65a9b2f",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.verifyTitle": {
+    "sourceHash": "cd93a3b8",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.looksCorrect": {
+    "sourceHash": "e6b3873e",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitDialogTitle": {
+    "sourceHash": "ffc225b0",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitTotal": {
+    "sourceHash": "37159fc2",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.firstPart": {
+    "sourceHash": "0cfb4d63",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.secondPart": {
+    "sourceHash": "1e9acf2f",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitFailed": {
+    "sourceHash": "931d8a52",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitConfirm": {
+    "sourceHash": "32afaa78",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.title": {
+    "sourceHash": "528b98d9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.intro": {
+    "sourceHash": "7584d93c",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.upload": {
+    "sourceHash": "7e2f3dab",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.uploading": {
+    "sourceHash": "5ce44dd7",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.emptyTitle": {
+    "sourceHash": "b07bac9b",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.emptyBody": {
+    "sourceHash": "f3ee41e9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.manualInstead": {
+    "sourceHash": "cfb5c92d",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.addingManual": {
+    "sourceHash": "3410eb5d",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.readingInitial": {
+    "sourceHash": "947f665b",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.readingCount": {
+    "sourceHash": "62f56e05",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.readProgress": {
+    "sourceHash": "69d8d214",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.loadFailed": {
+    "sourceHash": "dd8eceb8",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.uploadFailed": {
+    "sourceHash": "6efc5d27",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.addFailed": {
+    "sourceHash": "23189375",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.endedUnexpectedly": {
+    "sourceHash": "776f7048",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.confirmReading": {
+    "sourceHash": "88e7c770",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.confirmCount": {
+    "sourceHash": "b4809077",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "AddReceipts.confirm": {
+    "sourceHash": "b346af24",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  }
+}
