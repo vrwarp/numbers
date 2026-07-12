@@ -57,14 +57,16 @@ export default function FinanceQueue() {
           {queue.map((c) => (
             <li key={c.id} className="card p-4" data-testid={`finance-${c.id}`}>
               <button className="flex w-full items-center justify-between gap-3 text-left" onClick={() => setOpenId(openId === c.id ? null : c.id)}>
-                <div>
-                  <div className="font-semibold">{c.ownerName}</div>
-                  <div className="text-sm text-stone-500">
+                {/* min-w-0 + truncate so a long claim description shrinks
+                    instead of pushing the amount off the card. */}
+                <div className="min-w-0">
+                  <div className="truncate font-semibold">{c.ownerName}</div>
+                  <div className="truncate text-sm text-stone-500">
                     {c.claimDescription ||
                       tEsign("itemsCount", { count: c.rows.length })}
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex shrink-0 items-center gap-3">
                   <span className="text-lg font-bold">{formatCents(c.totalCents)}</span>
                   <span className="text-stone-400">{openId === c.id ? "▾" : "▸"}</span>
                 </div>

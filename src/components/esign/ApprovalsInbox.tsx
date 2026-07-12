@@ -146,9 +146,11 @@ function ClaimRow({
   return (
     <li className="card p-4" data-testid={`approval-${claim.id}`}>
       <button className="flex w-full items-center justify-between gap-3 text-left" onClick={onToggle}>
-        <div>
-          <div className="font-semibold">{claim.ownerName}</div>
-          <div className="text-sm text-stone-500">
+        {/* min-w-0 + truncate so a long claim description shrinks instead of
+            pushing the amount off the card (flex min-width:auto). */}
+        <div className="min-w-0">
+          <div className="truncate font-semibold">{claim.ownerName}</div>
+          <div className="truncate text-sm text-stone-500">
             {claim.claimDescription || tEsign2("itemsCount", { count: claim.rows.length })}
             {claim.submittedAt &&
               ` · ${t("submittedOn", {
@@ -160,7 +162,7 @@ function ClaimRow({
               })}`}
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <span className="text-lg font-bold">{formatCents(claim.totalCents)}</span>
           <span className="text-stone-400">{open ? "▾" : "▸"}</span>
         </div>
@@ -266,14 +268,23 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
           <ThreadSignatures state={state} />
           <div className="grid gap-1 text-sm">
             {claim.rows.map((r, i) => (
-              <div key={i} className="flex justify-between gap-3">
-                {/* min-w-0 lets the flex item shrink below its content width so
-                    truncate actually ellipsizes — without it a long description
-                    refuses to shrink and overruns the ministry/amount column. */}
-                <span className="min-w-0 truncate">{r.description}</span>
-                <span className="whitespace-nowrap text-stone-500">
-                  {r.ministry}
-                  {r.event ? ` — ${r.event}` : ""} · {formatCents(r.amountCents)}
+              // min-w-0 must appear at EVERY nesting level between the card
+              // and the text: the row is a grid item and grid items ALSO
+              // default to min-width:auto, so without it the row's automatic
+              // minimum is the full nowrap text width and the track overflows
+              // the card (ellipsis never engages). Inside the row the amount
+              // stays whole while description, then ministry, give way.
+              <div key={i} className="flex min-w-0 items-baseline gap-3" data-testid={`inbox-row-${i}`}>
+                <span className="min-w-0 flex-1 truncate">{r.description}</span>
+                {/* Cap the ministry column so a long ministry/event can't
+                    squeeze the description to nothing on a phone; the amount
+                    is the never-truncated tail. */}
+                <span className="flex min-w-0 max-w-[60%] items-baseline gap-1 whitespace-nowrap text-stone-500">
+                  <span className="min-w-0 truncate">
+                    {r.ministry}
+                    {r.event ? ` — ${r.event}` : ""}
+                  </span>
+                  <span>· {formatCents(r.amountCents)}</span>
                 </span>
               </div>
             ))}
