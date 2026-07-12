@@ -29,9 +29,9 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     const userId = await requireUserId();
     const { id } = await ctx.params;
     const receipt = await prisma.receipt.findFirst({ where: { id, userId } });
-    if (!receipt) throw new ApiError(404, "Receipt not found");
+    if (!receipt) throw new ApiError(404, "Receipt not found", "receiptNotFound");
     if (receipt.mimeType !== "application/pdf") {
-      throw new ApiError(400, "Preview is only available for PDF receipts");
+      throw new ApiError(400, "Preview is only available for PDF receipts", "previewPdfOnly");
     }
 
     // Ensure the cache: render all pages + manifest on the first request.
@@ -65,7 +65,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     }
     const page = Number(pageParam);
     if (!Number.isInteger(page) || page < 1 || page > manifest.pages) {
-      throw new ApiError(400, "Invalid preview page");
+      throw new ApiError(400, "Invalid preview page", "invalidPreviewPage");
     }
     const webp = await readStoredFile(previewPagePath(receipt.filePath, page));
     return new NextResponse(new Uint8Array(webp), {

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { Auth, User } from "firebase/auth";
+import { useApiErrorMessage } from "@/lib/use-api-error";
 
 export type FirebaseWebConfig = {
   apiKey: string;
@@ -47,6 +48,7 @@ export default function SignInCard({
   testMode: boolean;
 }) {
   const t = useTranslations("SignIn");
+  const apiError = useApiErrorMessage();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [embedded, setEmbedded] = useState(false);
@@ -73,7 +75,7 @@ export default function SignInCard({
     await fb.signOut(auth).catch(() => {});
     if (!res.ok) {
       const data = await res.json().catch(() => null);
-      throw new Error(data?.error ?? t("failed"));
+      throw new Error(apiError(data, t("failed")));
     }
     window.location.assign("/");
   }
@@ -144,7 +146,7 @@ export default function SignInCard({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? t("failed"));
+        throw new Error(apiError(data, t("failed")));
       }
       window.location.assign("/");
     } catch (err) {

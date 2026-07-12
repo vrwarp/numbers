@@ -29,6 +29,21 @@ src/lib/config-file.ts          configValue(name): env setting resolved from
 src/lib/ministries.ts           MINISTRY_GROUPS budget categories (+ flat MINISTRIES,
                                 isKnownMinistry, formatMinistryEvent, mostCommonMinistryEvent)
                                 — dependency-free, safe for client components
+src/lib/locales.ts              LOCALES en/zh-Hans/zh-Hant, labels, numbers_locale cookie
+                                name, Accept-Language negotiator — dependency-free, client-safe
+src/i18n/request.ts             next-intl request config: cookie → Accept-Language → en
+                                (no URL locale routing, no middleware)
+src/i18n/cookie.ts              setLocaleCookie + syncLocalePreference (sign-in reconciles
+                                device cookie vs User.locale) — SERVER ONLY
+src/lib/use-api-error.ts        useApiErrorMessage(): client hook translating {error, code,
+                                params} bodies (and NDJSON error lines) via Errors.* catalog
+src/lib/translation-state.ts    sourceHash/flatten/unflatten/messageArguments — shared by the
+                                parity test and scripts/translate-messages.ts
+src/components/LocaleSwitcher.tsx  language select (NavBar + sign-in page): writes the cookie,
+                                PATCHes profile when signed in, router.refresh()
+messages/*.json                 the string catalogs (en = source of truth) + GLOSSARY.md +
+                                translation-state.json (per-key sourceHash/status/context)
+scripts/translate-messages.ts   npm run translate — drafting/staleness/state pipeline
 src/lib/church-context.ts       loadChurchContext(): operator-authored church vocabulary doc
                                 (CHURCH_CONTEXT_PATH, default <DATA_DIR>/church-context.md;
                                 null when absent; 16 KB cap) fed into suggestion prompts —
@@ -158,7 +173,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 .github/workflows/docker.yml    PR: dry-run build; main: push to Docker Hub
 ```
 
-## API routes (all: handleApi + requireUserId; JSON errors `{error}`)
+## API routes (all: handleApi + requireUserId; JSON errors `{error, code?, params?}` — code is the client-translation key)
 
 | Route | Methods | Behavior |
 | :-- | :-- | :-- |

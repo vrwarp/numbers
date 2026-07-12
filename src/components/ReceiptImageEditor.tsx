@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useApiErrorMessage } from "@/lib/use-api-error";
 
 interface Crop {
   left: number;
@@ -85,6 +86,7 @@ export default function ReceiptImageEditor({
   const [crop, setCrop] = useState<Crop>(FULL_CROP);
   const t = useTranslations("ImageEditor");
   const tCommon = useTranslations("Common");
+  const apiError = useApiErrorMessage();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasOriginal, setHasOriginal] = useState(false);
@@ -276,7 +278,7 @@ export default function ReceiptImageEditor({
       }),
     });
     if (!res.ok) {
-      setError((await res.json()).error ?? t("editFailed"));
+      setError(apiError(await res.json().catch(() => null), t("editFailed")));
       setBusy(false);
       return;
     }

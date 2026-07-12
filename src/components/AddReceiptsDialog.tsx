@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import ReceiptGrid, { type ReceiptSummary } from "./ReceiptGrid";
 import { readNdjsonStream } from "@/lib/ndjson";
 import type { ClaimStreamMessage } from "@/lib/claim-stream";
+import { useApiErrorMessage } from "@/lib/use-api-error";
 
 /**
  * Modal for adding receipts to an existing draft claim: pick from the Shoebox
@@ -26,6 +27,8 @@ export default function AddReceiptsDialog({
 }) {
   const t = useTranslations("AddReceipts");
   const tCommon = useTranslations("Common");
+  const tErrors = useTranslations("Errors");
+  const apiError = useApiErrorMessage();
   const fileInput = useRef<HTMLInputElement>(null);
   const [receipts, setReceipts] = useState<ReceiptSummary[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -41,11 +44,11 @@ export default function AddReceiptsDialog({
   const load = useCallback(async () => {
     const res = await fetch("/api/receipts");
     if (!res.ok) {
-      setError((await res.json()).error ?? t("loadFailed"));
+      setError(apiError(await res.json().catch(() => null), t("loadFailed")));
       return;
     }
     setReceipts((await res.json()).receipts);
-  }, [t]);
+  }, [apiError, t]);
 
   useEffect(() => {
     load();
@@ -72,7 +75,7 @@ export default function AddReceiptsDialog({
       const form = new FormData();
       for (const f of Array.from(files)) form.append("files", f);
       const res = await fetch("/api/receipts", { method: "POST", body: form });
-      if (!res.ok) throw new Error((await res.json()).error ?? t("uploadFailed"));
+      if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("uploadFailed")));
       const { receipts: created } = await res.json();
       await load();
       // A receipt uploaded from here is obviously meant for this claim.
@@ -103,7 +106,7 @@ export default function AddReceiptsDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ receiptIds: Array.from(selected), manual: true }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? t("addFailed"));
+      if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("addFailed")));
       await onAdded();
     } catch (e) {
       setError(e instanceof Error ? e.message : t("addFailed"));
@@ -130,7 +133,7 @@ export default function AddReceiptsDialog({
       // A pre-stream failure (auth/validation) comes back as plain JSON.
       if (!res.ok || !res.body) {
         const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? t("addFailed"));
+        throw new Error(apiError(json, t("addFailed")));
       }
 
       let ok = false;
@@ -146,13 +149,19 @@ export default function AddReceiptsDialog({
             break;
           case "quota-wait":
             setWaiting(true);
-            setStatus(ev.message);
+            setStatus(
+              tErrors("quotaWait", {
+                seconds: Math.round(ev.cooldownMs / 1000),
+                attempt: ev.attempt,
+                maxRetries: ev.maxRetries,
+              })
+            );
             break;
           case "done":
             ok = true;
             break;
           case "error":
-            throw new Error(ev.message);
+            throw new Error(apiError(ev, t("addFailed")));
         }
       });
 

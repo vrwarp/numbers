@@ -20,7 +20,7 @@ export async function GET() {
   return handleApi(async () => {
     const userId = await requireUserId();
     const user = await prisma.user.findUnique({ where: { id: userId }, select: userSelect });
-    if (!user) throw new ApiError(404, "User not found");
+    if (!user) throw new ApiError(404, "User not found", "userNotFound");
     return NextResponse.json({ user });
   });
 }
@@ -38,7 +38,7 @@ export async function PATCH(req: NextRequest) {
   return handleApi(async () => {
     const userId = await requireUserId();
     const parsed = PatchSchema.safeParse(await req.json().catch(() => null));
-    if (!parsed.success) throw new ApiError(400, "Invalid profile update");
+    if (!parsed.success) throw new ApiError(400, "Invalid profile update", "invalidProfileUpdate");
     const user = await prisma.user.update({
       where: { id: userId },
       data: parsed.data,

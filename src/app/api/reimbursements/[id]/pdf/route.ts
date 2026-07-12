@@ -26,7 +26,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
         user: { select: { fullName: true, mailingAddress: true, email: true } },
       },
     });
-    if (!reimbursement) throw new ApiError(404, "Claim not found");
+    if (!reimbursement) throw new ApiError(404, "Claim not found", "claimNotFound");
     // Hash-bound signatures reference the archived bytes: while a claim is
     // under signature the packet is frozen — regeneration is only reachable
     // through revert, which voids the signatures (docs/ESIGN_DESIGN.md §5.1).
@@ -38,16 +38,16 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     }
 
     const active = reimbursement.lineItems.filter((it) => !it.isExcluded);
-    if (active.length === 0) throw new ApiError(400, "Claim has no line items to reimburse");
+    if (active.length === 0) throw new ApiError(400, "Claim has no line items to reimburse", "claimEmpty");
     const unverified = active.filter((it) => !it.isVerified);
     if (unverified.length > 0) {
-      throw new ApiError(400, `${unverified.length} row(s) still need verification before the PDF can be generated`);
+      throw new ApiError(400, `${unverified.length} row(s) still need verification before the PDF can be generated`, "rowsUnverified", { count: unverified.length });
     }
     // Defense in depth: verifying already requires a ministry, but the PDF is
     // the real gate — never print a row without an explicit ministry choice.
     const missingMinistry = active.filter((it) => !it.ministry);
     if (missingMinistry.length > 0) {
-      throw new ApiError(400, `${missingMinistry.length} row(s) still need a ministry before the PDF can be generated`);
+      throw new ApiError(400, `${missingMinistry.length} row(s) still need a ministry before the PDF can be generated`, "rowsMissingMinistry", { count: missingMinistry.length });
     }
 
     // Mint the capability token on first generation; it survives revert /

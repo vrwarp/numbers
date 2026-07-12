@@ -19,9 +19,9 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: strin
       where: { id, reimbursement: { userId } },
       include: { reimbursement: { select: { id: true, status: true } } },
     });
-    if (!item) throw new ApiError(404, "Line item not found");
+    if (!item) throw new ApiError(404, "Line item not found", "lineItemNotFound");
     if (item.reimbursement.status !== "draft") {
-      throw new ApiError(409, "Claim already generated; line items are frozen");
+      throw new ApiError(409, "Claim already generated; line items are frozen", "claimFrozen");
     }
 
     // The split route slots the new half right under the original, so "the
@@ -37,9 +37,9 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: strin
       },
       orderBy: { sortOrder: "desc" },
     });
-    if (!target) throw new ApiError(400, "No row above from the same receipt to merge into");
+    if (!target) throw new ApiError(400, "No row above from the same receipt to merge into", "nothingToMergeInto");
     if (item.isExcluded || target.isExcluded) {
-      throw new ApiError(400, "Restore the excluded row before merging");
+      throw new ApiError(400, "Restore the excluded row before merging", "restoreBeforeMerge");
     }
 
     const [merged] = await prisma.$transaction([

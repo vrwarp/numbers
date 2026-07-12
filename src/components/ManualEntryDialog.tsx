@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { parseDollarsToCents } from "@/lib/money";
+import { useApiErrorMessage } from "@/lib/use-api-error";
 
 /**
  * Shown when the AI couldn't read a receipt: the image sits next to the exact
@@ -26,6 +27,7 @@ export default function ManualEntryDialog({
 }) {
   const t = useTranslations("ManualEntry");
   const tCommon = useTranslations("Common");
+  const apiError = useApiErrorMessage();
   const [merchant, setMerchant] = useState("");
   const [purchaseDate, setPurchaseDate] = useState("");
   const [total, setTotal] = useState("");
@@ -67,7 +69,7 @@ export default function ManualEntryDialog({
           summary: summary.trim(),
         }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? t("saveFailed"));
+      if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("saveFailed")));
       await onSaved();
     } catch (e) {
       setError(e instanceof Error ? e.message : t("saveFailed"));

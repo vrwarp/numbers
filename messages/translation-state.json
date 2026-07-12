@@ -1264,6 +1264,271 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Errors.notSignedIn": {
+    "sourceHash": "491fc91c",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.signInNotConfigured": {
+    "sourceHash": "21704b3a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.idTokenRequired": {
+    "sourceHash": "6b5603ee",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.invalidIdToken": {
+    "sourceHash": "83d20bb7",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.verifiedEmailRequired": {
+    "sourceHash": "eaf32c20",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.emailRequired": {
+    "sourceHash": "aff08329",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.notFound": {
+    "sourceHash": "e3ebaa16",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.receiptNotFound": {
+    "sourceHash": "9cc969fa",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.invalidReceiptUpdate": {
+    "sourceHash": "2255d4de",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.receiptOnClaim": {
+    "sourceHash": "94c6df6a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.noFilesUploaded": {
+    "sourceHash": "e53623e0",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.unsupportedFileType": {
+    "sourceHash": "1e9e765d",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.emptyFile": {
+    "sourceHash": "497fc7bb",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.previewPdfOnly": {
+    "sourceHash": "2203948a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.invalidPreviewPage": {
+    "sourceHash": "727c935c",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.invalidImageEdit": {
+    "sourceHash": "3166683f",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.nothingToChange": {
+    "sourceHash": "78aa4421",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.imageEditImagesOnly": {
+    "sourceHash": "1bbe2285",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.receiptFrozenByClaim": {
+    "sourceHash": "e15d57c9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.nothingToRestore": {
+    "sourceHash": "480f2245",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.cropTooSmall": {
+    "sourceHash": "0b64cd2c",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.lineItemNotFound": {
+    "sourceHash": "05de1cdd",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.claimFrozen": {
+    "sourceHash": "1e782b41",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.invalidLineItemUpdate": {
+    "sourceHash": "f49bdd04",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.ministryRequiredToVerify": {
+    "sourceHash": "2efdb40e",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.invalidSplitRequest": {
+    "sourceHash": "f3313ae9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.splitAmountsInvalid": {
+    "sourceHash": "558f416a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.nothingToMergeInto": {
+    "sourceHash": "e2e3a651",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.restoreBeforeMerge": {
+    "sourceHash": "b0b70ba6",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.claimNotFound": {
+    "sourceHash": "32ef08be",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.invalidClaimUpdate": {
+    "sourceHash": "9bf1f1c1",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.claimSettingsFrozen": {
+    "sourceHash": "c9c429a9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.onlyDraftDeletable": {
+    "sourceHash": "1893670a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.receiptIdsRequired": {
+    "sourceHash": "e5e86e79",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.receiptsNotFound": {
+    "sourceHash": "7af26c6c",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.claimReceiptsFrozen": {
+    "sourceHash": "b18b6fa1",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.receiptsAlreadyOnClaim": {
+    "sourceHash": "e21ac06a",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.claimEmpty": {
+    "sourceHash": "0343a5a3",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.rowsUnverified": {
+    "sourceHash": "2c8995ee",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.rowsMissingMinistry": {
+    "sourceHash": "3c873dbe",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.invalidManualEntry": {
+    "sourceHash": "a80b1a86",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.receiptNotOnClaim": {
+    "sourceHash": "dc6f2fe3",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.rowAlreadyEdited": {
+    "sourceHash": "a612973f",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.lastReceiptOnClaim": {
+    "sourceHash": "76cf50f0",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.onlyGeneratedRevertible": {
+    "sourceHash": "498b0efd",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.descriptionRequired": {
+    "sourceHash": "d822959e",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.aiRateLimited": {
+    "sourceHash": "0a21c2bf",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.aiNoSuggestion": {
+    "sourceHash": "5797c386",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.aiQuotaExhausted": {
+    "sourceHash": "49ed4be9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.userNotFound": {
+    "sourceHash": "4a1793e9",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.invalidProfileUpdate": {
+    "sourceHash": "6900330e",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.extractionLogNotFound": {
+    "sourceHash": "86a099e2",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.quotaWait": {
+    "sourceHash": "9db3efed",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "AddReceipts.title": {
     "sourceHash": "528b98d9",
     "zh-Hans": "machine",

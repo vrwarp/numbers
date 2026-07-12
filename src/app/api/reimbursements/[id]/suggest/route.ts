@@ -23,13 +23,13 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const userId = await requireUserId();
     const { id } = await ctx.params;
     const parsed = SuggestSchema.safeParse(await req.json().catch(() => null));
-    if (!parsed.success) throw new ApiError(400, "Describe the claim in a sentence first");
+    if (!parsed.success) throw new ApiError(400, "Describe the claim in a sentence first", "descriptionRequired");
     const description = parsed.data.description.trim();
 
     const claim = await prisma.reimbursement.findFirst({ where: { id, userId } });
-    if (!claim) throw new ApiError(404, "Claim not found");
+    if (!claim) throw new ApiError(404, "Claim not found", "claimNotFound");
     if (claim.status !== "draft") {
-      throw new ApiError(409, "Claim already generated; review settings are frozen");
+      throw new ApiError(409, "Claim already generated; review settings are frozen", "claimSettingsFrozen");
     }
 
     if (description !== claim.claimDescription) {
@@ -76,7 +76,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           err.quota ? 429 : 502,
           err.quota
             ? "The AI provider is rate-limited right now — try again in a minute or pick a ministry manually"
-            : "The AI couldn't produce a suggestion — pick a ministry manually"
+            : "The AI couldn't produce a suggestion — pick a ministry manually",
+          err.quota ? "aiRateLimited" : "aiNoSuggestion"
         );
       }
       throw err;

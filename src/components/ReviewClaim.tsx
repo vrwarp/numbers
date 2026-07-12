@@ -16,6 +16,7 @@ import AddReceiptsDialog from "@/components/AddReceiptsDialog";
 import ManualEntryDialog from "@/components/ManualEntryDialog";
 import PdfReceiptPreview from "@/components/PdfReceiptPreview";
 import EsignPanel from "@/components/esign/EsignPanel";
+import { useApiErrorMessage } from "@/lib/use-api-error";
 
 /** Statuses in which the packet is under signature — the stored bytes are
  *  frozen, downloads must NOT regenerate, and only paid blocks revert. */
@@ -108,6 +109,7 @@ function receiptLabel(receipt: ReceiptInfo): string {
 export default function ReviewClaim({ claimId }: { claimId: string }) {
   const t = useTranslations("Review");
   const tStatus = useTranslations("Common.status");
+  const apiError = useApiErrorMessage();
   const tCommon = useTranslations("Common");
   const router = useRouter();
   const [claim, setClaim] = useState<Claim | null>(null);
@@ -158,11 +160,11 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const load = useCallback(async () => {
     const res = await fetch(`/api/reimbursements/${claimId}`);
     if (!res.ok) {
-      setError((await res.json()).error ?? t("loadFailed"));
+      setError(apiError(await res.json().catch(() => null), t("loadFailed")));
       return;
     }
     setClaim((await res.json()).reimbursement);
-  }, [claimId]);
+  }, [apiError, claimId, t]);
 
   useEffect(() => {
     load();
@@ -204,7 +206,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             body: JSON.stringify(patch),
           });
           if (!res.ok) {
-            setError((await res.json()).error ?? t("updateFailed"));
+            setError(apiError(await res.json().catch(() => null), t("updateFailed")));
             await load();
             return;
           }
@@ -223,7 +225,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         }
       });
     },
-    [enqueue, load]
+    [apiError, enqueue, load, t]
   );
 
   // Claim-level review settings (mode, claim ministry/event, description).
@@ -240,7 +242,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             body: JSON.stringify(patch),
           });
           if (!res.ok) {
-            setError((await res.json()).error ?? t("updateFailed"));
+            setError(apiError(await res.json().catch(() => null), t("updateFailed")));
             await load();
             return;
           }
@@ -250,7 +252,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         }
       });
     },
-    [claimId, enqueue, load]
+    [apiError, claimId, enqueue, load, t]
   );
 
   const mergeUp = useCallback(
@@ -259,7 +261,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         try {
           const res = await fetch(`/api/line-items/${itemId}/merge`, { method: "POST" });
           if (!res.ok) {
-            setError((await res.json()).error ?? t("mergeFailed"));
+            setError(apiError(await res.json().catch(() => null), t("mergeFailed")));
             return;
           }
           await load();
@@ -267,7 +269,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           setError(t("mergeFailed"));
         }
       }),
-    [enqueue, load]
+    [apiError, enqueue, load, t]
   );
 
   const groups = useMemo(() => {
@@ -456,7 +458,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         body: JSON.stringify({ description }),
       });
       if (!res.ok) {
-        setError((await res.json()).error ?? t("suggestionFailed"));
+        setError(apiError(await res.json().catch(() => null), t("suggestionFailed")));
         return;
       }
       setError(null);
@@ -481,7 +483,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
       const res = signed
         ? await fetch(`/api/reimbursements/${claim!.id}/packet`)
         : await fetch(`/api/reimbursements/${claim!.id}/pdf`, { method: "POST" });
-      if (!res.ok) throw new Error((await res.json()).error ?? t("pdfFailed"));
+      if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("pdfFailed")));
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -510,7 +512,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     )
       return;
     const res = await fetch(`/api/reimbursements/${claim!.id}/revert`, { method: "POST" });
-    if (!res.ok) setError((await res.json()).error ?? t("revertFailed"));
+    if (!res.ok) setError(apiError(await res.json().catch(() => null), t("revertFailed")));
     await load();
   }
 
@@ -522,7 +524,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     const res = await fetch(`/api/reimbursements/${claim!.id}/receipts/${receiptId}`, {
       method: "DELETE",
     });
-    if (!res.ok) setError((await res.json()).error ?? t("removeFailed"));
+    if (!res.ok) setError(apiError(await res.json().catch(() => null), t("removeFailed")));
     await load();
   }
 
@@ -530,7 +532,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     if (!confirm(t("discardConfirm"))) return;
     const res = await fetch(`/api/reimbursements/${claim!.id}`, { method: "DELETE" });
     if (res.ok) router.push("/");
-    else setError((await res.json()).error ?? t("deleteFailed"));
+    else setError(apiError(await res.json().catch(() => null), t("deleteFailed")));
   }
 
   return (
@@ -1534,6 +1536,7 @@ function SplitDialog({
 }) {
   const t = useTranslations("Review");
   const tCommon = useTranslations("Common");
+  const apiError = useApiErrorMessage();
   const [firstText, setFirstText] = useState(() => {
     const sign = item.amountCents < 0 ? -1 : 1;
     return centsToDollarString(sign * Math.ceil(Math.abs(item.amountCents) / 2));
@@ -1559,7 +1562,7 @@ function SplitDialog({
       body: JSON.stringify({ firstAmountCents: firstCents }),
     });
     if (!res.ok) {
-      setError((await res.json()).error ?? t("splitFailed"));
+      setError(apiError(await res.json().catch(() => null), t("splitFailed")));
       setBusy(false);
       return;
     }

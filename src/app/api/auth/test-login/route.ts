@@ -10,10 +10,10 @@ export const runtime = "nodejs";
 /** Passwordless dev login. Exists only when AUTH_TEST_MODE=1 (Playwright / offline dev). */
 export async function POST(req: NextRequest) {
   return handleApi(async () => {
-    if (!isAuthTestMode()) throw new ApiError(404, "Not found");
+    if (!isAuthTestMode()) throw new ApiError(404, "Not found", "notFound");
     const body = await req.json().catch(() => null);
     const email = String(body?.email ?? "").trim().toLowerCase();
-    if (!email) throw new ApiError(400, "email required");
+    if (!email) throw new ApiError(400, "email required", "emailRequired");
     const name = String(body?.name ?? "") || email.split("@")[0];
 
     const user = await prisma.user.upsert({

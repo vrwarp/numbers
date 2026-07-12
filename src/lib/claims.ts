@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { Receipt } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { ApiError } from "@/lib/api";
+import { ApiError, apiErrorPayload } from "@/lib/api";
 import {
   extractReceipts,
   type ReceiptExtraction,
@@ -111,7 +111,9 @@ export async function extractClaimRows(
       429,
       `AI provider rate limit / quota exhausted (target ${rpmTarget()} requests/minute). ` +
         `The server waited and retried but the quota hasn't cleared — please wait a minute ` +
-        `and try again. Affected: ${names}`
+        `and try again. Affected: ${names}`,
+      "aiQuotaExhausted",
+      { rpm: rpmTarget(), names }
     );
   }
 
@@ -188,12 +190,8 @@ export function manualClaimRows(receipts: Receipt[]): ClaimExtraction[] {
 /** Pre-stream (auth/validation) failures still return plain JSON — the client
  *  reads them before switching to stream mode. */
 export function apiErrorJson(err: unknown): NextResponse {
-  if (err instanceof ApiError) {
-    return NextResponse.json({ error: err.message }, { status: err.status });
-  }
-  console.error("API error:", err);
-  const message = err instanceof Error ? err.message : "Internal error";
-  return NextResponse.json({ error: message }, { status: 500 });
+  const { body, status } = apiErrorPayload(err);
+  return NextResponse.json(body, { status });
 }
 
 /**
@@ -220,6 +218,7 @@ export function claimProgressStream(
           type: "error",
           status: err instanceof ApiError ? err.status : 500,
           message: err instanceof Error ? err.message : "Claim generation failed",
+          ...(err instanceof ApiError && err.code ? { code: err.code, params: err.params } : {}),
         });
       } finally {
         controller.close();

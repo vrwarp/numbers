@@ -15,9 +15,9 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     const userId = await requireUserId();
     const { id } = await ctx.params;
     const parsed = PatchSchema.safeParse(await req.json().catch(() => null));
-    if (!parsed.success) throw new ApiError(400, "Invalid receipt update");
+    if (!parsed.success) throw new ApiError(400, "Invalid receipt update", "invalidReceiptUpdate");
     const receipt = await prisma.receipt.findFirst({ where: { id, userId } });
-    if (!receipt) throw new ApiError(404, "Receipt not found");
+    if (!receipt) throw new ApiError(404, "Receipt not found", "receiptNotFound");
     const updated = await prisma.receipt.update({
       where: { id },
       data: { note: parsed.data.note.trim() },
@@ -33,9 +33,9 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
     const userId = await requireUserId();
     const { id } = await ctx.params;
     const receipt = await prisma.receipt.findFirst({ where: { id, userId } });
-    if (!receipt) throw new ApiError(404, "Receipt not found");
+    if (!receipt) throw new ApiError(404, "Receipt not found", "receiptNotFound");
     const inUse = await prisma.reimbursementReceipt.count({ where: { receiptId: id } });
-    if (inUse > 0) throw new ApiError(409, "Receipt is part of a claim and cannot be deleted");
+    if (inUse > 0) throw new ApiError(409, "Receipt is part of a claim and cannot be deleted", "receiptOnClaim");
     await prisma.receipt.delete({ where: { id } });
     await deleteStoredFile(receipt.filePath);
     if (receipt.originalFilePath) await deleteStoredFile(receipt.originalFilePath);

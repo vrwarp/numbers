@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { LOCALES, LOCALE_LABELS } from "@/lib/locales";
+import { useApiErrorMessage } from "@/lib/use-api-error";
 
 interface Profile {
   email: string;
@@ -17,6 +18,7 @@ export default function ProfileForm() {
   const tCommon = useTranslations("Common");
   const router = useRouter();
   const activeLocale = useLocale();
+  const apiError = useApiErrorMessage();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [fullName, setFullName] = useState("");
   const [mailingAddress, setMailingAddress] = useState("");
@@ -52,7 +54,7 @@ export default function ProfileForm() {
       // The route also set the locale cookie — re-render in the new language.
       if (locale !== activeLocale) router.refresh();
     } else {
-      setError((await res.json()).error ?? t("saveFailed"));
+      setError(apiError(await res.json().catch(() => null), t("saveFailed")));
     }
     setBusy(false);
   }

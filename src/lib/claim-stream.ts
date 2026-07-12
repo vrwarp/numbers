@@ -24,4 +24,12 @@ export type ClaimStreamMessage =
       message: string;
     }
   | { type: "done"; reimbursementId: string }
-  | { type: "error"; status: number; message: string };
+  | {
+      type: "error";
+      status: number;
+      /** English text — display fallback and log line. */
+      message: string;
+      /** Machine-readable identity for client-side translation (Errors.*). */
+      code?: string;
+      params?: Record<string, string | number>;
+    };

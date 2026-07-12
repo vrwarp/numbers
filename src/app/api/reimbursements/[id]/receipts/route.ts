@@ -25,24 +25,24 @@ const AddSchema = z.object({
 /** Own-check the claim (draft only) and the receipts to add, or throw. */
 async function loadValidated(req: NextRequest, userId: string, id: string) {
   const body = AddSchema.safeParse(await req.json().catch(() => null));
-  if (!body.success) throw new ApiError(400, "receiptIds (non-empty array) required");
+  if (!body.success) throw new ApiError(400, "receiptIds (non-empty array) required", "receiptIdsRequired");
   const receiptIds = [...new Set(body.data.receiptIds)];
 
   const reimbursement = await prisma.reimbursement.findFirst({
     where: { id, userId },
     include: { receipts: { select: { receiptId: true } } },
   });
-  if (!reimbursement) throw new ApiError(404, "Claim not found");
+  if (!reimbursement) throw new ApiError(404, "Claim not found", "claimNotFound");
   if (reimbursement.status !== "draft") {
-    throw new ApiError(409, "Claim already generated; receipts are frozen");
+    throw new ApiError(409, "Claim already generated; receipts are frozen", "claimReceiptsFrozen");
   }
   if (receiptIds.some((rid) => reimbursement.receipts.some((rr) => rr.receiptId === rid))) {
-    throw new ApiError(409, "One or more receipts are already on this claim");
+    throw new ApiError(409, "One or more receipts are already on this claim", "receiptsAlreadyOnClaim");
   }
 
   const receipts = await prisma.receipt.findMany({ where: { id: { in: receiptIds }, userId } });
   if (receipts.length !== receiptIds.length) {
-    throw new ApiError(404, "One or more receipts were not found");
+    throw new ApiError(404, "One or more receipts were not found", "receiptsNotFound");
   }
   // As at claim creation, any owned receipt qualifies regardless of status —
   // a receipt may sit on several claims. It is re-extracted for this claim,
@@ -74,9 +74,9 @@ async function addReceipts(
     where: { id: reimbursementId, userId },
     include: { lineItems: { select: { sortOrder: true } } },
   });
-  if (!current) throw new ApiError(404, "Claim not found");
+  if (!current) throw new ApiError(404, "Claim not found", "claimNotFound");
   if (current.status !== "draft") {
-    throw new ApiError(409, "Claim already generated; receipts are frozen");
+    throw new ApiError(409, "Claim already generated; receipts are frozen", "claimReceiptsFrozen");
   }
 
   // New rows sort after every existing row (splits renumber within a receipt,

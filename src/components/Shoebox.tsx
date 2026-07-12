@@ -10,6 +10,7 @@ import ReceiptGrid, { type ReceiptSummary as Receipt } from "./ReceiptGrid";
 import { prepareImageUpload, renderTransformedImage } from "@/lib/image-client";
 import { readNdjsonStream } from "@/lib/ndjson";
 import type { ClaimStreamMessage } from "@/lib/claim-stream";
+import { useApiErrorMessage } from "@/lib/use-api-error";
 
 /** A picked image waiting in the prepare step — nothing is uploaded yet.
  *  `edited` holds the client-side rotate/crop render (native resolution);
@@ -36,6 +37,8 @@ type PendingItem = LocalPending | UploadedPending;
 export default function Shoebox() {
   const t = useTranslations("Shoebox");
   const tCommon = useTranslations("Common");
+  const tErrors = useTranslations("Errors");
+  const apiError = useApiErrorMessage();
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const [receipts, setReceipts] = useState<Receipt[] | null>(null);
@@ -131,7 +134,7 @@ export default function Shoebox() {
       const form = new FormData();
       for (const f of files) form.append("files", f);
       const res = await fetch("/api/receipts", { method: "POST", body: form });
-      if (!res.ok) throw new Error((await res.json()).error ?? t("uploadFailed"));
+      if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("uploadFailed")));
       const { receipts: created } = (await res.json()) as { receipts: Receipt[] };
       setPending((q) => [
         ...q,
@@ -172,7 +175,7 @@ export default function Shoebox() {
       }
       if (note) form.append("note", note);
       const res = await fetch("/api/receipts", { method: "POST", body: form });
-      if (!res.ok) throw new Error((await res.json()).error ?? t("uploadFailed"));
+      if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("uploadFailed")));
       const done = new Set(items.map((i) => i.key));
       for (const item of items) URL.revokeObjectURL(item.previewUrl);
       setPending((q) => q.filter((i) => !done.has(i.key)));
@@ -264,14 +267,14 @@ export default function Shoebox() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ note }),
     });
-    if (!res.ok) setError((await res.json()).error ?? t("noteSaveFailed"));
+    if (!res.ok) setError(apiError(await res.json().catch(() => null), t("noteSaveFailed")));
     await load();
   }
 
   async function deleteReceipt(id: string) {
     if (!confirm(t("deleteConfirm"))) return;
     const res = await fetch(`/api/receipts/${id}`, { method: "DELETE" });
-    if (!res.ok) setError((await res.json()).error ?? t("deleteFailed"));
+    if (!res.ok) setError(apiError(await res.json().catch(() => null), t("deleteFailed")));
     setSelected((prev) => {
       const next = new Set(prev);
       next.delete(id);
@@ -294,7 +297,7 @@ export default function Shoebox() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ receiptIds: Array.from(selected), manual: true }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? t("manualStartFailed"));
+      if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("manualStartFailed")));
       const { reimbursement } = await res.json();
       router.push(`/claims/${reimbursement.id}`);
     } catch (e) {
@@ -333,7 +336,7 @@ export default function Shoebox() {
       // A pre-stream failure (auth/validation) comes back as plain JSON.
       if (!res.ok || !res.body) {
         const json = await res.json().catch(() => ({}));
-        throw new Error(json.error ?? t("generateFailed"));
+        throw new Error(apiError(json, t("generateFailed")));
       }
 
       let claimId: string | null = null;
@@ -351,13 +354,19 @@ export default function Shoebox() {
             setWaiting(true);
             setWaitCooldownMs(ev.cooldownMs);
             setWaitKey((k) => k + 1);
-            setStatus(ev.message);
+            setStatus(
+              tErrors("quotaWait", {
+                seconds: Math.round(ev.cooldownMs / 1000),
+                attempt: ev.attempt,
+                maxRetries: ev.maxRetries,
+              })
+            );
             break;
           case "done":
             claimId = ev.reimbursementId;
             break;
           case "error":
-            throw new Error(ev.message);
+            throw new Error(apiError(ev, t("generateFailed")));
         }
       };
 

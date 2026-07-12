@@ -1,7 +1,11 @@
 # Localization plan: English + 简体中文 + 繁體中文
 
-*Status: PROPOSAL — for review. No code changes yet. All file:line references are against
-`1d8383b`.*
+*Status: IMPLEMENTED (P0–P5, commits `d414359`…on this branch). Kept as the design rationale
+record; file:line references below describe the codebase as of `1d8383b` (pre-implementation).
+Current conventions live in `docs/agent/CONVENTIONS.md` "Localization"; the workflow in
+`messages/GLOSSARY.md` + `scripts/translate-messages.ts`. Still open (P6 / review): native
+review of the machine-drafted zh catalogs, ministry display labels, AI output-language
+steering, and open questions 1–6 below.*
 
 ## Goal
 

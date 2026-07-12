@@ -12,16 +12,19 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const userId = await requireUserId();          // 401 if unauthenticated
     const { id } = await ctx.params;               // Next 15: params IS A PROMISE — await it
     const parsed = Schema.safeParse(await req.json().catch(() => null));
-    if (!parsed.success) throw new ApiError(400, "…");
+    if (!parsed.success) throw new ApiError(400, "…", "someCode");
     const row = await prisma.thing.findFirst({ where: { id, userId } }); // ALWAYS scope by userId
-    if (!row) throw new ApiError(404, "…");        // 404, not 403, for cross-tenant
+    if (!row) throw new ApiError(404, "…", "thingNotFound"); // 404, not 403, for cross-tenant
     // … mutate; recompute totalCents if line items changed; emit AuditEvent …
     return NextResponse.json({ … });
   });
 }
 ```
 
-- Errors: `throw new ApiError(status, message)`; handleApi converts to `{error}` JSON.
+- Errors: `throw new ApiError(status, message, code?, params?)`; handleApi converts to
+  `{error, code?, params?}` JSON. `message` stays English (logs/curl/fallback); `code` is the
+  machine-readable identity clients translate via `Errors.<code>` in the catalogs — every
+  user-surfaceable error gets one, with a matching entry in all three `messages/*.json`.
 - zod for every request body; `.partial()` objects for PATCH.
 - Server pages: `const userId = await currentUserId(); if (!userId) redirect("/signin");`
   There is NO middleware — every page/route checks itself.
@@ -40,6 +43,35 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   in a dependency-free module like ministries.ts, re-export from config.ts.
 - `sharp` and `@prisma/client` are in `serverExternalPackages` (next.config.ts) — don't import
   them anywhere client-reachable.
+
+## Localization (en / zh-Hans / zh-Hant)
+
+- **Every user-visible string comes from `messages/<locale>.json`** via next-intl —
+  `useTranslations` in client components, `getTranslations`/`getFormatter` in server ones.
+  That includes placeholders, tooltips, `title`/`aria-label`s, `confirm()` prompts, and
+  client-side error fallbacks. Keys are typed against `messages/en.json` (global.d.ts) —
+  a typo'd key fails `npm run build`; a missing/drifted translation fails `npm test`
+  (tests/unit/messages.test.ts: key parity, ICU-argument parity, sourceHash staleness).
+- Authoring rules: whole sentences per key (never assemble from fragments — inline
+  links/bold via `t.rich` with `<link>`/`<strong>` chunks); ICU plurals instead of
+  `${n > 1 ? "s" : ""}`; named arguments; each ternary branch is its own key; enum → label
+  through `Common.status.*`; never translate data (user text, merchant names, ministry
+  canonical values, "Numbers", "CFCC").
+- Adding/rewording English: update `en.json` in the same PR, then `npm run translate`
+  (drafts the Chinese, updates `messages/translation-state.json`) — or
+  `npm run translate -- --todo` without an AI key. Reviewed keys are never overwritten
+  without `--force`. Terminology lives in `messages/GLOSSARY.md`.
+- Locale resolution: `numbers_locale` cookie → Accept-Language → en
+  (src/i18n/request.ts); `User.locale` is the durable copy, reconciled at sign-in
+  (src/i18n/cookie.ts). No URL locale routing, no middleware.
+- API errors are translated CLIENT-side (`useApiErrorMessage()` — src/lib/use-api-error.ts);
+  the server stays locale-free. New error string ⇒ new code ⇒ new `Errors.*` entry ×3.
+- Server-side errors that never surface (config/programming errors) stay plain English —
+  don't invent codes for them.
+- Money display stays `$12.34` in every locale (shared with the PDF); dates go through
+  next-intl formatters, never bare `toLocaleDateString()`.
+- e2e runs pinned to en (playwright.config.ts `locale: "en-US"`); `i18n.spec.ts` is the one
+  spec that exercises the Chinese catalogs. Keep preferring `data-testid` over text selectors.
 
 ## UI conventions
 

@@ -41,12 +41,12 @@ async function loadSelectedReceipts(
   userId: string
 ): Promise<{ receipts: Receipt[]; manual: boolean }> {
   const body = CreateSchema.safeParse(await req.json().catch(() => null));
-  if (!body.success) throw new ApiError(400, "receiptIds (non-empty array) required");
+  if (!body.success) throw new ApiError(400, "receiptIds (non-empty array) required", "receiptIdsRequired");
   const receiptIds = [...new Set(body.data.receiptIds)];
 
   const receipts = await prisma.receipt.findMany({ where: { id: { in: receiptIds }, userId } });
   if (receipts.length !== receiptIds.length) {
-    throw new ApiError(404, "One or more receipts were not found");
+    throw new ApiError(404, "One or more receipts were not found", "receiptsNotFound");
   }
   // A receipt may go on any number of claims (e.g. one purchase split across
   // two filings) — processed receipts are deliberately allowed. Each claim
