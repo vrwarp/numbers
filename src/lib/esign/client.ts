@@ -291,6 +291,32 @@ export async function enroll(
   return { publicKey: identity.publicKeyB64, status: second.identityStatus };
 }
 
+/** Finish a half-completed enrollment (§4.2). enroll() is a multi-step,
+ *  non-atomic flow — the identity row lands first, the roster key is
+ *  reported last — so a death in between (the production case: Safari
+ *  killing the tab's Firestore channel mid-custody, then a refresh) leaves
+ *  status "pending" with NO publicKey: no vouch QR, invisible in
+ *  /api/esign/pending, and no UI path out. A device whose custody is ready
+ *  can always re-derive the key (ensureIdentity returns the existing
+ *  keypair, or mints one where enroll() itself would have — the route
+ *  treats a changed key as a fresh enrollment restart), so the identity
+ *  card calls this opportunistically. Returns true when a key was
+ *  (re)reported and the env should be reloaded. */
+export async function repairEnrollment(env: EsignEnv): Promise<boolean> {
+  if (!env.me.identityStatus || env.me.publicKey) return false;
+  if (!env.rosterLedgerId || !env.rosterLedgerKey) return false;
+  const identity = await custodyFor(env).ensureIdentity(env.rosterLedgerId, env.rosterLedgerKey);
+  await rememberRoster(env.rosterLedgerId);
+  await jsonOrThrow(
+    await fetch("/api/esign/identity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ publicKey: identity.publicKeyB64 }),
+    })
+  );
+  return true;
+}
+
 /** Update the hand-drawn signature alone (never touches attestation). */
 export async function updateSignatureImage(signatureImage: string): Promise<void> {
   await jsonOrThrow(

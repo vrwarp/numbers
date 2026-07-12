@@ -40,6 +40,7 @@ let carol: Persona;
 let alicePhone: Persona;
 let aliceTablet: Persona;
 let aliceNew: Persona;
+let evan: Persona;
 
 // Cross-test state (serial suite).
 let bobVouchUrl: string;
@@ -164,7 +165,7 @@ test.beforeAll(async ({ browser }) => {
 });
 
 test.afterAll(async () => {
-  for (const p of [root, alice, bob, carol, alicePhone, aliceTablet, aliceNew]) {
+  for (const p of [root, alice, bob, carol, alicePhone, aliceTablet, aliceNew, evan]) {
     await p?.context.close().catch(() => {});
   }
 });
@@ -495,4 +496,75 @@ test("lost everything: start-over + re-vouch supersedes the key; history stands"
   await anonPage.goto(`${BASE}/v/${publicToken}`);
   await expect(anonPage.getByText("Signatures verified")).toBeVisible({ timeout: 30_000 });
   await anon.close();
+});
+
+test("a mid-enroll crash strands no one: the key re-reports on the next visit", async ({
+  browser,
+}) => {
+  test.setTimeout(240_000);
+  // The production incident: Safari killed the tab's Firestore channel
+  // mid-enroll, so custody completed but the key-report POST never ran —
+  // status "pending" with an empty publicKey, no vouch QR, invisible in
+  // /api/esign/pending. Reproduce it by blocking exactly that POST.
+  evan = await newPersona(browser, "evan@example.com", "Evan Park");
+
+  // Root allowlists Evan (scope is still "allowlist" from the rollout test).
+  await root.page.goto(`${BASE}/profile`);
+  await root.page.waitForSelector('[data-testid="allowlist-panel"]', { timeout: 30_000 });
+  const evanRow = root.page.locator('[data-testid="allowlist-panel"] li', {
+    hasText: "evan@example.com",
+  });
+  await evanRow.locator('[data-testid^="allow-"]').click();
+  await expect(evanRow.locator('[data-testid^="disallow-"]')).toBeVisible({ timeout: 15_000 });
+
+  let blocked = 0;
+  await evan.page.route("**/api/esign/identity", async (route) => {
+    if (
+      route.request().method() === "POST" &&
+      (route.request().postData() ?? "").includes("publicKey")
+    ) {
+      blocked++;
+      return route.abort("failed");
+    }
+    return route.continue();
+  });
+
+  await evan.page.goto(`${BASE}/profile`);
+  await evan.page.click('[data-testid="enable-signing"]', { timeout: 30_000 });
+  await evan.page.check('[data-testid="consent-checkbox"]');
+  await evan.page.click('[data-testid="consent-next"]');
+  await evan.page.waitForSelector('[data-testid="signature-pad"]');
+  await drawSignature(evan.page);
+  await evan.page.click('[data-testid="finish-enroll"]');
+  // The block fires only AFTER custody finished (the report is enroll's last
+  // step) — once it has, the wizard has failed and the stranded row exists.
+  await expect.poll(() => blocked, { timeout: 60_000 }).toBeGreaterThan(0);
+  await expect(evan.page.locator('[data-testid="finish-enroll"]:not([disabled])')).toBeVisible({
+    timeout: 30_000,
+  });
+
+  // Stranded: pending status, but keyless — so vouchers cannot see him.
+  const before = await root.context.request.get(`${BASE}/api/esign/pending`);
+  expect(
+    ((await before.json()).pending as { email: string }[]).map((p) => p.email)
+  ).not.toContain("evan@example.com");
+
+  // The next plain visit self-heals: custody re-derives the key and reports
+  // it, the vouch QR appears, and the voucher fallback list gains him.
+  await evan.page.unroute("**/api/esign/identity");
+  await evan.page.goto(`${BASE}/profile`);
+  const evanLink = evan.page.locator('a[href*="/vouch?c="]');
+  await expect(evanLink).toBeVisible({ timeout: 60_000 });
+  const after = await root.context.request.get(`${BASE}/api/esign/pending`);
+  expect(((await after.json()).pending as { email: string }[]).map((p) => p.email)).toContain(
+    "evan@example.com"
+  );
+
+  // And the healed key is the one custody signs with: a real vouch lands.
+  await root.page.goto((await evanLink.getAttribute("href"))!);
+  await root.page.check('[data-testid="vouch-confirm"]');
+  await root.page.click('[data-testid="vouch-submit"]');
+  await root.page.waitForSelector('[data-testid="vouch-done"]', { timeout: 30_000 });
+  await evan.page.goto(`${BASE}/profile`);
+  await expect(evan.page.getByText("Ready to sign")).toBeVisible({ timeout: 60_000 });
 });
