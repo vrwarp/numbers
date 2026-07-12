@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { openLedger } from "@/lib/esign/envelope";
 import { replayRoster, type RosterTimeline } from "@/lib/esign/roster";
 import { evaluateClaimLedger, type ClaimEvaluation } from "@/lib/esign/validity";
@@ -37,7 +38,11 @@ interface Verdict {
   rosterAnomalies: number;
 }
 
+const THREAD_STATES = ["open", "approved", "rejected", "paid", "withdrawn", "superseded"] as const;
+
 export default function VerificationView({ token }: { token: string }) {
+  const t = useTranslations("Verify");
+  const tEsign = useTranslations("Esign");
   const [verdict, setVerdict] = useState<Verdict | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,7 +53,7 @@ export default function VerificationView({ token }: { token: string }) {
     try {
       const get = async (part: string) => {
         const res = await fetch(`/api/v/${token}/${part}`);
-        if (!res.ok) throw new Error(`This verification link is not valid (${part})`);
+        if (!res.ok) throw new Error(t("linkInvalid", { part }));
         return res;
       };
       const summary = await (await get("summary")).json();
@@ -61,9 +66,9 @@ export default function VerificationView({ token }: { token: string }) {
       const anchor = registry.configuredRootFingerprint
         ? {
             ok: fingerprintMatches(rootFp, registry.configuredRootFingerprint),
-            label: "root pinned by deployment config",
+            label: t("rootPinnedCfg"),
           }
-        : { ok: true, label: "root relayed by this server (verify the fingerprint in person)" };
+        : { ok: true, label: t("rootRelayed") };
 
       const rosterOpen = await openLedger(registry.rosterLedgerKey, events.roster);
       const roster = replayRoster(
@@ -71,6 +76,8 @@ export default function VerificationView({ token }: { token: string }) {
         rosterOpen.events as VerifiedEvent<RosterAction>[]
       );
       if (roster.root.publicKey !== registry.rootPublicKey) {
+        // Audit-grade failure: stays English on purpose (fail-closed detail
+        // for whoever investigates, alongside the fingerprints).
         throw new Error("Roster genesis does not match the registry root key");
       }
       const claimOpen = await openLedger(summary.ledgerKey, events.claim);
@@ -111,11 +118,11 @@ export default function VerificationView({ token }: { token: string }) {
         rosterAnomalies: roster.anomalies.length + rosterOpen.rejected.length,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Verification failed");
+      setError(err instanceof Error ? err.message : t("failedTitle"));
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, t]);
 
   useEffect(() => {
     void run();
@@ -125,7 +132,7 @@ export default function VerificationView({ token }: { token: string }) {
     return (
       <div className="mx-auto max-w-2xl py-10 text-center text-stone-500">
         <div className="text-3xl">🔎</div>
-        <p className="mt-2">Verifying signatures in your browser…</p>
+        <p className="mt-2">{t("verifying")}</p>
       </div>
     );
   }
@@ -134,14 +141,15 @@ export default function VerificationView({ token }: { token: string }) {
       <div className="mx-auto max-w-2xl">
         <div className="card border-red-300 bg-red-50 p-6 text-red-900" data-testid="verify-error">
           <div className="text-3xl">⛔</div>
-          <p className="mt-2 font-semibold">Verification failed</p>
+          <p className="mt-2 font-semibold">{t("failedTitle")}</p>
           <p className="text-sm">{error}</p>
         </div>
       </div>
     );
   }
 
-  const signerName = (key: string, t: number) => verdict.roster.memberAt(key, t)?.name ?? "Unknown";
+  const signerName = (key: string, ts: number) =>
+    verdict.roster.memberAt(key, ts)?.name ?? t("unknown");
   const allGreen =
     verdict.anchor.ok && verdict.packetOk && verdict.evaluation.anomalies.length === 0;
 
@@ -152,24 +160,27 @@ export default function VerificationView({ token }: { token: string }) {
       >
         <div className="text-3xl">{allGreen ? "✅" : "⚠️"}</div>
         <h1 className="mt-1 text-xl font-bold">
-          {allGreen ? "Signatures verified" : "Verification finished with warnings"}
+          {allGreen ? t("verifiedTitle") : t("warningsTitle")}
         </h1>
         <p className="text-sm text-stone-600">
-          {verdict.summary.ownerName && (
-            <>
-              Reimbursement claim by <strong>{verdict.summary.ownerName}</strong>
-              {verdict.summary.totalCents !== undefined &&
-                ` for ${formatCents(verdict.summary.totalCents)}`}
-              {" · "}
-            </>
-          )}
-          checked just now, in this browser.
+          {verdict.summary.ownerName &&
+            (verdict.summary.totalCents !== undefined
+              ? t.rich("claimByAmountLine", {
+                  name: verdict.summary.ownerName,
+                  amount: formatCents(verdict.summary.totalCents),
+                  b: (chunks) => <strong>{chunks}</strong>,
+                })
+              : t.rich("claimByLine", {
+                  name: verdict.summary.ownerName,
+                  b: (chunks) => <strong>{chunks}</strong>,
+                }))}
+          {t("checkedNow")}
         </p>
       </div>
 
       <details className="card p-5 text-sm">
         <summary className="cursor-pointer select-none font-medium text-stone-500">
-          Audit details
+          {tEsign("auditDetails")}
         </summary>
         <div className="mt-3 space-y-2">
         <Check ok={verdict.anchor.ok} label={verdict.anchor.label} />
@@ -177,24 +188,24 @@ export default function VerificationView({ token }: { token: string }) {
           ok={verdict.packetOk}
           label={
             verdict.packetOk
-              ? `packet bytes match the signed hash (${verdict.packetSha256?.slice(0, 16)}…)`
-              : "packet bytes do NOT match the signed hash"
+              ? t("packetMatch", { hash: verdict.packetSha256?.slice(0, 16) ?? "" })
+              : t("packetMismatch")
           }
         />
         <Check
           ok={verdict.evaluation.anomalies.length === 0}
           label={
             verdict.evaluation.anomalies.length === 0
-              ? "no ledger anomalies"
-              : `${verdict.evaluation.anomalies.length} ledger anomaly(ies)`
+              ? t("noAnomalies")
+              : t("anomalyCount", { count: verdict.evaluation.anomalies.length })
           }
         />
         {verdict.rosterAnomalies > 0 && (
-          <Check ok={false} label={`${verdict.rosterAnomalies} roster oddity(ies)`} />
+          <Check ok={false} label={t("rosterOddities", { count: verdict.rosterAnomalies })} />
         )}
         {verdict.evaluation.anomalies.length > 0 && (
           <div>
-            <p className="font-semibold text-amber-800">Invalid events (kept visible):</p>
+            <p className="font-semibold text-amber-800">{t("invalidEvents")}</p>
             <ul className="list-inside list-disc text-stone-600">
               {verdict.evaluation.anomalies.map((a, i) => (
                 <li key={i}>
@@ -205,49 +216,54 @@ export default function VerificationView({ token }: { token: string }) {
           </div>
         )}
         <p className="text-xs text-stone-400">
-          Independent check: run <code>scripts/verify-bundle.mjs</code> against the
-          certificate&apos;s embedded bundle with the church&apos;s published root fingerprint.
+          {t.rich("independentCheckCert", {
+            code: (chunks) => <code>{chunks}</code>,
+          })}
         </p>
         </div>
       </details>
 
-      {verdict.evaluation.threads.map((t) => (
-        <div key={t.seq} className="card space-y-2 p-5">
+      {verdict.evaluation.threads.map((th) => (
+        <div key={th.seq} className="card space-y-2 p-5">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold">Submission thread {t.seq}</h2>
-            <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold capitalize text-stone-700">
-              {t.state}
+            <h2 className="font-semibold">{t("threadTitle", { seq: th.seq })}</h2>
+            <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-700">
+              {THREAD_STATES.find((s) => s === th.state)
+                ? t(`state.${th.state as (typeof THREAD_STATES)[number]}`)
+                : th.state}
             </span>
           </div>
-          {t.submit && (
+          {th.submit && (
             <SignatureLine
-              title="Submitted"
-              name={signerName(t.submit.signerPublicKey, t.submit.createdAtMs)}
-              typed={(t.submit.action as SubmitAction).typedName}
-              ts={(t.submit.action as SubmitAction).ts}
-              signerKey={t.submit.signerPublicKey}
+              title={t("submitted")}
+              name={signerName(th.submit.signerPublicKey, th.submit.createdAtMs)}
+              typed={(th.submit.action as SubmitAction).typedName}
+              ts={(th.submit.action as SubmitAction).ts}
+              signerKey={th.submit.signerPublicKey}
             />
           )}
-          {t.decision && (
+          {th.decision && (
             <SignatureLine
-              title={t.decision.action.t === "APPROVE" ? "Approved" : "Rejected"}
-              name={signerName(t.decision.signerPublicKey, t.decision.createdAtMs)}
-              typed={(t.decision.action as { typedName?: string }).typedName}
-              ts={(t.decision.action as { ts: number }).ts}
-              signerKey={t.decision.signerPublicKey}
-              extra={(t.decision.action as { comment?: string }).comment}
+              title={th.decision.action.t === "APPROVE" ? t("approved") : t("rejected")}
+              name={signerName(th.decision.signerPublicKey, th.decision.createdAtMs)}
+              typed={(th.decision.action as { typedName?: string }).typedName}
+              ts={(th.decision.action as { ts: number }).ts}
+              signerKey={th.decision.signerPublicKey}
+              extra={(th.decision.action as { comment?: string }).comment}
             />
           )}
-          {t.paid && (
+          {th.paid && (
             <SignatureLine
-              title="Paid"
-              name={signerName(t.paid.signerPublicKey, t.paid.createdAtMs)}
-              typed={(t.paid.action as { typedName?: string }).typedName}
-              ts={(t.paid.action as { ts: number }).ts}
-              signerKey={t.paid.signerPublicKey}
+              title={t("paid")}
+              name={signerName(th.paid.signerPublicKey, th.paid.createdAtMs)}
+              typed={(th.paid.action as { typedName?: string }).typedName}
+              ts={(th.paid.action as { ts: number }).ts}
+              signerKey={th.paid.signerPublicKey}
               extra={
-                (t.paid.action as { checkNumber?: string }).checkNumber
-                  ? `Check #${(t.paid.action as { checkNumber?: string }).checkNumber}`
+                (th.paid.action as { checkNumber?: string }).checkNumber
+                  ? tEsign("checkNumber", {
+                      number: (th.paid.action as { checkNumber?: string }).checkNumber ?? "",
+                    })
                   : undefined
               }
             />
@@ -283,6 +299,7 @@ function SignatureLine({
   signerKey: string;
   extra?: string;
 }) {
+  const t = useTranslations("Verify");
   const [fp, setFp] = useState("");
   useEffect(() => {
     void keyFingerprint(signerKey).then((f) => setFp(fingerprintDisplay(f)));
@@ -299,7 +316,7 @@ function SignatureLine({
       </div>
       {extra && <div className="mt-1 text-xs text-stone-600">{extra}</div>}
       <details className="mt-1 text-[10px] text-stone-400">
-        <summary className="cursor-pointer select-none">key</summary>
+        <summary className="cursor-pointer select-none">{t("keySummary")}</summary>
         <code className="font-mono">{fp}</code>
       </details>
     </div>

@@ -21,14 +21,16 @@ import { useApiErrorMessage } from "@/lib/use-api-error";
 /** Statuses in which the packet is under signature — the stored bytes are
  *  frozen, downloads must NOT regenerate, and only paid blocks revert. */
 const SIGNED_STATUSES = ["submitted", "rejected", "approved", "paid"] as const;
-const STATUS_CHIPS: Record<string, { label: string; className: string }> = {
-  draft: { label: "Draft", className: "bg-amber-100 text-amber-800" },
-  generated: { label: "Generated", className: "bg-emerald-100 text-emerald-800" },
-  submitted: { label: "Awaiting approval", className: "bg-sky-100 text-sky-800" },
-  rejected: { label: "Rejected", className: "bg-red-100 text-red-800" },
-  approved: { label: "Approved", className: "bg-emerald-100 text-emerald-800" },
-  paid: { label: "Paid", className: "bg-indigo-100 text-indigo-800" },
+// Chip labels live in Common.status; the review chip shows draft as "Draft".
+const STATUS_STYLES: Record<string, string> = {
+  draft: "bg-amber-100 text-amber-800",
+  generated: "bg-emerald-100 text-emerald-800",
+  submitted: "bg-sky-100 text-sky-800",
+  rejected: "bg-red-100 text-red-800",
+  approved: "bg-emerald-100 text-emerald-800",
+  paid: "bg-indigo-100 text-indigo-800",
 };
+const STATUS_KEYS = ["generated", "submitted", "rejected", "approved", "paid"] as const;
 
 interface LineItem {
   id: string;
@@ -504,11 +506,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   async function revertClaim() {
     const underSignature = (SIGNED_STATUSES as readonly string[]).includes(claim!.status);
     if (
-      !confirm(
-        underSignature
-          ? "Revert this claim to draft? All collected signatures become void (the packet bytes will change) and approval starts over."
-          : t("revertConfirm")
-      )
+      !confirm(underSignature ? t("revertConfirmSigned") : t("revertConfirm"))
     )
       return;
     const res = await fetch(`/api/reimbursements/${claim!.id}/revert`, { method: "POST" });
@@ -542,15 +540,13 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           {t("title")}{" "}
           <span
             className={`ml-1 align-middle rounded-full px-3 py-1 text-xs font-semibold ${
-              (STATUS_CHIPS[claim.status] ?? STATUS_CHIPS.generated).className
+              STATUS_STYLES[claim.status] ?? STATUS_STYLES.generated
             }`}
             data-testid="claim-status"
           >
             {isDraft
               ? tStatus("draft")
-              : claim.status === "generated"
-                ? tStatus("generated")
-                : (STATUS_CHIPS[claim.status] ?? STATUS_CHIPS.generated).label}
+              : tStatus(STATUS_KEYS.find((k) => k === claim.status) ?? "generated")}
           </span>
         </h1>
         <p className="text-sm text-stone-500">{t("instruction")}</p>
@@ -774,9 +770,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           </div>
         ) : isDraft ? null : (
           <span className="text-sm text-stone-500">
-            {claim.status === "generated"
-              ? t("generatedFrozen")
-              : "Under signature — packet and rows are frozen."}
+            {claim.status === "generated" ? t("generatedFrozen") : t("underSignatureFrozen")}
           </span>
         )}
         <div className="ml-auto flex items-center gap-3">
@@ -820,7 +814,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                   ? t("generatePdf")
                   : claim.status === "generated"
                     ? t("downloadAgain")
-                    : "⬇ Download signed packet"}
+                    : t("downloadSigned")}
             </button>
           </span>
         </div>

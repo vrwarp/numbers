@@ -41,7 +41,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     if (!claim) throw new ApiError(404, "Claim not found");
     await claimAccessRole(claim, userId);
     if (!["approved", "paid"].includes(claim.status)) {
-      throw new ApiError(409, "Certificates exist once a claim is approved");
+      throw new ApiError(409, "Certificates exist once a claim is approved", "esign.certNotReady");
     }
     const registry = await getRegistry();
     if (!registry || !claim.signatureLedgerId || !claim.signatureLedgerKey || !claim.packetSha256) {

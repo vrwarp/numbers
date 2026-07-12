@@ -25,7 +25,7 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     // frozen-but-unpaid claim may revert; the collected signatures void by
     // hash mismatch once the packet is regenerated. Paid is terminal.
     if (!["generated", "submitted", "rejected", "approved"].includes(reimbursement.status)) {
-      throw new ApiError(409, "Only generated or under-signature claims can be reverted to draft");
+      throw new ApiError(409, "Only generated or under-signature claims can be reverted to draft", "onlyGeneratedRevertible");
     }
 
     const receiptIds = reimbursement.receipts.map((rr) => rr.receiptId);

@@ -57,7 +57,15 @@ export interface EsignEnv {
 
 async function jsonOrThrow(res: Response) {
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error(data?.error ?? `Request failed (${res.status})`);
+  if (!res.ok) {
+    // Carry the server body so the UI can translate by `code`
+    // (useThrownErrorMessage in src/lib/use-api-error.ts).
+    const err = new Error(data?.error ?? `Request failed (${res.status})`) as Error & {
+      payload?: unknown;
+    };
+    err.payload = data;
+    throw err;
+  }
   return data;
 }
 

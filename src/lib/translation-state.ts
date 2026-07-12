@@ -50,6 +50,15 @@ export const SAME_VALUE_GROUPS: readonly (readonly string[])[] = [
   ["Shoebox.prepareEditButton", "Review.editPhotoButton", "Viewer.editButton"],
   ["Shoebox.prepareEditTitle", "Review.editPhotoTitle"],
   ["Viewer.rendering", "PdfPreview.rendering"],
+  // E-sign: the nav links repeat the page titles; the status word must be the
+  // same everywhere a claim's state is named (list chip, panel heading,
+  // signature-block title, finance section header, /v thread lines).
+  ["Approvals.title", "NavBar.approvals"],
+  ["Finance.title", "NavBar.finance"],
+  ["Common.status.submitted", "Esign.panelSubmitted"],
+  ["Common.status.approved", "Esign.blockApproved", "Verify.approved"],
+  ["Common.status.rejected", "Esign.blockRejected", "Verify.rejected"],
+  ["Common.status.paid", "Esign.panelPaid", "Esign.blockPaid", "Finance.paidHeader", "Verify.paid"],
 ];
 
 /**
@@ -62,6 +71,10 @@ export const QUOTED_IN: readonly { message: string; quotes: string; strip?: stri
   { message: "Shoebox.step2", quotes: "Shoebox.newClaim", strip: "✨ " },
   { message: "Review.multiHint", quotes: "Review.modeOne" },
   { message: "Review.revertConfirm", quotes: "Common.status.processed" },
+  // E-sign: dialog/page titles restate the button that opened them (minus
+  // the button's emoji prefix).
+  { message: "Esign.submitDialogTitle", quotes: "Esign.submitForApproval", strip: "✍️ " },
+  { message: "Vouch.title", quotes: "Identity.vouchForMember", strip: "🤝 " },
 ];
 
 export function flatten(obj: Messages, prefix = ""): Map<string, string> {

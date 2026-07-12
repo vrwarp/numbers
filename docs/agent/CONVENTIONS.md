@@ -71,9 +71,22 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   (src/i18n/cookie.ts). No URL locale routing, no middleware.
 - API errors are translated CLIENT-side (`useApiErrorMessage()` — src/lib/use-api-error.ts);
   the server stays locale-free. New error string ⇒ new code ⇒ new `Errors.*` entry ×3.
-  Codes are typed (`ApiErrorCode = keyof en.Errors`) — a code without a catalog entry
-  fails the build. Give ambiguous short strings a translator hint via the `context`
-  field in `messages/translation-state.json` (fed into drafting prompts).
+  Codes are typed against en.Errors (flat keys plus one dotted level, e.g.
+  `esign.notEnrolled`) — a code without a catalog entry fails the build. THROWN errors
+  (the e-sign ceremony paths) go through `useThrownErrorMessage()`: jsonOrThrow
+  (src/lib/esign/client.ts) attaches the server body so codes still translate. Give
+  ambiguous short strings a translator hint via the `context` field in
+  `messages/translation-state.json` (fed into drafting prompts).
+- E-sign carve-outs, all deliberate: the UETA consent document
+  (src/lib/esign/consent.ts) is hash-bound (`consentSha256` travels in every signed
+  payload) so the binding text stays English ueta-v1 verbatim — the UI translates the
+  chrome and says so (`Esign.consentEnglishNote`); recovery-phrase words are English
+  BIP39 by protocol; deep protocol/audit failure strings (envelope rejects, roster
+  genesis mismatches, anomaly reasons) stay English — they are fail-closed diagnostics
+  read next to fingerprints by whoever investigates. PDF ARTIFACTS (form, approval
+  certificate cover, recovery sheet) keep English labels like the official form, but
+  must render user DATA CJK-safely: server-side via the per-string Helvetica/CJK pick
+  (certificate route), client-side by degrading to ASCII-safe fields (recovery sheet).
 - Server-side errors that never surface (config/programming errors) stay plain English —
   don't invent codes for them.
 - Money display stays `$12.34` in every locale (shared with the PDF); dates go through

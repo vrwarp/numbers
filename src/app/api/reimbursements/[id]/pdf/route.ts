@@ -33,7 +33,8 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     if (["submitted", "rejected", "approved", "paid"].includes(reimbursement.status)) {
       throw new ApiError(
         409,
-        "The packet is frozen under signature — download it from the claim page, or revert to draft to edit"
+        "The packet is frozen under signature — download it from the claim page, or revert to draft to edit",
+        "pdfFrozen"
       );
     }
 

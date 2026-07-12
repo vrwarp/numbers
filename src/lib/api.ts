@@ -7,7 +7,13 @@ import { currentUserId } from "@/auth";
  * no catalog entry (or a typo) fails `npm run build`, same as a bad t() key.
  * Type-only import — nothing from en.json reaches the runtime bundle here.
  */
-export type ApiErrorCode = keyof (typeof en)["Errors"];
+type ErrorsCatalog = (typeof en)["Errors"];
+/** Flat keys, plus one dotted level for grouped codes (e.g. "esign.notEnrolled"). */
+export type ApiErrorCode = {
+  [K in keyof ErrorsCatalog]: ErrorsCatalog[K] extends string
+    ? K
+    : `${K & string}.${keyof ErrorsCatalog[K] & string}`;
+}[keyof ErrorsCatalog];
 
 /**
  * `message` stays English (logs, curl, and the client's last-resort display);

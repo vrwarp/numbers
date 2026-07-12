@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 const W = 560;
 const H = 200;
@@ -19,6 +20,7 @@ export default function SignaturePad({
   onChange: (dataUrl: string | null) => void;
   initial?: string | null;
 }) {
+  const t = useTranslations("Esign");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const [hasInk, setHasInk] = useState(false);
@@ -120,7 +122,7 @@ export default function SignaturePad({
         }}
       />
       <div className="flex items-center justify-between">
-        <p className="text-xs text-stone-400">Sign above with your finger or mouse</p>
+        <p className="text-xs text-stone-400">{t("signAbove")}</p>
         <button
           type="button"
           className="text-xs text-indigo-600 underline disabled:opacity-40"
@@ -133,7 +135,7 @@ export default function SignaturePad({
             onChange(null);
           }}
         >
-          Clear and start over
+          {t("clearPad")}
         </button>
       </div>
     </div>

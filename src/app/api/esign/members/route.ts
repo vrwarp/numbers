@@ -17,7 +17,7 @@ export async function GET() {
     const userId = await requireUserId();
     await requireEnabledRegistry();
     const me = await prisma.signerIdentity.findUnique({ where: { userId } });
-    if (!me) throw new ApiError(404, "Not enrolled");
+    if (!me) throw new ApiError(404, "Not enrolled", "esign.notEnrolled");
 
     const identities = await prisma.signerIdentity.findMany({
       where: { status: "attested" },

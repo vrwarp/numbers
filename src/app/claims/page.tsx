@@ -7,7 +7,8 @@ import { formatCents } from "@/lib/money";
 
 export const dynamic = "force-dynamic";
 
-// Full e-sign workflow chip set (docs/ESIGN_DESIGN.md §6.1).
+// Full e-sign workflow chip set (docs/ESIGN_DESIGN.md §6.1). Labels live in
+// Common.status; draft shows as "needs review" in this list.
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-amber-100 text-amber-800",
   generated: "bg-emerald-100 text-emerald-800",
@@ -16,14 +17,7 @@ const STATUS_STYLES: Record<string, string> = {
   approved: "bg-emerald-100 text-emerald-800",
   paid: "bg-indigo-100 text-indigo-800",
 };
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Needs review",
-  generated: "Generated",
-  submitted: "Awaiting approval",
-  rejected: "Rejected",
-  approved: "Approved",
-  paid: "Paid",
-};
+const STATUS_KEYS = ["generated", "submitted", "rejected", "approved", "paid"] as const;
 
 export default async function ClaimsPage() {
   const userId = await currentUserId();
@@ -79,9 +73,9 @@ export default async function ClaimsPage() {
                   >
                     {c.status === "draft"
                       ? tStatus("needsReview")
-                      : c.status === "generated"
-                        ? tStatus("generated")
-                        : (STATUS_LABELS[c.status] ?? c.status)}
+                      : tStatus(
+                          STATUS_KEYS.find((k) => k === c.status) ?? "generated"
+                        )}
                   </span>
                 </div>
               </Link>

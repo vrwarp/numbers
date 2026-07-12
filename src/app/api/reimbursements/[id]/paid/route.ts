@@ -51,7 +51,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
     if (preflight) {
       const body = (await req.json()) as { checkNumber?: string; typedName?: string };
-      if (!body.typedName?.trim()) throw new ApiError(400, "Type your name to sign");
+      if (!body.typedName?.trim()) throw new ApiError(400, "Type your name to sign", "esign.typeName");
       const { evaluation } = await claimEvaluation(registry, ledgerCtx);
       const thread = evaluation.threads.find((t) => t.seq === claim.submitSeq);
       if (

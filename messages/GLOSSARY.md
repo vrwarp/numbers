@@ -38,11 +38,36 @@ zh-Hans (登录→登錄 would be wrong; Taiwan says 登入).
 | photo | 照片 | 相片 | |
 | crop | 裁剪 | 裁切 | |
 | retreat | 退修会 | 退修會 | church register |
+| electronic signing / e-sign | 电子签名 | 電子簽名 | the feature as a whole |
+| sign (a ceremony) | 签署 | 簽署 | the act of signing a claim/vouch; drawing the signature = 签名 / 簽名 |
+| signature (drawn) | 签名 | 簽名 | the hand-drawn mark |
+| submit (for approval) | 提交 | 提交 | claim → approver |
+| approve / approver | 批准 / 审批人 | 批准 / 審批人 | |
+| reject | 拒绝 | 拒絕 | approver's decision |
+| awaiting approval | 待审批 | 待審批 | the `submitted` status chip |
+| paid | 已支付 | 已支付 | terminal claim status |
+| treasurer | 财务同工 | 財務同工 | church register, not corporate 财务主管 |
+| admin / administrator | 管理员 | 管理員 | |
+| vouch | 担保 | 擔保 | in-person identity confirmation by a member |
+| attest / attested | 认证 / 已认证 | 認證 / 已認證 | roster status after enough vouches |
+| enroll (in signing) | 开通 | 開通 | friendlier than 注册 for church members |
+| certificate (approval) | 批准证书 | 批准證書 | the PDF cover artifact |
+| packet | 报销文件 | 報銷文件 | the generated PDF (form + receipts) |
+| verify / verification (signatures) | 验证 | 驗證 | distinct from receipt 核对 / 核對 |
+| key fingerprint | 密钥指纹 | 金鑰指紋 | vocabulary divergence (密钥 vs 金鑰) |
+| device | 设备 | 裝置 | vocabulary divergence |
+| recovery phrase / sheet | 恢复短语 / 恢复单 | 復原口令 / 復原單 | 24 English BIP39 words — the words themselves stay English |
+| withdraw (a submission) | 撤回 | 撤回 | |
+| check (payment) | 支票 | 支票 | check number = 支票号码 / 支票號碼 |
 
 Never translated: **Numbers** (app name), ministry canonical values
 (`237 Office Supplies` — they are stored data, printed on the official form,
 and the AI-suggestion validation key), account numbers, merchant names, file
-names, anything the user typed. Quotation marks follow each script's
+names, anything the user typed, recovery-phrase words (always English BIP39),
+and the UETA consent document in `src/lib/esign/consent.ts` — its SHA-256 is a
+signed input (`consentSha256`), so the binding text stays the English ueta-v1
+version verbatim; the UI translates only the chrome around it and says so
+(`Esign.consentEnglishNote`). Quotation marks follow each script's
 convention: “…” in zh-Hans, 「…」 in zh-Hant.
 
 Review status lives in `messages/translation-state.json` (`todo` → `machine` →

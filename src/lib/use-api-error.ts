@@ -35,3 +35,23 @@ export function useApiErrorMessage() {
     [t]
   );
 }
+
+/**
+ * Translate a THROWN error (the e-sign ceremony paths throw instead of
+ * returning response bodies). A server payload attached by jsonOrThrow
+ * (src/lib/esign/client.ts) goes through the code→Errors.* lookup above;
+ * a plain client-side Error keeps its own message (protocol/audit texts
+ * are deliberately English); anything else gets the caller's fallback.
+ */
+export function useThrownErrorMessage() {
+  const apiError = useApiErrorMessage();
+  return useCallback(
+    (err: unknown, fallback: string): string => {
+      const payload = (err as { payload?: unknown } | null)?.payload;
+      if (payload) return apiError(payload, fallback);
+      if (err instanceof Error && err.message) return err.message;
+      return fallback;
+    },
+    [apiError]
+  );
+}

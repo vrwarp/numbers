@@ -31,12 +31,12 @@ export default function NavBar({ userName }: { userName: string }) {
     { href: "/claims", label: t("claims") },
   ];
   if (badges.enabled && (badges.approvals ?? 0) > 0) {
-    links.push({ href: "/approvals", label: "Approvals", badge: badges.approvals });
+    links.push({ href: "/approvals", label: t("approvals"), badge: badges.approvals });
   } else if (badges.enabled && ["approver", "treasurer", "admin"].includes(badges.role ?? "")) {
-    links.push({ href: "/approvals", label: "Approvals" });
+    links.push({ href: "/approvals", label: t("approvals") });
   }
   if (badges.enabled && badges.finance !== null && badges.finance !== undefined) {
-    links.push({ href: "/finance", label: "Finance", badge: badges.finance || undefined });
+    links.push({ href: "/finance", label: t("finance"), badge: badges.finance || undefined });
   }
   links.push({ href: "/profile", label: t("profile") });
 

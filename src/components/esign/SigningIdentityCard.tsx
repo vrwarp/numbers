@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   bootstrapRegistry,
   custodyFor,
@@ -23,11 +24,16 @@ import {
 import type { DeviceStatus } from "@/lib/esign/custody";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
+import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { DevicesPanel, NewDeviceCard, RecoveryCard } from "./DeviceManager";
 import IdentityQr from "./IdentityQr";
 import SignaturePad from "./SignaturePad";
 
 export default function SigningIdentityCard() {
+  const t = useTranslations("Identity");
+  const tEsign = useTranslations("Esign");
+  const tRole = useTranslations("Common.role");
+  const thrown = useThrownErrorMessage();
   const [env, setEnv] = useState<EsignEnv | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -54,9 +60,9 @@ export default function SigningIdentityCard() {
         setEnv(await loadEnv());
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load signing status");
+      setError(thrown(err, t("loadFailed")));
     }
-  }, []);
+  }, [t, thrown]);
 
   async function toggleEnabled(next: boolean) {
     setBusy(true);
@@ -67,10 +73,10 @@ export default function SigningIdentityCard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabled: next }),
       });
-      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "Could not switch");
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? t("switchFailed"));
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not switch");
+      setError(thrown(err, t("switchFailed")));
     } finally {
       setBusy(false);
     }
@@ -101,7 +107,7 @@ export default function SigningIdentityCard() {
       await bootstrapRegistry((await loadEnv())!);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Setup failed");
+      setError(thrown(err, t("setupFailed")));
     } finally {
       setBusy(false);
     }
@@ -116,19 +122,23 @@ export default function SigningIdentityCard() {
   const status = env.me.identityStatus;
   const statusChip =
     status === "attested" ? (
-      <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Ready to sign</span>
+      <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">{t("chipReady")}</span>
     ) : status === "pending" ? (
-      <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Almost there</span>
+      <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">{t("chipPending")}</span>
     ) : status === "revoked" ? (
-      <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">Turned off</span>
+      <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">{t("chipRevoked")}</span>
     ) : (
-      <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600">Not set up</span>
+      <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600">{t("chipNone")}</span>
     );
+
+  const roleName = (["member", "approver", "treasurer", "admin"] as const).find(
+    (r) => r === env.me.role
+  );
 
   return (
     <div className="card space-y-4 p-5" data-testid="signing-identity-card">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">Electronic signing</h2>
+        <h2 className="text-lg font-bold">{t("title")}</h2>
         {/* While the system is off, an attestation chip would contradict the
             switch row right below it. */}
         {env.enabled ? statusChip : null}
@@ -142,13 +152,9 @@ export default function SigningIdentityCard() {
           }`}
         >
           <div className="text-sm">
-            <p className="font-semibold">
-              Electronic signing is {env.enabled ? "ON" : "OFF"}
-            </p>
+            <p className="font-semibold">{env.enabled ? t("switchOn") : t("switchOff")}</p>
             <p className="text-xs text-stone-500">
-              {env.enabled
-                ? "Members can enroll, submit, approve, and pay electronically."
-                : "Off for everyone (the default). Existing signed records stay verifiable."}
+              {env.enabled ? t("switchOnBody") : t("switchOffBody")}
             </p>
           </div>
           <button
@@ -157,7 +163,7 @@ export default function SigningIdentityCard() {
             onClick={() => toggleEnabled(!env.enabled)}
             data-testid="esign-switch"
           >
-            {busy ? "…" : env.enabled ? "Turn off" : "Turn on"}
+            {busy ? "…" : env.enabled ? t("turnOff") : t("turnOn")}
           </button>
         </div>
       )}
@@ -166,33 +172,24 @@ export default function SigningIdentityCard() {
         env.canBootstrap ? (
           <div className="space-y-3">
             <p className="text-sm text-stone-600">
-              You&apos;re set up as the person who starts electronic signing for this church.
-              Setting up creates the signing registry with you as its anchor — it starts
-              switched <strong>off</strong>, so nothing changes for members until you flip
-              the switch.
+              {t.rich("bootstrapIntro", { b: (chunks) => <strong>{chunks}</strong> })}
             </p>
             <button className="btn-primary" onClick={doBootstrap} disabled={busy} data-testid="esign-bootstrap">
-              {busy ? "Setting up…" : "Set up electronic signing"}
+              {busy ? t("bootstrapBusy") : t("bootstrapButton")}
             </button>
           </div>
         ) : (
-          <p className="text-sm text-stone-500">
-            Electronic signing isn&apos;t set up for this church yet — ask your administrator.
-          </p>
+          <p className="text-sm text-stone-500">{t("notSetUp")}</p>
         )
       ) : !status ? (
         <div className="space-y-3">
-          <p className="text-sm text-stone-600">
-            Sign and approve reimbursements from your phone — no printing. You&apos;ll agree to
-            sign electronically, draw your signature, and then two members confirm it&apos;s
-            really you (in person, one quick scan).
-          </p>
+          <p className="text-sm text-stone-600">{t("enrollIntro")}</p>
           <button className="btn-primary" onClick={() => setWizardOpen(true)} data-testid="enable-signing">
-            Set up signing
+            {t("enrollButton")}
           </button>
         </div>
       ) : deviceStatus === null ? (
-        <p className="text-sm text-stone-400">Checking this device…</p>
+        <p className="text-sm text-stone-400">{t("checkingDevice")}</p>
       ) : deviceStatus !== "ready" ? (
         // Enrolled member, but the keys aren't on this browser (M2).
         <NewDeviceCard
@@ -209,17 +206,17 @@ export default function SigningIdentityCard() {
           {env.me.signatureImage ? (
             <div className="rounded-lg border border-stone-200 bg-stone-50 p-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-stone-500">Your signature</p>
+                <p className="text-xs font-medium text-stone-500">{t("yourSignature")}</p>
                 <button
                   className="text-xs text-indigo-600 underline"
                   onClick={() => setRedrawOpen(true)}
                   data-testid="redraw-signature"
                 >
-                  Redraw
+                  {t("redraw")}
                 </button>
               </div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={env.me.signatureImage} alt="Your signature" className="mt-1 h-14 object-contain" />
+              <img src={env.me.signatureImage} alt={tEsign("signatureAlt")} className="mt-1 h-14 object-contain" />
             </div>
           ) : (
             // e.g. the root, whose bootstrap path skips the wizard.
@@ -228,15 +225,14 @@ export default function SigningIdentityCard() {
               onClick={() => setRedrawOpen(true)}
               data-testid="add-signature"
             >
-              ✍️ Add your signature
+              {t("addSignature")}
             </button>
           )}
 
           {status === "pending" && vouchUrl && (
             <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
               <p className="text-sm font-medium text-amber-900">
-                One last step: show this to two members (or one approver) <b>in person</b>.
-                They scan it with their phone camera and confirm it&apos;s really you.
+                {t.rich("pendingVouch", { b: (chunks) => <b>{chunks}</b> })}
               </p>
               <IdentityQr url={vouchUrl} />
             </div>
@@ -245,7 +241,7 @@ export default function SigningIdentityCard() {
           {status === "attested" && (
             <div className="flex flex-wrap gap-2">
               <a href="/vouch" className="btn-secondary inline-block" data-testid="vouch-link">
-                🤝 Vouch for a member
+                {t("vouchForMember")}
               </a>
             </div>
           )}
@@ -255,26 +251,27 @@ export default function SigningIdentityCard() {
 
           <details className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-600">
             <summary className="cursor-pointer select-none font-medium text-stone-500">
-              Audit details
+              {tEsign("auditDetails")}
             </summary>
             <div className="mt-2 grid gap-1">
               <div>
-                Role: <span className="font-medium capitalize">{env.me.role}</span>
+                {t("roleLabel")}{" "}
+                <span className="font-medium">{roleName ? tRole(roleName) : env.me.role}</span>
               </div>
               {fingerprint && (
                 <div>
-                  Your key fingerprint:{" "}
+                  {t("yourFingerprint")}{" "}
                   <code className="font-mono" data-testid="identity-fingerprint">
                     {fingerprintDisplay(fingerprint)}
                   </code>
-                  <span className="ml-1 text-stone-400">(full: {fingerprint})</span>
+                  <span className="ml-1 text-stone-400">{t("fullFingerprint", { fp: fingerprint })}</span>
                 </div>
               )}
               {env.rootFingerprint && (
                 <div>
-                  Church root fingerprint:{" "}
+                  {t("rootFingerprint")}{" "}
                   <code className="font-mono">{fingerprintDisplay(env.rootFingerprint)}</code>
-                  <span className="ml-1 text-stone-400">— compare against the published value</span>
+                  <span className="ml-1 text-stone-400">{t("compareNote")}</span>
                 </div>
               )}
             </div>
@@ -314,6 +311,10 @@ function EnrollWizard({
   onClose: () => void;
   onDone: () => Promise<void>;
 }) {
+  const t = useTranslations("Identity");
+  const tEsign = useTranslations("Esign");
+  const tCommon = useTranslations("Common");
+  const thrown = useThrownErrorMessage();
   const [step, setStep] = useState<"consent" | "draw">("consent");
   const [consented, setConsented] = useState(false);
   const [signatureImage, setSignatureImage] = useState<string | null>(null);
@@ -327,7 +328,7 @@ function EnrollWizard({
       await enroll(env, signatureImage!);
       await onDone();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Setup failed");
+      setError(thrown(err, t("setupFailed")));
       setBusy(false);
     }
   }
@@ -337,11 +338,10 @@ function EnrollWizard({
       <div className="max-h-[92vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-t-2xl bg-white p-6 sm:rounded-2xl">
         {step === "consent" ? (
           <>
-            <h3 className="text-lg font-bold">Sign electronically instead of on paper</h3>
-            <p className="text-sm text-stone-600">
-              Please read this once — it says your electronic signature counts like an ink one,
-              and that you can always go back to paper.
-            </p>
+            <h3 className="text-lg font-bold">{t("consentTitle")}</h3>
+            <p className="text-sm text-stone-600">{t("consentIntro")}</p>
+            {/* Hash-bound English ueta-v1 text — see EsignPanel's note. */}
+            <p className="text-xs text-stone-400">{tEsign("consentEnglishNote")}</p>
             <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-lg bg-stone-50 p-3 text-xs text-stone-700">
               {CONSENT_TEXT}
             </pre>
@@ -352,11 +352,11 @@ function EnrollWizard({
                 onChange={(e) => setConsented(e.target.checked)}
                 data-testid="consent-checkbox"
               />
-              <span>I agree to sign electronically.</span>
+              <span>{t("agreeCheckbox")}</span>
             </label>
             <div className="flex justify-end gap-2">
               <button className="btn-secondary" onClick={onClose}>
-                Cancel
+                {tCommon("cancel")}
               </button>
               <button
                 className="btn-primary disabled:opacity-50"
@@ -364,22 +364,19 @@ function EnrollWizard({
                 onClick={() => setStep("draw")}
                 data-testid="consent-next"
               >
-                Next: draw your signature
+                {t("consentNext")}
               </button>
             </div>
           </>
         ) : (
           <>
-            <h3 className="text-lg font-bold">Draw your signature</h3>
-            <p className="text-sm text-stone-600">
-              This is the signature that appears on the reimbursement forms — sign the way you
-              would on paper, with your finger or the mouse.
-            </p>
+            <h3 className="text-lg font-bold">{t("drawTitle")}</h3>
+            <p className="text-sm text-stone-600">{t("drawIntro")}</p>
             <SignaturePad onChange={setSignatureImage} />
             {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
             <div className="flex justify-end gap-2">
               <button className="btn-secondary" onClick={() => setStep("consent")}>
-                Back
+                {tCommon("back")}
               </button>
               <button
                 className="btn-primary disabled:opacity-50"
@@ -387,7 +384,7 @@ function EnrollWizard({
                 onClick={finish}
                 data-testid="finish-enroll"
               >
-                {busy ? "Finishing…" : "Finish setup"}
+                {busy ? t("finishing") : t("finishSetup")}
               </button>
             </div>
           </>
@@ -398,22 +395,22 @@ function EnrollWizard({
 }
 
 function RedrawDialog({ onClose, onDone }: { onClose: () => void; onDone: () => Promise<void> }) {
+  const t = useTranslations("Identity");
+  const tCommon = useTranslations("Common");
+  const thrown = useThrownErrorMessage();
   const [signatureImage, setSignatureImage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">
       <div className="w-full max-w-lg space-y-4 rounded-t-2xl bg-white p-6 sm:rounded-2xl">
-        <h3 className="text-lg font-bold">Redraw your signature</h3>
-        <p className="text-sm text-stone-600">
-          The new drawing is used on paperwork you sign from now on; nothing already signed
-          changes.
-        </p>
+        <h3 className="text-lg font-bold">{t("redrawTitle")}</h3>
+        <p className="text-sm text-stone-600">{t("redrawBody")}</p>
         <SignaturePad onChange={setSignatureImage} />
         {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         <div className="flex justify-end gap-2">
           <button className="btn-secondary" onClick={onClose}>
-            Cancel
+            {tCommon("cancel")}
           </button>
           <button
             className="btn-primary disabled:opacity-50"
@@ -425,13 +422,13 @@ function RedrawDialog({ onClose, onDone }: { onClose: () => void; onDone: () => 
                 await updateSignatureImage(signatureImage!);
                 await onDone();
               } catch (err) {
-                setError(err instanceof Error ? err.message : "Could not save");
+                setError(thrown(err, t("couldNotSave")));
                 setBusy(false);
               }
             }}
             data-testid="save-signature"
           >
-            {busy ? "Saving…" : "Save signature"}
+            {busy ? tCommon("saving") : t("saveSignature")}
           </button>
         </div>
       </div>

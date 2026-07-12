@@ -16,6 +16,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { renderFirstPage, type RenderedPage } from "@/lib/esign/pdfjs-client";
 import { clampPlacement, roundPlacement, type SignaturePlacement } from "@/lib/esign/placement";
 
@@ -30,6 +31,7 @@ export default function DocumentSignField({
   anchor: SignaturePlacement;
   onChange: (placement: SignaturePlacement | null) => void;
 }) {
+  const t = useTranslations("Esign");
   const [page, setPage] = useState<RenderedPage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [placed, setPlaced] = useState(false);
@@ -97,14 +99,14 @@ export default function DocumentSignField({
   if (error) {
     return (
       <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
-        Couldn&apos;t show the document to sign on. {error}
+        {t("couldNotOpenDoc", { message: error })}
       </div>
     );
   }
   if (!page) {
     return (
       <div className="flex h-64 items-center justify-center rounded-lg border border-stone-200 text-sm text-stone-400">
-        Opening the document…
+        {t("openingDoc")}
       </div>
     );
   }
@@ -118,9 +120,7 @@ export default function DocumentSignField({
   return (
     <div className="space-y-2">
       <p className="text-sm text-stone-600">
-        {placed
-          ? "Signed. Drag your signature if you want it somewhere else."
-          : "Tap the yellow tab to sign on the line."}
+        {placed ? t("signedDragHint") : t("tapTabHint")}
       </p>
       <div
         ref={boxRef}
@@ -141,14 +141,14 @@ export default function DocumentSignField({
         data-testid="document-sign-field"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={page.dataUrl} alt="Document to sign" className="pointer-events-none block w-full" />
+        <img src={page.dataUrl} alt={t("docAlt")} className="pointer-events-none block w-full" />
         {placed ? (
           <div
             className="pointer-events-none absolute"
             style={{ left: `${leftPct}%`, top: `${topPct}%`, width: `${widthPct}%` }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={signatureImage} alt="Your signature" className="block w-full" />
+            <img src={signatureImage} alt={t("signatureAlt")} className="block w-full" />
           </div>
         ) : (
           <button
@@ -162,25 +162,25 @@ export default function DocumentSignField({
             }}
             data-testid="tap-to-sign"
           >
-            ✍️ Tap to sign
+            {t("tapToSign")}
           </button>
         )}
       </div>
       <div className="flex items-center justify-between text-xs text-stone-400">
         {placed ? (
           <>
-            <span>Drag to fine-tune the position.</span>
+            <span>{t("dragFineTune")}</span>
             <button
               type="button"
               className="text-indigo-600 underline"
               onClick={unplace}
               data-testid="remove-signature"
             >
-              Remove signature
+              {t("removeSignature")}
             </button>
           </>
         ) : (
-          <span>Your signature appears only after you tap.</span>
+          <span>{t("appearsAfterTap")}</span>
         )}
       </div>
     </div>

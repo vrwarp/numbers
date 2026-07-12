@@ -9,15 +9,17 @@
  */
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   loadEnv,
   runSubmitCeremony,
   withdrawSubmission,
   type EsignEnv,
 } from "@/lib/esign/client";
-import { CONSENT_TEXT, INTENT_AFFIRMATION } from "@/lib/esign/consent";
+import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { formatCents } from "@/lib/money";
 import type { SignaturePlacement } from "@/lib/esign/placement";
+import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { AuditDetails, ThreadSignatures, VerifiedBanner, useClaimChain, type ClaimRef } from "./chain";
 import DocumentSignField from "./DocumentSignField";
 
@@ -42,6 +44,7 @@ export default function EsignPanel({
   claim: EsignClaim;
   onChanged: () => Promise<void> | void;
 }) {
+  const t = useTranslations("Esign");
   const [env, setEnv] = useState<EsignEnv | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const signed = ["submitted", "rejected", "approved", "paid"].includes(claim.status);
@@ -62,11 +65,10 @@ export default function EsignPanel({
     return (
       <div className="card flex flex-wrap items-center justify-between gap-3 border-indigo-200 bg-indigo-50/60 p-4" data-testid="esign-panel">
         <div className="text-sm text-indigo-900">
-          <span className="font-semibold">Ready for approval.</span> Submit this packet for an
-          electronic signature instead of printing it.
+          <span className="font-semibold">{t("readyTitle")}</span> {t("readyBody")}
         </div>
         <button className="btn-primary" onClick={() => setDialogOpen(true)} data-testid="submit-for-approval">
-          ✍️ Submit for approval
+          {t("submitForApproval")}
         </button>
         {dialogOpen && (
           <SubmitDialog
@@ -93,17 +95,20 @@ export default function EsignPanel({
     <div className="card space-y-3 p-4" data-testid="esign-panel">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="font-semibold">
-          {claim.status === "submitted" && "Awaiting approval"}
-          {claim.status === "rejected" && "Rejected by the approver"}
-          {claim.status === "approved" && "Approved — awaiting payment"}
-          {claim.status === "paid" && `Paid${claim.checkNumber ? ` — check #${claim.checkNumber}` : ""}`}
+          {claim.status === "submitted" && t("panelSubmitted")}
+          {claim.status === "rejected" && t("panelRejected")}
+          {claim.status === "approved" && t("panelApproved")}
+          {claim.status === "paid" &&
+            (claim.checkNumber
+              ? t("panelPaidWithCheck", { checkNumber: claim.checkNumber })
+              : t("panelPaid"))}
         </h2>
       </div>
       {state && <VerifiedBanner state={state} />}
       {chainError && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{chainError}</p>}
       {decision?.t === "REJECT" && decision.comment && (
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="rejection-comment">
-          Approver&apos;s comment: “{decision.comment}”
+          {t("approverComment", { comment: decision.comment })}
         </p>
       )}
       {state && <ThreadSignatures state={state} />}
@@ -116,7 +121,7 @@ export default function EsignPanel({
             href={`/api/reimbursements/${claim.id}/certificate`}
             data-testid="certificate-link"
           >
-            📜 Approval certificate
+            {t("certificateLink")}
           </a>
         )}
         {claim.status === "submitted" && state?.thread?.submit && (
@@ -124,7 +129,7 @@ export default function EsignPanel({
             className="btn-secondary"
             data-testid="change-approver"
             onClick={async () => {
-              if (!confirm("Withdraw this submission so you can pick a different approver?")) return;
+              if (!confirm(t("withdrawConfirm"))) return;
               await withdrawSubmission(
                 {
                   id: claim.id,
@@ -136,16 +141,16 @@ export default function EsignPanel({
               await onChanged();
             }}
           >
-            ↪ Withdraw / change approver
+            {t("withdrawButton")}
           </button>
         )}
         {claim.status === "rejected" && (
           <button className="btn-primary" onClick={() => setDialogOpen(true)} data-testid="resubmit">
-            ✍️ Resubmit
+            {t("resubmit")}
           </button>
         )}
         <button className="btn-secondary" onClick={() => refresh()}>
-          ⟳ Re-verify
+          {t("reverify")}
         </button>
       </div>
       {dialogOpen && (
@@ -174,6 +179,10 @@ function SubmitDialog({
   onClose: () => void;
   onDone: () => Promise<void>;
 }) {
+  const t = useTranslations("Esign");
+  const tCommon = useTranslations("Common");
+  const tRole = useTranslations("Common.role");
+  const thrown = useThrownErrorMessage();
   const [members, setMembers] = useState<Member[]>([]);
   const [approverUserId, setApproverUserId] = useState("");
   const [typedName, setTypedName] = useState(env.me.name);
@@ -219,28 +228,37 @@ function SubmitDialog({
       });
       await onDone();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Submission failed");
+      setError(thrown(err, t("submissionFailed")));
       setBusy(false);
     }
   }
 
   const placedReady = !hasSignature || !!placement;
+  const roleLabel = (role: string) =>
+    (["member", "approver", "treasurer", "admin"] as const).includes(
+      role as "member" | "approver" | "treasurer" | "admin"
+    )
+      ? tRole(role as "member" | "approver" | "treasurer" | "admin")
+      : role;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">
       <div className="max-h-[92vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-t-2xl bg-white p-6 sm:rounded-2xl">
-        <h3 className="text-lg font-bold">Submit for approval</h3>
+        <h3 className="text-lg font-bold">{t("submitDialogTitle")}</h3>
         {!enrolled ? (
           <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
-            Your signing identity isn&apos;t attested yet — enable signing on your{" "}
-            <a href="/profile" className="underline">profile</a> and get vouched first.
+            {t.rich("notAttested", {
+              link: (chunks) => (
+                <a href="/profile" className="underline">
+                  {chunks}
+                </a>
+              ),
+            })}
           </p>
         ) : (
           <>
             <p className="text-sm text-stone-600">
-              You&apos;re asking for approval of this claim ({formatCents(claim.totalCents)}).
-              Place your signature on the form, pick who should approve it, and sign. If the
-              claim changes later, your signature stops counting and approval starts over.
+              {t("submitIntro", { amount: formatCents(claim.totalCents) })}
             </p>
             {hasSignature && bytes && anchor && env.me.signatureImage ? (
               <DocumentSignField
@@ -251,27 +269,27 @@ function SubmitDialog({
               />
             ) : hasSignature ? (
               <div className="flex h-40 items-center justify-center rounded-lg border border-stone-200 text-sm text-stone-400">
-                Opening the form…
+                {t("openingForm")}
               </div>
             ) : null}
             <label className="block text-sm font-medium">
-              Approver
+              {t("approverLabel")}
               <select
                 className="input mt-1"
                 value={approverUserId}
                 onChange={(e) => setApproverUserId(e.target.value)}
                 data-testid="approver-select"
               >
-                <option value="">Choose an approver…</option>
+                <option value="">{t("approverPlaceholder")}</option>
                 {members.map((m) => (
                   <option key={m.userId} value={m.userId}>
-                    {m.name} ({m.role})
+                    {m.name} ({roleLabel(m.role)})
                   </option>
                 ))}
               </select>
             </label>
             <label className="block text-sm font-medium">
-              Type your full name to sign
+              {t("typedNameLabel")}
               <input
                 className="input mt-1"
                 value={typedName}
@@ -280,7 +298,11 @@ function SubmitDialog({
               />
             </label>
             <details className="rounded-lg bg-stone-50 p-3 text-xs text-stone-600">
-              <summary className="cursor-pointer font-medium">Electronic records consent</summary>
+              <summary className="cursor-pointer font-medium">{t("consentSummary")}</summary>
+              {/* The consent document is a hash-bound signed input (consentSha256,
+                  docs/ESIGN_DESIGN.md §5.4) — it stays the English ueta-v1 text
+                  verbatim; only the chrome around it is localized. */}
+              <p className="mt-2 text-stone-400">{t("consentEnglishNote")}</p>
               <pre className="mt-2 whitespace-pre-wrap">{CONSENT_TEXT}</pre>
             </details>
             <label className="flex items-start gap-2 text-sm">
@@ -290,12 +312,12 @@ function SubmitDialog({
                 onChange={(e) => setAffirmed(e.target.checked)}
                 data-testid="intent-checkbox"
               />
-              <span>{INTENT_AFFIRMATION}</span>
+              <span>{t("intentAffirmation")}</span>
             </label>
             {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
             <div className="flex justify-end gap-2">
               <button className="btn-secondary" onClick={onClose}>
-                Cancel
+                {tCommon("cancel")}
               </button>
               <button
                 className="btn-primary disabled:opacity-50"
@@ -303,7 +325,7 @@ function SubmitDialog({
                 onClick={sign}
                 data-testid="sign-submit"
               >
-                {busy ? "Signing…" : "Sign & submit"}
+                {busy ? t("signing") : t("signAndSubmit")}
               </button>
             </div>
           </>

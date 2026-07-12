@@ -66,10 +66,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         placement?: SignaturePlacement;
       };
       if (!body.approverUserId || !body.typedName?.trim()) {
-        throw new ApiError(400, "Pick an approver and type your name");
+        throw new ApiError(400, "Pick an approver and type your name", "esign.pickApprover");
       }
       if (body.approverUserId === userId) {
-        throw new ApiError(409, "You cannot approve your own claim");
+        throw new ApiError(409, "You cannot approve your own claim", "esign.selfApprove");
       }
       const approver = await prisma.signerIdentity.findUnique({
         where: { userId: body.approverUserId },
@@ -80,7 +80,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         approver.status !== "attested" ||
         !["approver", "treasurer", "admin"].includes(approver.user.role)
       ) {
-        throw new ApiError(409, "That member is not an attested approver");
+        throw new ApiError(409, "That member is not an attested approver", "esign.notApprover");
       }
 
       const ledgerId = claim.signatureLedgerId ?? body.ledgerId;
@@ -95,7 +95,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       // submits an unsigned form.
       let placement: SignaturePlacement | undefined;
       if (claim.publicToken && identity.signatureImage.startsWith("data:image/png;base64,")) {
-        if (!body.placement) throw new ApiError(400, "Place your signature on the form first");
+        if (!body.placement) throw new ApiError(400, "Place your signature on the form first", "esign.placeSignature");
         placement = roundPlacement(body.placement);
         const png = new Uint8Array(Buffer.from(identity.signatureImage.split(",")[1], "base64"));
         const signedBytes = await buildClaimPdfBytes(claim, claim.publicToken, {
@@ -105,7 +105,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       }
 
       const bytes = await readStoredFile(generatedPdfPath(userId, id)).catch(() => {
-        throw new ApiError(409, "Generate the packet PDF before submitting");
+        throw new ApiError(409, "Generate the packet PDF before submitting", "esign.generateFirst");
       });
       const packetSha256 = await sha256Hex(new Uint8Array(bytes));
       const { rowsDigest, totalCents } = await rowsDigestAndTotal(claim.lineItems);
@@ -124,7 +124,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         });
         const prev = evaluation.threads.find((t) => t.seq === seq - 1);
         if (!prev) {
-          throw new ApiError(409, "Ledger mirror is behind — reconcile this claim first");
+          throw new ApiError(409, "Ledger mirror is behind — reconcile this claim first", "esign.mirrorBehind");
         }
         const closure = closureRefs(prev, packetSha256);
         if (!closure) {
@@ -188,7 +188,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const bytes = await readStoredFile(generatedPdfPath(userId, id));
     const actualSha = await sha256Hex(new Uint8Array(bytes));
     if (actualSha !== pending.packetSha256) {
-      throw new ApiError(409, "The packet changed since preflight — restart the ceremony");
+      throw new ApiError(409, "The packet changed since preflight — restart the ceremony", "esign.packetChanged");
     }
     await archiveSignedPacket(userId, id, actualSha, bytes);
     await prisma.esignClaimArchive.upsert({

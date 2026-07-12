@@ -41,9 +41,39 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Common.status.submitted": {
+    "source": "Awaiting approval",
+    "context": "Claim status chip: sent to an approver, waiting for their signature.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.status.approved": {
+    "source": "Approved",
+    "context": "Claim status chip: the approver signed off; payment still pending.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.status.rejected": {
+    "source": "Rejected",
+    "context": "Claim status chip: the approver declined and sent it back.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.status.paid": {
+    "source": "Paid",
+    "context": "Claim status chip: the treasurer recorded payment. Terminal state.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Common.cancel": {
     "source": "Cancel",
     "context": "Secondary dialog button: close without saving. One word.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.back": {
+    "source": "Back",
+    "context": "Generic Back button in multi-step dialogs (returns to the previous step).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -68,6 +98,30 @@
   "Common.language": {
     "source": "Language",
     "context": "Label for the language selectors (NavBar switcher aria + profile field).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.role.member": {
+    "source": "Member",
+    "context": "Church role shown in pickers/chips: ordinary member with no special powers.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.role.approver": {
+    "source": "Approver",
+    "context": "Church role: a member authorized to approve reimbursement claims.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.role.treasurer": {
+    "source": "Treasurer",
+    "context": "Church role: handles payments (writes the checks).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.role.admin": {
+    "source": "Admin",
+    "context": "Church role: the administrator who anchors electronic signing.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -98,6 +152,18 @@
   "NavBar.signedInAs": {
     "source": "Signed in as {name}",
     "context": "Tooltip on the sign-out button; {name} is the user's display name.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "NavBar.approvals": {
+    "source": "Approvals",
+    "context": "Top-nav link to the approver's inbox. Keep short — phone-width nav.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "NavBar.finance": {
+    "source": "Finance",
+    "context": "Top-nav link to the treasurer's payment queue. Keep short — phone-width nav.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1043,8 +1109,8 @@
     "zh-Hant": "machine"
   },
   "Review.buildingPdf": {
-    "source": "Building PDF…",
-    "context": "PDF button label while generating. Keep the ellipsis.",
+    "source": "Working…",
+    "context": "PDF button label while busy — covers both generating a new PDF and downloading the already-signed packet, so keep it generic (not “generating”). Keep the ellipsis.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1516,6 +1582,1368 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Review.underSignatureFrozen": {
+    "source": "Under signature — packet and rows are frozen.",
+    "context": "Note replacing the row toolbar once a claim is submitted for e-signature: the PDF packet and rows can no longer change.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.downloadSigned": {
+    "source": "⬇ Download signed packet",
+    "context": "Download button once a claim is under signature — downloads the archived signed packet instead of regenerating. Keep the ⬇.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.revertConfirmSigned": {
+    "source": "Revert this claim to draft? All collected signatures become void (the packet bytes will change) and approval starts over.",
+    "context": "confirm() before reverting a claim that has e-signatures: warns that collected signatures become void and approval restarts.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.readyTitle": {
+    "source": "Ready for approval.",
+    "context": "Bold lead-in on the claim page banner once the PDF is generated: the claim can now be submitted for e-signature.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.readyBody": {
+    "source": "Submit this packet for an electronic signature instead of printing it.",
+    "context": "Rest of that banner sentence, after the bold lead-in.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.submitForApproval": {
+    "source": "✍️ Submit for approval",
+    "context": "Primary button opening the submit-for-approval signing dialog. Keep the ✍️ prefix.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.panelSubmitted": {
+    "source": "Awaiting approval",
+    "context": "Panel heading while the claim waits for the approver.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.panelRejected": {
+    "source": "Rejected by the approver",
+    "context": "Panel heading after the approver rejected the claim.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.panelApproved": {
+    "source": "Approved — awaiting payment",
+    "context": "Panel heading after approval, before the treasurer pays.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.panelPaid": {
+    "source": "Paid",
+    "context": "Panel heading once paid (no check number recorded).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.panelPaidWithCheck": {
+    "source": "Paid — check #{checkNumber}",
+    "context": "Panel heading once paid; {checkNumber} is the check number the treasurer typed.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.approverComment": {
+    "source": "Approver's comment: “{comment}”",
+    "context": "Shows the approver's rejection comment; {comment} is their text. Keep the quotation marks around it.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.certificateLink": {
+    "source": "📜 Approval certificate",
+    "context": "Link to download the PDF approval certificate. Keep the 📜.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.withdrawConfirm": {
+    "source": "Withdraw this submission so you can pick a different approver?",
+    "context": "confirm() before withdrawing a submission to pick a different approver.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.withdrawButton": {
+    "source": "↪ Withdraw / change approver",
+    "context": "Button to withdraw the pending submission / change approver. Keep the ↪.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.resubmit": {
+    "source": "✍️ Resubmit",
+    "context": "Button to reopen the signing dialog after a rejection. Keep the ✍️.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.reverify": {
+    "source": "⟳ Re-verify",
+    "context": "Button that re-runs the signature-chain verification. Keep the ⟳.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.verifyingChain": {
+    "source": "Verifying the signature chain…",
+    "context": "Progress line while the browser re-checks all signatures. Keep the ellipsis.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.failClosed": {
+    "source": "Signing is disabled until everything checks out.",
+    "context": "Amber note under the banner when verification hasn't fully passed: the Approve/Reject buttons stay disabled.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.openVerifiedPacket": {
+    "source": "Open the verified packet",
+    "context": "Text link opening the verified PDF bytes in a new tab.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.openVerifiedPacketButton": {
+    "source": "📄 Open verified packet",
+    "context": "Button variant of the same action on the treasurer's screen. Keep the 📄.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.submitDialogTitle": {
+    "source": "Submit for approval",
+    "context": "Title of the signing dialog. Must read the same as the ✍️ Submit for approval button (without the emoji).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.notAttested": {
+    "source": "Your signing identity isn't attested yet — enable signing on your <link>profile</link> and get vouched first.",
+    "context": "Shown in the signing dialog when the member isn't vouched yet. <link> wraps the word for the profile page.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.submitIntro": {
+    "source": "You're asking for approval of this claim ({amount}). Place your signature on the form, pick who should approve it, and sign. If the claim changes later, your signature stops counting and approval starts over.",
+    "context": "Explains the submit ceremony. {amount} is the claim total. Plain, non-technical wording.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.openingForm": {
+    "source": "Opening the form…",
+    "context": "Placeholder while the PDF loads into the signing view. Keep the ellipsis.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.approverLabel": {
+    "source": "Approver",
+    "context": "Label of the approver dropdown in the signing dialog.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.approverPlaceholder": {
+    "source": "Choose an approver…",
+    "context": "Empty first option of that dropdown. Keep the ellipsis.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.typedNameLabel": {
+    "source": "Type your full name to sign",
+    "context": "Label of the type-your-full-name field — typing the name is part of the legal signature.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.consentSummary": {
+    "source": "Electronic records consent",
+    "context": "Collapsed <details> summary hiding the legal consent text.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.consentEnglishNote": {
+    "source": "The legally binding consent text is the English version below.",
+    "context": "Small note above the consent document explaining that the binding text is the English original (it is hash-bound and cannot be translated).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.intentAffirmation": {
+    "source": "I intend this to be my signature.",
+    "context": "Checkbox label the signer must tick — a legal affirmation of intent to sign. Keep it a serious, first-person statement.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.signAndSubmit": {
+    "source": "Sign & submit",
+    "context": "Confirm button of the submit ceremony (signs and sends to the approver).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.signing": {
+    "source": "Signing…",
+    "context": "Busy label while a signature is being created. Keep the ellipsis.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.submissionFailed": {
+    "source": "Submission failed",
+    "context": "Fallback error if the submit ceremony fails without a specific message.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.ceremonyFailed": {
+    "source": "Ceremony failed",
+    "context": "Fallback error if an approve/reject/paid ceremony fails without a specific message.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.loadFailed": {
+    "source": "Could not load",
+    "context": "Fallback error when a list (approvals, finance, vouch) fails to load.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.itemsCount": {
+    "source": "{count, plural, one {# item} other {# items}}",
+    "context": "Fallback list-row description when a claim has no description: its line-item count.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.bannerOk": {
+    "source": "✓ Everything checks out — this is the genuine paperwork, unchanged.",
+    "context": "Green verification banner, written for non-technical members. Keep the leading ✓.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.bannerBad": {
+    "source": "✗ Something doesn't check out. Don't sign — ask the person who sent this (details below for whoever helps you).",
+    "context": "Red verification banner: tells the member not to sign and to ask for help. Keep the leading ✗.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.auditDetails": {
+    "source": "Audit details",
+    "context": "Collapsed <details> summary hiding cryptographic detail (fingerprints, hashes). Used on several e-sign screens.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.pillRootPinned": {
+    "source": "root pinned ({by})",
+    "context": "Green pill inside audit details: the church root key matched the pinned value. {by} says what pinned it (config/device).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.pillRootFailed": {
+    "source": "root anchor FAILED",
+    "context": "Red pill: the root key did NOT match. Keep it alarming (capitals in English).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.pillChain": {
+    "source": "signature chain",
+    "context": "Pill label for the signature-chain check.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.pillPacket": {
+    "source": "packet bytes",
+    "context": "Pill label for the packet-bytes hash check.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.anomaliesHeader": {
+    "source": "{count, plural, one {# invalid event on the ledger (kept visible, never hidden):} other {# invalid events on the ledger (kept visible, never hidden):}}",
+    "context": "Audit list header when invalid ledger events exist. {count} plural. 'Kept visible' = the app never hides tampering.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.independentCheck": {
+    "source": "Independent check: download the certificate and run <code>scripts/verify-bundle.mjs</code> with the church's published root fingerprint.",
+    "context": "Audit note telling a technical auditor how to verify offline. Keep the script name inside <code> untranslated.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.signerFingerprints": {
+    "source": "Signer key fingerprints:",
+    "context": "Audit list header for each signer's key fingerprint.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.unknownMember": {
+    "source": "unknown",
+    "context": "Placeholder when a signer's key is not on the roster (lowercase, inline).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.blockSubmitted": {
+    "source": "Submitted (seq {seq})",
+    "context": "Signature-block title: the requester's submit signature. {seq} is the submission attempt number.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.blockApproved": {
+    "source": "Approved",
+    "context": "Signature-block title when the decision was approval.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.blockRejected": {
+    "source": "Rejected",
+    "context": "Signature-block title when the decision was rejection.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.blockPaid": {
+    "source": "Paid",
+    "context": "Signature-block title for the treasurer's payment signature.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.checkNumber": {
+    "source": "Check #{number}",
+    "context": "Line under the payment signature; {number} is the check number.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.unknownSigner": {
+    "source": "Unknown signer",
+    "context": "Shown instead of a name when the signer isn't identifiable.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.tapToSign": {
+    "source": "✍️ Tap to sign",
+    "context": "Pulsing yellow tab ON the document's signature line — tapping it stamps the signature (the legally required act). Keep the ✍️ and keep it short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.signedDragHint": {
+    "source": "Signed. Drag your signature if you want it somewhere else.",
+    "context": "Hint after the signature is stamped: it can be dragged to reposition.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.tapTabHint": {
+    "source": "Tap the yellow tab to sign on the line.",
+    "context": "Hint before stamping: tells the signer to tap the yellow tab.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.dragFineTune": {
+    "source": "Drag to fine-tune the position.",
+    "context": "Small hint below the document while the stamp is placed.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.removeSignature": {
+    "source": "Remove signature",
+    "context": "Small link that removes the stamped signature (returns to the tap-to-sign state).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.appearsAfterTap": {
+    "source": "Your signature appears only after you tap.",
+    "context": "Small reassurance below the document before any tap happened.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.couldNotOpenDoc": {
+    "source": "Couldn't show the document to sign on. {message}",
+    "context": "Error box when the PDF can't be rendered; {message} is the technical reason (may stay English).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.openingDoc": {
+    "source": "Opening the document…",
+    "context": "Placeholder while the PDF renders. Keep the ellipsis.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.docAlt": {
+    "source": "Document to sign",
+    "context": "alt text of the rendered document image.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.signatureAlt": {
+    "source": "Your signature",
+    "context": "alt text of the member's hand-drawn signature image.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.signAbove": {
+    "source": "Sign above with your finger or mouse",
+    "context": "Caption under the empty drawing canvas (draw with finger or mouse).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.clearPad": {
+    "source": "Clear and start over",
+    "context": "Link that wipes the drawing canvas.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Approvals.title": {
+    "source": "Approvals",
+    "context": "Page title of the approver's inbox; also the nav link.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Approvals.subtitle": {
+    "source": "Open a claim to check it and sign.",
+    "context": "One-line instruction under the inbox title.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Approvals.empty": {
+    "source": "Nothing waiting on you.",
+    "context": "Empty-state line when nothing awaits the approver (friendly, next to a 🕊️).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Approvals.decided": {
+    "source": "Decided",
+    "context": "Section header (uppercase style) listing already-decided claims.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Approvals.submittedOn": {
+    "source": "submitted {date}",
+    "context": "List-row suffix; {date} is a formatted date. Lowercase inline fragment after a ·.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Approvals.commentLabel": {
+    "source": "Comment (required to reject)",
+    "context": "Label of the comment field; a comment is mandatory only for rejection.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Approvals.rejectNeedsComment": {
+    "source": "Add a comment explaining the rejection",
+    "context": "Tooltip on the disabled Reject button until a comment is typed.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Approvals.reject": {
+    "source": "✗ Reject",
+    "context": "Reject button. Keep the ✗.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Approvals.approveAndSign": {
+    "source": "✓ Approve & sign",
+    "context": "Approve button — approving IS signing. Keep the ✓.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Finance.title": {
+    "source": "Finance",
+    "context": "Page title of the treasurer's queue; also the nav link.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Finance.subtitle": {
+    "source": "Approved claims ready to pay.",
+    "context": "One-line description under the finance title.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Finance.empty": {
+    "source": "Nothing to pay right now.",
+    "context": "Empty-state line when no approved claims await payment (next to a 🧮).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Finance.paidHeader": {
+    "source": "Paid",
+    "context": "Section header listing already-paid claims.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Finance.certificate": {
+    "source": "certificate",
+    "context": "Small lowercase link to the approval certificate in the paid list.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Finance.checkNumberLabel": {
+    "source": "Check number (optional)",
+    "context": "Label of the optional check-number field in the mark-paid ceremony.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Finance.signAndMarkPaid": {
+    "source": "💸 Sign & mark paid",
+    "context": "Confirm button of the payment ceremony. Keep the 💸.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.title": {
+    "source": "Electronic signing",
+    "context": "Heading of the profile-page card for electronic signing.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.chipReady": {
+    "source": "Ready to sign",
+    "context": "Status chip: fully vouched, can sign.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.chipPending": {
+    "source": "Almost there",
+    "context": "Status chip: enrolled, still needs vouches. Encouraging tone.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.chipRevoked": {
+    "source": "Turned off",
+    "context": "Status chip: the signing key was revoked.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.chipNone": {
+    "source": "Not set up",
+    "context": "Status chip: never set up signing.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.loadFailed": {
+    "source": "Could not load signing status",
+    "context": "Error when the signing status can't be loaded.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.switchFailed": {
+    "source": "Could not switch",
+    "context": "Error when flipping the master switch fails.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.switchOn": {
+    "source": "Electronic signing is ON",
+    "context": "Bold line of the admin's master-switch row when e-signing is on. ON is deliberately loud.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.switchOff": {
+    "source": "Electronic signing is OFF",
+    "context": "Same row when off. OFF is deliberately loud.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.switchOnBody": {
+    "source": "Members can enroll, submit, approve, and pay electronically.",
+    "context": "Small print under the ON state: what members can now do.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.switchOffBody": {
+    "source": "Off for everyone (the default). Existing signed records stay verifiable.",
+    "context": "Small print under the OFF state: off is the default; old signed records stay verifiable.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.turnOn": {
+    "source": "Turn on",
+    "context": "Master-switch button (admin only).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.turnOff": {
+    "source": "Turn off",
+    "context": "Master-switch button (admin only).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.bootstrapIntro": {
+    "source": "You're set up as the person who starts electronic signing for this church. Setting up creates the signing registry with you as its anchor — it starts switched <b>off</b>, so nothing changes for members until you flip the switch.",
+    "context": "Shown only to the designated first admin before setup. <b> wraps 'off'. Explains setup creates the registry with them as anchor.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.bootstrapButton": {
+    "source": "Set up electronic signing",
+    "context": "Button that performs the one-time setup.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.bootstrapBusy": {
+    "source": "Setting up…",
+    "context": "Busy label during setup. Keep the ellipsis.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.setupFailed": {
+    "source": "Setup failed",
+    "context": "Fallback error if enrollment/bootstrap fails.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.notSetUp": {
+    "source": "Electronic signing isn't set up for this church yet — ask your administrator.",
+    "context": "Shown to members while the church hasn't set up e-signing.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.enrollIntro": {
+    "source": "Sign and approve reimbursements from your phone — no printing. You'll agree to sign electronically, draw your signature, and then two members confirm it's really you (in person, one quick scan).",
+    "context": "Pitch shown before a member enrolls: agree → draw signature → two members confirm in person. Friendly, non-technical.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.enrollButton": {
+    "source": "Set up signing",
+    "context": "Button starting the enrollment wizard.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.checkingDevice": {
+    "source": "Checking this device…",
+    "context": "Placeholder while the app checks whether this browser holds the member's keys. Keep the ellipsis.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.yourSignature": {
+    "source": "Your signature",
+    "context": "Small label above the saved hand-drawn signature image.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.redraw": {
+    "source": "Redraw",
+    "context": "Small link to redraw the saved signature.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.addSignature": {
+    "source": "✍️ Add your signature",
+    "context": "Button when no drawn signature exists yet. Keep the ✍️.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.pendingVouch": {
+    "source": "One last step: show this to two members (or one approver) <b>in person</b>. They scan it with their phone camera and confirm it's really you.",
+    "context": "Amber instructions above the QR while awaiting vouches. <b> wraps 'in person'. Two members or one approver must scan.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.vouchForMember": {
+    "source": "🤝 Vouch for a member",
+    "context": "Link/button to the vouching page (shown to attested members). Keep the 🤝.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.roleLabel": {
+    "source": "Role:",
+    "context": "Audit-details line label; the member's church role follows it.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.yourFingerprint": {
+    "source": "Your key fingerprint:",
+    "context": "Audit-details line label; the member's key fingerprint follows.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.fullFingerprint": {
+    "source": "(full: {fp})",
+    "context": "Parenthetical giving the untruncated fingerprint; {fp} is 64 hex chars.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.rootFingerprint": {
+    "source": "Church root fingerprint:",
+    "context": "Audit-details line label for the church's root key fingerprint.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.compareNote": {
+    "source": "— compare against the published value",
+    "context": "Dash-note after the root fingerprint: compare it against the value the church published.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.qrAria": {
+    "source": "Vouching QR code",
+    "context": "aria-label of the vouching QR code image.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.consentTitle": {
+    "source": "Sign electronically instead of on paper",
+    "context": "Title of the consent step of the enrollment wizard.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.consentIntro": {
+    "source": "Please read this once — it says your electronic signature counts like an ink one, and that you can always go back to paper.",
+    "context": "Friendly summary above the legal text: e-signature counts like ink; paper remains possible.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.agreeCheckbox": {
+    "source": "I agree to sign electronically.",
+    "context": "Consent checkbox label (first person).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.consentNext": {
+    "source": "Next: draw your signature",
+    "context": "Button advancing from consent to the drawing step.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.drawTitle": {
+    "source": "Draw your signature",
+    "context": "Title of the draw-your-signature step.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.drawIntro": {
+    "source": "This is the signature that appears on the reimbursement forms — sign the way you would on paper, with your finger or the mouse.",
+    "context": "Instruction above the canvas: this drawing appears on the forms; sign like on paper.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.finishSetup": {
+    "source": "Finish setup",
+    "context": "Final wizard button (creates the signing key).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.finishing": {
+    "source": "Finishing…",
+    "context": "Busy label for that button. Keep the ellipsis.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.redrawTitle": {
+    "source": "Redraw your signature",
+    "context": "Title of the redraw-signature dialog.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.redrawBody": {
+    "source": "The new drawing is used on paperwork you sign from now on; nothing already signed changes.",
+    "context": "Note in that dialog: the new drawing affects future paperwork only.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.saveSignature": {
+    "source": "Save signature",
+    "context": "Save button of the redraw dialog.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.couldNotSave": {
+    "source": "Could not save",
+    "context": "Fallback error for the redraw dialog.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.newDeviceTitle": {
+    "source": "This looks like a new device.",
+    "context": "Amber card title when a signed-in member opens the app on a browser that doesn't hold their keys.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.newDeviceBody": {
+    "source": "Your signing identity exists, but it isn't on this device yet. Bring it over — no re-vouching needed.",
+    "context": "Body of that card (their fleet still exists): bring the identity over; no re-vouching needed.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.newDeviceBodyGone": {
+    "source": "Your signing identity exists, but it isn't on this account anymore. Bring it over — no re-vouching needed unless you start over.",
+    "context": "Variant when the whole fleet was wiped (post start-over): only starting over remains, unless they start over.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.approveFromOther": {
+    "source": "📱 Approve from a device you already sign with",
+    "context": "Primary recovery path button: approve this browser from a device that already signs. Keep the 📱.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.typePhraseOption": {
+    "source": "🔑 Type my 24-word recovery phrase",
+    "context": "Secondary path button: type the 24-word recovery phrase. Keep the 🔑.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.keysRemovedEverywhere": {
+    "source": "Your signing keys were removed everywhere, so the only way forward is to start over below.",
+    "context": "Shown instead of the two buttons when no device holds keys anymore.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.noneWork": {
+    "source": "None of these work?",
+    "context": "Collapsed <details> summary of the last-resort help.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.noneWorkBody": {
+    "source": "If your old devices are gone and you never printed a recovery sheet, the identity can't be recovered — that's what keeps it yours. Starting over creates a brand-new signing key: the same people who vouched for you before vouch for you again, and the moment they do, your old key stops counting automatically. Only if you think someone else might USE the old key before then, tell your administrator — they can retire it immediately.",
+    "context": "Last-resort explanation: unrecoverable by design; starting over re-vouches and auto-retires the old key; tell the admin only if someone might USE the old key.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.startOver": {
+    "source": "Start over from nothing",
+    "context": "Deliberately buried destructive button: discard the identity and enroll fresh.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.startOverConfirm": {
+    "source": "Start over from nothing?\n\nThis signs ALL your devices out of electronic signing and throws away your current signing key. You'll set up again from scratch and be vouched for again in person — being vouched back in automatically retires the old key. Anything you already signed stays valid.",
+    "context": "confirm() for start-over. Keep the blank line (\\n\\n). Serious but calm: old signatures stay valid.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.couldNotStart": {
+    "source": "Could not start",
+    "context": "Error when the device-approval request can't be created.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.couldNotReset": {
+    "source": "Could not reset",
+    "context": "Error when start-over fails.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.waitingIntro": {
+    "source": "Now pick up the device you already sign with. A message appears there — type this code into it:",
+    "context": "Instruction above the big 6-digit code: pick up the other device and type this code there.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.waitingNote": {
+    "source": "Waiting for the other device… this page continues by itself once it's approved. The code proves the other device is talking to <em>this</em> browser and not an impostor.",
+    "context": "Small print while waiting; <em> wraps 'this'. Explains the code binds the approval to this browser.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.phraseTitle": {
+    "source": "Type your 24-word recovery phrase",
+    "context": "Label above the recovery-phrase textarea.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.phrasePlaceholder": {
+    "source": "correct horse battery staple …",
+    "context": "Textarea placeholder — an example of the phrase format. Recovery phrases are always English BIP39 words: keep the example words in English.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.phraseWrong": {
+    "source": "That phrase didn't work — check the words and their order",
+    "context": "Error when the typed phrase doesn't unlock: check words and their order.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.unlock": {
+    "source": "Unlock",
+    "context": "Submit button of the phrase form.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.unlocking": {
+    "source": "Unlocking…",
+    "context": "Busy label. Keep the ellipsis.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.deviceWants": {
+    "source": "“{name}” wants to sign as you.",
+    "context": "Banner headline when a new device asks to be approved; {name} is the device's self-reported name, already in quotes.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.unnamedDevice": {
+    "source": "A new device",
+    "context": "Fallback device name.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.approveHint": {
+    "source": "Only approve if it's yours and in your hands. Type the 6-digit code from <em>its</em> screen — that's what proves it's really that device.",
+    "context": "Banner small print: only approve your own device in your hands; type the code from ITS screen (<em> wraps 'its').",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.approve": {
+    "source": "Approve",
+    "context": "Approve button of the device banner.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.rejectDevice": {
+    "source": "Reject",
+    "context": "Reject button of the device banner.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.approvalFailed": {
+    "source": "Approval failed",
+    "context": "Error when approving the device fails (usually a wrong code).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.devicesTitle": {
+    "source": "Devices that can sign as you",
+    "context": "Small header of the authorized-devices list on the profile card.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.thisDevice": {
+    "source": "this device",
+    "context": "Green chip marking the browser you're reading this on.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.addedOn": {
+    "source": "added {date}",
+    "context": "Small suffix per device; {date} is a formatted date. Lowercase fragment.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.removeDevice": {
+    "source": "remove",
+    "context": "Small lowercase button removing a device from the list.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.removeConfirm": {
+    "source": "Sign “{name}” out of electronic signing?\n\nIt loses access immediately (your keys rotate under the hood). If the device might be in someone else's hands, also tell your administrator in person so they can revoke your signing key.",
+    "context": "confirm() for removing a device; {name} is the device name. Keep the blank line (\\n\\n).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.couldNotRemove": {
+    "source": "Could not remove the device",
+    "context": "Error when removal fails.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.lostHint": {
+    "source": "Lost one? Remove it here, then tell your administrator in person if someone else might have it — they can revoke the signing key itself.",
+    "context": "Small print under the device list: remove lost devices; tell the admin in person if someone else might have it.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.recoveryRoot": {
+    "source": "Protect the church's signing anchor. If this device is lost with no recovery sheet, electronic signing has to be rebuilt from scratch for everyone.",
+    "context": "Sticky amber nudge for the ADMIN: the root key anchors everyone — print the recovery sheet.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.recoveryNudge": {
+    "source": "One more safety net: print a recovery sheet and you can sign from a new device even if this one is lost.",
+    "context": "Dismissible amber nudge for members: print a recovery sheet as a safety net.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.printSheet": {
+    "source": "Print my recovery sheet",
+    "context": "Button opening the recovery-sheet dialog.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.later": {
+    "source": "Later",
+    "context": "Dismiss button of the nudge.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.phraseDialogTitle": {
+    "source": "Print your recovery sheet",
+    "context": "Title of the recovery-sheet dialog.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.preparing": {
+    "source": "Preparing…",
+    "context": "Placeholder while the phrase is generated. Keep the ellipsis.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.sheetBody": {
+    "source": "This one-page sheet holds the 24 words that can bring your signing identity to a new device. Print it and keep it with your important papers at home. Anyone holding the sheet can sign as you — and nobody, including the church, can recreate it if it's lost.",
+    "context": "Explains the sheet: 24 words, keep at home with important papers; anyone holding it can sign as you; nobody can recreate it.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.downloadSheet": {
+    "source": "🖨️ Download the sheet to print (PDF)",
+    "context": "Download button for the printable PDF. Keep the 🖨️.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.downloadedPrint": {
+    "source": "✓ Downloaded — print it now",
+    "context": "Same button after downloading: now print it. Keep the ✓.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.noPrinter": {
+    "source": "No printer? Copy the words by hand",
+    "context": "Collapsed <details> summary offering hand-copying instead.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.savedCheckbox": {
+    "source": "The sheet is printed (or written out) and stored somewhere safe.",
+    "context": "Checkbox the member must tick before closing: the sheet is printed/written and stored safely.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.done": {
+    "source": "Done",
+    "context": "Final button of the recovery dialog.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.couldNotCreatePhrase": {
+    "source": "Could not create a phrase",
+    "context": "Error when phrase generation fails.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.couldNotBuildSheet": {
+    "source": "Could not build the sheet",
+    "context": "Error when building the PDF fails.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.title": {
+    "source": "Vouch for a member",
+    "context": "Page title of the in-person vouching screen. Must read the same as the 🤝 Vouch for a member link (without the emoji).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.onlyAttested": {
+    "source": "Only attested members can vouch. Enable signing on your <link>profile</link> and get vouched first.",
+    "context": "Shown when the visitor can't vouch yet; <link> wraps the word for the profile page.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.doneTitle": {
+    "source": "Vouch recorded for {name}.",
+    "context": "Success line after signing a vouch; {name} is the candidate.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.doneBody": {
+    "source": "They need two member vouches (or one from an approver) to become attested.",
+    "context": "Reminder of the attestation rule: two member vouches, or one from an approver.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.beforeTitle": {
+    "source": "Before you vouch, confirm in person:",
+    "context": "Bold header of the amber in-person checklist.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.bullet1": {
+    "source": "The person is physically with you right now.",
+    "context": "Checklist: the person is physically present.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.bullet2": {
+    "source": "This name and email really belong to them.",
+    "context": "Checklist: the name and email really belong to them.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.bullet3": {
+    "source": "You scanned the QR from THEIR screen (not a forwarded link).",
+    "context": "Checklist: the QR was scanned from THEIR screen, not a forwarded link.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.rekeyTitle": {
+    "source": "This replaces {name}'s previous signing key.",
+    "context": "Warning when the vouch would replace an existing key; {name} is the candidate.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.rekeyBody": {
+    "source": "Usually that means a lost device. The moment they're vouched back in, the old key stops counting — everything they signed before stays valid. Be extra sure it's really them.",
+    "context": "Explains re-keying: usually a lost device; old key stops counting once re-vouched; old signatures stay valid; be extra sure.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.manualLabel": {
+    "source": "Type their full key fingerprint (from their screen — the spoken 6-digit code is never enough):",
+    "context": "Label of the manual fingerprint field (no-QR fallback). The spoken 6-digit code is never sufficient.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.manualPlaceholder": {
+    "source": "64 hex characters (≥32 accepted)",
+    "context": "Placeholder describing the expected input: 64 hex characters, at least 32 accepted.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.fpMismatch": {
+    "source": "Fingerprint does not match.",
+    "context": "Inline error while the typed fingerprint doesn't match.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.confirmLabel": {
+    "source": "I am with <b>{name}</b> in person and confirm this identity is theirs.",
+    "context": "The vouch checkbox — a first-person statement of in-person identity confirmation. <b> wraps {name}.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.signVouch": {
+    "source": "Sign the vouch",
+    "context": "Button that signs the vouch.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.scanIntro": {
+    "source": "Scan the candidate's QR with your phone camera — it opens this page with their identity attached. No QR handy? Pick them below and type their <b>full key fingerprint</b> (read from their screen; the short spoken code is not enough).",
+    "context": "Intro on the vouch page without a QR parameter: scan with the phone camera, or pick a candidate and type the full fingerprint (<b> wraps it).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.nobodyPending": {
+    "source": "Nobody is currently awaiting vouches.",
+    "context": "Empty state of the awaiting-vouches list.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.attestedMembers": {
+    "source": "Attested members",
+    "context": "Header of the attested-members list.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.revokeKey": {
+    "source": "revoke key",
+    "context": "Admin button (lowercase chip) revoking a member's signing key.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.revokeKeyConfirm": {
+    "source": "Revoke {name}'s signing key?\n\nDo this when a device that could sign as them was lost or stolen. Everything they already signed stays valid, but the key stops working everywhere — they'll set up signing again and be vouched for again in person.",
+    "context": "confirm() for key revocation; {name} is the member. Keep the blank line (\\n\\n). Old signatures stay valid.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.grantApprover": {
+    "source": "make approver",
+    "context": "Admin button (lowercase chip) granting the approver role.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.grantTreasurer": {
+    "source": "make treasurer",
+    "context": "Admin button (lowercase chip) granting the treasurer role.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.revokeRole": {
+    "source": "revoke {role}",
+    "context": "Admin button (lowercase chip) revoking a role; {role} is the translated role name.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.vouchFailed": {
+    "source": "Vouch failed",
+    "context": "Fallback error when signing the vouch fails.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.malformedLink": {
+    "source": "This vouch link is malformed — rescan the QR",
+    "context": "Error when the scanned vouch URL is corrupt: rescan the QR.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.verifying": {
+    "source": "Verifying signatures in your browser…",
+    "context": "Loading line while signatures are re-checked in the visitor's browser. Keep the ellipsis.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.failedTitle": {
+    "source": "Verification failed",
+    "context": "Red card title when verification can't complete.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.linkInvalid": {
+    "source": "This verification link is not valid ({part})",
+    "context": "Error for a bad/expired verification link; {part} is a technical endpoint name (leave as-is).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.verifiedTitle": {
+    "source": "Signatures verified",
+    "context": "Green card title when every check passed.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.warningsTitle": {
+    "source": "Verification finished with warnings",
+    "context": "Amber card title when checks finished but something is off.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.claimByLine": {
+    "source": "Reimbursement claim by <b>{name}</b> · ",
+    "context": "Summary line; {name} is the requester (<b>-wrapped). Ends with a separator before 'checked just now'.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.claimByAmountLine": {
+    "source": "Reimbursement claim by <b>{name}</b> for {amount} · ",
+    "context": "Variant with {amount}, the claim total.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.checkedNow": {
+    "source": "checked just now, in this browser.",
+    "context": "End of the summary sentence: the verdict was computed just now, in this browser (not by the server).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.rootPinnedCfg": {
+    "source": "root pinned by deployment config",
+    "context": "Audit check label: the root key matched the deployment's pinned fingerprint.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.rootRelayed": {
+    "source": "root relayed by this server (verify the fingerprint in person)",
+    "context": "Audit check label when no pin is configured: the server relayed the root — verify the fingerprint in person.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.packetMatch": {
+    "source": "packet bytes match the signed hash ({hash}…)",
+    "context": "Audit check label: the PDF bytes hash to the signed value; {hash} is a hash prefix.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.packetMismatch": {
+    "source": "packet bytes do NOT match the signed hash",
+    "context": "Audit check label when the bytes do NOT match. Alarming.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.noAnomalies": {
+    "source": "no ledger anomalies",
+    "context": "Audit check label: the ledger contains no invalid events.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.anomalyCount": {
+    "source": "{count, plural, one {# ledger anomaly} other {# ledger anomalies}}",
+    "context": "Audit check label with {count} plural invalid events.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.rosterOddities": {
+    "source": "{count, plural, one {# roster oddity} other {# roster oddities}}",
+    "context": "Audit check label with {count} plural roster irregularities.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.invalidEvents": {
+    "source": "Invalid events (kept visible):",
+    "context": "Header of the invalid-events list (kept visible on purpose).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.independentCheckCert": {
+    "source": "Independent check: run <code>scripts/verify-bundle.mjs</code> against the certificate's embedded bundle with the church's published root fingerprint.",
+    "context": "Note for technical auditors; keep the script name in <code> untranslated.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.threadTitle": {
+    "source": "Submission thread {seq}",
+    "context": "Card title per submission attempt; {seq} is the attempt number.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.submitted": {
+    "source": "Submitted",
+    "context": "Signature line title: the requester's submission signature.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.approved": {
+    "source": "Approved",
+    "context": "Signature line title: the approval signature.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.rejected": {
+    "source": "Rejected",
+    "context": "Signature line title: the rejection signature.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.paid": {
+    "source": "Paid",
+    "context": "Signature line title: the payment signature.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.keySummary": {
+    "source": "key",
+    "context": "Tiny <details> summary revealing the signer's key fingerprint (lowercase).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.unknown": {
+    "source": "Unknown",
+    "context": "Fallback signer name when the key maps to nobody on the roster.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.state.open": {
+    "source": "open",
+    "context": "Thread state chip: submitted, awaiting decision.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.state.approved": {
+    "source": "approved",
+    "context": "Thread state chip: approved.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.state.rejected": {
+    "source": "rejected",
+    "context": "Thread state chip: rejected.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.state.paid": {
+    "source": "paid",
+    "context": "Thread state chip: paid.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.state.withdrawn": {
+    "source": "withdrawn",
+    "context": "Thread state chip: the requester withdrew this submission.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.state.superseded": {
+    "source": "superseded",
+    "context": "Thread state chip: replaced by a newer submission.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Errors.notSignedIn": {
     "source": "Not signed in",
     "context": "401 body when the session is missing/expired.",
@@ -1748,9 +3176,10 @@
     "zh-Hant": "machine"
   },
   "Errors.onlyGeneratedRevertible": {
-    "source": "Only generated claims can be reverted to draft",
+    "source": "Only generated or under-signature claims can be reverted to draft",
     "zh-Hans": "machine",
-    "zh-Hant": "machine"
+    "zh-Hant": "machine",
+    "context": "409 error. “Generated” and “under signature” are claim statuses — match the Common.status wording. Under-signature means submitted/rejected/approved (not yet paid)."
   },
   "Errors.descriptionRequired": {
     "source": "Describe the claim in a sentence first",
@@ -1791,6 +3220,90 @@
   "Errors.quotaWait": {
     "source": "Rate limit reached — waiting {seconds}s before retrying ({attempt}/{maxRetries})…",
     "context": "Live status during a rate-limit wait; {seconds} countdown, ({attempt}/{maxRetries}) retry counter — keep the shape.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.pdfFrozen": {
+    "source": "The packet is frozen under signature — download it from the claim page, or revert to draft to edit",
+    "context": "409 when regenerating a PDF that is under signature: download the archived packet or revert to draft.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.pickApprover": {
+    "source": "Pick an approver and type your name",
+    "context": "400 in the submit ceremony: approver and typed name are required.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.placeSignature": {
+    "source": "Place your signature on the form first",
+    "context": "400 in the submit ceremony: the drawn signature must be placed on the form first.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.typeName": {
+    "source": "Type your name to sign",
+    "context": "400: the typed-name field is empty.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.typeNameApproval": {
+    "source": "Type your name to sign an approval",
+    "context": "400: the approver's typed-name field is empty.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.selfApprove": {
+    "source": "You cannot approve your own claim",
+    "context": "409: a requester picked themselves as approver.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.notApprover": {
+    "source": "That member is not an attested approver",
+    "context": "409: the chosen member isn't an attested approver.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.packetChanged": {
+    "source": "The packet changed since preflight — restart the ceremony",
+    "context": "409: the PDF changed between preflight and signing — restart the ceremony.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.generateFirst": {
+    "source": "Generate the packet PDF before submitting",
+    "context": "409: the claim has no generated PDF yet.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.mirrorBehind": {
+    "source": "Ledger mirror is behind — reconcile this claim first",
+    "context": "409: the server's mirror lags the signature ledger; reconcile first ('reconcile' is a background sync the UI performs).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.noPacket": {
+    "source": "No packet for this claim yet",
+    "context": "404: no PDF packet exists for the claim yet.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.certNotReady": {
+    "source": "Certificates exist once a claim is approved",
+    "context": "409: certificates only exist once a claim is approved.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.notEnrolled": {
+    "source": "Not enrolled",
+    "context": "404: the member has no signing identity yet.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.notSetUp": {
+    "source": "E-sign is not set up yet",
+    "context": "404: the church hasn't set up e-signing.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

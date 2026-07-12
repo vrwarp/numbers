@@ -8,13 +8,17 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { formatCents } from "@/lib/money";
 import { runPaidCeremony } from "@/lib/esign/client";
-import { INTENT_AFFIRMATION } from "@/lib/esign/consent";
+import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
 import { AuditDetails, ThreadSignatures, VerifiedBanner, useClaimChain } from "./chain";
 import { StatusChip, type InboxClaim } from "./ApprovalsInbox";
 
 export default function FinanceQueue() {
+  const t = useTranslations("Finance");
+  const tEsign = useTranslations("Esign");
+  const apiError = useApiErrorMessage();
   const [claims, setClaims] = useState<InboxClaim[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -22,11 +26,11 @@ export default function FinanceQueue() {
   const load = useCallback(async () => {
     const res = await fetch("/api/finance");
     if (!res.ok) {
-      setError((await res.json().catch(() => null))?.error ?? "Could not load");
+      setError(apiError(await res.json().catch(() => null), tEsign("loadFailed")));
       return;
     }
     setClaims((await res.json()).claims ?? []);
-  }, []);
+  }, [apiError, tEsign]);
   useEffect(() => {
     void load();
   }, [load]);
@@ -37,17 +41,15 @@ export default function FinanceQueue() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Finance</h1>
-        <p className="text-sm text-stone-500">
-          Approved claims ready to pay.
-        </p>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <p className="text-sm text-stone-500">{t("subtitle")}</p>
       </div>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
       {queue.length === 0 ? (
         <div className="card p-8 text-center text-stone-500">
           <div className="text-3xl">🧮</div>
-          <p className="mt-2">Nothing to pay right now.</p>
+          <p className="mt-2">{t("empty")}</p>
         </div>
       ) : (
         <ul className="space-y-3">
@@ -56,7 +58,10 @@ export default function FinanceQueue() {
               <button className="flex w-full items-center justify-between gap-3 text-left" onClick={() => setOpenId(openId === c.id ? null : c.id)}>
                 <div>
                   <div className="font-semibold">{c.ownerName}</div>
-                  <div className="text-sm text-stone-500">{c.claimDescription || `${c.rows.length} item(s)`}</div>
+                  <div className="text-sm text-stone-500">
+                    {c.claimDescription ||
+                      tEsign("itemsCount", { count: c.rows.length })}
+                  </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-lg font-bold">{formatCents(c.totalCents)}</span>
@@ -71,7 +76,7 @@ export default function FinanceQueue() {
 
       {paid.length > 0 && (
         <div>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-stone-400">Paid</h2>
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-stone-400">{t("paidHeader")}</h2>
           <ul className="space-y-2">
             {paid.map((c) => (
               <li key={c.id} className="card flex items-center justify-between p-3 text-sm">
@@ -80,7 +85,7 @@ export default function FinanceQueue() {
                 </span>
                 <div className="flex items-center gap-2">
                   <a className="text-indigo-600 underline" href={`/api/reimbursements/${c.id}/certificate`}>
-                    certificate
+                    {t("certificate")}
                   </a>
                   <StatusChip status={c.status} />
                 </div>
@@ -94,6 +99,9 @@ export default function FinanceQueue() {
 }
 
 function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () => Promise<void> }) {
+  const t = useTranslations("Finance");
+  const tEsign = useTranslations("Esign");
+  const thrown = useThrownErrorMessage();
   const { state, error, loading } = useClaimChain(claim);
   const [typedName, setTypedName] = useState("");
   const [checkNumber, setCheckNumber] = useState("");
@@ -133,43 +141,43 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
       );
       await onChanged();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Ceremony failed");
+      setActionError(thrown(err, tEsign("ceremonyFailed")));
       setBusy(false);
     }
   }
 
   return (
     <div className="mt-4 space-y-3 border-t border-stone-100 pt-4">
-      {loading && <p className="text-sm text-stone-500">Verifying the signature chain…</p>}
+      {loading && <p className="text-sm text-stone-500">{tEsign("verifyingChain")}</p>}
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {state && (
         <>
           <VerifiedBanner state={state} />
           {!verified && (
             <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
-              Signing is disabled until everything checks out.
+              {tEsign("failClosed")}
             </p>
           )}
           <ThreadSignatures state={state} />
           <AuditDetails state={state} />
           {state.packetUrl && (
             <a className="btn-secondary inline-block" href={state.packetUrl} target="_blank" rel="noreferrer">
-              📄 Open verified packet
+              {tEsign("openVerifiedPacketButton")}
             </a>
           )}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium">
-              Check number (optional)
+              {t("checkNumberLabel")}
               <input className="input mt-1" value={checkNumber} onChange={(e) => setCheckNumber(e.target.value)} data-testid="check-number" />
             </label>
             <label className="block text-sm font-medium">
-              Type your full name to sign
+              {tEsign("typedNameLabel")}
               <input className="input mt-1" value={typedName} onChange={(e) => setTypedName(e.target.value)} data-testid="paid-typed-name" />
             </label>
           </div>
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" checked={affirmed} onChange={(e) => setAffirmed(e.target.checked)} data-testid="paid-intent" />
-            <span>{INTENT_AFFIRMATION}</span>
+            <span>{tEsign("intentAffirmation")}</span>
           </label>
           {actionError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{actionError}</p>}
           <div className="flex justify-end">
@@ -179,7 +187,7 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
               onClick={pay}
               data-testid="mark-paid-button"
             >
-              {busy ? "Signing…" : "💸 Sign & mark paid"}
+              {busy ? tEsign("signing") : t("signAndMarkPaid")}
             </button>
           </div>
         </>
