@@ -61,11 +61,9 @@ export default function NavBar({ userName }: { userName: string }) {
                 {l.label}
                 {l.badge ? (
                   <span
-                    className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
+                    className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"
                     data-testid={`badge-${l.href.slice(1) || "shoebox"}`}
-                  >
-                    {l.badge}
-                  </span>
+                  />
                 ) : null}
               </Link>
             );
