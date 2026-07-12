@@ -133,6 +133,48 @@ async function seedClaim(persona: Persona, event: string): Promise<string> {
   return id;
 }
 
+/**
+ * Exercise the signing-preview gestures on whatever document-sign-field is open
+ * (docs: DocumentSignField). Asserts the three behaviours the surface adds:
+ *   1. a QUICK tap does NOT sign — signing is a deliberate long-press now, so
+ *      the tab stays and the submit button stays disabled;
+ *   2. the zoom buttons zoom (the % readout and CSS transform change, reset
+ *      restores 100%);
+ *   3. drag-to-pan moves the content once zoomed.
+ * Leaves the view reset to 100% so the caller can hold-to-sign cleanly.
+ */
+async function verifyPreviewGestures(page: Page, submitTestId: string) {
+  const content = page.locator('[data-testid="sign-viewport-content"]');
+  const transform = () => content.evaluate((el) => getComputedStyle(el).transform);
+
+  // 1. Quick tap must not sign (long-press gate): the tab stays, no stamp is
+  //    placed, and the ceremony's commit button stays disabled.
+  await page.click('[data-testid="tap-to-sign"]');
+  await expect(page.locator('[data-testid="tap-to-sign"]')).toBeVisible();
+  await expect(page.locator('[data-role="stamp"]')).toHaveCount(0);
+  await expect(page.locator(`[data-testid="${submitTestId}"]`)).toBeDisabled();
+
+  // 2. Zoom buttons.
+  await expect(page.locator('[data-testid="zoom-reset"]')).toHaveText("100%");
+  const atRest = await transform();
+  await page.click('[data-testid="zoom-in"]');
+  await expect(page.locator('[data-testid="zoom-reset"]')).not.toHaveText("100%");
+  const zoomedTransform = await transform();
+  expect(zoomedTransform).not.toBe(atRest);
+
+  // 3. Drag-to-pan while zoomed (start away from the tab so it pans, not signs).
+  const box = (await page.locator('[data-testid="document-sign-field"]').boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.3);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 - 60, box.y + box.height * 0.3, { steps: 8 });
+  await page.mouse.up();
+  expect(await transform()).not.toBe(zoomedTransform);
+
+  // Back to 100% for the caller's hold-to-sign.
+  await page.click('[data-testid="zoom-reset"]');
+  await expect(page.locator('[data-testid="zoom-reset"]')).toHaveText("100%");
+}
+
 /** Hold-to-sign submit ceremony for the claim currently open at /claims/:id. */
 async function submitForApproval(persona: Persona, id: string) {
   await persona.page.goto(`${BASE}/claims/${id}`);
@@ -141,6 +183,8 @@ async function submitForApproval(persona: Persona, id: string) {
   // The option label renders the role through Common.role.* ("Approver").
   await persona.page.selectOption('[data-testid="approver-select"]', { label: "Bob Chen (Approver)" });
   await persona.page.check('[data-testid="intent-checkbox"]');
+  // Zoom/pan/long-press gestures behave before we actually sign.
+  await verifyPreviewGestures(persona.page, "sign-submit");
   // Signing is a long-press now: hold the tab past HOLD_MS via click delay.
   await persona.page.click('[data-testid="tap-to-sign"]', { delay: 900 });
   await persona.page.click('[data-testid="sign-submit"]');
@@ -298,6 +342,7 @@ test("submit → approve → pay, fail-closed ceremonies throughout", async () =
   await bob.page.click(`[data-testid="approval-${claimId}"] button`);
   await bob.page.waitForSelector('[data-testid="document-sign-field"]', { timeout: 30_000 });
   await bob.page.check('[data-testid="decision-intent"]');
+  await verifyPreviewGestures(bob.page, "approve-button");
   await bob.page.click('[data-testid="tap-to-sign"]', { delay: 900 });
   await bob.page.waitForSelector('[data-testid="approve-button"]:not([disabled])', {
     timeout: 30_000,

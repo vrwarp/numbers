@@ -26,6 +26,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { renderFirstPage, type RenderedPage } from "@/lib/esign/pdfjs-client";
 import { clampPlacement, fitWidthToHeight, roundPlacement, type SignaturePlacement } from "@/lib/esign/placement";
+import {
+  MAX_SCALE,
+  MIN_SCALE,
+  ZOOM_STEP,
+  beginPinch as beginPinchView,
+  clampView,
+  isIdentity,
+  panView,
+  pinchView,
+  zoomByCenter,
+  type PinchStart,
+  type View,
+} from "@/lib/esign/viewport";
 
 /**
  * Cap the stamped signature to roughly the height of the form's printed-name
@@ -41,14 +54,7 @@ const HOLD_MS = 550;
 /** Pointer travel (px) that aborts an in-progress hold — it was a pan, not a press. */
 const HOLD_CANCEL_PX = 10;
 
-const MIN_SCALE = 1;
-const MAX_SCALE = 4;
-const ZOOM_STEP = 1.5;
-
-type View = { scale: number; tx: number; ty: number };
 type Gesture = "none" | "hold" | "dragSig" | "pan" | "pinch";
-
-const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
 export default function DocumentSignField({
   bytes,
@@ -81,7 +87,7 @@ export default function DocumentSignField({
   const holdRaf = useRef<number | null>(null);
   const holdStart = useRef({ x: 0, y: 0, t: 0 });
   const panStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
-  const pinchStart = useRef({ dist: 0, scale: 1, cx: 0, cy: 0 });
+  const pinchStart = useRef<PinchStart>({ dist: 0, scale: 1, cx: 0, cy: 0 });
 
   const setView = useCallback((next: View) => {
     viewRef.current = next;
@@ -165,35 +171,19 @@ export default function DocumentSignField({
     [commit]
   );
 
-  // ----- zoom / pan -----------------------------------------------------
+  // ----- zoom / pan (math lives in @/lib/esign/viewport) -----------------
 
-  const clampPan = useCallback((v: View): View => {
-    const box = boxRef.current?.getBoundingClientRect();
-    if (!box || v.scale <= 1) return { scale: v.scale, tx: 0, ty: 0 };
-    const minTx = box.width * (1 - v.scale);
-    const minTy = box.height * (1 - v.scale);
-    return { scale: v.scale, tx: clamp(v.tx, minTx, 0), ty: clamp(v.ty, minTy, 0) };
+  const boxSize = useCallback(() => {
+    const r = boxRef.current?.getBoundingClientRect();
+    return r ? { width: r.width, height: r.height } : null;
   }, []);
-
-  // Zoom about a fixed viewport point, keeping the content under it anchored.
-  const zoomAbout = useCallback(
-    (boxX: number, boxY: number, nextScale: number) => {
-      const v = viewRef.current;
-      const scale = clamp(nextScale, MIN_SCALE, MAX_SCALE);
-      const cx = (boxX - v.tx) / v.scale;
-      const cy = (boxY - v.ty) / v.scale;
-      setView(clampPan({ scale, tx: boxX - cx * scale, ty: boxY - cy * scale }));
-    },
-    [clampPan, setView]
-  );
 
   const zoomByButton = useCallback(
     (factor: number) => {
-      const box = boxRef.current?.getBoundingClientRect();
-      if (!box) return;
-      zoomAbout(box.width / 2, box.height / 2, viewRef.current.scale * factor);
+      const box = boxSize();
+      if (box) setView(zoomByCenter(viewRef.current, box, factor));
     },
-    [zoomAbout]
+    [boxSize, setView]
   );
 
   const resetZoom = useCallback(() => setView({ scale: 1, tx: 0, ty: 0 }), [setView]);
@@ -245,16 +235,14 @@ export default function DocumentSignField({
     const box = boxRef.current?.getBoundingClientRect();
     if (!box) return;
     const m = midpoint();
-    const v = viewRef.current;
-    const mx = m.x - box.left;
-    const my = m.y - box.top;
     gesture.current = "pinch";
-    pinchStart.current = {
-      dist: pointerDist(),
-      scale: v.scale,
-      cx: (mx - v.tx) / v.scale,
-      cy: (my - v.ty) / v.scale,
-    };
+    pinchStart.current = beginPinchView(
+      viewRef.current,
+      { width: box.width, height: box.height },
+      m.x - box.left,
+      m.y - box.top,
+      pointerDist()
+    );
   }
 
   function onPointerDown(e: React.PointerEvent) {
@@ -297,12 +285,16 @@ export default function DocumentSignField({
         if (pointers.current.size < 2) return;
         const box = boxRef.current?.getBoundingClientRect();
         if (!box) return;
-        const { dist, scale, cx, cy } = pinchStart.current;
-        const nextScale = clamp((scale * pointerDist()) / (dist || 1), MIN_SCALE, MAX_SCALE);
         const m = midpoint();
-        const mx = m.x - box.left;
-        const my = m.y - box.top;
-        setView(clampPan({ scale: nextScale, tx: mx - cx * nextScale, ty: my - cy * nextScale }));
+        setView(
+          pinchView(
+            pinchStart.current,
+            { width: box.width, height: box.height },
+            m.x - box.left,
+            m.y - box.top,
+            pointerDist()
+          )
+        );
         break;
       }
       case "hold": {
@@ -315,14 +307,8 @@ export default function DocumentSignField({
         moveTo(e.clientX, e.clientY);
         break;
       case "pan": {
-        const v = viewRef.current;
-        setView(
-          clampPan({
-            scale: v.scale,
-            tx: panStart.current.tx + (e.clientX - panStart.current.x),
-            ty: panStart.current.ty + (e.clientY - panStart.current.y),
-          })
-        );
+        const box = boxSize();
+        if (box) setView(panView(viewRef.current, box, panStart.current, e.clientX, e.clientY));
         break;
       }
     }
@@ -384,6 +370,7 @@ export default function DocumentSignField({
         <div
           className="absolute left-0 top-0 w-full origin-top-left"
           style={{ transform: `translate(${view.tx}px, ${view.ty}px) scale(${view.scale})` }}
+          data-testid="sign-viewport-content"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -476,7 +463,7 @@ export default function DocumentSignField({
             type="button"
             className="flex h-8 w-8 items-center justify-center border-y border-stone-200 text-xs text-stone-700 hover:bg-stone-100 disabled:text-stone-300"
             onClick={resetZoom}
-            disabled={view.scale === 1 && view.tx === 0 && view.ty === 0}
+            disabled={isIdentity(view)}
             aria-label={t("zoomReset")}
             title={t("zoomReset")}
             data-testid="zoom-reset"
