@@ -13,9 +13,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {
+  backendNeedsPopup,
   bootstrapRegistry,
   custodyFor,
   enroll,
+  hasSigningSession,
   loadEnv,
   loadRoster,
   reportRoster,
@@ -28,6 +30,7 @@ import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import AllowlistPanel from "./AllowlistPanel";
 import { DevicesPanel, NewDeviceCard, RecoveryCard } from "./DeviceManager";
+import { SigningConnectCard, useSigningSession } from "./SigningConnect";
 import IdentityQr from "./IdentityQr";
 import SignaturePad from "./SignaturePad";
 
@@ -49,6 +52,14 @@ export default function SigningIdentityCard() {
       const loaded = await loadEnv();
       setEnv(loaded);
       if (loaded.me.publicKey) setFingerprint(await keyFingerprint(loaded.me.publicKey));
+      // Device fleet + roster reads hit the ledger backend, which on production
+      // Firestore means a Google popup. Don't touch them until this device has
+      // a signing session — the connect card establishes one from a click, so a
+      // fresh Safari load never pops on mount. Re-runs once connected (below).
+      if (!(await hasSigningSession(loaded))) {
+        setDeviceStatus(null);
+        return;
+      }
       // Where does this browser stand in the member's device fleet (M2)?
       if (loaded.bootstrapped && loaded.enabled && loaded.me.identityStatus) {
         setDeviceStatus(await custodyFor(loaded).deviceStatus());
@@ -84,9 +95,34 @@ export default function SigningIdentityCard() {
     }
   }
   const toggleEnabled = (next: boolean) => patchRegistry({ enabled: next });
+
+  const { phase, connect, connecting, error: connectError } = useSigningSession(env);
+
+  // Load the environment up front — no ledger reads, so no popup — so the gate
+  // can decide and the header renders. The heavy device/roster reads that would
+  // pop wait for a signing session (the effect below).
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const loaded = await loadEnv();
+        if (cancelled) return;
+        setEnv(loaded);
+        if (loaded.me.publicKey) setFingerprint(await keyFingerprint(loaded.me.publicKey));
+      } catch (err) {
+        if (!cancelled) setError(thrown(err, t("loadFailed")));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [t, thrown]);
+
+  // Once the signing session is ready, run the full refresh (device fleet +
+  // roster mirror) — the reads the popup was gating.
+  useEffect(() => {
+    if (phase === "ready") void refresh();
+  }, [phase, refresh]);
 
   const vouchUrl = useMemo(() => {
     if (!env?.me.publicKey) return null;
@@ -138,6 +174,17 @@ export default function SigningIdentityCard() {
   const roleName = (["member", "approver", "treasurer", "admin"] as const).find(
     (r) => r === env.me.role
   );
+
+  // Bootstrap, enrollment, and device/roster reads all need a signing session.
+  // On production Firestore, gate them behind an explicit connect click so the
+  // Google popup opens in-gesture (iOS/Safari blocks it otherwise).
+  const mustConnect = backendNeedsPopup(env) && phase !== "ready";
+  const connectGate =
+    phase === "connect" ? (
+      <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
+    ) : (
+      <p className="text-sm text-stone-400">{t("checkingDevice")}</p>
+    );
 
   return (
     <div className="card space-y-4 p-5" data-testid="signing-identity-card">
@@ -210,17 +257,23 @@ export default function SigningIdentityCard() {
 
       {env.bootstrapped && !env.enabled ? null : !env.bootstrapped ? (
         env.canBootstrap ? (
-          <div className="space-y-3">
-            <p className="text-sm text-stone-600">
-              {t.rich("bootstrapIntro", { b: (chunks) => <strong>{chunks}</strong> })}
-            </p>
-            <button className="btn-primary" onClick={doBootstrap} disabled={busy} data-testid="esign-bootstrap">
-              {busy ? t("bootstrapBusy") : t("bootstrapButton")}
-            </button>
-          </div>
+          mustConnect ? (
+            connectGate
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-stone-600">
+                {t.rich("bootstrapIntro", { b: (chunks) => <strong>{chunks}</strong> })}
+              </p>
+              <button className="btn-primary" onClick={doBootstrap} disabled={busy} data-testid="esign-bootstrap">
+                {busy ? t("bootstrapBusy") : t("bootstrapButton")}
+              </button>
+            </div>
+          )
         ) : (
           <p className="text-sm text-stone-500">{t("notSetUp")}</p>
         )
+      ) : mustConnect ? (
+        connectGate
       ) : !status ? (
         <div className="space-y-3">
           <p className="text-sm text-stone-600">{t("enrollIntro")}</p>

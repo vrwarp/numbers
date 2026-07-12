@@ -9,6 +9,15 @@
  */
 
 import type { FirebaseWebConfig } from "@/components/SignInCard";
+// Static (not dynamic) import: firebase-client's module top-level is type-only,
+// so this pulls in no Firebase SDK — but it lets connectSigningSession() reach
+// signInWithPopup with no `await import` between the click and window.open,
+// which iOS/Safari requires (see firebase-client `warm`).
+import {
+  ensureFirebaseAuth,
+  hasMatchingFirebaseSession,
+  preloadFirebase,
+} from "./firebase-client";
 import { actionHash, fingerprintMatches, keyFingerprint, sha256Hex } from "./canonical";
 import { CONSENT_TEXT } from "./consent";
 import { generateLedgerKey, openLedger, sealEnvelope, type SigningKeyPair } from "./envelope";
@@ -82,6 +91,42 @@ export async function loadEnv(): Promise<EsignEnv> {
     configureFirebase(env.firebaseConfig, env.me.email);
   }
   return env;
+}
+
+// --- Signing session (the interactive Google popup) ------------------------------
+//
+// Only the production Firestore backend needs the Google sign-in popup; the
+// mock backend has no Firebase and the emulator signs in silently. Because
+// iOS/Safari blocks a popup opened after any async gap, e-sign surfaces
+// establish the session up front from an explicit "Connect signing" click
+// (SigningConnect.tsx) instead of letting it surface mid-ceremony.
+
+/** True only when signing here would require the real Google popup. */
+export function backendNeedsPopup(env: EsignEnv): boolean {
+  return env.backend === "firestore" && !env.firebaseConfig?.emulator;
+}
+
+/** Does this device already have a usable signing session, so no interactive
+ *  connect is needed? Always true for mock/emulator; otherwise a popup-free
+ *  check of the restored Firebase session. */
+export async function hasSigningSession(env: EsignEnv): Promise<boolean> {
+  if (!backendNeedsPopup(env)) return true;
+  return hasMatchingFirebaseSession();
+}
+
+/** Warm the Firebase SDK so the connect click can open the popup in-gesture.
+ *  Never opens a popup; safe to call on mount. No-op when none is needed. */
+export async function preloadSigningSession(env: EsignEnv): Promise<void> {
+  if (!backendNeedsPopup(env)) return;
+  await preloadFirebase();
+}
+
+/** Establish the signing session. For production Firestore this opens the
+ *  Google popup and MUST be called straight from a user gesture (preload
+ *  first). On the emulator it signs in silently; on mock it is a no-op. */
+export async function connectSigningSession(env: EsignEnv): Promise<void> {
+  if (env.backend !== "firestore") return;
+  await ensureFirebaseAuth();
 }
 
 export function storeFor(env: EsignEnv): LedgerStore {
