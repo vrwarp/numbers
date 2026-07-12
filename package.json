@@ -2,7 +2,7 @@
   "name": "numbers",
   "version": "1.0.0",
   "private": true,
-  "description": "CFCC Reimbursement App — shoebox receipt capture, AI extraction, human-verified PDF generation",
+  "description": "CFCC Reimbursement App \u2014 shoebox receipt capture, AI extraction, human-verified PDF generation",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,7 +14,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "esign:emulators": "firebase emulators:start --only auth,firestore",
+    "esign:rules-canary": "node scripts/check-rules.mjs"
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.2",
@@ -37,6 +39,7 @@
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "firebase-tools": "^15.23.0",
     "pdfjs-dist": "^6.1.200",
     "prisma": "^6.16.0",
     "tailwindcss": "^4.1.0",

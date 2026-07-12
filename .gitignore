@@ -33,3 +33,7 @@ next-env.d.ts
 # e2e artifacts
 /.e2e-data/
 tests/e2e/.fixtures/
+
+# Firebase emulator logs
+firebase-debug.log
+firestore-debug.log

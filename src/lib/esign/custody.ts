@@ -133,14 +133,24 @@ export async function esignCharproof(
     const { initMockDeviceProviders } = await import("./device-sync");
     initMockDeviceProviders(charproof, user);
   } else {
-    const { getDb } = await import("./firebase-client");
+    const { ensureFirebaseAuth, getDb, isEmulatorConfigured } = await import("./firebase-client");
     const fb = await import("firebase/auth");
     const { getApps } = await import("firebase/app");
-    await getDb(); // ensures the app exists before getAuth
+    await getDb(); // ensures the app exists (and emulator wiring) before getAuth
+    // charproof's device/keystore stores address docs by request.auth.uid —
+    // sign in (popup in prod, silent email/password on the emulator) first.
+    await ensureFirebaseAuth();
     charproof.initializeZK({
       db: (await import("firebase/firestore")).getFirestore(getApps()[0]),
       auth: fb.getAuth(getApps()[0]),
     });
+    if (isEmulatorConfigured()) {
+      // Headless e2e can't drive real WebAuthn; the emulator-gated mock
+      // passkey is charproof's supported injection point (LetUsMeet does the
+      // same). Production configs never carry the emulator block.
+      const { MockPrfProvider } = await import("./device-sync");
+      charproof.setPrfProviders({ prfProvider: new MockPrfProvider() });
+    }
   }
   // Name the device once, before its name is sealed into any request or
   // genesis document (kept if the member ever renames it).

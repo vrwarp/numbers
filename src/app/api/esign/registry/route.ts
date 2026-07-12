@@ -40,6 +40,9 @@ export async function GET() {
       return NextResponse.json({
         bootstrapped: false,
         backend: isEsignMock() ? "mock" : "firestore",
+        // The root's bootstrap ceremony writes the genesis ledger, so the
+        // Firebase config must be available BEFORE the registry exists.
+        firebaseConfig: isEsignMock() ? null : firebaseWebConfig(),
         canBootstrap: !!rootEmail && user!.email.toLowerCase() === rootEmail,
         me,
       });

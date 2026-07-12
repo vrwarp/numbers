@@ -15,6 +15,8 @@ npm run build               # prod build (runs type checking; use to validate ch
 npm test                    # Vitest unit suite (fast, no db)
 npm run test:e2e            # Playwright; local sandbox: E2E_BROWSERS=chromium \
                             #   PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run test:e2e
+npm run esign:emulators     # Firebase auth+firestore emulators for e-sign e2e on the
+                            #   REAL backend (no ESIGN_MOCK) — docs/agent/TESTING.md
 npx prisma migrate dev --name <n>   # after editing prisma/schema.prisma
 ```
 

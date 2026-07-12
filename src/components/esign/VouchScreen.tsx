@@ -14,6 +14,7 @@ import { Suspense } from "react";
 import {
   grantRole,
   loadEnv,
+  loadRoster,
   revokeMemberKey,
   vouchFor,
   type EsignEnv,
@@ -136,6 +137,11 @@ function VouchInner() {
     }[]
   >([]);
   const [pending, setPending] = useState<VouchSubject[]>([]);
+  // Active roster keys per uid — the source of truth for spotting a RE-KEY
+  // vouch (the mirror's members list can't see it: a re-enrolling member's
+  // row is already pending on their NEW key while the roster still attests
+  // the old one).
+  const [activeKeys, setActiveKeys] = useState<Record<string, string[]>>({});
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -162,6 +168,14 @@ function VouchInner() {
         }
         const membersRes = await fetch("/api/esign/members");
         if (membersRes.ok) setMembers((await membersRes.json()).members ?? []);
+        if (loaded.enabled && loaded.me.identityStatus && loaded.rosterLedgerKey) {
+          const { roster } = await loadRoster(loaded);
+          const byUid: Record<string, string[]> = {};
+          for (const m of roster.members) {
+            if (m.revokedAtMs === undefined) (byUid[m.uid] ??= []).push(m.publicKey);
+          }
+          setActiveKeys(byUid);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load");
       }
@@ -236,7 +250,7 @@ function VouchInner() {
               <li>You scanned the QR from THEIR screen (not a forwarded link).</li>
             </ul>
           </div>
-          {members.some((m) => m.userId === subject.uid && m.publicKey !== subject.publicKey) && (
+          {(activeKeys[subject.uid] ?? []).some((k) => k !== subject.publicKey) && (
             <div
               className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-900"
               data-testid="rekey-notice"

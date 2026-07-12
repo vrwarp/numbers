@@ -88,6 +88,19 @@ export function isEsignMock(): boolean {
   return configValue("ESIGN_MOCK") === "1";
 }
 
+/**
+ * Firebase emulator hosts for e-sign e2e (docs/agent/TESTING.md): the
+ * SDK-standard env names. When BOTH are set (and ESIGN_MOCK is off), the
+ * registry relays them to the browser, which connects ledger IO + charproof
+ * custody to the emulator suite — the REAL Firestore backend and the real
+ * `firestore.rules`, no live project needed. Never set in production.
+ */
+export function esignEmulatorHosts(): { auth: string; firestore: string } | null {
+  const auth = configValue("FIREBASE_AUTH_EMULATOR_HOST")?.trim();
+  const firestore = configValue("FIRESTORE_EMULATOR_HOST")?.trim();
+  return auth && firestore ? { auth, firestore } : null;
+}
+
 /** Email of the trust root — the only account allowed to bootstrap the roster
  *  registry (POST /api/esign/registry). Unset → bootstrap disabled. */
 export function esignRootEmail(): string | undefined {

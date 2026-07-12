@@ -276,7 +276,7 @@ function toB64(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes));
 }
 
-class MockPrfProvider implements PrfProviderT {
+export class MockPrfProvider implements PrfProviderT {
   async createCredential(userId: string): Promise<{ credentialId: string; prfResult: Uint8Array }> {
     const creds = loadCredentials();
     const existing = creds.find((c) => c.userId === userId);

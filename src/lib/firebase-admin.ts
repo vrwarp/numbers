@@ -1,7 +1,12 @@
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
 import { configValue } from "./config-file";
-import { firebaseAuthDomainHost, isFirebaseAuthProxyEnabled, publicBaseUrl } from "./config";
+import {
+  esignEmulatorHosts,
+  firebaseAuthDomainHost,
+  isFirebaseAuthProxyEnabled,
+  publicBaseUrl,
+} from "./config";
 
 /**
  * Server-side Firebase: only used to verify ID tokens minted by the client
@@ -10,6 +15,19 @@ import { firebaseAuthDomainHost, isFirebaseAuthProxyEnabled, publicBaseUrl } fro
  */
 
 export function firebaseWebConfig() {
+  // Emulator e2e (docs/agent/TESTING.md): a demo project id is all the SDK
+  // needs — apiKey/authDomain are placeholders the emulators ignore. The
+  // relayed `emulator` block is what makes the browser connect there.
+  const emulator = esignEmulatorHosts();
+  if (emulator) {
+    return {
+      apiKey: configValue("FIREBASE_API_KEY") || "demo-api-key",
+      authDomain: firebaseAuthDomainHost() ?? "127.0.0.1",
+      projectId: configValue("FIREBASE_PROJECT_ID") || "demo-numbers",
+      appId: configValue("FIREBASE_APP_ID") || undefined,
+      emulator,
+    };
+  }
   const apiKey = configValue("FIREBASE_API_KEY");
   const projectId = configValue("FIREBASE_PROJECT_ID");
   // With FIREBASE_AUTH_PROXY on, the client talks to our own origin (which

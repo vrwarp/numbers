@@ -75,17 +75,25 @@ function checkRawDocs(docs: unknown): RawLedgerEventDoc[] {
 /** Append raw docs to the mirror (create-once per (ledgerId, eventId)). */
 async function mirrorRawDocs(ledgerId: string, docs: RawLedgerEventDoc[]): Promise<void> {
   for (const doc of docs) {
-    await prisma.ledgerEventMirror
-      .create({
+    try {
+      await prisma.ledgerEventMirror.create({
         data: {
           ledgerId,
           eventId: doc.eventId,
-          createdAtMs: BigInt(doc.createdAtMs),
+          // Firestore reports live with nanosecond precision → fractional ms;
+          // BigInt() throws on fractions, so round. (Found by the emulator
+          // e2e — the SQLite mock only ever produced integer timestamps.)
+          createdAtMs: BigInt(Math.round(doc.createdAtMs)),
           encryptedData: doc.encryptedData,
           iv: doc.iv,
         },
-      })
-      .catch(() => {}); // duplicate report — idempotent
+      });
+    } catch (err) {
+      // Duplicate report (same ledgerId+eventId) is idempotent success;
+      // anything else must NOT be swallowed — a silently dropped event is a
+      // silently wrong mirror.
+      if ((err as { code?: string })?.code !== "P2002") throw err;
+    }
   }
 }
 
@@ -149,33 +157,34 @@ export async function reportRosterEvents(
 
 async function syncRosterMirrors(roster: RosterTimeline): Promise<void> {
   const now = Date.now();
-  // Current attested key per uid (latest attestation wins for display).
-  const byUid = new Map<string, { publicKey: string; attestedAtMs: number }>();
-  for (const m of roster.members) {
-    if (m.revokedAtMs !== undefined && m.revokedAtMs <= now) continue;
-    const existing = byUid.get(m.uid);
-    if (!existing || m.attestedAtMs > existing.attestedAtMs) {
-      byUid.set(m.uid, { publicKey: m.publicKey, attestedAtMs: m.attestedAtMs });
-    }
-  }
   const identities = await prisma.signerIdentity.findMany();
   for (const identity of identities) {
-    const attested = byUid.get(identity.userId);
-    if (attested) {
+    // Judge the identity row by its DECLARED key, never by uid alone: a
+    // member mid-re-enrollment (start-over) has already declared a NEW
+    // pending key while the roster still attests their OLD one — a
+    // uid-keyed sync would clobber the re-enrollment back to the old key
+    // (found by the emulator e2e; supersession retires the old key only
+    // once the new one is vouched, §4.5/A7).
+    const entries = roster.members.filter((m) => m.publicKey === identity.publicKey);
+    const active = entries.find(
+      (m) => m.revokedAtMs === undefined || m.revokedAtMs > now
+    );
+    if (active) {
       await prisma.signerIdentity.update({
         where: { id: identity.id },
         data: {
           status: "attested",
-          publicKey: attested.publicKey,
-          attestedAt: new Date(attested.attestedAtMs),
+          attestedAt: new Date(active.attestedAtMs),
         },
       });
-    } else if (identity.status === "attested") {
+    } else if (entries.length > 0 && identity.status !== "revoked") {
+      // The declared key WAS on the roster and is now revoked/superseded.
       await prisma.signerIdentity.update({
         where: { id: identity.id },
         data: { status: "revoked" },
       });
     }
+    // A key the roster has never seen stays as-is (pending enrollment).
     // Role mirror: highest active roster role (root stays admin).
     const roles = roster.rolesAt(identity.userId, now);
     const highest = roles.sort((a, b) => (ROLE_RANK[b] ?? 0) - (ROLE_RANK[a] ?? 0))[0] as

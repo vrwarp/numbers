@@ -13,7 +13,12 @@
  */
 
 import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously, signInWithEmailAndPassword } from "firebase/auth";
+import {
+  connectAuthEmulator,
+  getAuth,
+  signInAnonymously,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import { connectFirestoreEmulator, doc, getFirestore, setDoc, serverTimestamp, Timestamp } from "firebase/firestore";
 
 const cfg = {
@@ -31,6 +36,11 @@ const db = getFirestore(app);
 if (process.env.FIRESTORE_EMULATOR_HOST) {
   const [host, port] = process.env.FIRESTORE_EMULATOR_HOST.split(":");
   connectFirestoreEmulator(db, host, Number(port));
+  connectAuthEmulator(
+    auth,
+    `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST ?? `${host}:9099`}`,
+    { disableWarnings: true }
+  );
   await signInAnonymously(auth);
 } else {
   await signInWithEmailAndPassword(auth, process.env.CANARY_EMAIL, process.env.CANARY_PASSWORD);
