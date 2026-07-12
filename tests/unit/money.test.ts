@@ -23,6 +23,13 @@ describe("parseDollarsToCents", () => {
     expect(parseDollarsToCents(19.999)).toBe(2000);
   });
 
+  it("normalizes full-width digits and punctuation from Chinese IMEs", () => {
+    expect(parseDollarsToCents("１２．３４")).toBe(1234);
+    expect(parseDollarsToCents("－２７．９８")).toBe(-2798);
+    expect(parseDollarsToCents("＄１，２３４.５６")).toBe(123456);
+    expect(parseDollarsToCents("−5.00")).toBe(-500); // U+2212 minus sign
+  });
+
   it("rejects garbage", () => {
     expect(() => parseDollarsToCents("abc")).toThrow();
     expect(() => parseDollarsToCents("")).toThrow();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { parseDollarsToCents } from "@/lib/money";
 
 /**
@@ -23,6 +24,8 @@ export default function ManualEntryDialog({
   onSaved: () => Promise<void>;
   onSkip: () => void;
 }) {
+  const t = useTranslations("ManualEntry");
+  const tCommon = useTranslations("Common");
   const [merchant, setMerchant] = useState("");
   const [purchaseDate, setPurchaseDate] = useState("");
   const [total, setTotal] = useState("");
@@ -64,10 +67,10 @@ export default function ManualEntryDialog({
           summary: summary.trim(),
         }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? "Could not save the details");
+      if (!res.ok) throw new Error((await res.json()).error ?? t("saveFailed"));
       await onSaved();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save the details");
+      setError(e instanceof Error ? e.message : t("saveFailed"));
       setSaving(false);
     }
   }
@@ -81,10 +84,12 @@ export default function ManualEntryDialog({
     >
       <div className="card flex max-h-[90vh] w-full max-w-3xl flex-col p-6">
         <div>
-          <h2 className="font-bold">Enter this receipt&apos;s details</h2>
+          <h2 className="font-bold">{t("title")}</h2>
           <p className="text-sm text-stone-500">
-            The AI couldn&apos;t read <span className="font-medium">{receipt.originalName}</span>.
-            Type in what&apos;s printed on it so the row can be verified.
+            {t.rich("intro", {
+              name: receipt.originalName,
+              strong: (chunks) => <span className="font-medium">{chunks}</span>,
+            })}
           </p>
         </div>
 
@@ -99,7 +104,7 @@ export default function ManualEntryDialog({
             {receipt.mimeType === "application/pdf" ? (
               <object data={imageUrl} type="application/pdf" className="h-[60vh] w-full">
                 <a href={imageUrl} className="block p-4 text-indigo-600 underline">
-                  Open PDF receipt
+                  {t("openPdf")}
                 </a>
               </object>
             ) : (
@@ -110,18 +115,18 @@ export default function ManualEntryDialog({
 
           <div className="space-y-3">
             <label className="block text-sm font-medium">
-              Merchant
+              {t("merchant")}
               <input
                 className="input mt-1"
                 value={merchant}
                 onChange={(e) => setMerchant(e.target.value)}
-                placeholder="e.g. Costco Wholesale"
+                placeholder={t("merchantPlaceholder")}
                 autoFocus
                 data-testid="manual-merchant"
               />
             </label>
             <label className="block text-sm font-medium">
-              Purchase date <span className="font-normal text-stone-400">(optional)</span>
+              {t("purchaseDate")} <span className="font-normal text-stone-400">{t("optional")}</span>
               <input
                 type="date"
                 className="input mt-1"
@@ -132,44 +137,47 @@ export default function ManualEntryDialog({
             </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="block text-sm font-medium">
-                Printed total ($)
+                {t("printedTotal")}
                 <input
                   className="input mt-1"
                   value={total}
                   onChange={(e) => setTotal(e.target.value)}
                   inputMode="decimal"
-                  placeholder="0.00"
+                  placeholder={t("amountPlaceholder")}
                   data-testid="manual-total"
                 />
               </label>
               <label className="block text-sm font-medium">
-                Refunded ($)
+                {t("refunded")}
                 <input
                   className="input mt-1"
                   value={refund}
                   onChange={(e) => setRefund(e.target.value)}
                   inputMode="decimal"
-                  placeholder="0.00"
+                  placeholder={t("amountPlaceholder")}
                   data-testid="manual-refund"
                 />
               </label>
             </div>
             <label className="block text-sm font-medium">
-              Item summary
+              {t("summary")}
               <textarea
                 className="input mt-1 field-sizing-content"
                 rows={2}
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
-                placeholder="e.g. Paper towels, snack variety pack, folding table"
+                placeholder={t("summaryPlaceholder")}
                 maxLength={200}
                 data-testid="manual-summary"
               />
             </label>
             {totalCents !== null && refundCents !== null && (
               <p className="text-xs text-stone-500" data-testid="manual-net">
-                Row amount: <strong>${((totalCents - refundCents) / 100).toFixed(2)}</strong>
-                {refundCents > 0 && " (total − refunded)"}
+                {t.rich("rowAmount", {
+                  amount: `$${((totalCents - refundCents) / 100).toFixed(2)}`,
+                  strong: (chunks) => <strong>{chunks}</strong>,
+                })}
+                {refundCents > 0 && t("totalMinusRefunded")}
               </p>
             )}
           </div>
@@ -182,7 +190,7 @@ export default function ManualEntryDialog({
             disabled={saving}
             data-testid="manual-skip"
           >
-            I&apos;ll do it later
+            {t("later")}
           </button>
           <button
             className="btn-primary"
@@ -190,7 +198,7 @@ export default function ManualEntryDialog({
             disabled={!canSave || saving}
             data-testid="manual-save"
           >
-            {saving ? "Saving…" : "Save details"}
+            {saving ? tCommon("saving") : t("saveDetails")}
           </button>
         </div>
       </div>

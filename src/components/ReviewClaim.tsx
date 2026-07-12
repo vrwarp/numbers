@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   MINISTRY_GROUPS,
   formatMinistryEvent,
@@ -105,6 +106,9 @@ function receiptLabel(receipt: ReceiptInfo): string {
 }
 
 export default function ReviewClaim({ claimId }: { claimId: string }) {
+  const t = useTranslations("Review");
+  const tStatus = useTranslations("Common.status");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const [claim, setClaim] = useState<Claim | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -154,7 +158,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const load = useCallback(async () => {
     const res = await fetch(`/api/reimbursements/${claimId}`);
     if (!res.ok) {
-      setError((await res.json()).error ?? "Failed to load claim");
+      setError((await res.json()).error ?? t("loadFailed"));
       return;
     }
     setClaim((await res.json()).reimbursement);
@@ -200,7 +204,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             body: JSON.stringify(patch),
           });
           if (!res.ok) {
-            setError((await res.json()).error ?? "Update failed");
+            setError((await res.json()).error ?? t("updateFailed"));
             await load();
             return;
           }
@@ -215,7 +219,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               : prev
           );
         } catch {
-          setError("Update failed");
+          setError(t("updateFailed"));
         }
       });
     },
@@ -236,13 +240,13 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             body: JSON.stringify(patch),
           });
           if (!res.ok) {
-            setError((await res.json()).error ?? "Update failed");
+            setError((await res.json()).error ?? t("updateFailed"));
             await load();
             return;
           }
           setClaim((await res.json()).reimbursement);
         } catch {
-          setError("Update failed");
+          setError(t("updateFailed"));
         }
       });
     },
@@ -255,12 +259,12 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         try {
           const res = await fetch(`/api/line-items/${itemId}/merge`, { method: "POST" });
           if (!res.ok) {
-            setError((await res.json()).error ?? "Merge failed");
+            setError((await res.json()).error ?? t("mergeFailed"));
             return;
           }
           await load();
         } catch {
-          setError("Merge failed");
+          setError(t("mergeFailed"));
         }
       }),
     [enqueue, load]
@@ -308,11 +312,11 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   if (error && !claim) {
     return (
       <div className="card border-red-200 bg-red-50 p-6 text-red-800">
-        {error} — <Link href="/claims" className="underline">back to claims</Link>
+        {error} — <Link href="/claims" className="underline">{t("backToClaims")}</Link>
       </div>
     );
   }
-  if (!claim) return <p className="text-sm text-stone-500">Loading claim…</p>;
+  if (!claim) return <p className="text-sm text-stone-500">{t("loadingClaim")}</p>;
 
   const activeItems = claim.lineItems.filter((it) => !it.isExcluded);
   const verifiedCount = activeItems.filter((it) => it.isVerified).length;
@@ -354,8 +358,8 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     );
     if (touched.length > 0) {
       const label = next.claimMinistry
-        ? `“${formatMinistryEvent(next.claimMinistry, next.claimEvent)}”`
-        : "no ministry";
+        ? t("quotedValue", { value: formatMinistryEvent(next.claimMinistry, next.claimEvent) })
+        : t("noMinistry");
       setFanOutUndo({
         restoreClaim: {
           singleMinistry: claim.singleMinistry,
@@ -368,7 +372,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           event,
           isVerified,
         })),
-        message: `Set ${label} on ${touched.length} row${touched.length === 1 ? "" : "s"}`,
+        message: t("fanOutSet", { label, count: touched.length }),
         source,
       });
       // Optimistic mirror so the row badges don't lag the control.
@@ -452,7 +456,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         body: JSON.stringify({ description }),
       });
       if (!res.ok) {
-        setError((await res.json()).error ?? "Suggestion failed");
+        setError((await res.json()).error ?? t("suggestionFailed"));
         return;
       }
       setError(null);
@@ -461,7 +465,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
       setClaim((prev) => (prev ? { ...prev, claimDescription: description } : prev));
       setPendingSuggestion(data.suggestion);
     } catch {
-      setError("Suggestion failed");
+      setError(t("suggestionFailed"));
     } finally {
       setSuggesting(false);
     }
@@ -477,7 +481,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
       const res = signed
         ? await fetch(`/api/reimbursements/${claim!.id}/packet`)
         : await fetch(`/api/reimbursements/${claim!.id}/pdf`, { method: "POST" });
-      if (!res.ok) throw new Error((await res.json()).error ?? "PDF download failed");
+      if (!res.ok) throw new Error((await res.json()).error ?? t("pdfFailed"));
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -489,7 +493,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
       URL.revokeObjectURL(url);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "PDF generation failed");
+      setError(e instanceof Error ? e.message : t("pdfFailed"));
     } finally {
       setDownloading(false);
     }
@@ -501,53 +505,53 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
       !confirm(
         underSignature
           ? "Revert this claim to draft? All collected signatures become void (the packet bytes will change) and approval starts over."
-          : "Revert this claim to draft? Only do this if you have NOT filed the printed form yet. Rows become editable again and the receipts leave “processed”."
+          : t("revertConfirm")
       )
     )
       return;
     const res = await fetch(`/api/reimbursements/${claim!.id}/revert`, { method: "POST" });
-    if (!res.ok) setError((await res.json()).error ?? "Revert failed");
+    if (!res.ok) setError((await res.json()).error ?? t("revertFailed"));
     await load();
   }
 
   async function removeReceipt(receiptId: string) {
     if (
-      !confirm(
-        "Remove this receipt from the claim? Its rows are deleted and the receipt returns to your Shoebox."
-      )
+      !confirm(t("removeConfirm"))
     )
       return;
     const res = await fetch(`/api/reimbursements/${claim!.id}/receipts/${receiptId}`, {
       method: "DELETE",
     });
-    if (!res.ok) setError((await res.json()).error ?? "Remove failed");
+    if (!res.ok) setError((await res.json()).error ?? t("removeFailed"));
     await load();
   }
 
   async function deleteClaim() {
-    if (!confirm("Discard this draft claim? Receipts return to your Shoebox.")) return;
+    if (!confirm(t("discardConfirm"))) return;
     const res = await fetch(`/api/reimbursements/${claim!.id}`, { method: "DELETE" });
     if (res.ok) router.push("/");
-    else setError((await res.json()).error ?? "Delete failed");
+    else setError((await res.json()).error ?? t("deleteFailed"));
   }
 
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold">
-          Review claim{" "}
+          {t("title")}{" "}
           <span
             className={`ml-1 align-middle rounded-full px-3 py-1 text-xs font-semibold ${
               (STATUS_CHIPS[claim.status] ?? STATUS_CHIPS.generated).className
             }`}
             data-testid="claim-status"
           >
-            {(STATUS_CHIPS[claim.status] ?? STATUS_CHIPS.generated).label}
+            {isDraft
+              ? tStatus("draft")
+              : claim.status === "generated"
+                ? tStatus("generated")
+                : (STATUS_CHIPS[claim.status] ?? STATUS_CHIPS.generated).label}
           </span>
         </h1>
-        <p className="text-sm text-stone-500">
-          Check each amount against what you actually paid, pick a ministry, then check it off.
-        </p>
+        <p className="text-sm text-stone-500">{t("instruction")}</p>
       </div>
 
       {error && (
@@ -607,9 +611,9 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             {claim.receipts.length > 1 && (
               <div className="flex items-center justify-between gap-2 border-b border-stone-100 bg-stone-50 px-4 py-2">
                 <span className="min-w-0 text-sm font-semibold text-stone-700">
-                  Receipt {gi + 1}: {receiptLabel(group.receipt)}
+                  {t("receiptHeader", { index: gi + 1, label: receiptLabel(group.receipt) })}
                   {group.receipt.note && (
-                    <span className="ml-1 font-normal text-stone-500">· {group.receipt.note}</span>
+                    <span className="ml-1 font-normal text-stone-500">{t("headerNote", { note: group.receipt.note })}</span>
                   )}
                 </span>
                 {isDraft && (
@@ -617,14 +621,12 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                     className="whitespace-nowrap rounded px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
                     disabled={claim.receipts.length === 1}
                     title={
-                      claim.receipts.length === 1
-                        ? "This is the only receipt — discard the claim instead"
-                        : "Remove receipt from claim (returns to Shoebox)"
+                      claim.receipts.length === 1 ? t("removeDisabledTitle") : t("removeTitle")
                     }
                     onClick={() => removeReceipt(group.receipt.id)}
                     data-testid={`remove-receipt-${group.receipt.id}`}
                   >
-                    ✕ Remove
+                    {t("removeButton")}
                   </button>
                 )}
               </div>
@@ -634,9 +636,13 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                 className="border-b border-stone-100 bg-amber-50 px-4 py-2 text-xs text-amber-900"
                 data-testid={`derivation-${group.receipt.id}`}
               >
-                Charged {formatCents(group.receipt.extractedTotalCents ?? 0)} − refunded{" "}
-                {formatCents(group.receipt.extractedRefundCents!)} → suggested{" "}
-                {formatCents((group.receipt.extractedTotalCents ?? 0) - group.receipt.extractedRefundCents!)}
+                {t("derivation", {
+                  charged: formatCents(group.receipt.extractedTotalCents ?? 0),
+                  refunded: formatCents(group.receipt.extractedRefundCents!),
+                  suggested: formatCents(
+                    (group.receipt.extractedTotalCents ?? 0) - group.receipt.extractedRefundCents!
+                  ),
+                })}
               </div>
             )}
             <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
@@ -663,10 +669,10 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                   <button
                     className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-stone-900/60 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-stone-900/80"
                     onClick={() => setEditingReceiptId(group.receipt.id)}
-                    title="Rotate or crop this receipt photo"
+                    title={t("editPhotoTitle")}
                     data-testid={`edit-image-${group.receipt.id}`}
                   >
-                    ✂ Rotate / crop
+                    {t("editPhotoButton")}
                   </button>
                 )}
               </div>
@@ -677,7 +683,10 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                     className="border-b border-stone-100 bg-stone-50 px-4 py-2 text-xs text-stone-500"
                     data-testid={`receipt-note-display-${group.receipt.id}`}
                   >
-                    Note: <span className="font-medium text-stone-700">{group.receipt.note}</span>
+                    {t.rich("receiptNote", {
+                      note: group.receipt.note,
+                      strong: (chunks) => <span className="font-medium text-stone-700">{chunks}</span>,
+                    })}
                   </div>
                 )}
                 {isDraft && needsManualEntry(group.items) && (
@@ -685,13 +694,13 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                     className="flex items-center justify-between gap-2 border-b border-amber-100 bg-amber-50 px-4 py-2 text-xs text-amber-900"
                     data-testid={`manual-entry-banner-${group.receipt.id}`}
                   >
-                    <span>⚠ The AI couldn&apos;t read this receipt.</span>
+                    <span>{t("aiFailed")}</span>
                     <button
                       className="whitespace-nowrap rounded bg-amber-600 px-2 py-1 font-semibold text-white hover:bg-amber-700"
                       onClick={() => setManualEntryReceiptId(group.receipt.id)}
                       data-testid={`manual-entry-open-${group.receipt.id}`}
                     >
-                      Enter details
+                      {t("enterDetails")}
                     </button>
                   </div>
                 )}
@@ -721,7 +730,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                   className="border-t border-stone-200 bg-stone-50 px-4 py-2 text-right"
                   data-testid={`subtotal-${group.receipt.id}`}
                 >
-                  <span className="text-sm text-stone-500">Subtotal:</span>{" "}
+                  <span className="text-sm text-stone-500">{t("subtotal")}</span>{" "}
                   <span
                     className="text-sm font-bold text-stone-800"
                     {...(claim.receipts.length === 1 ? { "data-testid": "claim-total" } : {})}
@@ -736,7 +745,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
 
         {claim.receipts.length > 1 && (
           <div className="card flex items-center justify-between bg-indigo-50 p-4">
-            <span className="font-semibold text-indigo-900">Claim total</span>
+            <span className="font-semibold text-indigo-900">{t("claimTotal")}</span>
             <span className="text-xl font-bold text-indigo-900" data-testid="claim-total">
               {formatCents(claim.totalCents)}
             </span>
@@ -758,13 +767,13 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               />
             </div>
             <span className="whitespace-nowrap text-sm font-medium text-stone-600">
-              {verifiedCount} / {activeItems.length} verified
+              {t("verifiedProgress", { verified: verifiedCount, total: activeItems.length })}
             </span>
           </div>
         ) : isDraft ? null : (
           <span className="text-sm text-stone-500">
             {claim.status === "generated"
-              ? "Generated — rows are frozen."
+              ? t("generatedFrozen")
               : "Under signature — packet and rows are frozen."}
           </span>
         )}
@@ -775,17 +784,17 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               onClick={() => setAddingReceipts(true)}
               data-testid="add-receipts"
             >
-              ＋ Add receipts
+              {t("addReceipts")}
             </button>
           )}
           {isDraft && (
             <button className="btn-secondary" onClick={deleteClaim} data-testid="discard-claim">
-              Discard
+              {t("discard")}
             </button>
           )}
           {!isDraft && claim.status !== "paid" && (
             <button className="btn-secondary" onClick={revertClaim} data-testid="revert-claim">
-              ↩ Revert to draft
+              {t("revert")}
             </button>
           )}
           {/* The disabled button drops pointer events so the wrapper catches the
@@ -795,7 +804,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             onClick={() => {
               if (isDraft && !pdfButtonEnabled && !downloading) nudgeFirstUnverified();
             }}
-            title={isDraft && !pdfButtonEnabled ? "Choose a ministry first" : undefined}
+            title={isDraft && !pdfButtonEnabled ? t("chooseMinistryFirst") : undefined}
           >
             <button
               className="btn-primary disabled:pointer-events-none"
@@ -804,11 +813,11 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               data-testid="generate-pdf"
             >
               {downloading
-                ? "Working…"
+                ? t("buildingPdf")
                 : isDraft
-                  ? "⬇ Generate PDF"
+                  ? t("generatePdf")
                   : claim.status === "generated"
-                    ? "⬇ Download PDF again"
+                    ? t("downloadAgain")
                     : "⬇ Download signed packet"}
             </button>
           </span>
@@ -888,21 +897,18 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           data-testid="split-mode-dialog"
         >
           <div className="card w-full max-w-sm p-6">
-            <h2 className="font-bold">Split across ministries?</h2>
+            <h2 className="font-bold">{t("splitModeTitle")}</h2>
             <p className="mt-2 text-sm text-stone-600">
-              Splitting divides one receipt between different ministries, but this claim is set to
-              use <strong>one ministry</strong> for every row.
+              {t.rich("splitModeBody", { strong: (chunks) => <strong>{chunks}</strong> })}
             </p>
-            <p className="mt-2 text-sm text-stone-600">
-              Switch the claim to multiple ministries to split this row.
-            </p>
+            <p className="mt-2 text-sm text-stone-600">{t("splitModeBody2")}</p>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 className="btn-secondary"
                 onClick={() => setSplitModeItem(null)}
                 data-testid="split-mode-cancel"
               >
-                Cancel
+                {tCommon("cancel")}
               </button>
               <button
                 className="btn-primary"
@@ -914,7 +920,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                   setSplitItem(item);
                 }}
               >
-                Switch &amp; split
+                {t("switchAndSplit")}
               </button>
             </div>
           </div>
@@ -931,32 +937,23 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           data-testid="mode-switch-dialog"
         >
           <div className="card w-full max-w-md p-6">
-            <h2 className="font-bold">Use one ministry for the whole claim?</h2>
+            <h2 className="font-bold">{t("modeSwitchTitle")}</h2>
             <p className="mt-2 text-sm text-stone-600">
-              {modeSwitchPrompt.adopt.ministry ? (
-                <>
-                  Every row will be set to{" "}
-                  <strong>
-                    {formatMinistryEvent(
+              {modeSwitchPrompt.adopt.ministry
+                ? t.rich("modeSwitchBody", {
+                    value: formatMinistryEvent(
                       modeSwitchPrompt.adopt.ministry,
                       modeSwitchPrompt.adopt.event
-                    )}
-                  </strong>{" "}
-                  (what most rows already use
-                  {modeSwitchPrompt.distinct > 1
-                    ? `, of the ${modeSwitchPrompt.distinct} different ministries currently picked`
-                    : ""}
-                  ).
-                </>
-              ) : (
-                <>Rows keep no ministry until you pick one at the top.</>
-              )}
+                    ),
+                    distinct: modeSwitchPrompt.distinct,
+                    strong: (chunks) => <strong>{chunks}</strong>,
+                  })
+                : t("modeSwitchBodyNoMinistry")}
               {modeSwitchPrompt.unverify > 0 && (
                 <>
                   {" "}
                   <span className="font-medium text-amber-700">
-                    {modeSwitchPrompt.unverify} verified row
-                    {modeSwitchPrompt.unverify === 1 ? "" : "s"} will need re-verifying.
+                    {t("modeSwitchUnverify", { count: modeSwitchPrompt.unverify })}
                   </span>
                 </>
               )}
@@ -967,7 +964,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                 onClick={() => setModeSwitchPrompt(null)}
                 data-testid="mode-switch-cancel"
               >
-                Cancel
+                {tCommon("cancel")}
               </button>
               <button
                 className="btn-primary"
@@ -982,7 +979,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                   });
                 }}
               >
-                Switch &amp; apply
+                {t("switchAndApply")}
               </button>
             </div>
           </div>
@@ -1003,12 +1000,12 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               onClick={undoFanOut}
               data-testid="fanout-undo"
             >
-              Undo
+              {t("undo")}
             </button>
             <button
               className="text-stone-400 hover:text-white"
               onClick={() => setFanOutUndo(null)}
-              aria-label="Dismiss"
+              aria-label={t("dismissAria")}
             >
               ✕
             </button>
@@ -1055,6 +1052,7 @@ function ClaimMinistryPanel({
   fanOutUndo: FanOutUndo | null;
   onUndo: () => void;
 }) {
+  const t = useTranslations("Review");
   const descRef = useRef<HTMLInputElement | null>(null);
   // Same "Other…" mechanics as the per-row selector: the sentinel stays
   // selected while the custom text box is still empty.
@@ -1072,7 +1070,7 @@ function ClaimMinistryPanel({
     <div className="card space-y-3 p-4" data-testid="claim-ministry-panel">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-semibold text-stone-700">
-          {single ? "Ministry & event for this claim" : "Ministry & event"}
+          {single ? t("panelTitleSingle") : t("panelTitle")}
         </span>
         {claim.receipts.length > 1 && (
           <div className="flex rounded-lg border border-stone-200 p-0.5 text-xs">
@@ -1082,7 +1080,7 @@ function ClaimMinistryPanel({
               aria-pressed={single}
               data-testid="claim-mode-single"
             >
-              One ministry
+              {t("modeOne")}
             </button>
             <button
               className={modeButton(!single)}
@@ -1090,7 +1088,7 @@ function ClaimMinistryPanel({
               aria-pressed={!single}
               data-testid="claim-mode-multi"
             >
-              Multiple
+              {t("modeMultiple")}
             </button>
           </div>
         )}
@@ -1104,7 +1102,7 @@ function ClaimMinistryPanel({
               key={`claim-desc-${claim.claimDescription}`}
               className="input flex-1"
               defaultValue={claim.claimDescription}
-              placeholder='What’s this claim for? e.g. “snacks for the youth retreat”'
+              placeholder={t("descPlaceholder")}
               maxLength={300}
               onBlur={(e) => {
                 const v = e.target.value.trim();
@@ -1113,17 +1111,17 @@ function ClaimMinistryPanel({
               onKeyDown={(e) => {
                 if (e.key === "Enter") onSuggest(descRef.current);
               }}
-              aria-label="Claim description"
+              aria-label={t("descAria")}
               data-testid="claim-description"
             />
             <button
               className="btn-secondary whitespace-nowrap"
               onClick={() => onSuggest(descRef.current)}
               disabled={suggesting}
-              title="Let the AI suggest a ministry & event from your description — you still apply it"
+              title={t("suggestTitle")}
               data-testid="suggest-ministry"
             >
-              {suggesting ? "Thinking…" : "✨ Suggest"}
+              {suggesting ? t("thinking") : t("suggest")}
             </button>
           </div>
 
@@ -1138,13 +1136,13 @@ function ClaimMinistryPanel({
                   return (
                     <>
                       <span>
-                        {isApplied ? "Applied: " : "Suggested: "}
-                        <strong>
-                          {formatMinistryEvent(
+                        {t.rich(isApplied ? "suggestionApplied" : "suggestionSuggested", {
+                          value: formatMinistryEvent(
                             pendingSuggestion.ministry,
                             pendingSuggestion.event ?? ""
-                          )}
-                        </strong>
+                          ),
+                          strong: (chunks) => <strong>{chunks}</strong>,
+                        })}
                       </span>
                       {pendingSuggestion.rationale && (
                         <span className="text-xs text-violet-700">{pendingSuggestion.rationale}</span>
@@ -1156,7 +1154,7 @@ function ClaimMinistryPanel({
                             onClick={onUndo}
                             data-testid="suggestion-undo"
                           >
-                            Undo
+                            {t("undo")}
                           </button>
                         ) : (
                           <>
@@ -1165,14 +1163,14 @@ function ClaimMinistryPanel({
                               onClick={() => onApplySuggestion(pendingSuggestion)}
                               data-testid="suggestion-apply"
                             >
-                              {claim.receipts.length === 1 ? "Apply" : "Apply to all rows"}
+                              {claim.receipts.length === 1 ? t("apply") : t("applyAllRows")}
                             </button>
                             <button
                               className="text-xs text-violet-700 hover:underline"
                               onClick={onDismissSuggestion}
                               data-testid="suggestion-dismiss"
                             >
-                              Dismiss
+                              {t("dismiss")}
                             </button>
                           </>
                         )}
@@ -1182,7 +1180,7 @@ function ClaimMinistryPanel({
                 })()
               ) : (
                 <>
-                  <span>No confident match — pick a ministry below.</span>
+                  <span>{t("noConfidentMatch")}</span>
                   {pendingSuggestion.rationale && (
                     <span className="text-xs text-violet-700">{pendingSuggestion.rationale}</span>
                   )}
@@ -1191,7 +1189,7 @@ function ClaimMinistryPanel({
                     onClick={onDismissSuggestion}
                     data-testid="suggestion-dismiss"
                   >
-                    Dismiss
+                    {t("dismiss")}
                   </button>
                 </>
               )}
@@ -1222,10 +1220,10 @@ function ClaimMinistryPanel({
                       onFanOut({ claimMinistry: e.target.value, claimEvent: claim.claimEvent });
                     }
                   }}
-                  aria-label="Claim ministry"
+                  aria-label={t("claimMinistryAria")}
                   data-testid="claim-ministry"
                 >
-                  <option value="">— pick ministry —</option>
+                  <option value="">{t("pickMinistry")}</option>
                   {MINISTRY_GROUPS.map((group) => (
                     <optgroup key={group.label} label={group.label}>
                       {group.options.map((m) => (
@@ -1235,7 +1233,7 @@ function ClaimMinistryPanel({
                       ))}
                     </optgroup>
                   ))}
-                  <option value={OTHER_MINISTRY}>Other…</option>
+                  <option value={OTHER_MINISTRY}>{t("otherOption")}</option>
                 </select>
               </div>
               {showOtherInput && (
@@ -1244,13 +1242,13 @@ function ClaimMinistryPanel({
                     key={`claim-other-${claim.claimMinistry}`}
                     className="input"
                     defaultValue={isKnownMinistry(claim.claimMinistry) ? "" : claim.claimMinistry}
-                    placeholder="Custom ministry"
+                    placeholder={t("customMinistryPlaceholder")}
                     onBlur={(e) => {
                       const v = e.target.value.trim();
                       if (v !== claim.claimMinistry)
                         onFanOut({ claimMinistry: v, claimEvent: claim.claimEvent });
                     }}
-                    aria-label="Custom claim ministry"
+                    aria-label={t("customClaimMinistryAria")}
                     data-testid="claim-ministry-other"
                   />
                 </div>
@@ -1260,26 +1258,22 @@ function ClaimMinistryPanel({
                   key={`claim-event-${claim.claimEvent}`}
                   className="input"
                   defaultValue={claim.claimEvent}
-                  placeholder="Event (optional)"
+                  placeholder={t("eventPlaceholder")}
                   onBlur={(e) => {
                     const v = e.target.value.trim();
                     if (v !== claim.claimEvent)
                       onFanOut({ claimMinistry: claim.claimMinistry, claimEvent: v });
                   }}
-                  aria-label="Claim event"
+                  aria-label={t("claimEventAria")}
                   data-testid="claim-event"
                 />
               </div>
-              <p className="text-xs text-stone-500 sm:basis-full">
-                Applied to every row — you still confirm each amount below.
-              </p>
+              <p className="text-xs text-stone-500 sm:basis-full">{t("appliedEveryRow")}</p>
             </div>
           )}
         </>
       ) : (
-        <p className="text-xs text-stone-500">
-          Each row picks its own ministry below. Switch to “One ministry” to set them all at once.
-        </p>
+        <p className="text-xs text-stone-500">{t("multiHint")}</p>
       )}
     </div>
   );
@@ -1306,6 +1300,7 @@ function LineItemRow({
   mergeUpBlocked: boolean;
   onMergeUp: () => void;
 }) {
+  const t = useTranslations("Review");
   const negative = item.amountCents < 0;
   const excluded = item.isExcluded;
   // "Other…" stays selected while the custom text box is still empty; a saved
@@ -1333,13 +1328,13 @@ function LineItemRow({
             // field-sizing auto-grows to the content where supported; rows=2 is the fallback.
             className={`input flex-1 resize-y field-sizing-content ${excluded ? "line-through" : ""} ${negative ? "text-red-700" : ""}`}
             defaultValue={item.description}
-            placeholder="Describe what was purchased"
+            placeholder={t("rowDescPlaceholder")}
             disabled={excluded || readOnly}
             onBlur={(e) => {
               const v = e.target.value.trim();
               if (v && v !== item.description) onPatch(item.id, { description: v });
             }}
-            aria-label="Description"
+            aria-label={t("rowDescAria")}
             data-testid={`desc-${item.id}`}
           />
         </div>
@@ -1351,12 +1346,12 @@ function LineItemRow({
               className={`inline-flex max-w-full items-center truncate rounded-full px-3 py-1 text-xs ${
                 item.ministry ? "bg-stone-100 text-stone-600" : "bg-amber-50 text-amber-700"
               }`}
-              title="Ministry applies claim-wide — set it at the top"
+              title={t("badgeTitle")}
               data-testid={`row-ministry-badge-${item.id}`}
             >
               {item.ministry
                 ? formatMinistryEvent(item.ministry, item.event)
-                : "Ministry set above ↑"}
+                : t("ministrySetAbove")}
             </span>
           ) : (
             <>
@@ -1375,10 +1370,10 @@ function LineItemRow({
                     onPatch(item.id, { ministry: e.target.value });
                   }
                 }}
-                aria-label="Ministry"
+                aria-label={t("ministryAria")}
                 data-testid={`ministry-${item.id}`}
               >
-                <option value="">— pick ministry —</option>
+                <option value="">{t("pickMinistry")}</option>
                 {MINISTRY_GROUPS.map((group) => (
                   <optgroup key={group.label} label={group.label}>
                     {group.options.map((m) => (
@@ -1388,20 +1383,20 @@ function LineItemRow({
                     ))}
                   </optgroup>
                 ))}
-                <option value={OTHER_MINISTRY}>Other…</option>
+                <option value={OTHER_MINISTRY}>{t("otherOption")}</option>
               </select>
               {showOtherInput && (
                 <input
                   key={`other-${item.id}-${item.ministry}`}
                   className="input w-44"
                   defaultValue={isKnownMinistry(item.ministry) ? "" : item.ministry}
-                  placeholder="Custom ministry"
+                  placeholder={t("customMinistryPlaceholder")}
                   disabled={excluded || readOnly}
                   onBlur={(e) => {
                     const v = e.target.value.trim();
                     if (v !== item.ministry) onPatch(item.id, { ministry: v });
                   }}
-                  aria-label="Custom ministry"
+                  aria-label={t("customMinistryAria")}
                   data-testid={`ministry-other-${item.id}`}
                 />
               )}
@@ -1409,13 +1404,13 @@ function LineItemRow({
                 key={`event-${item.id}-${item.event}`}
                 className="input w-40"
                 defaultValue={item.event}
-                placeholder="Event (optional)"
+                placeholder={t("eventPlaceholder")}
                 disabled={excluded || readOnly}
                 onBlur={(e) => {
                   const v = e.target.value.trim();
                   if (v !== item.event) onPatch(item.id, { event: v });
                 }}
-                aria-label="Event"
+                aria-label={t("eventAria")}
                 data-testid={`event-${item.id}`}
               />
             </>
@@ -1435,13 +1430,13 @@ function LineItemRow({
                   e.target.value = centsToDollarString(item.amountCents);
                 }
               }}
-              aria-label="Amount"
+              aria-label={t("amountAria")}
               data-testid={`amount-${item.id}`}
             />
           </label>
           {negative && (
             <span className="rounded bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
-              REFUND
+              {t("refundBadge")}
             </span>
           )}
         </div>
@@ -1453,43 +1448,39 @@ function LineItemRow({
               className="rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 disabled:opacity-30"
               onClick={onSplit}
               disabled={excluded}
-              title="Split into two rows"
+              title={t("splitRowTitle")}
               data-testid={`split-${item.id}`}
             >
-              ⑂ Split
+              {t("splitButton")}
             </button>
             {canMergeUp && (
               <button
                 className="rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 disabled:opacity-30"
                 onClick={onMergeUp}
                 disabled={excluded || mergeUpBlocked}
-                title={
-                  excluded || mergeUpBlocked
-                    ? "Restore the excluded row before merging"
-                    : "Merge back into the row above (undo split)"
-                }
+                title={excluded || mergeUpBlocked ? t("mergeBlockedTitle") : t("mergeTitle")}
                 data-testid={`merge-${item.id}`}
               >
-                ⤴ Merge up
+                {t("mergeButton")}
               </button>
             )}
             <button
               className="rounded px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600"
               onClick={() => onPatch(item.id, { isExcluded: !excluded, isVerified: false })}
-              title={excluded ? "Restore item" : "Exclude item (personal / not reimbursable)"}
+              title={excluded ? t("restoreTitle") : t("excludeTitle")}
               data-testid={`exclude-${item.id}`}
             >
-              {excluded ? "↩ Restore" : "🗑 Exclude"}
+              {excluded ? t("restoreButton") : t("excludeButton")}
             </button>
             {!excluded && (
               <span className="ml-auto flex items-center gap-2">
                 {nudged && (
                   <span className="animate-pulse text-xs font-medium text-emerald-700">
                     {item.ministry
-                      ? "Click to verify →"
+                      ? t("nudgeVerify")
                       : singleMode
-                        ? "Set the ministry at the top, then verify →"
-                        : "Pick a ministry, then verify →"}
+                        ? t("nudgeSetAbove")
+                        : t("nudgePick")}
                   </span>
                 )}
                 <button
@@ -1501,10 +1492,10 @@ function LineItemRow({
                   disabled={!item.isVerified && !item.ministry}
                   title={
                     !item.isVerified && !item.ministry
-                      ? "Choose a ministry first"
+                      ? t("chooseMinistryFirst")
                       : item.isVerified
-                        ? "Verified! Click to undo verification."
-                        : "Click to certify that description, ministry, and amount are correct."
+                        ? t("verifyTitleVerified")
+                        : t("verifyTitle")
                   }
                   onClick={() => onPatch(item.id, { isVerified: !item.isVerified })}
                   aria-pressed={item.isVerified}
@@ -1521,7 +1512,7 @@ function LineItemRow({
                   >
                     {item.isVerified && "✓"}
                   </span>
-                  <span>Looks correct</span>
+                  <span>{t("looksCorrect")}</span>
                 </button>
               </span>
             )}
@@ -1541,6 +1532,8 @@ function SplitDialog({
   onClose: () => void;
   onDone: () => Promise<void>;
 }) {
+  const t = useTranslations("Review");
+  const tCommon = useTranslations("Common");
   const [firstText, setFirstText] = useState(() => {
     const sign = item.amountCents < 0 ? -1 : 1;
     return centsToDollarString(sign * Math.ceil(Math.abs(item.amountCents) / 2));
@@ -1566,7 +1559,7 @@ function SplitDialog({
       body: JSON.stringify({ firstAmountCents: firstCents }),
     });
     if (!res.ok) {
-      setError((await res.json()).error ?? "Split failed");
+      setError((await res.json()).error ?? t("splitFailed"));
       setBusy(false);
       return;
     }
@@ -1576,11 +1569,11 @@ function SplitDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal>
       <div className="card w-full max-w-sm p-6">
-        <h2 className="font-bold">Split line item</h2>
+        <h2 className="font-bold">{t("splitDialogTitle")}</h2>
         <p className="mt-1 truncate text-sm text-stone-500">{item.description}</p>
-        <p className="text-sm text-stone-500">Total: {formatCents(item.amountCents)}</p>
+        <p className="text-sm text-stone-500">{t("splitTotal", { amount: formatCents(item.amountCents) })}</p>
         <label className="mt-4 block text-sm font-medium">
-          First part ($)
+          {t("firstPart")}
           <input
             className="input mt-1"
             value={firstText}
@@ -1590,12 +1583,15 @@ function SplitDialog({
           />
         </label>
         <p className="mt-2 text-sm text-stone-600">
-          Second part: <strong>{secondCents !== null ? formatCents(secondCents) : "—"}</strong>
+          {t.rich("secondPart", {
+            amount: secondCents !== null ? formatCents(secondCents) : "—",
+            strong: (chunks) => <strong>{chunks}</strong>,
+          })}
         </p>
         {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
         <div className="mt-5 flex justify-end gap-2">
           <button className="btn-secondary" onClick={onClose} disabled={busy} data-testid="split-cancel">
-            Cancel
+            {tCommon("cancel")}
           </button>
           <button
             className="btn-primary"
@@ -1603,7 +1599,7 @@ function SplitDialog({
             disabled={busy || firstCents === null || firstCents === 0 || secondCents === 0}
             data-testid="split-confirm"
           >
-            Split
+            {t("splitConfirm")}
           </button>
         </div>
       </div>

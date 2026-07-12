@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 async function signOut() {
   await fetch("/api/auth/session", { method: "DELETE" }).catch(() => {});
@@ -18,6 +19,7 @@ interface Badges {
 
 export default function NavBar({ userName }: { userName: string }) {
   const pathname = usePathname();
+  const t = useTranslations("NavBar");
   // E-sign work badges (no notification infra — the nav surfaces state).
   const [badges, setBadges] = useState<Badges>({ enabled: false });
   useEffect(() => {
@@ -28,8 +30,8 @@ export default function NavBar({ userName }: { userName: string }) {
   }, [pathname]);
 
   const links: { href: string; label: string; badge?: number }[] = [
-    { href: "/", label: "Shoebox" },
-    { href: "/claims", label: "Claims" },
+    { href: "/", label: t("shoebox") },
+    { href: "/claims", label: t("claims") },
   ];
   if (badges.enabled && (badges.approvals ?? 0) > 0) {
     links.push({ href: "/approvals", label: "Approvals", badge: badges.approvals });
@@ -39,7 +41,8 @@ export default function NavBar({ userName }: { userName: string }) {
   if (badges.enabled && badges.finance !== null && badges.finance !== undefined) {
     links.push({ href: "/finance", label: "Finance", badge: badges.finance || undefined });
   }
-  links.push({ href: "/profile", label: "Profile" });
+  links.push({ href: "/profile", label: t("profile") });
+
 
   return (
     <header className="sticky top-0 z-40 border-b border-stone-200 bg-white/90 backdrop-blur">
@@ -62,7 +65,7 @@ export default function NavBar({ userName }: { userName: string }) {
                 {l.badge ? (
                   <span
                     className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white"
-                    data-testid={`badge-${l.label.toLowerCase()}`}
+                    data-testid={`badge-${l.href.slice(1) || "shoebox"}`}
                   >
                     {l.badge}
                   </span>
@@ -73,9 +76,9 @@ export default function NavBar({ userName }: { userName: string }) {
           <button
             onClick={() => signOut()}
             className="ml-1 hidden rounded-lg px-3 py-1.5 text-sm text-stone-500 hover:bg-stone-100 sm:block"
-            title={`Signed in as ${userName}`}
+            title={t("signedInAs", { name: userName })}
           >
-            Sign out
+            {t("signOut")}
           </button>
         </nav>
       </div>

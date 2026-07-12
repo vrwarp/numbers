@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 interface Crop {
   left: number;
@@ -82,6 +83,8 @@ export default function ReceiptImageEditor({
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const [rotate, setRotate] = useState<0 | 90 | 180 | 270>(0);
   const [crop, setCrop] = useState<Crop>(FULL_CROP);
+  const t = useTranslations("ImageEditor");
+  const tCommon = useTranslations("Common");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasOriginal, setHasOriginal] = useState(false);
@@ -252,7 +255,7 @@ export default function ReceiptImageEditor({
       try {
         await onApply({ rotate, crop: isFullCrop ? undefined : crop });
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Image edit failed");
+        setError(e instanceof Error ? e.message : t("editFailed"));
         setBusy(false);
         return;
       }
@@ -273,7 +276,7 @@ export default function ReceiptImageEditor({
       }),
     });
     if (!res.ok) {
-      setError((await res.json()).error ?? "Image edit failed");
+      setError((await res.json()).error ?? t("editFailed"));
       setBusy(false);
       return;
     }
@@ -283,20 +286,16 @@ export default function ReceiptImageEditor({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal>
       <div className="card w-full max-w-2xl p-6">
-        <h2 className="font-bold">Rotate &amp; crop receipt</h2>
+        <h2 className="font-bold">{t("title")}</h2>
         <p className="mt-1 text-sm text-stone-500">
-          {restoring
-            ? "Showing the originally uploaded image. Save to keep it, or Cancel to leave the current one."
-            : onApply
-              ? "Straighten the photo and drag the box to trim away the background. The edit happens on this device before anything uploads."
-              : "Straighten the photo and drag the box to trim away the background. Saving replaces the stored image."}
+          {restoring ? t("introRestoring") : onApply ? t("introLocal") : t("introStored")}
         </p>
 
         <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-          <button className="btn-secondary flex h-12 w-12 items-center justify-center rounded-full text-lg" onClick={() => turn(270)} disabled={busy} data-testid="rotate-left" aria-label="Rotate left" title="Rotate left">
+          <button className="btn-secondary flex h-12 w-12 items-center justify-center rounded-full text-lg" onClick={() => turn(270)} disabled={busy} data-testid="rotate-left" aria-label={t("rotateLeft")} title={t("rotateLeft")}>
             ↺
           </button>
-          <button className="btn-secondary flex h-12 w-12 items-center justify-center rounded-full text-lg" onClick={() => turn(90)} disabled={busy} data-testid="rotate-right" aria-label="Rotate right" title="Rotate right">
+          <button className="btn-secondary flex h-12 w-12 items-center justify-center rounded-full text-lg" onClick={() => turn(90)} disabled={busy} data-testid="rotate-right" aria-label={t("rotateRight")} title={t("rotateRight")}>
             ↻
           </button>
           <button
@@ -304,9 +303,9 @@ export default function ReceiptImageEditor({
             onClick={reset}
             disabled={busy || (!hasChanges && !hasOriginal)}
             data-testid="crop-reset"
-            title="Reset to the originally uploaded image"
+            title={t("resetTitle")}
           >
-            Reset
+            {t("reset")}
           </button>
         </div>
 
@@ -321,7 +320,7 @@ export default function ReceiptImageEditor({
               onLoad={(e) =>
                 setNatural({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })
               }
-              onError={() => setError("Could not load the receipt image")}
+              onError={() => setError(t("loadFailed"))}
             />
           )}
           {natural && dispW > 0 ? (
@@ -337,7 +336,7 @@ export default function ReceiptImageEditor({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={displaySrc}
-                alt="Receipt being edited"
+                alt={t("editedAlt")}
                 draggable={false}
                 className="absolute left-1/2 top-1/2 max-w-none"
                 style={{
@@ -375,7 +374,7 @@ export default function ReceiptImageEditor({
               </div>
             </div>
           ) : (
-            !error && <p className="py-10 text-center text-sm text-stone-500">Loading image…</p>
+            !error && <p className="py-10 text-center text-sm text-stone-500">{t("loadingImage")}</p>
           )}
         </div>
 
@@ -387,16 +386,16 @@ export default function ReceiptImageEditor({
 
         <div className="mt-6 flex items-center justify-center gap-3">
           <button className="btn-secondary flex h-12 items-center justify-center rounded-full px-8 text-sm font-semibold" onClick={onClose} disabled={busy} data-testid="image-editor-cancel">
-            Cancel
+            {tCommon("cancel")}
           </button>
           <button
             className="btn-primary flex h-12 items-center justify-center rounded-full px-8 text-sm font-semibold"
             onClick={save}
             disabled={busy || !hasChanges}
-            title={!hasChanges ? "Rotate or draw a crop first" : undefined}
+            title={!hasChanges ? t("saveDisabledTitle") : undefined}
             data-testid="image-editor-save"
           >
-            {busy ? "Saving…" : "Save"}
+            {busy ? tCommon("saving") : tCommon("save")}
           </button>
         </div>
       </div>
