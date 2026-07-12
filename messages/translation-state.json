@@ -1,31 +1,37 @@
 {
   "Meta.title": {
     "source": "Numbers — CFCC Reimbursements",
+    "context": "Browser-tab / PWA title. “Numbers” (app name) and “CFCC” (church acronym) stay verbatim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Meta.description": {
     "source": "Snap church receipts now, submit reimbursement claims later.",
+    "context": "Meta description shown in link previews and the PWA install sheet.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Meta.appName": {
     "source": "Numbers",
+    "context": "iOS home-screen name. Always “Numbers” — never translated.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.status.draft": {
     "source": "Draft",
+    "context": "Status pill: claim not yet generated, still editable. Pairs with 'Generated'. One word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.status.generated": {
     "source": "Generated",
+    "context": "Status pill: PDF has been generated, rows frozen. Pairs with 'Draft'. Keep short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.status.needsReview": {
     "source": "Needs review",
+    "context": "Status pill on the claims list for drafts awaiting verification.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -37,231 +43,277 @@
   },
   "Common.cancel": {
     "source": "Cancel",
+    "context": "Secondary dialog button: close without saving. One word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.save": {
     "source": "Save",
+    "context": "Primary button that commits a form or dialog. One word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.saving": {
     "source": "Saving…",
+    "context": "Save button label while the request is in flight. Keep the trailing ellipsis.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.loading": {
     "source": "Loading…",
+    "context": "Placeholder text shown while a page's data loads.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.language": {
     "source": "Language",
+    "context": "Label for the language selectors (NavBar switcher aria + profile field).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "NavBar.shoebox": {
     "source": "Shoebox",
+    "context": "Top-navigation link; must match the Shoebox page title (Shoebox.title).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "NavBar.claims": {
     "source": "Claims",
+    "context": "Top-navigation link; must match the claims page title (Claims.title).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "NavBar.profile": {
     "source": "Profile",
+    "context": "Top-navigation link; must match the profile page title (Profile.title).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "NavBar.signOut": {
     "source": "Sign out",
+    "context": "Nav button that ends the session. Keep short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "NavBar.signedInAs": {
     "source": "Signed in as {name}",
+    "context": "Tooltip on the sign-out button; {name} is the user's display name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Home.profileNudge": {
     "source": "Your <link>profile</link> is missing a name or mailing address — both get printed on the reimbursement form.",
+    "context": "Warning banner on the home page; <link> wraps the word that opens the profile page.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.tagline": {
     "source": "CFCC expense reimbursements — snap receipts now, file the claim later.",
+    "context": "One-liner under the app name on the sign-in card. “CFCC” stays verbatim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.failed": {
     "source": "Sign-in failed",
+    "context": "Generic sign-in failure; also the fallback when the server gives no better message.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.popupBlocked": {
     "source": "Your browser blocked the sign-in popup. If you opened this from inside another app, tap the menu and choose “Open in Safari” (or Chrome), then try again.",
+    "context": "Error when the browser blocks the Google sign-in popup; instructs escaping an in-app browser.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.embeddedTitle": {
     "source": "You're in an in-app browser",
+    "context": "Heading of the warning box shown inside in-app browsers (Messenger, Instagram…).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.embeddedBody": {
     "source": "Google sign-in may not work in in-app browsers. If it doesn't, open this page in Safari or Chrome — tap the menu (⋯ or the share icon) and choose “Open in Safari”.",
+    "context": "Body of that warning; ⋯ is the browser's menu glyph — keep it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.googleSignIn": {
     "source": "Sign in with Google",
+    "context": "Primary sign-in button (Google logo precedes the text).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.googleTryAnyway": {
     "source": "Try Google sign-in anyway",
+    "context": "Same button while inside an in-app browser, where sign-in will likely fail.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.notConfigured": {
     "source": "No sign-in method is configured. Set <code>FIREBASE_API_KEY</code>, <code>FIREBASE_AUTH_DOMAIN</code> and <code>FIREBASE_PROJECT_ID</code> in the environment.",
+    "context": "Operator-facing notice; <code> wraps environment-variable names — never translate them.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.devLogin": {
     "source": "Dev login (test mode)",
+    "context": "Heading of the passwordless login form that only exists in test mode.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.devEmailPlaceholder": {
     "source": "you@example.com",
+    "context": "Example email placeholder; usually kept as-is.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.devNamePlaceholder": {
     "source": "Your name",
+    "context": "Placeholder of the dev-login name input.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "SignIn.devSignIn": {
     "source": "Sign in (dev)",
+    "context": "Submit button of the dev-login form; '(dev)' marks it as test-only.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Claims.title": {
     "source": "Claims",
+    "context": "Page title of the claims list; must match NavBar.claims.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Claims.subtitle": {
     "source": "Draft claims need review; generated claims are ready to print and sign.",
+    "context": "One-liner under the title explaining draft vs generated.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Claims.emptyTitle": {
     "source": "No claims yet",
+    "context": "Empty-state heading when the user has no claims yet.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Claims.emptyBody": {
     "source": "Select receipts in your <link>Shoebox</link> and hit “New Claim”.",
+    "context": "Empty-state body; <link> opens the Shoebox; the quoted button name must match Shoebox.newClaim (minus the ✨).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Claims.counts": {
     "source": "{items} items · {receipts, plural, one {# receipt} other {# receipts}}",
+    "context": "Meta line per claim: {items} row count, {receipts} receipt count (ICU).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.title": {
     "source": "Profile",
+    "context": "Page title; must match NavBar.profile.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.subtitle": {
     "source": "Printed onto the “Name” and “Address” lines of the reimbursement form.",
+    "context": "Explains the fields are printed onto the official (English) PDF form; the quoted words are that form's lines.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.email": {
     "source": "Email",
+    "context": "Read-only field label. One word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.fullName": {
     "source": "Full name",
+    "context": "Field label for the name printed on the reimbursement check.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.fullNamePlaceholder": {
     "source": "e.g. Grace Chen",
+    "context": "Example person name — use a natural name for the locale.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.mailingAddress": {
     "source": "Mailing address",
+    "context": "Field label for the check-mailing address.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.mailingAddressPlaceholder": {
     "source": "123 Main St, San Jose, CA 95110",
+    "context": "Example US postal address; typically kept as-is.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.saved": {
     "source": "Saved ✓",
+    "context": "Inline confirmation next to Save; keep the ✓.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.loadFailed": {
     "source": "Failed to load profile",
+    "context": "Error when the profile fetch fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.saveFailed": {
     "source": "Save failed",
+    "context": "Fallback error when saving fails without a server message.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.pdfChip": {
     "source": "PDF",
+    "context": "Tiny chip on a card when a PDF thumbnail can't render; 'PDF' acronym stays.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.pdfThumbAlt": {
     "source": "PDF receipt",
+    "context": "Alt text (screen readers) of a PDF receipt's thumbnail image.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.deleteReceipt": {
     "source": "Delete {name}",
+    "context": "aria-label of the ✕ delete button on a receipt card; {name} is the uploaded file name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.viewLarger": {
     "source": "View {name} larger",
+    "context": "aria-label of the expand button on a card; {name} is the file name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.viewLargerTitle": {
     "source": "View larger",
+    "context": "Hover tooltip of that expand button. Keep short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.notePlaceholder": {
     "source": "Add description…",
+    "context": "Placeholder of the free-text description input on every receipt card.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.noteAria": {
     "source": "Description for {name}",
+    "context": "aria-label of that description input; {name} is the file name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ReceiptGrid.meta": {
     "source": "{date} · {kb} KB",
+    "context": "Card meta line: upload date · file size. Keep the ' · ' separators and 'KB'.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -272,51 +324,61 @@
   },
   "ReceiptGrid.claimChip": {
     "source": "Claim",
+    "context": "Chip on a card linking to a GENERATED claim it belongs to; drafts use Common.status.draft instead. One word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "PdfPreview.chip": {
     "source": "PDF receipt",
+    "context": "Fallback chip when an inline PDF preview fails; 'PDF' stays.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "PdfPreview.rendering": {
     "source": "Rendering preview…",
+    "context": "Spinner text while the server renders preview pages.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "PdfPreview.pageAlt": {
     "source": "PDF receipt page {page}",
+    "context": "Alt text of each preview page image; {page} is the page number.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "PdfPreview.omitted": {
     "source": "+{omitted, plural, one {# more page not shown — open the PDF receipt to view it.} other {# more pages not shown — open the PDF receipt to view them.}}",
+    "context": "Truncation note under a long PDF's preview (ICU).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "PdfPreview.open": {
     "source": "Open PDF receipt ↗",
+    "context": "Link under the preview to the original PDF; keep the ↗.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.title": {
     "source": "Shoebox",
+    "context": "Page title and core metaphor: the box you toss receipts into. Glossary: 收据盒/收據盒. Must match NavBar.shoebox.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.intro": {
     "source": "Drop receipts here as you go. Select some when you're ready to file a claim.",
+    "context": "Subtitle under the page title.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.upload": {
     "source": "📷 Upload Receipt",
+    "context": "Primary upload button; keep the 📷. Same wording as AddReceipts.upload.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.uploading": {
     "source": "Uploading…",
+    "context": "That button while an upload runs. Keep the ellipsis.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -327,531 +389,637 @@
   },
   "Shoebox.dropTitle": {
     "source": "Drop receipts to upload",
+    "context": "Heading of the full-screen drag-and-drop overlay.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.dropBody": {
     "source": "Images or PDFs",
+    "context": "Subline of the drop overlay: accepted file kinds.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.noteSaveFailed": {
     "source": "Could not save the description",
+    "context": "Error when saving a card's description fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.deleteConfirm": {
     "source": "Delete this receipt?",
+    "context": "Native browser confirm() text before deleting a receipt.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.deleteFailed": {
     "source": "Delete failed",
+    "context": "Error when deleting a receipt fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.selectedCount": {
     "source": "{count, plural, one {# receipt} other {# receipts}} selected",
+    "context": "Sticky-bar label while receipts are selected (ICU count).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.selectPrompt": {
     "source": "Select receipts below to start a claim",
+    "context": "Sticky-bar label when nothing is selected yet.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.newClaim": {
     "source": "✨ New Claim",
+    "context": "THE primary call-to-action; keep the ✨. Quoted (without ✨) by Claims.emptyBody and Shoebox.step2 — keep all three consistent.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.waitingRateLimit": {
     "source": "Waiting on rate limit…",
+    "context": "New Claim button label while the AI provider is rate-limited.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.readingShort": {
     "source": "Reading receipts…",
+    "context": "New Claim button label while extraction runs.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.selectHint": {
     "source": "Select a receipt first ↑",
+    "context": "Appears under the button after clicking with nothing selected; ↑ points at the receipt cards above — keep it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.readingInitial": {
     "source": "Reading receipts with AI…",
+    "context": "Live status line when extraction starts (count not yet known).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.readingCount": {
     "source": "Reading {total, plural, one {# receipt} other {# receipts}} with AI…",
+    "context": "Live status line once the receipt count is known (ICU).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.readProgress": {
     "source": "Read {completed} of {total} receipts…",
+    "context": "Live progress line: {completed} of {total} receipts done.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.manualInstead": {
     "source": "Enter manually instead",
+    "context": "Escape-hatch button during a rate-limit wait: skip the AI, type rows by hand. Same wording as AddReceipts.manualInstead.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.manualSetup": {
     "source": "Setting up manual entry…",
+    "context": "Status line while the manual (no-AI) claim is being created.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.manualStartFailed": {
     "source": "Could not start manual entry",
+    "context": "Error when that manual claim can't be created.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.generateFailed": {
     "source": "Claim generation failed",
+    "context": "Error when claim creation fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.generateEnded": {
     "source": "Claim generation ended unexpectedly",
+    "context": "Error when the progress stream ends without a result.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.emptyTitle": {
     "source": "Your shoebox is empty",
+    "context": "Empty-state heading for a brand-new user.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.emptyBody": {
     "source": "Upload a photo or PDF of a receipt to get started.",
+    "context": "Empty-state subline inviting the first upload.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.step1": {
     "source": "<step>1. Snap.</step> Photograph receipts into your Shoebox the moment you buy.",
+    "context": "Onboarding step 1 of 4; <step> wraps the numbered lead word — keep the 'N. Verb.' pattern.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.step2": {
     "source": "<step>2. Batch.</step> Later, when you're ready, select receipts and hit New Claim.",
+    "context": "Onboarding step 2; mentions the New Claim button — match Shoebox.newClaim wording (minus ✨).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.step3": {
     "source": "<step>3. Verify.</step> Check every row against the receipt. Fix, split, or exclude items.",
+    "context": "Onboarding step 3: the human verification pass.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.step4": {
     "source": "<step>4. Print.</step> Download the filled CFCC form with receipts attached, sign, and drop it off.",
+    "context": "Onboarding step 4; 'CFCC' stays verbatim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.processedSummary": {
     "source": "Processed receipts ({count})",
+    "context": "Collapsible section heading for receipts already on generated claims; {count}.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.processedNote": {
     "source": "Already on a generated claim — still selectable if part of the purchase belongs on another claim.",
+    "context": "Fine print under that heading: processed receipts stay selectable.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.prepareTitle": {
     "source": "Describe this receipt",
+    "context": "Heading of the per-photo dialog shown before anything uploads.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.prepareLeft": {
     "source": "({count} left)",
+    "context": "Suffix after that heading when more files queue: (N left). Keep the parentheses.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.prepareEditTitle": {
     "source": "Rotate or crop this receipt photo",
+    "context": "Tooltip of the rotate/crop button inside the prepare dialog.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.prepareEditButton": {
     "source": "✂ Rotate / crop",
+    "context": "That button's label; keep the ✂. Same wording as Review.editPhotoButton.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.noteLabel": {
     "source": "Description (optional)",
+    "context": "Label of the optional description input in the prepare dialog.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.notePlaceholder": {
     "source": "e.g. VBS craft supplies",
+    "context": "Example description; 'VBS' (Vacation Bible School) stays verbatim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.prepareHintLocal": {
     "source": "Uploads when you save or skip. You can edit the description on the card later.",
+    "context": "Fine print for photos: nothing uploads until Save/Skip.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.prepareHintUploaded": {
     "source": "You can edit the description on the card later.",
+    "context": "Fine print for PDFs (already uploaded when picked).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.skipAll": {
     "source": "Skip all",
+    "context": "Dialog button: upload ALL queued photos without descriptions. It skips the notes, not the uploads.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.skip": {
     "source": "Skip",
+    "context": "Dialog button: upload THIS photo without a description. It skips the note, not the upload.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.quotaRingAria": {
     "source": "Retrying in about {seconds, plural, one {# second} other {# seconds}}",
+    "context": "aria-label of the countdown ring during a rate-limit wait (ICU seconds).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.ariaTitle": {
     "source": "Receipt: {name}",
+    "context": "aria-label of the full-screen receipt viewer dialog; {name} is the file name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.openNewTab": {
     "source": "Open in a new tab",
+    "context": "Tooltip + aria of the ↗ icon button.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.close": {
     "source": "Close viewer",
+    "context": "aria-label of the ✕ close button.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.closeTitle": {
     "source": "Close (Esc)",
+    "context": "Tooltip of ✕; 'Esc' is the keyboard key name — keep it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.previewUnavailable": {
     "source": "Preview unavailable — use ↗ to open the PDF",
+    "context": "Empty state when a PDF preview fails; ↗ refers to the open-in-new-tab icon — keep it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.rendering": {
     "source": "Rendering preview…",
+    "context": "Spinner text while the server rasterizes a PDF.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.pageAlt": {
     "source": "{name} page {page}",
+    "context": "Alt text of each rendered PDF page; {name} file name, {page} number.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.omitted": {
     "source": "+{omitted, plural, one {# more page not shown — use ↗ to open the full PDF.} other {# more pages not shown — use ↗ to open the full PDF.}}",
+    "context": "Note when a long PDF is truncated (ICU); ↗ refers to the icon — keep it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.editAria": {
     "source": "Rotate or crop this receipt",
+    "context": "aria-label of the rotate/crop button.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.editTitle": {
     "source": "Rotate or crop",
+    "context": "Tooltip of that button. Keep short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.editButton": {
     "source": "✂ Rotate / crop",
+    "context": "That button's label; keep the ✂.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.zoomOut": {
     "source": "Zoom out",
+    "context": "Tooltip + aria of the − zoom button.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.zoomIn": {
     "source": "Zoom in",
+    "context": "Tooltip + aria of the + zoom button.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.resetZoom": {
     "source": "Reset zoom",
+    "context": "Tooltip + aria of the reset-zoom button.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Viewer.zoomLevel": {
     "source": "{percent}%",
+    "context": "Zoom badge between the buttons; {percent} is a number — keep the %.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.title": {
     "source": "Enter this receipt's details",
+    "context": "Dialog heading when the AI could not read a receipt and the user types it in.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.intro": {
     "source": "The AI couldn't read <strong>{name}</strong>. Type in what's printed on it so the row can be verified.",
+    "context": "Dialog intro; <strong> wraps {name}, the receipt's file name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.openPdf": {
     "source": "Open PDF receipt",
+    "context": "Fallback link when the browser can't embed the PDF.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.merchant": {
     "source": "Merchant",
+    "context": "Field label: store/vendor name as printed on the receipt. One word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.merchantPlaceholder": {
     "source": "e.g. Costco Wholesale",
+    "context": "Example merchant; a recognizable real store name works best.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.purchaseDate": {
     "source": "Purchase date",
+    "context": "Field label for the date printed on the receipt.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.optional": {
     "source": "(optional)",
+    "context": "Grey suffix after a field label; keep the parentheses.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.printedTotal": {
     "source": "Printed total ($)",
+    "context": "Field label; ($) = amount entered in dollars — keep the $.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.refunded": {
     "source": "Refunded ($)",
+    "context": "Field label for the refunded amount; keep the ($).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.amountPlaceholder": {
     "source": "0.00",
+    "context": "Numeric placeholder for money inputs; usually kept as 0.00.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.summary": {
     "source": "Item summary",
+    "context": "Field label for the short list of items bought.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.summaryPlaceholder": {
     "source": "e.g. Paper towels, snack variety pack, folding table",
+    "context": "Example item summary (comma-separated list).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.rowAmount": {
     "source": "Row amount: <strong>{amount}</strong>",
+    "context": "Computed net line under the fields; <strong> wraps {amount}, a pre-formatted $ value.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.totalMinusRefunded": {
     "source": " (total − refunded)",
+    "context": "Parenthetical appended to rowAmount only when a refund exists. Keep the LEADING SPACE and the − sign.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.later": {
     "source": "I'll do it later",
+    "context": "Secondary button: close the dialog and fill the row in later.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.saveDetails": {
     "source": "Save details",
+    "context": "Primary button of the dialog.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ManualEntry.saveFailed": {
     "source": "Could not save the details",
+    "context": "Fallback error when saving fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.title": {
     "source": "Rotate & crop receipt",
+    "context": "Dialog heading of the rotate/crop tool.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.introRestoring": {
     "source": "Showing the originally uploaded image. Save to keep it, or Cancel to leave the current one.",
+    "context": "Intro while previewing the original image restore.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.introLocal": {
     "source": "Straighten the photo and drag the box to trim away the background. The edit happens on this device before anything uploads.",
+    "context": "Intro in the pre-upload flow: the edit happens on-device.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.introStored": {
     "source": "Straighten the photo and drag the box to trim away the background. Saving replaces the stored image.",
+    "context": "Intro when editing an already-uploaded photo.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.rotateLeft": {
     "source": "Rotate left",
+    "context": "Tooltip + aria of the ↺ button.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.rotateRight": {
     "source": "Rotate right",
+    "context": "Tooltip + aria of the ↻ button.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.reset": {
     "source": "Reset",
+    "context": "Button clearing the pending edit / staging the original. One word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.resetTitle": {
     "source": "Reset to the originally uploaded image",
+    "context": "Tooltip of that Reset button.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.editedAlt": {
     "source": "Receipt being edited",
+    "context": "Alt text of the photo being edited.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.loadFailed": {
     "source": "Could not load the receipt image",
+    "context": "Error when the image can't be loaded into the editor.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.loadingImage": {
     "source": "Loading image…",
+    "context": "Placeholder while the photo loads.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.editFailed": {
     "source": "Image edit failed",
+    "context": "Fallback error when saving the edit fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "ImageEditor.saveDisabledTitle": {
     "source": "Rotate or draw a crop first",
+    "context": "Tooltip on the disabled Save button before any change was made.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.loadFailed": {
     "source": "Failed to load claim",
+    "context": "Error when the claim fetch fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.backToClaims": {
     "source": "back to claims",
+    "context": "Link inside that error banner, back to the claims list.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.loadingClaim": {
     "source": "Loading claim…",
+    "context": "Placeholder while the claim loads.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.updateFailed": {
     "source": "Update failed",
+    "context": "Generic fallback when a row/claim edit fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.mergeFailed": {
     "source": "Merge failed",
+    "context": "Fallback when merging split rows fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.title": {
     "source": "Review claim",
+    "context": "Page heading; the Draft/Generated status pill renders right after it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.instruction": {
     "source": "Check each amount against what you actually paid, pick a ministry, then check it off.",
+    "context": "One-liner under the heading describing the verification job.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.receiptHeader": {
     "source": "Receipt {index}: {label}",
+    "context": "Per-receipt group header; {index} is 1-based, {label} is 'Merchant — date' or a file name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.headerNote": {
     "source": "· {note}",
+    "context": "Suffix after the header showing the user's note; keep the '· ' separator.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.removeDisabledTitle": {
     "source": "This is the only receipt — discard the claim instead",
+    "context": "Tooltip of the disabled Remove button when it's the claim's only receipt.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.removeTitle": {
     "source": "Remove receipt from claim (returns to Shoebox)",
+    "context": "Tooltip of the enabled Remove button.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.removeButton": {
     "source": "✕ Remove",
+    "context": "Button removing a receipt from the claim; keep the ✕. Keep short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.derivation": {
     "source": "Charged {charged} − refunded {refunded} → suggested {suggested}",
+    "context": "Banner explaining the AI's net amount; all three {args} are pre-formatted $ values. Keep the − and → symbols.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.editPhotoTitle": {
     "source": "Rotate or crop this receipt photo",
+    "context": "Tooltip of the rotate/crop button over the receipt photo.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.editPhotoButton": {
     "source": "✂ Rotate / crop",
+    "context": "That button's label; keep the ✂. Same wording as Shoebox.prepareEditButton.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.receiptNote": {
     "source": "Note: <strong>{note}</strong>",
+    "context": "Note line above a single-receipt claim's rows; <strong> wraps {note}, the user's own text.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.aiFailed": {
     "source": "⚠ The AI couldn't read this receipt.",
+    "context": "Warning banner when extraction failed for this receipt; keep the ⚠.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.enterDetails": {
     "source": "Enter details",
+    "context": "Button in that banner opening the manual-entry dialog. Keep short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.subtotal": {
     "source": "Subtotal:",
+    "context": "Label before the per-receipt subtotal amount; keep the trailing colon.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.claimTotal": {
     "source": "Claim total",
+    "context": "Label of the claim's grand-total row.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.verifiedProgress": {
     "source": "{verified} / {total} verified",
+    "context": "Progress text next to the bar; keep the '{verified} / {total}' shape.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.generatedFrozen": {
     "source": "Generated — rows are frozen.",
+    "context": "Status line replacing the progress bar once the claim is generated.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.addReceipts": {
     "source": "＋ Add receipts",
+    "context": "Action-bar button opening the add-receipts dialog; keep the full-width ＋.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -863,411 +1031,493 @@
   },
   "Review.revert": {
     "source": "↩ Revert to draft",
+    "context": "Action-bar button on generated claims: back to editable draft. Keep the ↩.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.chooseMinistryFirst": {
     "source": "Choose a ministry first",
+    "context": "Tooltip on the disabled verify button AND the gated PDF button.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.buildingPdf": {
     "source": "Building PDF…",
+    "context": "PDF button label while generating. Keep the ellipsis.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.generatePdf": {
     "source": "⬇ Generate PDF",
+    "context": "PDF button on drafts; keep the ⬇.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.downloadAgain": {
     "source": "⬇ Download PDF again",
+    "context": "PDF button on generated claims (re-download); keep the ⬇.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.revertConfirm": {
     "source": "Revert this claim to draft? Only do this if you have NOT filed the printed form yet. Rows become editable again and the receipts leave “processed”.",
+    "context": "Native confirm() before reverting; the quoted word is Common.status.processed — match it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.revertFailed": {
     "source": "Revert failed",
+    "context": "Error when the revert fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.removeConfirm": {
     "source": "Remove this receipt from the claim? Its rows are deleted and the receipt returns to your Shoebox.",
+    "context": "Native confirm() before removing a receipt from the claim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.removeFailed": {
     "source": "Remove failed",
+    "context": "Error when that removal fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.discardConfirm": {
     "source": "Discard this draft claim? Receipts return to your Shoebox.",
+    "context": "Native confirm() before deleting the draft claim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.deleteFailed": {
     "source": "Delete failed",
+    "context": "Error when deleting the claim fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.pdfFailed": {
     "source": "PDF generation failed",
+    "context": "Fallback error when PDF generation fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.suggestionFailed": {
     "source": "Suggestion failed",
+    "context": "Fallback error when the AI suggestion call fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.fanOutSet": {
     "source": "Set {label} on {count, plural, one {# row} other {# rows}}",
+    "context": "Undo-toast after a claim-wide ministry change; {label} is Review.quotedValue or Review.noMinistry; ICU row count.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.quotedValue": {
     "source": "“{value}”",
+    "context": "Quote wrapper for a ministry name inside fanOutSet; use the script's quote marks (“” / 「」).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.noMinistry": {
     "source": "no ministry",
+    "context": "Slots into fanOutSet's {label} when the ministry was cleared. Lowercase fragment, not a sentence.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.undo": {
     "source": "Undo",
+    "context": "Button on the fan-out toast and suggestion banner. One word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.dismissAria": {
     "source": "Dismiss",
+    "context": "aria-label of the ✕ on the toast.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitModeTitle": {
     "source": "Split across ministries?",
+    "context": "Dialog heading when Split is pressed on a single-ministry claim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitModeBody": {
     "source": "Splitting divides one receipt between different ministries, but this claim is set to use <strong>one ministry</strong> for every row.",
+    "context": "Dialog body; <strong> emphasizes the one-ministry setting.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitModeBody2": {
     "source": "Switch the claim to multiple ministries to split this row.",
+    "context": "Second paragraph: switching to multi-ministry enables the split.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.switchAndSplit": {
     "source": "Switch & split",
+    "context": "Primary button of that dialog: flip the mode, then open the split dialog.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.modeSwitchTitle": {
     "source": "Use one ministry for the whole claim?",
+    "context": "Dialog heading when switching a multi-ministry claim to one ministry.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.modeSwitchBody": {
     "source": "Every row will be set to <strong>{value}</strong> (what most rows already use{distinct, plural, =1 {} other {, of the # different ministries currently picked}}).",
+    "context": "Dialog body; <strong>{value} is the adopted ministry. The ICU '=1' branch is DELIBERATELY EMPTY — the clause about N different ministries only appears when more than one is picked.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.modeSwitchBodyNoMinistry": {
     "source": "Rows keep no ministry until you pick one at the top.",
+    "context": "Variant of that body when no row has a ministry yet.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.modeSwitchUnverify": {
     "source": "{count, plural, one {# verified row} other {# verified rows}} will need re-verifying.",
+    "context": "Amber warning inside that dialog: verified rows lose their check (ICU).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.switchAndApply": {
     "source": "Switch & apply",
+    "context": "Primary button of that dialog.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.panelTitleSingle": {
     "source": "Ministry & event for this claim",
+    "context": "Heading of the ministry panel in single-ministry mode.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.panelTitle": {
     "source": "Ministry & event",
+    "context": "Heading of the same panel in multi mode.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.modeOne": {
     "source": "One ministry",
+    "context": "Left segment of the mode toggle; quoted by Review.multiHint — keep them matching. Keep short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.modeMultiple": {
     "source": "Multiple",
+    "context": "Right segment of the mode toggle. One word if possible.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.descPlaceholder": {
     "source": "What’s this claim for? e.g. “snacks for the youth retreat”",
+    "context": "Placeholder of the claim-description input; keep the quoted example phrasing.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.descAria": {
     "source": "Claim description",
+    "context": "aria-label of that input.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.suggestTitle": {
     "source": "Let the AI suggest a ministry & event from your description — you still apply it",
+    "context": "Tooltip of the Suggest button: the AI proposes, the human applies.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.thinking": {
     "source": "Thinking…",
+    "context": "Suggest button label while the AI call runs. Keep the ellipsis.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.suggest": {
     "source": "✨ Suggest",
+    "context": "The AI-suggestion button; keep the ✨. Keep short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.suggestionApplied": {
     "source": "Applied: <strong>{value}</strong>",
+    "context": "Suggestion-banner prefix after applying; <strong>{value} is the ministry — event.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.suggestionSuggested": {
     "source": "Suggested: <strong>{value}</strong>",
+    "context": "Suggestion-banner prefix before applying; <strong>{value} as above.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.applyAllRows": {
     "source": "Apply to all rows",
+    "context": "Banner button on multi-receipt claims: mirror the suggestion onto every row.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.apply": {
     "source": "Apply",
+    "context": "Same button on single-receipt claims. One word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.dismiss": {
     "source": "Dismiss",
+    "context": "Banner link that discards the suggestion. One word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.noConfidentMatch": {
     "source": "No confident match — pick a ministry below.",
+    "context": "Banner when the AI declines to pick from the chart of accounts.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.pickMinistry": {
     "source": "— pick ministry —",
+    "context": "Empty first <option> of every ministry select; keep the '— … —' dash style.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.otherOption": {
     "source": "Other…",
+    "context": "Last <option>, opening a free-text ministry input; keep the ellipsis.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.customMinistryPlaceholder": {
     "source": "Custom ministry",
+    "context": "Placeholder of that free-text input.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.claimMinistryAria": {
     "source": "Claim ministry",
+    "context": "aria-label of the CLAIM-level ministry select. MUST stay distinct from Review.ministryAria (row-level) — tests and screen readers rely on it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.customClaimMinistryAria": {
     "source": "Custom claim ministry",
+    "context": "aria-label of the claim-level free-text ministry input; keep distinct from Review.customMinistryAria.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.eventPlaceholder": {
     "source": "Event (optional)",
+    "context": "Placeholder of the event inputs; keep the (optional) suffix. An event example: a retreat, VBS.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.claimEventAria": {
     "source": "Claim event",
+    "context": "aria-label of the claim-level event input; keep distinct from Review.eventAria.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.appliedEveryRow": {
     "source": "Applied to every row — you still confirm each amount below.",
+    "context": "Fine print under the claim-level controls: values mirror to rows, amounts still need per-row confirmation.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.multiHint": {
     "source": "Each row picks its own ministry below. Switch to “One ministry” to set them all at once.",
+    "context": "Fine print in multi mode; the quoted toggle name must match Review.modeOne.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.rowDescPlaceholder": {
     "source": "Describe what was purchased",
+    "context": "Placeholder of each row's description textarea.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.rowDescAria": {
     "source": "Description",
+    "context": "aria-label of that textarea. One word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.badgeTitle": {
     "source": "Ministry applies claim-wide — set it at the top",
+    "context": "Tooltip on a row's ministry badge in single mode: change it at the top.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.ministrySetAbove": {
     "source": "Ministry set above ↑",
+    "context": "Badge text when the row has no ministry yet; ↑ points at the panel above — keep it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.ministryAria": {
     "source": "Ministry",
+    "context": "aria-label of the ROW-level ministry select. MUST stay distinct from Review.claimMinistryAria. One word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.customMinistryAria": {
     "source": "Custom ministry",
+    "context": "aria-label of the row-level free-text ministry input.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.eventAria": {
     "source": "Event",
+    "context": "aria-label of the row-level event input. One word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.amountAria": {
     "source": "Amount",
+    "context": "aria-label of the row's dollar-amount input; a literal $ sits before the box. One word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.refundBadge": {
     "source": "REFUND",
+    "context": "Tiny red badge on negative rows. English is uppercase for loudness; keep it very short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitRowTitle": {
     "source": "Split into two rows",
+    "context": "Tooltip of the Split button: divide one receipt between ministries.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitButton": {
     "source": "⑂ Split",
+    "context": "Row action; keep the ⑂. Glossary: 拆分. Keep short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.mergeBlockedTitle": {
     "source": "Restore the excluded row before merging",
+    "context": "Tooltip of Merge when the row above is excluded.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.mergeTitle": {
     "source": "Merge back into the row above (undo split)",
+    "context": "Tooltip of Merge: fold this split half back into the row above.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.mergeButton": {
     "source": "⤴ Merge up",
+    "context": "Row action; keep the ⤴. Keep short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.restoreTitle": {
     "source": "Restore item",
+    "context": "Tooltip of the exclude button when the row is already excluded.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.excludeTitle": {
     "source": "Exclude item (personal / not reimbursable)",
+    "context": "Tooltip of the exclude button: drop a personal / non-reimbursable item.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.restoreButton": {
     "source": "↩ Restore",
+    "context": "Row action un-excluding an item; keep the ↩.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.excludeButton": {
     "source": "🗑 Exclude",
+    "context": "Row action excluding an item; keep the 🗑.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.nudgeVerify": {
     "source": "Click to verify →",
+    "context": "Pulsing hint pointing (→) at the confirm button when it's ready to click.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.nudgeSetAbove": {
     "source": "Set the ministry at the top, then verify →",
+    "context": "Same hint on single-ministry claims when no ministry is set yet; keep the →.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.nudgePick": {
     "source": "Pick a ministry, then verify →",
+    "context": "Same hint on multi-ministry claims; keep the →.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.verifyTitleVerified": {
     "source": "Verified! Click to undo verification.",
+    "context": "Tooltip of the confirm button once verified (clicking undoes).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.verifyTitle": {
     "source": "Click to certify that description, ministry, and amount are correct.",
+    "context": "Tooltip of the confirm button: this click is the human attestation.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.looksCorrect": {
     "source": "Looks correct",
+    "context": "THE verification button on every row — 'I checked this against the receipt'. Keep short; a ✓ checkbox renders before it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitDialogTitle": {
     "source": "Split line item",
+    "context": "Heading of the split dialog.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitTotal": {
     "source": "Total: {amount}",
+    "context": "Line showing the row's total; {amount} is a pre-formatted $ value.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.firstPart": {
     "source": "First part ($)",
+    "context": "Input label for the first half's amount; keep the ($).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.secondPart": {
     "source": "Second part: <strong>{amount}</strong>",
+    "context": "Computed remainder line; <strong>{amount} is pre-formatted (or — while invalid).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitFailed": {
     "source": "Split failed",
+    "context": "Fallback error when the split fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.splitConfirm": {
     "source": "Split",
+    "context": "Primary button of the split dialog. One word; pairs with Review.splitButton.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.notSignedIn": {
     "source": "Not signed in",
+    "context": "401 body when the session is missing/expired.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1278,6 +1528,7 @@
   },
   "Errors.idTokenRequired": {
     "source": "idToken required",
+    "context": "'idToken' is an API field name — keep it verbatim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1293,11 +1544,13 @@
   },
   "Errors.emailRequired": {
     "source": "email required",
+    "context": "Dev-login validation; lowercase 'email' mirrors the API field name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.notFound": {
     "source": "Not found",
+    "context": "Deliberately vague 404 — used where existence must not leak (capability URLs, cross-tenant). Keep it generic.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1323,11 +1576,13 @@
   },
   "Errors.unsupportedFileType": {
     "source": "Unsupported file type: {type}",
+    "context": "{type} is a raw MIME string like image/heic — keep the placeholder as-is.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.emptyFile": {
     "source": "Empty file: {name}",
+    "context": "{name} is the uploaded file's name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1358,6 +1613,7 @@
   },
   "Errors.receiptFrozenByClaim": {
     "source": "This receipt is on a generated claim — revert that claim before editing the image",
+    "context": "409 for image edits while a generated claim holds the receipt.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1368,6 +1624,7 @@
   },
   "Errors.cropTooSmall": {
     "source": "Crop region is too small to stay legible",
+    "context": "Rejects a crop too small to stay legible.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1378,6 +1635,7 @@
   },
   "Errors.claimFrozen": {
     "source": "Claim already generated; line items are frozen",
+    "context": "409 for row edits on a generated claim; 'frozen' = locked until reverted to draft.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1458,11 +1716,13 @@
   },
   "Errors.rowsUnverified": {
     "source": "{count} row(s) still need verification before the PDF can be generated",
+    "context": "PDF gate message; {count} rows lack verification. English 'row(s)' is a pseudo-plural — Chinese needs none.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.rowsMissingMinistry": {
     "source": "{count} row(s) still need a ministry before the PDF can be generated",
+    "context": "PDF gate message; {count} rows lack a ministry.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1508,6 +1768,7 @@
   },
   "Errors.aiQuotaExhausted": {
     "source": "AI provider rate limit / quota exhausted (target {rpm} requests/minute). The server waited and retried but the quota hasn't cleared — please wait a minute and try again. Affected: {names}",
+    "context": "429 after retries; {rpm} requests/minute target, {names} is a list of receipt file names.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1528,96 +1789,115 @@
   },
   "Errors.quotaWait": {
     "source": "Rate limit reached — waiting {seconds}s before retrying ({attempt}/{maxRetries})…",
+    "context": "Live status during a rate-limit wait; {seconds} countdown, ({attempt}/{maxRetries}) retry counter — keep the shape.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.title": {
     "source": "Add receipts to this claim",
+    "context": "Dialog heading: add receipts to an existing draft claim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.intro": {
     "source": "Pick from your Shoebox or upload new ones — each is read with AI and gets its own row to verify.",
+    "context": "Dialog subtitle: pick from the Shoebox or upload new files.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.upload": {
     "source": "📷 Upload Receipt",
+    "context": "Upload button inside the dialog; keep the 📷. Match Shoebox.upload.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.uploading": {
     "source": "Uploading…",
+    "context": "That button while uploading. Keep the ellipsis.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.emptyTitle": {
     "source": "No other receipts in your Shoebox",
+    "context": "Empty state when every Shoebox receipt is already on this claim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.emptyBody": {
     "source": "Upload a photo or PDF of a receipt to add it.",
+    "context": "Subline inviting an upload.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.manualInstead": {
     "source": "Enter manually instead",
+    "context": "Escape hatch during a rate-limit wait; match Shoebox.manualInstead.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.addingManual": {
     "source": "Adding for manual entry…",
+    "context": "Status while adding rows without AI.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.readingInitial": {
     "source": "Reading receipts with AI…",
+    "context": "Status when extraction starts; match Shoebox.readingInitial.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.readingCount": {
     "source": "Reading {total, plural, one {# receipt} other {# receipts}} with AI…",
+    "context": "Status with the count (ICU); match Shoebox.readingCount.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.readProgress": {
     "source": "Read {completed} of {total} receipts…",
+    "context": "Progress line; match Shoebox.readProgress.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.loadFailed": {
     "source": "Failed to load receipts",
+    "context": "Error when the Shoebox listing fails to load.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.uploadFailed": {
     "source": "Upload failed",
+    "context": "Error when an upload fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.addFailed": {
     "source": "Adding receipts failed",
+    "context": "Error when adding the receipts to the claim fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.endedUnexpectedly": {
     "source": "Adding receipts ended unexpectedly",
+    "context": "Error when the progress stream ends without a result.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.confirmReading": {
     "source": "Reading receipts…",
+    "context": "Primary button while extraction runs. Keep the ellipsis.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.confirmCount": {
     "source": "✨ Add {count, plural, one {# receipt} other {# receipts}}",
+    "context": "Primary button with a selection (ICU count); keep the ✨.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "AddReceipts.confirm": {
     "source": "✨ Add receipts",
+    "context": "Primary button with no selection yet; keep the ✨.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   }
