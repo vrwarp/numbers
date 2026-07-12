@@ -30,6 +30,7 @@
     "firebase-admin": "^14.1.0",
     "fontkit": "^2.0.4",
     "next": "^15.5.0",
+    "next-intl": "^4.13.2",
     "pdf-lib": "^1.17.1",
     "qrcode-generator": "^2.0.4",
     "react": "^19.0.0",

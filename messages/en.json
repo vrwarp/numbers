@@ -1,0 +1,19 @@
+{
+  "Meta": {
+    "title": "Numbers — CFCC Reimbursements",
+    "description": "Snap church receipts now, submit reimbursement claims later.",
+    "appName": "Numbers"
+  },
+  "Common": {
+    "status": {
+      "draft": "Draft",
+      "generated": "Generated",
+      "needsReview": "Needs review",
+      "unassigned": "Unassigned",
+      "processed": "processed"
+    },
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…"
+  }
+}

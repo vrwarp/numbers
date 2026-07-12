@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import { currentUser } from "@/auth";
 import NavBar from "@/components/NavBar";
@@ -24,13 +26,15 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const user = await currentUser();
+  const [user, locale, messages] = await Promise.all([currentUser(), getLocale(), getMessages()]);
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body className="min-h-screen">
-        {user && <NavBar userName={user.fullName ?? user.email} />}
-        {user && <DeviceRequestsBanner />}
-        <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          {user && <NavBar userName={user.fullName ?? user.email} />}
+          {user && <DeviceRequestsBanner />}
+          <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+        </NextIntlClientProvider>
       </body>
     </html>
   );
