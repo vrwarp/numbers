@@ -100,6 +100,11 @@ model Reimbursement {
   signatureLedgerKey String?
   // SHA-256 (hex) of the currently archived signed packet version.
   packetSha256       String?
+  // SHA-256 (hex) of the archived APPROVED COPY — the signed packet with the
+  // approver's ink/name/date stamped on, mirrored from the APPROVE event's
+  // approvedPacketSha256. Default download once approved/paid; null before
+  // approval and on pre-feature approvals.
+  approvedPacketSha256 String?
   // Lifetime submission counter (thread seq source). NEVER reset, revert included.
   submitSeq          Int     @default(0)
   // Preflight-pinned pending ceremony payloads, JSON object keyed by signer

@@ -1690,6 +1690,16 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Esign.openApprovedPacketButton": {
+    "source": "🖋️ Open approved packet — with approver's signature",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.openOriginalPacketLink": {
+    "source": "Original (as submitted)",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Esign.submitDialogTitle": {
     "source": "Submit for approval",
     "context": "Title of the signing dialog. Must read the same as the ✍️ Submit for approval button (without the emoji).",

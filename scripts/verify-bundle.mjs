@@ -6,12 +6,17 @@
  * so archived records stay checkable years from now:
  *
  *   node scripts/verify-bundle.mjs <verification-bundle.json> <packet.pdf> \
- *        --root-fingerprint <hex ≥32 chars>
+ *        --root-fingerprint <hex ≥32 chars> [--approved-copy <copy.pdf>]
  *
  * The root fingerprint MUST come from an out-of-band source (the church's
  * published value) — never from the bundle itself. Exit 0 = verified.
  * Extract the bundle from a certificate PDF's attachments with any PDF tool
  * (it is embedded as verification-bundle.json).
+ *
+ * --approved-copy checks a downloaded APPROVED COPY (the packet with the
+ * approver's marks stamped on) against the approvedPacketSha256 the binding
+ * APPROVE event signed over — the copy's bytes are as tamper-evident as the
+ * original's.
  */
 
 import { readFileSync } from "node:fs";
@@ -258,5 +263,21 @@ if (!["approved", "paid"].includes(current.state)) fail(`thread state is '${curr
 const submitName = current.submit.action.typedName;
 const approveName = current.decision?.action.typedName;
 console.log(`✓ packet bytes match SUBMIT seq ${current.seq} (${packetSha.slice(0, 16)}…)`);
+
+// 5. Approved copy (optional): the APPROVE payload may bind a second hash —
+// the packet with the approver's marks stamped on. Check a provided file
+// against it; the signature over the action covers this hash too.
+const approvedSha = current.decision?.action.approvedPacketSha256;
+const acIndex = args.indexOf("--approved-copy");
+if (acIndex !== -1) {
+  if (!args[acIndex + 1]) fail("--approved-copy needs a file argument");
+  if (!approvedSha) fail("the binding APPROVE carries no approved-copy hash (pre-feature approval)");
+  const copySha = await sha256Hex(readFileSync(args[acIndex + 1]));
+  if (copySha !== approvedSha) fail(`approved copy hash mismatch (file: ${copySha})`);
+  console.log(`✓ approved copy matches the APPROVE-signed hash (${approvedSha.slice(0, 16)}…)`);
+} else if (approvedSha) {
+  console.log(`  (approved copy bound: ${approvedSha.slice(0, 16)}… — pass --approved-copy to check a file)`);
+}
+
 console.log(`✓ ${current.state.toUpperCase()}: submitted by "${submitName}", approved by "${approveName}"${current.paid ? `, paid (check #${current.paid.action.checkNumber || "—"})` : ""}`);
 console.log("VERIFIED");

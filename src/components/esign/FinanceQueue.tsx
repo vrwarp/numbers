@@ -165,10 +165,38 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
           )}
           <ThreadSignatures state={state} />
           <AuditDetails state={state} />
-          {state.packetUrl && (
-            <a className="btn-secondary inline-block" href={state.packetUrl} target="_blank" rel="noreferrer">
-              {tEsign("openVerifiedPacketButton")}
-            </a>
+          {/* The approved copy carries the approver's ink/name/date and its
+              hash is bound inside the signed APPROVE — the treasurer reviews
+              the countersigned form, with the untouched original one click
+              away. Pre-feature approvals fall back to the original alone. */}
+          {state.approvedPacketUrl ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <a
+                className="btn-secondary inline-block"
+                href={state.approvedPacketUrl}
+                target="_blank"
+                rel="noreferrer"
+                data-testid="open-approved-packet"
+              >
+                {tEsign("openApprovedPacketButton")}
+              </a>
+              {state.packetUrl && (
+                <a
+                  className="text-sm text-indigo-600 underline"
+                  href={state.packetUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {tEsign("openOriginalPacketLink")}
+                </a>
+              )}
+            </div>
+          ) : (
+            state.packetUrl && (
+              <a className="btn-secondary inline-block" href={state.packetUrl} target="_blank" rel="noreferrer">
+                {tEsign("openVerifiedPacketButton")}
+              </a>
+            )
           )}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium">

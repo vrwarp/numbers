@@ -19,7 +19,7 @@ import {
   type ClaimChain,
   type EsignEnv,
 } from "@/lib/esign/client";
-import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
+import { fingerprintDisplay, keyFingerprint, sha256Hex } from "@/lib/esign/canonical";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { connectErrorMessage } from "./SigningConnect";
 import type { Thread } from "@/lib/esign/validity";
@@ -42,6 +42,10 @@ export interface ChainState {
   /** True when fetched bytes hash to the SUBMIT's (and mirror's) sha. */
   packetOk: boolean;
   packetUrl: string | null;
+  /** The APPROVED COPY (approver ink/name/date stamped on), present only
+   *  when its bytes hash to the APPROVE payload's approvedPacketSha256 —
+   *  verified-or-absent, like everything else here. */
+  approvedPacketUrl: string | null;
 }
 
 export function useClaimChain(claim: ClaimRef | null) {
@@ -88,7 +92,24 @@ export function useClaimChain(claim: ClaimRef | null) {
       const packetUrl = chain.packetBytes
         ? URL.createObjectURL(new Blob([chain.packetBytes], { type: "application/pdf" }))
         : null;
-      setState({ env, chain, thread, packetOk, packetUrl });
+      // Approved copy: fetch by the hash the signed APPROVE carries and
+      // re-hash the bytes ourselves — shown only when they agree.
+      let approvedPacketUrl: string | null = null;
+      const decisionAction = thread?.decision?.action;
+      const approvedSha =
+        decisionAction?.t === "APPROVE" ? decisionAction.approvedPacketSha256 : undefined;
+      if (approvedSha) {
+        const copyRes = await fetch(`/api/reimbursements/${claim.id}/packet?sha=${approvedSha}`);
+        if (copyRes.ok) {
+          const copyBytes = await copyRes.arrayBuffer();
+          if ((await sha256Hex(new Uint8Array(copyBytes))) === approvedSha) {
+            approvedPacketUrl = URL.createObjectURL(
+              new Blob([copyBytes], { type: "application/pdf" })
+            );
+          }
+        }
+      }
+      setState({ env, chain, thread, packetOk, packetUrl, approvedPacketUrl });
       // Opportunistic reconciliation (§5.5): fill mirror gaps we can see.
       void reconcileClaim(claim.id, chain.claimDocs).catch(() => {});
     } catch (err) {
