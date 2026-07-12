@@ -9,7 +9,7 @@ export default async function ProfilePage() {
   const userId = await currentUserId();
   if (!userId) redirect("/signin");
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-lg space-y-6">
       <ProfileForm />
       <SigningIdentityCard />
     </div>
