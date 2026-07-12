@@ -68,8 +68,8 @@ await shot("02-signin-zh");
 await page.getByTestId("dev-email").fill("walkthrough@example.com");
 await page.getByTestId("dev-name").fill("陈恩典");
 await page.getByTestId("dev-signin").click();
-await page.getByRole("heading", { name: "收据盒" }).waitFor();
-await page.getByText("收据盒是空的").waitFor();
+await page.getByRole("heading", { name: "收据" }).waitFor();
+await page.getByText("还没有收据").waitFor();
 await shot("03-shoebox-empty", { fullPage: true });
 
 // 4: pick two photos — the per-file prepare dialog (note + rotate/crop) comes

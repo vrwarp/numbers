@@ -1,6 +1,6 @@
 # Numbers — agent guide
 
-Church reimbursement app: photograph receipts ("Shoebox") → receipt-level LLM extraction
+Church reimbursement app: photograph receipts (the "Shoebox" — UI label: "Receipts") → receipt-level LLM extraction
 (merchant, date, printed total, refund total, item summary — ONE line item per receipt;
 OpenRouter or Google AI Studio, per `AI_PROVIDER`) → human verifies every row → filled official
 CFCC PDF form + receipts appended. Splitting a row is the multi-ministry mechanism; there is no

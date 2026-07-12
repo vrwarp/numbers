@@ -16,21 +16,21 @@ test("language switcher flips the UI, persists, and follows the account", async 
 
   // Default: English (Accept-Language en-US from the pinned browser locale).
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
-  await expect(page.getByRole("heading", { name: "Shoebox" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Receipts" })).toBeVisible();
 
   // Switch to Simplified Chinese via the NavBar switcher.
   await page.getByTestId("locale-switcher").selectOption("zh-Hans");
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hans");
-  await expect(page.getByRole("heading", { name: "收据盒" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "收据" })).toBeVisible();
 
   // Survives a full reload (cookie).
   await page.reload();
-  await expect(page.getByRole("heading", { name: "收据盒" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "收据" })).toBeVisible();
 
   // Traditional Chinese renders its own catalog, not a conversion.
   await page.getByTestId("locale-switcher").selectOption("zh-Hant");
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hant");
-  await expect(page.getByRole("heading", { name: "收據盒" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "收據" })).toBeVisible();
 
   // The choice was persisted to the profile…
   const profile = await page.request.get("/api/profile").then((r) => r.json());
@@ -42,7 +42,7 @@ test("language switcher flips the UI, persists, and follows the account", async 
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await page.getByTestId("dev-email").fill(email);
   await page.getByTestId("dev-signin").click();
-  await expect(page.getByRole("heading", { name: "收據盒" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "收據" })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hant");
 });
 

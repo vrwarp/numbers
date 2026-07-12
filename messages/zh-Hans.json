@@ -18,7 +18,7 @@
     "language": "语言"
   },
   "NavBar": {
-    "shoebox": "收据盒",
+    "shoebox": "收据",
     "claims": "报销单",
     "profile": "个人资料",
     "signOut": "退出登录",
@@ -45,7 +45,7 @@
     "title": "报销单",
     "subtitle": "草稿需要核对；已生成的报销单可以打印签字。",
     "emptyTitle": "还没有报销单",
-    "emptyBody": "在<link>收据盒</link>中选择收据，然后点“新建报销单”。",
+    "emptyBody": "在<link>收据</link>页面选择收据，然后点“新建报销单”。",
     "counts": "{items} 个项目 · {receipts, plural, other {# 张收据}}"
   },
   "Profile": {
@@ -80,7 +80,7 @@
     "open": "打开 PDF 收据 ↗"
   },
   "Shoebox": {
-    "title": "收据盒",
+    "title": "收据",
     "intro": "随时把收据放进来，准备报销时再选择它们提交。",
     "upload": "📷 上传收据",
     "uploading": "上传中…",
@@ -104,9 +104,9 @@
     "manualStartFailed": "无法开始手动输入",
     "generateFailed": "报销单生成失败",
     "generateEnded": "报销单生成意外中断",
-    "emptyTitle": "收据盒是空的",
+    "emptyTitle": "还没有收据",
     "emptyBody": "上传收据的照片或 PDF 即可开始。",
-    "step1": "<step>1. 拍照。</step>买完东西立刻把收据拍进收据盒。",
+    "step1": "<step>1. 拍照。</step>买完东西立刻拍下收据。",
     "step2": "<step>2. 汇总。</step>之后有空时，选择收据并点“新建报销单”。",
     "step3": "<step>3. 核对。</step>逐行对照收据检查，可修改、拆分或排除项目。",
     "step4": "<step>4. 打印。</step>下载已填好的 CFCC 表格（附收据），签字后交回。",
@@ -186,7 +186,7 @@
     "receiptHeader": "收据 {index}：{label}",
     "headerNote": "· {note}",
     "removeDisabledTitle": "这是唯一的收据——请改为放弃整张报销单",
-    "removeTitle": "从报销单移除此收据（退回收据盒）",
+    "removeTitle": "从报销单移除此收据（退回“收据”页）",
     "removeButton": "✕ 移除",
     "derivation": "消费 {charged} − 退款 {refunded} → 建议 {suggested}",
     "editPhotoTitle": "旋转或裁剪这张收据照片",
@@ -207,9 +207,9 @@
     "downloadAgain": "⬇ 重新下载 PDF",
     "revertConfirm": "把这张报销单退回草稿？仅当纸质表格尚未提交时才这样做。各行将恢复可编辑，收据也不再是“已处理”状态。",
     "revertFailed": "退回失败",
-    "removeConfirm": "从报销单中移除这张收据？它的各行将被删除，收据退回收据盒。",
+    "removeConfirm": "从报销单中移除这张收据？它的各行将被删除，收据退回“收据”页。",
     "removeFailed": "移除失败",
-    "discardConfirm": "放弃这张草稿报销单？收据将退回收据盒。",
+    "discardConfirm": "放弃这张草稿报销单？收据将退回“收据”页。",
     "deleteFailed": "删除失败",
     "pdfFailed": "PDF 生成失败",
     "suggestionFailed": "建议失败",
@@ -339,10 +339,10 @@
   },
   "AddReceipts": {
     "title": "向这张报销单添加收据",
-    "intro": "从收据盒中选择，或直接上传新收据——每张都会由 AI 读取并生成待核对的一行。",
+    "intro": "从已有收据中选择，或直接上传新收据——每张都会由 AI 读取并生成待核对的一行。",
     "upload": "📷 上传收据",
     "uploading": "上传中…",
-    "emptyTitle": "收据盒中没有其他收据",
+    "emptyTitle": "没有其他可添加的收据",
     "emptyBody": "上传收据的照片或 PDF 即可添加。",
     "manualInstead": "改为手动输入",
     "addingManual": "正在以手动输入方式添加…",

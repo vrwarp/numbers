@@ -2,7 +2,8 @@
 
 **Numbers** is a lightweight, multi-tenant web app that takes the friction out of church expense
 reimbursements for Chinese For Christ Church. Snap a photo of a receipt the moment you buy
-("Shoebox" model), batch receipts into a claim once a month, let an LLM draft the line items,
+(the "shoebox" model — the page is simply called **Receipts**), batch receipts into a claim
+once a month, let an LLM draft the line items,
 verify every row by hand, and download a print-ready PDF of the **official CFCC Invoice Payment /
 Expense Reimbursement Form** with all receipts attached. The whole UI is available in **English,
 简体中文, and 繁體中文** — and Chinese receipt content prints correctly on the official form.
@@ -17,7 +18,7 @@ just a copy of the `/data` folder.
 
 ## The user journey
 
-1. **Shoebox (capture).** Upload a photo or PDF of a receipt from your phone (installable PWA).
+1. **Receipts (capture).** Upload a photo or PDF of a receipt from your phone (installable PWA).
    Images are compressed to ~100 KB on the server; no AI runs at this stage.
 2. **Batch & generate.** Select receipts and hit *✨ New Claim*. Each receipt goes to a
    vision model via OpenRouter or Google AI Studio (one call per receipt) with a strict

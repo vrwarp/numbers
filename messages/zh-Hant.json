@@ -18,7 +18,7 @@
     "language": "語言"
   },
   "NavBar": {
-    "shoebox": "收據盒",
+    "shoebox": "收據",
     "claims": "報銷單",
     "profile": "個人資料",
     "signOut": "登出",
@@ -45,7 +45,7 @@
     "title": "報銷單",
     "subtitle": "草稿需要核對；已產生的報銷單可以列印簽名。",
     "emptyTitle": "還沒有報銷單",
-    "emptyBody": "在<link>收據盒</link>中選取收據，然後按「新增報銷單」。",
+    "emptyBody": "在<link>收據</link>頁面選取收據，然後按「新增報銷單」。",
     "counts": "{items} 個項目 · {receipts, plural, other {# 張收據}}"
   },
   "Profile": {
@@ -80,7 +80,7 @@
     "open": "開啟 PDF 收據 ↗"
   },
   "Shoebox": {
-    "title": "收據盒",
+    "title": "收據",
     "intro": "隨時把收據放進來，準備報銷時再選取它們提交。",
     "upload": "📷 上傳收據",
     "uploading": "上傳中…",
@@ -104,9 +104,9 @@
     "manualStartFailed": "無法開始手動輸入",
     "generateFailed": "報銷單產生失敗",
     "generateEnded": "報銷單產生意外中斷",
-    "emptyTitle": "收據盒是空的",
+    "emptyTitle": "還沒有收據",
     "emptyBody": "上傳收據的相片或 PDF 即可開始。",
-    "step1": "<step>1. 拍照。</step>買完東西立刻把收據拍進收據盒。",
+    "step1": "<step>1. 拍照。</step>買完東西立刻拍下收據。",
     "step2": "<step>2. 彙整。</step>之後有空時，選取收據並按「新增報銷單」。",
     "step3": "<step>3. 核對。</step>逐行對照收據檢查，可修改、拆分或排除項目。",
     "step4": "<step>4. 列印。</step>下載已填好的 CFCC 表格（附收據），簽名後交回。",
@@ -186,7 +186,7 @@
     "receiptHeader": "收據 {index}：{label}",
     "headerNote": "· {note}",
     "removeDisabledTitle": "這是唯一的收據——請改為放棄整張報銷單",
-    "removeTitle": "從報銷單移除此收據（退回收據盒）",
+    "removeTitle": "從報銷單移除此收據（退回「收據」頁）",
     "removeButton": "✕ 移除",
     "derivation": "消費 {charged} − 退款 {refunded} → 建議 {suggested}",
     "editPhotoTitle": "旋轉或裁切這張收據相片",
@@ -207,9 +207,9 @@
     "downloadAgain": "⬇ 重新下載 PDF",
     "revertConfirm": "把這張報銷單退回草稿？僅當紙本表格尚未送出時才這樣做。各列將恢復可編輯，收據也不再是「已處理」狀態。",
     "revertFailed": "退回失敗",
-    "removeConfirm": "從報銷單中移除這張收據？它的各列將被刪除，收據退回收據盒。",
+    "removeConfirm": "從報銷單中移除這張收據？它的各列將被刪除，收據退回「收據」頁。",
     "removeFailed": "移除失敗",
-    "discardConfirm": "放棄這張草稿報銷單？收據將退回收據盒。",
+    "discardConfirm": "放棄這張草稿報銷單？收據將退回「收據」頁。",
     "deleteFailed": "刪除失敗",
     "pdfFailed": "PDF 產生失敗",
     "suggestionFailed": "建議失敗",
@@ -339,10 +339,10 @@
   },
   "AddReceipts": {
     "title": "向這張報銷單新增收據",
-    "intro": "從收據盒中選取，或直接上傳新收據——每張都會由 AI 讀取並產生待核對的一列。",
+    "intro": "從已有收據中選取，或直接上傳新收據——每張都會由 AI 讀取並產生待核對的一列。",
     "upload": "📷 上傳收據",
     "uploading": "上傳中…",
-    "emptyTitle": "收據盒中沒有其他收據",
+    "emptyTitle": "沒有其他可新增的收據",
     "emptyBody": "上傳收據的相片或 PDF 即可新增。",
     "manualInstead": "改為手動輸入",
     "addingManual": "正在以手動輸入方式新增…",

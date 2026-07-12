@@ -13,11 +13,11 @@ await page.getByTestId("locale-switcher").selectOption("zh-Hant");
 await page.getByTestId("dev-email").fill("screenshot-zh@example.com");
 await page.getByTestId("dev-name").fill("陳恩典");
 await page.getByTestId("dev-signin").click();
-await page.getByRole("heading", { name: "收據盒" }).waitFor();
+await page.getByRole("heading", { name: "收據" }).waitFor();
 await page.screenshot({ path: "screenshots/zh-hant-shoebox.png", fullPage: true });
 
 await page.getByTestId("locale-switcher").selectOption("zh-Hans");
-await page.getByRole("heading", { name: "收据盒" }).waitFor();
+await page.getByRole("heading", { name: "收据" }).waitFor();
 await page.screenshot({ path: "screenshots/zh-hans-shoebox.png", fullPage: true });
 
 await page.goto(`${BASE}/profile`);

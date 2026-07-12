@@ -18,7 +18,7 @@
     "language": "Language"
   },
   "NavBar": {
-    "shoebox": "Shoebox",
+    "shoebox": "Receipts",
     "claims": "Claims",
     "profile": "Profile",
     "signOut": "Sign out",
@@ -45,7 +45,7 @@
     "title": "Claims",
     "subtitle": "Draft claims need review; generated claims are ready to print and sign.",
     "emptyTitle": "No claims yet",
-    "emptyBody": "Select receipts in your <link>Shoebox</link> and hit “New Claim”.",
+    "emptyBody": "Select receipts on the <link>Receipts</link> page and hit “New Claim”.",
     "counts": "{items} items · {receipts, plural, one {# receipt} other {# receipts}}"
   },
   "Profile": {
@@ -80,7 +80,7 @@
     "open": "Open PDF receipt ↗"
   },
   "Shoebox": {
-    "title": "Shoebox",
+    "title": "Receipts",
     "intro": "Drop receipts here as you go. Select some when you're ready to file a claim.",
     "upload": "📷 Upload Receipt",
     "uploading": "Uploading…",
@@ -104,9 +104,9 @@
     "manualStartFailed": "Could not start manual entry",
     "generateFailed": "Claim generation failed",
     "generateEnded": "Claim generation ended unexpectedly",
-    "emptyTitle": "Your shoebox is empty",
+    "emptyTitle": "No receipts yet",
     "emptyBody": "Upload a photo or PDF of a receipt to get started.",
-    "step1": "<step>1. Snap.</step> Photograph receipts into your Shoebox the moment you buy.",
+    "step1": "<step>1. Snap.</step> Photograph receipts the moment you buy.",
     "step2": "<step>2. Batch.</step> Later, when you're ready, select receipts and hit New Claim.",
     "step3": "<step>3. Verify.</step> Check every row against the receipt. Fix, split, or exclude items.",
     "step4": "<step>4. Print.</step> Download the filled CFCC form with receipts attached, sign, and drop it off.",
@@ -186,7 +186,7 @@
     "receiptHeader": "Receipt {index}: {label}",
     "headerNote": "· {note}",
     "removeDisabledTitle": "This is the only receipt — discard the claim instead",
-    "removeTitle": "Remove receipt from claim (returns to Shoebox)",
+    "removeTitle": "Remove receipt from claim (back to the Receipts page)",
     "removeButton": "✕ Remove",
     "derivation": "Charged {charged} − refunded {refunded} → suggested {suggested}",
     "editPhotoTitle": "Rotate or crop this receipt photo",
@@ -207,9 +207,9 @@
     "downloadAgain": "⬇ Download PDF again",
     "revertConfirm": "Revert this claim to draft? Only do this if you have NOT filed the printed form yet. Rows become editable again and the receipts leave “processed”.",
     "revertFailed": "Revert failed",
-    "removeConfirm": "Remove this receipt from the claim? Its rows are deleted and the receipt returns to your Shoebox.",
+    "removeConfirm": "Remove this receipt from the claim? Its rows are deleted and the receipt goes back to the Receipts page.",
     "removeFailed": "Remove failed",
-    "discardConfirm": "Discard this draft claim? Receipts return to your Shoebox.",
+    "discardConfirm": "Discard this draft claim? Receipts go back to the Receipts page.",
     "deleteFailed": "Delete failed",
     "pdfFailed": "PDF generation failed",
     "suggestionFailed": "Suggestion failed",
@@ -339,10 +339,10 @@
   },
   "AddReceipts": {
     "title": "Add receipts to this claim",
-    "intro": "Pick from your Shoebox or upload new ones — each is read with AI and gets its own row to verify.",
+    "intro": "Pick from your existing receipts or upload new ones — each is read with AI and gets its own row to verify.",
     "upload": "📷 Upload Receipt",
     "uploading": "Uploading…",
-    "emptyTitle": "No other receipts in your Shoebox",
+    "emptyTitle": "No other receipts to add",
     "emptyBody": "Upload a photo or PDF of a receipt to add it.",
     "manualInstead": "Enter manually instead",
     "addingManual": "Adding for manual entry…",

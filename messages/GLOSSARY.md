@@ -13,7 +13,7 @@ zh-Hans (登录→登錄 would be wrong; Taiwan says 登入).
 | :-- | :-- | :-- | :-- |
 | receipt | 收据 | 收據 | measure word: 张 / 張 |
 | claim / reimbursement | 报销单 / 报销 | 報銷單 / 報銷 | |
-| Shoebox (the feature) | 收据盒 | 收據盒 | keep the metaphor, not literal 鞋盒 |
+| Receipts (the capture page) | 收据 | 收據 | tab/page name; the code still calls it “Shoebox” internally |
 | ministry | 事工 | 事工 | standard church usage |
 | event | 活动 | 活動 | |
 | verify / verified | 核对 / 已核对 | 核對 / 已核對 | |

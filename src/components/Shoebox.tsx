@@ -518,7 +518,7 @@ export default function Shoebox() {
         <p className="text-sm text-stone-500">{tCommon("loading")}</p>
       ) : unassigned.length === 0 && processed.length === 0 ? (
         <div className="card p-10 text-center text-stone-500">
-          <div className="text-4xl">🥿</div>
+          <div className="text-4xl">🧾</div>
           <p className="mt-2 font-medium">{t("emptyTitle")}</p>
           <p className="text-sm">{t("emptyBody")}</p>
           <ol className="mx-auto mt-8 grid max-w-3xl gap-3 text-left text-sm text-stone-600 sm:grid-cols-4">

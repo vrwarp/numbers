@@ -72,7 +72,7 @@
     "zh-Hant": "machine"
   },
   "NavBar.shoebox": {
-    "source": "Shoebox",
+    "source": "Receipts",
     "context": "Top-navigation link. Auto-copied from Shoebox.title — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -198,7 +198,7 @@
     "zh-Hant": "machine"
   },
   "Claims.emptyBody": {
-    "source": "Select receipts in your <link>Shoebox</link> and hit “New Claim”.",
+    "source": "Select receipts on the <link>Receipts</link> page and hit “New Claim”.",
     "context": "Empty-state body; <link> opens the Shoebox. Quotes the New Claim button — its exact current translation is provided as mustContain and must appear verbatim (test-enforced).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -359,8 +359,8 @@
     "zh-Hant": "machine"
   },
   "Shoebox.title": {
-    "source": "Shoebox",
-    "context": "Page title and core metaphor: the box you toss receipts into. Glossary: 收据盒/收據盒. Canonical — the NavBar link auto-copies this value.",
+    "source": "Receipts",
+    "context": "Title of the receipt-capture page ('Receipts'). Internally still called Shoebox (component, keys, testids). Canonical — the NavBar link auto-copies this value. NOTE: also the plain word for receipts, so location phrases quote it (“收据”页 / 「收據」頁).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -503,8 +503,8 @@
     "zh-Hant": "machine"
   },
   "Shoebox.emptyTitle": {
-    "source": "Your shoebox is empty",
-    "context": "Empty-state heading for a brand-new user.",
+    "source": "No receipts yet",
+    "context": "Empty-state heading for a brand-new user (no receipts uploaded yet).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -515,7 +515,7 @@
     "zh-Hant": "machine"
   },
   "Shoebox.step1": {
-    "source": "<step>1. Snap.</step> Photograph receipts into your Shoebox the moment you buy.",
+    "source": "<step>1. Snap.</step> Photograph receipts the moment you buy.",
     "context": "Onboarding step 1 of 4; <step> wraps the numbered lead word — keep the 'N. Verb.' pattern.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -947,8 +947,8 @@
     "zh-Hant": "machine"
   },
   "Review.removeTitle": {
-    "source": "Remove receipt from claim (returns to Shoebox)",
-    "context": "Tooltip of the enabled Remove button.",
+    "source": "Remove receipt from claim (back to the Receipts page)",
+    "context": "Tooltip of the enabled Remove button; the receipt goes back to the Receipts page.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1073,8 +1073,8 @@
     "zh-Hant": "machine"
   },
   "Review.removeConfirm": {
-    "source": "Remove this receipt from the claim? Its rows are deleted and the receipt returns to your Shoebox.",
-    "context": "Native confirm() before removing a receipt from the claim.",
+    "source": "Remove this receipt from the claim? Its rows are deleted and the receipt goes back to the Receipts page.",
+    "context": "Native confirm() before removing a receipt from the claim; mentions the Receipts page by name — match Shoebox.title's wording.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1085,8 +1085,8 @@
     "zh-Hant": "machine"
   },
   "Review.discardConfirm": {
-    "source": "Discard this draft claim? Receipts return to your Shoebox.",
-    "context": "Native confirm() before deleting the draft claim.",
+    "source": "Discard this draft claim? Receipts go back to the Receipts page.",
+    "context": "Native confirm() before deleting the draft claim; mentions the Receipts page by name — match Shoebox.title's wording.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1801,8 +1801,8 @@
     "zh-Hant": "machine"
   },
   "AddReceipts.intro": {
-    "source": "Pick from your Shoebox or upload new ones — each is read with AI and gets its own row to verify.",
-    "context": "Dialog subtitle: pick from the Shoebox or upload new files.",
+    "source": "Pick from your existing receipts or upload new ones — each is read with AI and gets its own row to verify.",
+    "context": "Dialog subtitle: pick from receipts already uploaded, or upload new files.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1819,8 +1819,8 @@
     "zh-Hant": "machine"
   },
   "AddReceipts.emptyTitle": {
-    "source": "No other receipts in your Shoebox",
-    "context": "Empty state when every Shoebox receipt is already on this claim.",
+    "source": "No other receipts to add",
+    "context": "Empty state when every uploaded receipt is already on this claim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
