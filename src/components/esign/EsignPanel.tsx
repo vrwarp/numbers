@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {
   loadEnv,
@@ -249,9 +250,9 @@ function SubmitDialog({
           <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
             {t.rich("notAttested", {
               link: (chunks) => (
-                <a href="/profile" className="underline">
+                <Link href="/profile" className="underline">
                   {chunks}
-                </a>
+                </Link>
               ),
             })}
           </p>

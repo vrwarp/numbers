@@ -5,10 +5,13 @@
  * backend (docs/ESIGN_DESIGN.md §9.2). Loaded only from e-sign screens.
  *
  * Verified posture: SignInCard deliberately signs out of Firebase right after
- * exchanging the session cookie, so NO Firebase auth persists between visits.
- * Every e-sign session therefore starts with ensureFirebaseAuth() — a popup
- * that must resolve to the SAME email as the numbers session; a mismatched
- * Google account must not write ledgers under a foreign uid.
+ * exchanging the session cookie, so the FIRST e-sign surface a device touches
+ * starts with ensureFirebaseAuth() — a popup that must resolve to the SAME
+ * email as the numbers session; a mismatched Google account must not write
+ * ledgers under a foreign uid. The popup's own sign-in persists in the
+ * browser, so later visits revalidate the restored session against that same
+ * email check instead of re-prompting — the popup only returns when the
+ * session is missing or belongs to another account.
  *
  * Emulator e2e (docs/agent/TESTING.md): when the server-relayed config
  * carries an `emulator` block, the SDK is pointed at the local auth/firestore
@@ -77,13 +80,45 @@ export async function getDb() {
   return getFirestore(await app());
 }
 
+function matchesExpected(user: { email?: string | null } | null): boolean {
+  return !!(user?.email && user.email.toLowerCase() === expectedEmail);
+}
+
+let authInFlight: Promise<void> | null = null;
+
 export async function ensureFirebaseAuth(): Promise<void> {
   const theApp = await app();
   const fb = await import("firebase/auth");
   const auth = fb.getAuth(theApp);
-  const current = auth.currentUser;
-  if (current?.email && current.email.toLowerCase() === expectedEmail) return;
+  // currentUser stays null until the SDK finishes restoring any persisted
+  // session; deciding before authStateReady() would re-open the Google popup
+  // at an already-signed-in member on every full page load.
+  await auth.authStateReady();
+  if (matchesExpected(auth.currentUser)) return;
+  // Single-flight the sign-in: e-sign surfaces bootstrap concurrently, and a
+  // second signInWithPopup while one is pending cancels the first popup
+  // (auth/cancelled-popup-request) and opens another — share one attempt.
+  authInFlight ??= signIn(auth, fb).finally(() => {
+    authInFlight = null;
+  });
+  return authInFlight;
+}
 
+/** Fire cb once a Firebase session matching the numbers account exists —
+ *  restored from persistence OR acquired later by another surface's sign-in.
+ *  Never opens the popup itself. Returns the listener's unsubscribe. */
+export async function onMatchingFirebaseAuth(cb: () => void): Promise<() => void> {
+  const theApp = await app();
+  const fb = await import("firebase/auth");
+  return fb.onAuthStateChanged(fb.getAuth(theApp), (user) => {
+    if (matchesExpected(user)) cb();
+  });
+}
+
+async function signIn(
+  auth: import("firebase/auth").Auth,
+  fb: typeof import("firebase/auth")
+): Promise<void> {
   if (config?.emulator) {
     // Deterministic, popup-free sign-in against the auth emulator: the same
     // email always maps to the same emulator uid, so a member's devices
