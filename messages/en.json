@@ -314,6 +314,8 @@
     "failClosed": "Signing is disabled until everything checks out.",
     "openVerifiedPacket": "Open the verified packet",
     "openVerifiedPacketButton": "📄 Open verified packet",
+    "openApprovedPacketButton": "🖋️ Open approved packet — with approver's signature",
+    "openOriginalPacketLink": "Original (as submitted)",
     "submitDialogTitle": "Submit for approval",
     "notAttested": "You can't sign yet — turn on signing on your <link>profile</link>, then get vouched.",
     "submitIntro": "You're asking for approval of this claim ({amount}). Place your signature on the form, pick who should approve it, and sign. If the claim changes later, your signature stops counting and approval starts over.",

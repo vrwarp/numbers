@@ -4,9 +4,11 @@ import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { canonicalStringify, sha256Hex } from "@/lib/esign/canonical";
 import { CONSENT_TEXT, CONSENT_VERSION } from "@/lib/esign/consent";
 import {
+  archiveSignedPacket,
   getPendingAction,
   requireAttestedIdentity,
   setPendingAction,
+  signedPacketPath,
 } from "@/lib/esign/claim-server";
 import {
   claimEvaluation,
@@ -14,7 +16,15 @@ import {
   requireEsignAccess,
   verifyReportedClaimEvent,
 } from "@/lib/esign/server";
+import {
+  deriveApprovedPacket,
+  formatApprovalDate,
+  pngFromDataUrl,
+} from "@/lib/esign/approved-packet";
 import { roundPlacement, type SignaturePlacement } from "@/lib/esign/placement";
+import { readStoredFile } from "@/lib/storage";
+import { signatureAnchor } from "@/lib/pdf/generate";
+import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
 import type { ApproveAction, RawLedgerEventDoc, RejectAction } from "@/lib/esign/types";
 
 export const runtime = "nodejs";
@@ -87,24 +97,53 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         approverUid: userId,
         comment: (body.comment ?? "").slice(0, 500),
       };
-      const payload: ApproveAction | RejectAction =
-        body.decision === "approve"
-          ? {
-              ...base,
-              t: "APPROVE",
-              typedName: body.typedName!.trim(),
-              consentVersion: CONSENT_VERSION,
-              consentSha256: await sha256Hex(CONSENT_TEXT),
-              ...(identity.signatureImage
-                ? { signatureImageSha256: await sha256Hex(identity.signatureImage) }
-                : {}),
-              // Where the approver click-placed their signature (stamped onto
-              // the certificate delivery copy; docs/ESIGN_DESIGN.md click-to-stamp).
-              ...(identity.signatureImage.startsWith("data:image/png;base64,") && body.placement
-                ? { signaturePlacement: roundPlacement(body.placement) }
-                : {}),
-            }
-          : { ...base, t: "REJECT" };
+      let payload: ApproveAction | RejectAction;
+      if (body.decision === "approve") {
+        const approve: ApproveAction = {
+          ...base,
+          t: "APPROVE",
+          typedName: body.typedName!.trim(),
+          consentVersion: CONSENT_VERSION,
+          consentSha256: await sha256Hex(CONSENT_TEXT),
+          ...(identity.signatureImage
+            ? { signatureImageSha256: await sha256Hex(identity.signatureImage) }
+            : {}),
+          // Where the approver click-placed their signature (stamped onto
+          // the approved copy; docs/ESIGN_DESIGN.md click-to-stamp).
+          ...(identity.signatureImage.startsWith("data:image/png;base64,") && body.placement
+            ? { signaturePlacement: roundPlacement(body.placement) }
+            : {}),
+        };
+        // Derive the approved copy (tier 3) from the archived packet and the
+        // exact fields of the payload the approver is about to sign, archive
+        // it write-once, and bind its hash INTO that payload — the commit's
+        // canonical-equality check then guarantees the signature covers it.
+        const packetBytes = await readStoredFile(
+          signedPacketPath(claim.userId, id, claim.packetSha256)
+        ).catch(() => {
+          throw new ApiError(409, "Archived packet bytes are missing — cannot derive the approved copy");
+        });
+        const activeRowCount = await prisma.lineItem.count({
+          where: { reimbursementId: id, isExcluded: false },
+        });
+        const derived = await deriveApprovedPacket({
+          packetBytes,
+          derivedFromSha256: claim.packetSha256,
+          activeRowCount,
+          marks: {
+            typedName: approve.typedName,
+            dateString: formatApprovalDate(approve.ts),
+            signaturePng: pngFromDataUrl(identity.signatureImage),
+            placement:
+              approve.signaturePlacement ??
+              (await signatureAnchor(await loadTemplateBytes(), "approver")),
+          },
+        });
+        await archiveSignedPacket(claim.userId, id, derived.sha256, Buffer.from(derived.bytes));
+        payload = { ...approve, approvedPacketSha256: derived.sha256 };
+      } else {
+        payload = { ...base, t: "REJECT" };
+      }
       await setPendingAction(id, claim.pendingActionsJson, userId, payload);
       return NextResponse.json({ payload });
     }
@@ -137,6 +176,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
           status: newStatus,
           decidedAt: new Date(),
           pendingActionsJson: JSON.stringify(cleared),
+          // Mirror the approved copy's hash from the signature-verified
+          // payload (event === pinned payload was checked above).
+          ...(pending.t === "APPROVE" && pending.approvedPacketSha256
+            ? { approvedPacketSha256: pending.approvedPacketSha256 }
+            : {}),
         },
       }),
       prisma.auditEvent.create({

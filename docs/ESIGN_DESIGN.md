@@ -330,6 +330,27 @@ fresh metadata, so bytes differ on every call) and overwrites
   ledger pointer/key survive in `EsignClaimArchive` (§9.1) so certificates and `/v`
   keep working for retained packets.
 
+**The approved copy (three-tier packet model).** A claim's PDF exists in three
+tiers: (1) the regenerable unsigned form while `draft`/`generated`; (2) the
+hash-frozen packet archived at submit — the cryptographic original that every
+ceremony hashes; (3) the **approved copy** — tier 2 with the approver's
+ink/name/date stamped onto the "Approved by" block plus a printed pointer to
+tier 2's SHA-256. Tier 3 is derived **server-side in the decision preflight**
+from signed data only (the APPROVE payload's own `typedName`/`ts`/
+`signaturePlacement`, and the ink PNG pinned by `signatureImageSha256`),
+archived write-once into the same per-hash store, and its SHA-256 is embedded
+in the payload as `approvedPacketSha256` **before the approver signs** — the
+commit's canonical-equality check against the pinned payload guarantees the
+signature covers it, and the client refuses to sign until it has re-hashed the
+archived copy itself (`runDecisionCeremony`). MARK_PAID pins tier 3
+transitively through `approveRef`. Tier 2 remains the verification target of
+every chain check (decisions bind ITS hash); tier 3 is additive: the default
+`GET …/packet` download once `approved`/`paid` (mirror column
+`approvedPacketSha256`), the pages behind the certificate cover, and
+independently checkable via `verify-bundle.mjs --approved-copy`. Pre-feature
+approvals have no tier 3 — surfaces fall back to tier 2 and the certificate's
+legacy restamp path.
+
 ### 5.2 Canonical signable payloads
 
 The envelope signs only the action (§3), so every action carries its own binding:

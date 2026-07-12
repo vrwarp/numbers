@@ -126,6 +126,13 @@ export interface ApproveAction {
   comment: string;
   signatureImageSha256?: string;
   signaturePlacement?: SignaturePlacement;
+  /** SHA-256 (hex) of the APPROVED COPY: the submitted packet with the
+   *  approver's ink/name/date stamped on (derived server-side at preflight
+   *  from this payload's own signed fields, archived write-once). Signing
+   *  this action binds BOTH versions — packetSha256 is the untouched
+   *  original, this is the countersigned delivery copy — and MARK_PAID's
+   *  approveRef pins it transitively. Absent on pre-feature approvals. */
+  approvedPacketSha256?: string;
 }
 
 export interface RejectAction {

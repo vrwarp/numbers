@@ -73,6 +73,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       else if (claim.status === "approved" && thread.state === "paid") repaired = "paid";
     }
     if (repaired) {
+      // The approved copy's hash rides in the verified APPROVE payload — a
+      // decision that reached the ledger via another device mirrors fully here.
+      const decisionAction = thread?.decision?.action;
+      const approvedSha =
+        decisionAction?.t === "APPROVE" ? (decisionAction.approvedPacketSha256 ?? null) : null;
       await prisma.$transaction([
         prisma.reimbursement.update({
           where: { id },
@@ -80,8 +85,18 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
             repaired === "generated"
               ? { status: "generated", approverUserId: null }
               : repaired === "paid"
-                ? { status: "paid", paidAt: new Date() }
-                : { status: repaired, decidedAt: new Date() },
+                ? {
+                    status: "paid",
+                    paidAt: new Date(),
+                    ...(approvedSha ? { approvedPacketSha256: approvedSha } : {}),
+                  }
+                : {
+                    status: repaired,
+                    decidedAt: new Date(),
+                    ...(repaired === "approved" && approvedSha
+                      ? { approvedPacketSha256: approvedSha }
+                      : {}),
+                  },
         }),
         prisma.auditEvent.create({
           data: {

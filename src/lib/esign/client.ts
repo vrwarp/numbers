@@ -549,6 +549,7 @@ export async function runDecisionCeremony(
     submitRef: string;
     packetSha256: string;
     signaturePlacement?: SignaturePlacement;
+    approvedPacketSha256?: string;
   };
   // The decision must reference EXACTLY the SUBMIT this client verified.
   if (payload.submitRef !== expected.submitRef || payload.packetSha256 !== expected.packetSha256) {
@@ -560,6 +561,21 @@ export async function runDecisionCeremony(
     !placementsEqual(payload.signaturePlacement, roundPlacement(form.placement))
   ) {
     throw new Error("Server placed the signature differently than you did — refusing to sign");
+  }
+  // Fail-closed on the approved copy (tier 3): signing an APPROVE binds its
+  // hash too, so hash the exact archived bytes ourselves before signing.
+  if (form.decision === "approve") {
+    if (!payload.approvedPacketSha256) {
+      throw new Error("Server did not derive the approved copy — refusing to sign");
+    }
+    const copy = await fetch(
+      `/api/reimbursements/${claim.id}/packet?sha=${payload.approvedPacketSha256}`
+    );
+    if (!copy.ok) throw new Error("Could not fetch the approved copy to hash");
+    const copyHash = await sha256Hex(new Uint8Array(await copy.arrayBuffer()));
+    if (copyHash !== payload.approvedPacketSha256) {
+      throw new Error("The approved copy's bytes do not match its pinned hash — refusing to sign");
+    }
   }
   await assertConsentHash(payload);
   const doc = await appendToLedger(env, claim.signatureLedgerId, claim.signatureLedgerKey, identity, payload);

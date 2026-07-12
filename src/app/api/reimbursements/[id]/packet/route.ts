@@ -27,6 +27,12 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     let relPath: string;
     if (shaParam) {
       relPath = signedPacketPath(claim.userId, id, shaParam);
+    } else if (["approved", "paid"].includes(claim.status) && claim.approvedPacketSha256) {
+      // Once approved, the default download is the APPROVED COPY — the packet
+      // with the approver's ink/name/date stamped on, its hash bound inside
+      // the signed APPROVE payload. The untouched original stays selectable
+      // via ?sha=<packetSha256>; ceremonies always fetch by explicit sha.
+      relPath = signedPacketPath(claim.userId, id, claim.approvedPacketSha256);
     } else if ((SIGNED_STATUSES as readonly string[]).includes(claim.status) && claim.packetSha256) {
       relPath = signedPacketPath(claim.userId, id, claim.packetSha256);
     } else if (claim.status === "generated") {

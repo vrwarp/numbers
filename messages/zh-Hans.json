@@ -314,6 +314,8 @@
     "failClosed": "所有检查通过前，签署功能保持停用。",
     "openVerifiedPacket": "打开已验证的报销文件",
     "openVerifiedPacketButton": "📄 打开已验证文件",
+    "openApprovedPacketButton": "🖋️ 打开已批准文件 — 含审批人签名",
+    "openOriginalPacketLink": "原始文件（提交时的版本）",
     "submitDialogTitle": "提交审批",
     "notAttested": "你还不能签名——请先在<link>个人资料</link>中开通签名，然后获得担保。",
     "submitIntro": "你正在为这张报销单（{amount}）申请批准。请把签名放到表单上，选择审批人，然后签署。若之后报销单有改动，你的签名即告失效，审批需重新开始。",

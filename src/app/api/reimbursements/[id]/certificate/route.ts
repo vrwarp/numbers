@@ -11,9 +11,14 @@ import { getRegistry, mirroredRawDocs } from "@/lib/esign/server";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { embedCjkFont } from "@/lib/pdf/fonts";
-import { signatureAnchor, stampSignatureAt, toEncodableText } from "@/lib/pdf/generate";
+import { signatureAnchor, toEncodableText } from "@/lib/pdf/generate";
 import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
 import { FORM_ROWS_PER_PAGE } from "@/lib/config";
+import {
+  formatApprovalDate,
+  pngFromDataUrl,
+  stampApprovalMarks,
+} from "@/lib/esign/approved-packet";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -206,17 +211,22 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       { mimeType: "application/json", description: "Raw e-sign ledger events + keys for offline verification" }
     );
 
-    const packet = await PDFDocument.load(packetBytes, { ignoreEncryption: true });
+    // The pages after the cover are the APPROVED COPY when one is archived
+    // (its hash is bound inside the signed APPROVE payload) — the archived
+    // original stays untouched either way. Pre-feature approvals have no
+    // archived copy, so the marks are restamped here from the signature
+    // record, exactly as before.
+    const deliveryBytes = claim.approvedPacketSha256
+      ? await readStoredFile(
+          signedPacketPath(claim.userId, id, claim.approvedPacketSha256)
+        ).catch(() => packetBytes)
+      : packetBytes;
+    const packet = await PDFDocument.load(new Uint8Array(deliveryBytes), { ignoreEncryption: true });
     const pages = await doc.copyPages(packet, packet.getPageIndices());
     for (const p of pages) doc.addPage(p);
 
-    // Stamp the approver's (and treasurer's typed) marks onto the DELIVERY
-    // COPY's form pages — the archived original stays untouched (hash-bound);
-    // this copy is what existing print processes file. Field rects come from
-    // the blank template (the archived packet is flattened, its fields gone;
-    // geometry is identical). Form pages = ceil(active rows / 13).
     const approveRecord = records.find((r) => r.kind === "approve");
-    if (approveRecord) {
+    if (approveRecord && (!claim.approvedPacketSha256 || deliveryBytes === packetBytes)) {
       const approverIdentity = await prisma.signerIdentity.findUnique({
         where: { userId: approveRecord.signerUserId },
         select: { signatureImage: true },
@@ -225,61 +235,19 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
         ts?: number;
         signaturePlacement?: import("@/lib/esign/placement").SignaturePlacement;
       };
-      const approvalDate = new Date(approvePayload.ts ?? approveRecord.createdAt.getTime());
-      const dateString = `${String(approvalDate.getMonth() + 1).padStart(2, "0")}/${String(
-        approvalDate.getDate()
-      ).padStart(2, "0")}/${approvalDate.getFullYear()}`;
-
-      const template = await PDFDocument.load(await loadTemplateBytes());
-      const rectOf = (name: string) => {
-        try {
-          return template.getForm().getTextField(name).acroField.getWidgets()[0]?.getRectangle() ?? null;
-        } catch {
-          return null;
-        }
-      };
-      const nameRect = rectOf("Approver Name");
-      const dateRect = rectOf("Approval Date");
-      const signaturePng = approverIdentity?.signatureImage?.startsWith("data:image/png;base64,")
-        ? new Uint8Array(Buffer.from(approverIdentity.signatureImage.split(",")[1], "base64"))
-        : null;
-      // The approver's click-placed position (page-0 relative); fall back to
-      // the signature-line anchor for older approvals with no recorded spot.
-      const placement =
-        approvePayload.signaturePlacement ??
-        (await signatureAnchor(await loadTemplateBytes(), "approver"));
-
       const activeRows = claim.lineItems.filter((it) => !it.isExcluded).length;
       const formPageCount = Math.max(1, Math.ceil(activeRows / FORM_ROWS_PER_PAGE));
-      // Cover page is index 0; packet form pages follow it. Name + date go on
-      // every form page's "Approved by" fields; the drawn signature lands at
-      // the approver's chosen spot on the first form page.
-      for (let i = 1; i <= Math.min(formPageCount, pages.length); i++) {
-        const page = doc.getPage(i);
-        if (nameRect) {
-          const typed = approveRecord.typedName || "";
-          const nameFont = toEncodableText(typed, helv) === typed ? helv : await cjkFont();
-          page.drawText(toEncodableText(typed, nameFont), {
-            x: nameRect.x + 2,
-            y: nameRect.y + 3,
-            size: 10,
-            font: nameFont,
-            color: rgb(0.1, 0.09, 0.08),
-          });
-        }
-        if (dateRect) {
-          page.drawText(dateString, {
-            x: dateRect.x + 2,
-            y: dateRect.y + 3,
-            size: 10,
-            font: helv,
-            color: rgb(0.1, 0.09, 0.08),
-          });
-        }
-        if (signaturePng && i === 1) {
-          await stampSignatureAt(doc, page, signaturePng, placement);
-        }
-      }
+      // Cover page is index 0; packet form pages follow it.
+      await stampApprovalMarks(doc, 1, Math.min(formPageCount, pages.length), {
+        typedName: approveRecord.typedName || "",
+        dateString: formatApprovalDate(approvePayload.ts ?? approveRecord.createdAt.getTime()),
+        signaturePng: pngFromDataUrl(approverIdentity?.signatureImage),
+        // The approver's click-placed position; fall back to the signature-
+        // line anchor for older approvals with no recorded spot.
+        placement:
+          approvePayload.signaturePlacement ??
+          (await signatureAnchor(await loadTemplateBytes(), "approver")),
+      });
     }
 
     const bytes = await doc.save();
