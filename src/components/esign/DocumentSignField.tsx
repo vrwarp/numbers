@@ -18,7 +18,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { renderFirstPage, type RenderedPage } from "@/lib/esign/pdfjs-client";
-import { clampPlacement, roundPlacement, type SignaturePlacement } from "@/lib/esign/placement";
+import { clampPlacement, fitWidthToHeight, roundPlacement, type SignaturePlacement } from "@/lib/esign/placement";
+
+/**
+ * Cap the stamped signature to roughly the height of the form's printed-name
+ * line (~18pt on the 612×792 CFCC template, matching the "Name (Please print)"
+ * field). Without this, a compact mark scaled to the full signature column
+ * blows up vertically — a near-square doodle became a ~2-inch-tall blob and
+ * even a real signature overran the line.
+ */
+const SIG_MAX_HEIGHT_PT = 18;
 
 export default function DocumentSignField({
   bytes,
@@ -64,12 +73,26 @@ export default function DocumentSignField({
 
   const commit = useCallback(
     (p: SignaturePlacement) => {
-      const clamped = clampPlacement(p, heightRatioPerWidth);
+      // Fit the stamp to the signature line's height before clamping: scaling a
+      // compact signature to the full column width would balloon it well past
+      // the line, so cap the width by a target height first.
+      const maxHeightRatio = page ? SIG_MAX_HEIGHT_PT / page.heightPt : 1;
+      const widthRatio = fitWidthToHeight(p.widthRatio, heightRatioPerWidth, maxHeightRatio);
+      const clamped = clampPlacement({ ...p, widthRatio }, heightRatioPerWidth);
       setPlacement(clamped);
       onChange(roundPlacement(clamped));
     },
-    [heightRatioPerWidth, onChange]
+    [heightRatioPerWidth, onChange, page]
   );
+
+  // Re-fit if the signature image's true aspect resolves after it's placed —
+  // the initial aspect is a guess until the PNG loads, and committing against a
+  // stale guess would leave the stamp mis-sized.
+  const placementRef = useRef(placement);
+  placementRef.current = placement;
+  useEffect(() => {
+    if (placed) commit(placementRef.current);
+  }, [placed, commit]);
 
   /** The required affirmative act: tapping the sign-here tab stamps the
    *  signature on the line. Until then the parent holds no placement and
