@@ -36,3 +36,21 @@ export function clampPlacement(p: SignaturePlacement, aspect: number): Signature
   const yRatio = Math.min(1 - heightRatio, Math.max(0, p.yRatio));
   return { page: p.page, xRatio, yRatio, widthRatio };
 }
+
+/**
+ * Cap a stamp's width so its rendered height stays within `maxHeightRatio`
+ * (a fraction of page height), preserving the image's aspect. `heightPerWidth`
+ * is the stamp height as a fraction of page height per unit of widthRatio —
+ * i.e. imgAspect × pageWidth / pageHeight. The signature is stamped at a fixed
+ * column width, so a compact mark (a near-square doodle) would balloon
+ * vertically off the line; this trades width away to keep it sitting on the
+ * line. Only ever narrows — never widens.
+ */
+export function fitWidthToHeight(
+  widthRatio: number,
+  heightPerWidth: number,
+  maxHeightRatio: number
+): number {
+  if (heightPerWidth <= 0 || maxHeightRatio <= 0) return widthRatio;
+  return Math.min(widthRatio, maxHeightRatio / heightPerWidth);
+}
