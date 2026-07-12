@@ -8,6 +8,12 @@ verify every row by hand, and download a print-ready PDF of the **official CFCC 
 Expense Reimbursement Form** with all receipts attached. The whole UI is available in **English,
 简体中文, and 繁體中文** — and Chinese receipt content prints correctly on the official form.
 
+Or skip the printer entirely: an optional, **cryptographically tamper-evident e-signature
+workflow** routes the claim from requestor to approver to treasurer — DocuSign-style
+tap-to-sign on the actual form, an in-person vouching ceremony instead of passwords, and an
+approval certificate whose QR code lets anyone audit the signatures without an account. It
+ships **switched off**; see [Electronic signatures & approvals](#electronic-signatures--approvals).
+
 It self-hosts as a **single Docker container** with SQLite and local file storage — backups are
 just a copy of the `/data` folder.
 
@@ -47,6 +53,92 @@ just a copy of the `/data` folder.
    drop the packet in the Treasurer's inbox. Anyone holding the printed page can scan the QR
    stamp to pull up the digital packet — no sign-in needed, the unguessable link is the
    credential.
+6. **…or electronic signatures.** With e-signing enabled, *Submit for approval* replaces the
+   printer: the requestor taps to place their hand-drawn signature on the real form, picks an
+   approver, and signs; the approver re-verifies everything in their own browser and
+   countersigns; the treasurer marks it paid with the check number. Every step is an
+   ECDSA-signed event bound to the exact bytes of the frozen packet — see the next section.
+
+## Electronic signatures & approvals
+
+An optional workflow (`draft → generated → submitted → approved → paid`, plus `rejected`)
+built on [charproof](https://github.com/vrwarp/charproof): client-side ECDSA identities and
+**append-only, encrypted event ledgers on Cloud Firestore**. It is designed for
+non-technical members — the most anyone has to do is scan a QR code — while staying
+verifiable by a skeptical auditor years later.
+
+- **Signing up is a ceremony, not a password.** A member agrees to sign electronically
+  (UETA/ESIGN-style consent), draws their literal signature with a finger or mouse, and then
+  gets **vouched for in person**: two members — or one approver — scan the QR on their screen
+  and confirm the human in front of them. Vouches are signed roster events; roles
+  (approver, treasurer) are separate root-signed grants.
+- **You sign the actual document.** The ceremony renders the exact frozen PDF bytes in the
+  browser (pdf.js — never a server-produced picture) with a pulsing "Tap to sign" tab on the
+  signature line. Nothing is stamped until the signer taps; where they signed travels inside
+  the signed payload. Approvals are **fail-closed**: the Approve button physically cannot
+  enable until the approver's own browser has re-verified the whole signature chain and
+  re-hashed the packet bytes.
+- **Tamper-evidence, not secrecy.** Signed packets are archived per-hash and never
+  regenerated; any edit voids collected signatures by hash mismatch. The numbers server
+  holds **no Firestore credentials** — browsers append events directly under security rules
+  that forbid updates, deletes, and backdated timestamps, so not even the server operator can
+  rewrite history. The server keeps only a signature-verified mirror for queues and badges.
+- **Anyone can audit.** The approval certificate embeds a verification bundle and a QR that
+  resolves to `/v/<token>`, where the entire chain is re-verified *in the visitor's browser*
+  — no account needed. `scripts/verify-bundle.mjs` is a deliberately independent offline
+  reimplementation: given the bundle, the packet, and the church's published root
+  fingerprint, it answers `VERIFIED` with no server and no Firestore.
+- **A member's identity follows their devices.** Adding a phone is a 6-digit-code ceremony
+  between the member's own two devices (the typed code is enforced, not decorative);
+  a **printable recovery sheet** (24 words, generated entirely in the browser) restores
+  everything on a new device; removing a device rotates the account master key. Losing every
+  device just means being re-vouched next Sunday — the new attestation automatically retires
+  the old key, and everything it signed stays valid.
+- **The admin holds a master switch, OFF by default.** Bootstrapping creates the registry
+  switched off; nothing e-sign-related is visible to members until the admin flips it.
+  Verification of already-signed records never turns off.
+
+The full trust model, ledger thread rules, and attack/defense matrix live in
+[`docs/ESIGN_DESIGN.md`](docs/ESIGN_DESIGN.md); multi-device design and its
+emulator-found bug list in [`docs/MULTI_DEVICE_PLAN.md`](docs/MULTI_DEVICE_PLAN.md).
+
+### Setting up e-signing (Firebase)
+
+The base app only uses Firebase for Google sign-in; e-signing adds **Cloud Firestore** as the
+ledger store. One-time setup on your Firebase project:
+
+1. **Console**: create a Firestore database (Native mode), and under *Authentication* make
+   sure the **Google** provider is enabled. To run the rules canary you'll also want the
+   **Email/Password** provider with one throwaway user.
+2. **Deploy the security rules** — the only Firebase-side deploy this app has (no Hosting, no
+   Functions). Note the committed `.firebaserc` points at the emulator's demo project, so
+   pass your project explicitly:
+
+   ```bash
+   npx firebase login
+   npx firebase deploy --only firestore:rules --project <your-project-id>
+   ```
+
+3. **Run the canary — the deploy isn't done until it passes.** It proves the hardening fork
+   took effect (backdated, malformed, and overwriting event writes are all denied):
+
+   ```bash
+   FIREBASE_API_KEY=… FIREBASE_AUTH_DOMAIN=… FIREBASE_PROJECT_ID=… \
+   CANARY_EMAIL=… CANARY_PASSWORD=… npm run esign:rules-canary
+   ```
+
+4. **Set `ESIGN_ROOT_EMAIL`** to the trust root's account (typically the admin/pastor). Their
+   profile gains a one-time *Set up electronic signing* ceremony: keys are generated in their
+   browser, the roster's genesis event is self-signed, and the system is created **switched
+   off**. They flip the switch when the congregation is ready.
+5. After bootstrap, publish the root fingerprint (profile → *Audit details*) somewhere
+   out-of-band — the bulletin, the church website — and pin it in the deployment as
+   `ESIGN_ROOT_FINGERPRINT`. Clients and the offline verifier refuse any registry that
+   doesn't match it.
+
+Dev and CI never need any of this: `ESIGN_MOCK=1` runs the identical protocol (real
+cryptography, real ceremonies) on SQLite stores, and the committed e2e suite runs the real
+Firestore backend against the **Firebase emulator** — see Tests below.
 
 ## Languages — English · 简体中文 · 繁體中文
 
@@ -93,6 +185,7 @@ currently machine drafts awaiting review by a native speaker.
 | AI parsing | OpenRouter (default) or Google AI Studio / Gemini API (`AI_PROVIDER=google`), strict JSON output validated with zod |
 | PDF engine | pdf-lib — fills + flattens the official form's AcroForm fields, merges receipts; CJK values drawn with a bundled Noto face (subset-embedded via fontkit) |
 | Localization | next-intl — `en` / `zh-Hans` / `zh-Hant` catalogs in `messages/`, typed keys, AI-drafted + human-reviewed translation pipeline |
+| E-signatures | [charproof](https://github.com/vrwarp/charproof) (client-side ECDSA identities, AMK multi-device keystore, phrase/passkey recovery) over append-only encrypted ledgers on Cloud Firestore; pdf.js renders the packet in-browser for tap-to-sign; all verification re-runs client-side (the server never holds Firestore credentials) |
 
 Money is stored as **integer cents** everywhere; users only ever see dollars.
 
@@ -112,8 +205,11 @@ or AI-provider credentials.
 ### Tests
 
 ```bash
-npm test              # Vitest unit suite (money, pagination, AI parsing, compression, PDF)
-npm run test:e2e      # Playwright end-to-end suite (full journey, security, mobile)
+npm test                    # Vitest unit suite (money, pagination, AI parsing, compression,
+                            #   PDF, e-sign protocol rules, translations)
+npm run test:e2e            # Playwright end-to-end suite (full journey, security, mobile)
+npm run test:e2e:esign:local  # e-sign suite on the REAL Firestore backend (Firebase emulator;
+                              #   needs Java) — or :docker for the containerized CI variant
 ```
 
 The e2e suite builds the app, boots a production server on port 3100 with an isolated database
@@ -126,6 +222,14 @@ suite runs pinned to English); the mobile projects (Pixel 7 / iPhone 14) cover t
 capture flow.
 Screenshots of every screen land in `screenshots/`.
 
+The **e-sign suite** (`tests/esign-e2e/`, own config, port 3101) is one strictly serial
+multi-context story on the **real** Firestore backend under `firebase emulators:exec` — the
+production security rules, real charproof custody, no e-sign mock: bootstrap and the master
+switch, enrollment and in-person vouching, submit → approve → paid, public verification, a
+phone joining by typed code and signing a claim, the printed recovery sheet, phrase recovery,
+device revocation (asserting the key rotation committed server-side), and lost-everything
+start-over with re-vouch key supersession.
+
 Run `npx playwright install --with-deps chromium webkit` once. To limit engines (e.g. where
 WebKit isn't installed) set `E2E_BROWSERS=chromium`; a pre-installed Chromium can be pointed at
 with `PLAYWRIGHT_CHROMIUM_PATH=/path/to/chrome`.
@@ -136,7 +240,9 @@ eyeballing.
 ### Continuous integration & delivery
 
 - **`.github/workflows/ci.yml`** — on every PR and push to `main`: the Vitest unit suite plus
-  the full Playwright matrix (chromium and webkit jobs, each running desktop + mobile projects).
+  the full Playwright matrix (chromium and webkit jobs, each running desktop + mobile projects),
+  plus the **e-sign job**, which builds `Dockerfile.e2e` (Playwright image + Java) and runs the
+  e-sign suite inside it against the Firebase emulators — emulator jars cached between runs.
   Playwright reports are uploaded as artifacts on failure.
 - **`.github/workflows/docker.yml`** — on PRs the image is built as a **dry run** (never
   pushed); on merge to `main` it is built and pushed to Docker Hub as
@@ -213,11 +319,13 @@ See [`config.json.example`](config.json.example) for a full template (`cp config
 | `OPENROUTER_MODEL` | Vision-capable OpenRouter model id, default `google/gemini-3.1-flash-lite` |
 | `GEMINI_API_KEY` | Google AI Studio API key ([aistudio.google.com/apikey](https://aistudio.google.com/apikey)) — used when `AI_PROVIDER=google` |
 | `GEMINI_MODEL` | Vision-capable Gemini model id, default `gemini-3.1-flash-lite` |
+| `ESIGN_ROOT_EMAIL` | Enables e-signing setup: the account allowed to run the one-time registry bootstrap (the trust root — see [Electronic signatures & approvals](#electronic-signatures--approvals)). Unset → the e-sign feature stays dormant |
+| `ESIGN_ROOT_FINGERPRINT` | Optional but recommended once bootstrapped: the published root key fingerprint. Clients, the server, and the offline verifier refuse a registry that doesn't match it |
 | `CHURCH_CONTEXT_PATH` | Optional path to [the church context document](#the-church-context-document); default `<DATA_DIR>/church-context.md` |
 | `DATA_DIR` / `DATABASE_URL` | Preset in the image (`/data`, `file:/data/numbers.db`) |
 | `TEMPLATE_PDF` | Optional path to a replacement blank form (must keep the same AcroForm field names) |
 | `CJK_FONT_PATH` | Optional replacement font for Chinese text on generated PDFs (default: the bundled Noto Sans CJK face) |
-| `AI_MOCK`, `AUTH_TEST_MODE` | Dev/test only — never set in production |
+| `AI_MOCK`, `AUTH_TEST_MODE`, `ESIGN_MOCK`, `FIRESTORE_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST` | Dev/test only — never set in production |
 
 ### iOS / in-app-browser sign-in
 
@@ -296,11 +404,16 @@ template file itself is never modified.
 
 ## Data model
 
-- `users` — Firebase identity, full name, mailing address (printed on the form), role,
-  UI language (`locale`)
+- `users` — Firebase identity, full name, mailing address (printed on the form), role
+  (mirrored from signed roster events), UI language (`locale`)
 - `receipts` — file path, MIME type, size, status `unassigned → processed`, extraction-stamped
   merchant/date/printed totals
-- `reimbursements` — status `draft → generated`, total in cents, QR capability token
+- `reimbursements` — status `draft → generated` (+ e-sign: `submitted | rejected | approved |
+  paid`), total in cents, QR capability token, signature-ledger pointer + packet hash
 - `line_items` — description, amount (cents, negative = refund), ministry & event,
   `is_verified`, `is_excluded`, sort order, frozen `original*` AI values
 - `reimbursement_receipts` — join table linking claims to their receipts
+- e-sign tables — the registry (roster pointer + master switch), per-member signer identities
+  (verified mirror + drawn signature), raw ledger-event mirrors, signature records, and the
+  per-hash archive ledger that keeps signed packets verifiable even after a claim is deleted;
+  `Esign*` mock stores stand in for Firestore in dev/tests only
