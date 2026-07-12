@@ -408,7 +408,7 @@
     "yourSignature": "Your signature",
     "redraw": "Redraw",
     "addSignature": "✍️ Add your signature",
-    "pendingVouch": "One last step: show this to two members (or one approver) <b>in person</b>. They scan it with their phone camera and confirm it's really you.",
+    "pendingVouch": "One last step: show this to two members (or one approver) <b>in person</b>. They open <b>Vouch for a member</b>, scan it, and confirm it's really you.",
     "vouchForMember": "🤝 Vouch for a member",
     "roleLabel": "Role:",
     "yourFingerprint": "Your key fingerprint:",
@@ -504,7 +504,8 @@
     "fpMismatch": "Fingerprint does not match.",
     "confirmLabel": "I am with <b>{name}</b> in person and confirm this identity is theirs.",
     "signVouch": "Sign the vouch",
-    "scanIntro": "Scan the candidate's QR with your phone camera — it opens this page with their identity attached. No QR handy? Pick them below and type their <b>full key fingerprint</b> (read from their screen; the short spoken code is not enough).",
+    "scanIntro": "Scan the candidate's QR right here with your camera. Can't use the camera? Pick them from the list and type their <b>full key fingerprint</b> (read from their screen; the short spoken code is not enough).",
+    "orPick": "Or pick them and type their fingerprint",
     "nobodyPending": "Nobody is currently awaiting vouches.",
     "attestedMembers": "Attested members",
     "revokeKey": "revoke key",
@@ -514,6 +515,15 @@
     "revokeRole": "revoke {role}",
     "vouchFailed": "Vouch failed",
     "malformedLink": "This vouch link is malformed — rescan the QR"
+  },
+  "VouchScan": {
+    "open": "📷 Scan their QR code",
+    "cancel": "Stop camera",
+    "aim": "Point at the candidate's QR code",
+    "notVouch": "That's not a vouch code — line up the candidate's QR code.",
+    "insecure": "This device can't open the camera here. Use the list below instead.",
+    "denied": "Camera access was blocked. Allow it in your browser settings, or use the list below.",
+    "startFailed": "Couldn't start the camera. Use the list below instead."
   },
   "Verify": {
     "verifying": "Verifying signatures in your browser…",

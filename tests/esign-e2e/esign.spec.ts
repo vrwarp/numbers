@@ -259,6 +259,30 @@ test("members enroll; vouches + roles attest them", async () => {
   await expect(alice.page.getByText("Ready to sign")).toBeVisible({ timeout: 30_000 });
 });
 
+test("in-page QR scanner appears for vouchers and degrades without a camera", async () => {
+  // An attested member opening "Vouch for a member" with no identity in the
+  // URL gets the in-page camera scanner — the multi-browser-friendly path
+  // that keeps vouching inside the browser holding their key and session.
+  await bob.page.goto(`${BASE}/vouch`);
+  const scanOpen = bob.page.locator('[data-testid="scan-open"]');
+  await expect(scanOpen).toBeVisible({ timeout: 30_000 });
+
+  // Simulate the common church-device case: camera blocked or absent. The
+  // override lives only on this document — the next goto restores the native
+  // getUserMedia, so it can't leak into later ceremonies.
+  await bob.page.evaluate(() => {
+    if (navigator.mediaDevices) {
+      navigator.mediaDevices.getUserMedia = () =>
+        Promise.reject(Object.assign(new Error("blocked"), { name: "NotAllowedError" }));
+    }
+  });
+  await scanOpen.click();
+  await expect(bob.page.locator('[data-testid="scan-error"]')).toBeVisible({ timeout: 30_000 });
+
+  // The manual fallback (pick from the list + full fingerprint) is still offered.
+  await expect(bob.page.getByText("Or pick them and type their fingerprint")).toBeVisible();
+});
+
 test("submit → approve → pay, fail-closed ceremonies throughout", async () => {
   test.setTimeout(300_000);
   claimId = await seedClaim(alice, "VBS 2026");
