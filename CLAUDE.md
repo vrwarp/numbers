@@ -4,8 +4,9 @@ Church reimbursement app: photograph receipts ("Shoebox") → receipt-level LLM 
 (merchant, date, printed total, refund total, item summary — ONE line item per receipt;
 OpenRouter or Google AI Studio, per `AI_PROVIDER`) → human verifies every row → filled official
 CFCC PDF form + receipts appended. Splitting a row is the multi-ministry mechanism; there is no
-per-item extraction. Next.js 15 App Router, SQLite + Prisma, Firebase Auth (+ self-issued
-session cookie), sharp, pdf-lib. Single Docker container, `/data` volume.
+per-item extraction. UI in en/zh-Hans/zh-Hant (next-intl; catalogs in `messages/`). Next.js 15
+App Router, SQLite + Prisma, Firebase Auth (+ self-issued session cookie), sharp, pdf-lib.
+Single Docker container, `/data` volume.
 
 ## Commands
 
