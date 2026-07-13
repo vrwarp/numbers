@@ -57,38 +57,51 @@ export async function stampApprovalMarks(
   const helv = await doc.embedFont(StandardFonts.Helvetica);
   let cjk: PDFFont | null = null;
   const template = await PDFDocument.load(await loadTemplateBytes());
-  const rectOf = (name: string) => {
+  const fieldInfo = (name: string) => {
     try {
-      return template.getForm().getTextField(name).acroField.getWidgets()[0]?.getRectangle() ?? null;
+      const field = template.getForm().getTextField(name);
+      const rect = field.acroField.getWidgets()[0]?.getRectangle();
+      return rect ? { rect, quadding: field.acroField.getQuadding() ?? 0 } : null;
     } catch {
       return null; // customized template without the field
     }
   };
-  const nameRect = rectOf("Approver Name");
-  const dateRect = rectOf("Approval Date");
+  const nameField = fieldInfo("Approver Name");
+  const dateField = fieldInfo("Approval Date");
+
+  // Match the flattened requestor fields: honor the field's own alignment
+  // (the CFCC template centers these) and vertically center the glyph run in
+  // the field box the way pdf-lib's field appearances do — a left-anchored
+  // baseline reads visibly out of step next to the AcroForm-filled block.
+  const drawInField = (
+    page: ReturnType<PDFDocument["getPage"]>,
+    text: string,
+    font: PDFFont,
+    size: number,
+    info: NonNullable<ReturnType<typeof fieldInfo>>
+  ) => {
+    const w = font.widthOfTextAtSize(text, size);
+    const x =
+      info.quadding === 1
+        ? info.rect.x + (info.rect.width - w) / 2
+        : info.quadding === 2
+          ? info.rect.x + info.rect.width - w - 2
+          : info.rect.x + 2;
+    const capHeight = font.heightAtSize(size, { descender: false });
+    const y = info.rect.y + (info.rect.height - capHeight) / 2;
+    page.drawText(text, { x, y, size, font, color: rgb(0.1, 0.09, 0.08) });
+  };
 
   const last = Math.min(firstPageIndex + formPageCount, doc.getPageCount());
   for (let i = firstPageIndex; i < last; i++) {
     const page = doc.getPage(i);
-    if (nameRect && marks.typedName) {
+    if (nameField && marks.typedName) {
       const nameFont =
         toEncodableText(marks.typedName, helv) === marks.typedName ? helv : (cjk ??= await embedCjkFont(doc));
-      page.drawText(toEncodableText(marks.typedName, nameFont), {
-        x: nameRect.x + 2,
-        y: nameRect.y + 3,
-        size: 10,
-        font: nameFont,
-        color: rgb(0.1, 0.09, 0.08),
-      });
+      drawInField(page, toEncodableText(marks.typedName, nameFont), nameFont, 10, nameField);
     }
-    if (dateRect) {
-      page.drawText(marks.dateString, {
-        x: dateRect.x + 2,
-        y: dateRect.y + 3,
-        size: 10,
-        font: helv,
-        color: rgb(0.1, 0.09, 0.08),
-      });
+    if (dateField) {
+      drawInField(page, marks.dateString, helv, 10, dateField);
     }
     if (marks.signaturePng && i === firstPageIndex) {
       await stampSignatureAt(doc, page, marks.signaturePng, marks.placement);

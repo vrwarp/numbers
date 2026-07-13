@@ -465,9 +465,11 @@ export default function DocumentSignField({
               s.text.trim() ? (
                 <span
                   key={s.key}
-                  className="pointer-events-none absolute whitespace-nowrap font-medium leading-none text-stone-900"
+                  className="pointer-events-none absolute -translate-x-1/2 whitespace-nowrap text-center font-medium leading-none text-stone-900"
                   style={{
-                    left: `${s.field.xRatio * 100}%`,
+                    // Centered in the field (translate-x-1/2 off its midpoint),
+                    // matching the centered stamp the approved copy bakes in.
+                    left: `${(s.field.xRatio + s.field.widthRatio / 2) * 100}%`,
                     bottom: `${s.field.yRatio * 100}%`,
                     // Match the certificate route's fixed 10pt stamp: 1cqw is 1%
                     // of page width, and the zoom transform scales it from there.
