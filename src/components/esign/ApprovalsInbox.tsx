@@ -266,25 +266,28 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
             </p>
           )}
           <ThreadSignatures state={state} />
-          <div className="grid gap-1 text-sm">
+          <div className="grid gap-2 text-sm sm:gap-1">
             {claim.rows.map((r, i) => (
-              // min-w-0 must appear at EVERY nesting level between the card
-              // and the text: the row is a grid item and grid items ALSO
-              // default to min-width:auto, so without it the row's automatic
-              // minimum is the full nowrap text width and the track overflows
-              // the card (ellipsis never engages). Inside the row the amount
-              // stays whole while description, then ministry, give way.
-              <div key={i} className="flex min-w-0 items-baseline gap-3" data-testid={`inbox-row-${i}`}>
-                <span className="min-w-0 flex-1 truncate">{r.description}</span>
-                {/* Cap the ministry column so a long ministry/event can't
-                    squeeze the description to nothing on a phone; the amount
-                    is the never-truncated tail. */}
-                <span className="flex min-w-0 max-w-[60%] items-baseline gap-1 whitespace-nowrap text-stone-500">
-                  <span className="min-w-0 truncate">
+              // Mobile: stack — the full description wraps on its own line, the
+              // ministry + amount sit below it (truncating a receipt summary to
+              // "COSTCO WHO…" tells an approver nothing). From sm: up there's
+              // room for one row, so it collapses to description | ministry ·
+              // amount, where the description truncates and the amount is the
+              // never-truncated tail. min-w-0 at every level so the desktop
+              // truncation actually engages (grid + flex items default to
+              // min-width:auto and would otherwise overflow the card).
+              <div
+                key={i}
+                className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"
+                data-testid={`inbox-row-${i}`}
+              >
+                <span className="break-words sm:min-w-0 sm:flex-1 sm:truncate">{r.description}</span>
+                <span className="text-stone-500 sm:flex sm:min-w-0 sm:max-w-[55%] sm:shrink-0 sm:items-baseline sm:whitespace-nowrap">
+                  <span className="sm:min-w-0 sm:truncate">
                     {r.ministry}
                     {r.event ? ` — ${r.event}` : ""}
                   </span>
-                  <span>· {formatCents(r.amountCents)}</span>
+                  <span className="whitespace-nowrap">{` · ${formatCents(r.amountCents)}`}</span>
                 </span>
               </div>
             ))}
