@@ -166,35 +166,48 @@ export function chainLooksGood(state: ChainState): boolean {
   );
 }
 
-export function VerifiedBanner({ state }: { state: ChainState }) {
+/** Surfaces ONLY when something is wrong — a clean chain says nothing on the
+ *  main path (the reassurance lives inside AuditDetails, one tap away). Being
+ *  silent when all is well keeps verifiability out of a member's face; the red
+ *  alert is the only thing that ever needs to interrupt them. */
+export function ChainAlert({ state }: { state: ChainState }) {
   const t = useTranslations("Esign");
-  const ok = chainLooksGood(state);
+  if (chainLooksGood(state)) return null;
   return (
     <div
-      className={`rounded-lg p-3 text-sm font-medium ${
-        ok ? "bg-emerald-50 text-emerald-900" : "bg-red-50 text-red-900"
-      }`}
-      data-testid="verified-banner"
+      className="rounded-lg bg-red-50 p-3 text-sm font-medium text-red-900"
+      data-testid="chain-alert"
     >
-      {ok ? t("bannerOk") : t("bannerBad")}
+      {t("bannerBad")}
     </div>
   );
 }
 
 /** The cryptographic detail regular members never need — one tap away for
  *  whoever is auditing (docs/ESIGN_DESIGN.md UX rule: technical material
- *  lives behind a disclosure, never on the main path). */
+ *  lives behind a disclosure, never on the main path). Opens with the
+ *  plain-language "everything checks out" line, then the technical evidence. */
 export function AuditDetails({ state }: { state: ChainState }) {
   const t = useTranslations("Esign");
+  const ok = chainLooksGood(state);
   const anchorOk = state.chain.anchor.ok;
   const threadOk = !!state.thread?.submit;
   const anomalies = state.chain.evaluation.anomalies;
   return (
-    <details className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-600">
+    <details
+      className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-600"
+      data-testid="audit-details"
+    >
       <summary className="cursor-pointer select-none font-medium text-stone-500">
         {t("auditDetails")}
       </summary>
       <div className="mt-2 space-y-2">
+        <p
+          className={`font-medium ${ok ? "text-emerald-800" : "text-red-800"}`}
+          data-testid="audit-status"
+        >
+          {ok ? t("bannerOk") : t("bannerBad")}
+        </p>
         <div className="flex flex-wrap gap-1.5" data-testid="chain-pills">
           <Pill
             ok={anchorOk}
