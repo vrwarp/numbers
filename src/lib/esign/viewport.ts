@@ -100,6 +100,20 @@ export function panView(v: View, box: Box, start: PanStart, x: number, y: number
   return clampView({ scale: v.scale, tx: start.tx + (x - start.x), ty: start.ty + (y - start.y) }, box);
 }
 
+/**
+ * One incremental step of a drag-to-pan, reporting the vertical movement the
+ * pan could NOT absorb. `dx`/`dy` are the pointer deltas since the previous
+ * move; the returned `view` is clamped to the frame. `overflowY` is the part of
+ * `dy` that fell outside the pan's range — zero while the content still has room
+ * to travel, the whole of `dy` at scale 1 (nothing to pan) or once a top/bottom
+ * edge is reached. Callers chain that overflow into the surrounding scroller so
+ * a drag that saturates the preview keeps scrolling the panel, and vice versa.
+ */
+export function panStep(v: View, box: Box, dx: number, dy: number): { view: View; overflowY: number } {
+  const view = clampView({ scale: v.scale, tx: v.tx + dx, ty: v.ty + dy }, box);
+  return { view, overflowY: dy - (view.ty - v.ty) };
+}
+
 /** Whether the view is at rest (100%, no offset) — e.g. to disable "reset". */
 export function isIdentity(v: View): boolean {
   return v.scale === 1 && v.tx === 0 && v.ty === 0;

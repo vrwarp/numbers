@@ -6,6 +6,7 @@ import {
   clampView,
   contentPointUnder,
   isIdentity,
+  panStep,
   panView,
   pinchView,
   zoomAbout,
@@ -102,6 +103,38 @@ describe("panView (drag-to-pan when zoomed)", () => {
     const start = { x: 200, y: 200, tx: zoomed.tx, ty: zoomed.ty };
     const dragged = panView(zoomed, BOX, start, 900, 200); // huge rightward drag
     expect(dragged.tx).toBe(0); // can't pull left edge inward past the frame
+  });
+});
+
+describe("panStep — incremental pan that chains vertical overflow", () => {
+  it("at scale 1 the content can't move, so the whole vertical delta overflows", () => {
+    // This is the fix: touching the un-zoomed preview must not trap the page —
+    // every pixel of the drag becomes scroll for the surrounding panel.
+    const { view, overflowY } = panStep(IDENTITY, BOX, 0, 40);
+    expect(view).toEqual(IDENTITY);
+    expect(overflowY).toBe(40);
+  });
+
+  it("absorbs the delta fully while the zoomed content still has room", () => {
+    const zoomed: View = { scale: 2, tx: -100, ty: -400 }; // mid-range (ty ∈ [-800,0])
+    const { view, overflowY } = panStep(zoomed, BOX, 0, 30);
+    expect(view.ty).toBe(-370);
+    expect(overflowY).toBe(0);
+  });
+
+  it("chains the leftover once the top edge is reached", () => {
+    // Near the top (ty=-10, edge at ty=0): a 30px downward drag moves 10px to
+    // the edge, then the remaining 20px overflows to the scroller.
+    const { view, overflowY } = panStep({ scale: 2, tx: 0, ty: -10 }, BOX, 0, 30);
+    expect(view.ty).toBe(0);
+    expect(overflowY).toBe(20);
+  });
+
+  it("chains a negative delta at the bottom edge (drag further down the page)", () => {
+    const atBottom: View = { scale: 2, tx: 0, ty: BOX.height * (1 - 2) }; // -800
+    const { view, overflowY } = panStep(atBottom, BOX, 0, -25);
+    expect(view.ty).toBe(BOX.height * (1 - 2));
+    expect(overflowY).toBe(-25);
   });
 });
 
