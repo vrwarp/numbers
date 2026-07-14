@@ -55,8 +55,8 @@ export default function FinanceQueue() {
       ) : (
         <ul className="space-y-3">
           {queue.map((c) => (
-            <li key={c.id} className="card p-4" data-testid={`finance-${c.id}`}>
-              <button className="flex w-full items-center justify-between gap-3 text-left" onClick={() => setOpenId(openId === c.id ? null : c.id)}>
+            <li key={c.id} className="card card-lift p-4" data-testid={`finance-${c.id}`}>
+              <button className="pressable flex w-full items-center justify-between gap-3 text-left" onClick={() => setOpenId(openId === c.id ? null : c.id)}>
                 {/* min-w-0 + truncate so a long claim description shrinks
                     instead of pushing the amount off the card. */}
                 <div className="min-w-0">

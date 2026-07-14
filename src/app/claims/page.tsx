@@ -57,7 +57,7 @@ export default async function ClaimsPage() {
         <ul className="space-y-3">
           {claims.map((c) => (
             <li key={c.id}>
-              <Link href={`/claims/${c.id}`} className="card flex items-center justify-between p-4 hover:border-indigo-300" data-testid={`claim-${c.id}`}>
+              <Link href={`/claims/${c.id}`} className="card card-lift pressable flex items-center justify-between p-4" data-testid={`claim-${c.id}`}>
                 <div>
                   <div className="font-semibold">
                     {format.dateTime(new Date(c.createdAt), { year: "numeric", month: "long", day: "numeric" })}
