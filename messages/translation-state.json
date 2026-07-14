@@ -1096,17 +1096,29 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Review.generatePdf": {
-    "source": "⬇ Generate PDF",
-    "context": "PDF button on drafts; keep the ⬇.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
+  "Review.printAction": {
+    "source": "Print",
+    "context": "Finish action on the review action bar: generates/downloads the packet to print & hand-sign. Sole primary when e-sign is off; secondary beside the E-sign primary when it's on. Terse, no emoji.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
   },
-  "Review.downloadAgain": {
-    "source": "⬇ Download PDF again",
-    "context": "PDF button on generated claims (re-download); keep the ⬇.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
+  "Review.esignAction": {
+    "source": "E-sign",
+    "context": "Primary finish action on the e-sign action bar: opens the electronic-signature ceremony. Terse (pairs with the Print secondary).",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Review.addReceiptShort": {
+    "source": "+ Receipt",
+    "context": "Compact mobile label for the Add-receipts button in the action bar (desktop shows the fuller Review.addReceipts). Keep the leading + and singular noun.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Review.esignFinishHint": {
+    "source": "Finish this claim — print, or e-sign.",
+    "context": "One-line hint on the action bar for e-sign users on a single-receipt draft (desktop only), naming the two finish paths.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
   },
   "Review.revertConfirm": {
     "source": "Revert this claim to draft? Only do this if you haven’t turned in the printed form yet. Rows become editable again, and the receipts leave “processed”.",
@@ -1579,18 +1591,6 @@
   "Review.revertConfirmSigned": {
     "source": "Revert this claim to draft? Every signature collected so far becomes void, and approval starts over.",
     "context": "confirm() before reverting a claim that has e-signatures: warns that collected signatures become void and approval restarts.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Esign.readyTitle": {
-    "source": "Ready for approval.",
-    "context": "Bold lead-in on the claim page banner once the PDF is generated: the claim can now be submitted for e-signature.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Esign.readyBody": {
-    "source": "Submit this packet for an electronic signature instead of printing it.",
-    "context": "Rest of that banner sentence, after the bold lead-in.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

@@ -213,8 +213,10 @@
     "revert": "↩ 退回草稿",
     "chooseMinistryFirst": "请先选择事工",
     "buildingPdf": "处理中…",
-    "generatePdf": "⬇ 生成 PDF",
-    "downloadAgain": "⬇ 重新下载 PDF",
+    "printAction": "打印",
+    "esignAction": "电子签名",
+    "addReceiptShort": "+ 收据",
+    "esignFinishHint": "完成此报销 — 打印，或电子签名。",
     "revertConfirm": "把这张报销单退回草稿？仅当纸质表格尚未提交时才这样做。各行将恢复可编辑，收据也不再是“已处理”状态。",
     "revertFailed": "退回失败",
     "removeConfirm": "从报销单中移除这张收据？它的各行将被删除，收据退回“收据”页。",
@@ -296,8 +298,6 @@
     "revertConfirmSigned": "要将这张报销单退回草稿吗？目前已收集的签名将全部作废，审批需要重新开始。"
   },
   "Esign": {
-    "readyTitle": "可以提交审批了。",
-    "readyBody": "无需打印，直接将这份报销文件提交电子签名审批。",
     "submitForApproval": "✍️ 提交审批",
     "panelSubmitted": "待审批",
     "panelRejected": "审批人已拒绝",

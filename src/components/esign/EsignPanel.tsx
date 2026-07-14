@@ -64,30 +64,10 @@ export default function EsignPanel({
   // claims still show their status chip, and /v links keep verifying.
   if (!env?.bootstrapped || !env.enabled || env.allowed === false) return null;
 
-  if (claim.status === "generated") {
-    return (
-      <div className="card flex flex-wrap items-center justify-between gap-3 border-indigo-200 bg-indigo-50/60 p-4" data-testid="esign-panel">
-        <div className="text-sm text-indigo-900">
-          <span className="font-semibold">{t("readyTitle")}</span> {t("readyBody")}
-        </div>
-        <button className="btn-primary" onClick={() => setDialogOpen(true)} data-testid="submit-for-approval">
-          {t("submitForApproval")}
-        </button>
-        {dialogOpen && (
-          <SubmitDialog
-            claim={claim}
-            env={env}
-            onClose={() => setDialogOpen(false)}
-            onDone={async () => {
-              setDialogOpen(false);
-              await onChanged();
-            }}
-          />
-        )}
-      </div>
-    );
-  }
-
+  // The `generated` submit-for-approval CTA lives in the review screen's action
+  // bar (ReviewClaim), not here — this panel only owns the post-submission
+  // states. Keeping both the print/download and the e-sign entry in one bar is
+  // what removed the top-banner-vs-bottom-bar split (docs/ESIGN_DESIGN.md §6.1).
   if (!signed) return null;
 
   const decision = state?.thread?.decision?.action as
@@ -174,7 +154,7 @@ export default function EsignPanel({
   );
 }
 
-function SubmitDialog({
+export function SubmitDialog({
   claim,
   env,
   onClose,
