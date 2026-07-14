@@ -1661,14 +1661,14 @@
     "zh-Hant": "machine"
   },
   "Esign.reverify": {
-    "source": "⟳ Re-verify",
-    "context": "Button that re-runs the signature-chain verification. Keep the ⟳.",
+    "source": "⟳ Re-check",
+    "context": "Button that re-runs the signature-chain check. Plain wording (not \"verify\") keeps verifiability low-key. Keep the ⟳.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Esign.verifyingChain": {
-    "source": "Verifying the signature chain…",
-    "context": "Progress line while the browser re-checks all signatures. Keep the ellipsis.",
+    "source": "Checking the paperwork…",
+    "context": "Progress line while the browser re-checks all signatures. Plain wording (not \"verifying the signature chain\") keeps verifiability low-key. Keep the ellipsis.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1678,15 +1678,9 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Esign.openVerifiedPacket": {
-    "source": "Open the verified packet",
-    "context": "Text link opening the verified PDF bytes in a new tab.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Esign.openVerifiedPacketButton": {
-    "source": "📄 Open verified packet",
-    "context": "Button variant of the same action on the treasurer's screen. Keep the 📄.",
+  "Esign.openPacketButton": {
+    "source": "📄 Open reimbursement packet",
+    "context": "Button opening the full reimbursement PDF (form pages + appended receipts) the approver/treasurer reviews before signing. \"reimbursement\" not \"verified\" — the packet's the point, not its verifiability. Keep the 📄.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1828,13 +1822,13 @@
   },
   "Esign.bannerOk": {
     "source": "✓ Everything checks out — this is the genuine paperwork, unchanged.",
-    "context": "Green verification banner, written for non-technical members. Keep the leading ✓.",
+    "context": "Reassurance line at the top of the Audit details disclosure (not shown on the main path — a clean chain stays quiet). Written for non-technical members. Keep the leading ✓.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Esign.bannerBad": {
     "source": "✗ Something doesn't check out. Don't sign — ask the person who sent this (details below for whoever helps you).",
-    "context": "Red verification banner: tells the member not to sign and to ask for help. Keep the leading ✗.",
+    "context": "Red alert — the ONLY chain banner shown on the main path, and only when a check fails: tells the member not to sign and to ask for help. Keep the leading ✗.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
