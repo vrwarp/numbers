@@ -15,7 +15,8 @@ import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import AddReceiptsDialog from "@/components/AddReceiptsDialog";
 import ManualEntryDialog from "@/components/ManualEntryDialog";
 import PdfReceiptPreview from "@/components/PdfReceiptPreview";
-import EsignPanel from "@/components/esign/EsignPanel";
+import EsignPanel, { SubmitDialog } from "@/components/esign/EsignPanel";
+import { loadEnv, type EsignEnv } from "@/lib/esign/client";
 import { useApiErrorMessage } from "@/lib/use-api-error";
 
 /** Statuses in which the packet is under signature — the stored bytes are
@@ -111,6 +112,7 @@ function receiptLabel(receipt: ReceiptInfo): string {
 export default function ReviewClaim({ claimId }: { claimId: string }) {
   const t = useTranslations("Review");
   const tStatus = useTranslations("Common.status");
+  const tEsign = useTranslations("Esign");
   const apiError = useApiErrorMessage();
   const tCommon = useTranslations("Common");
   const router = useRouter();
@@ -118,6 +120,11 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [splitItem, setSplitItem] = useState<LineItem | null>(null);
   const [downloading, setDownloading] = useState(false);
+  // E-sign availability drives whether the action bar offers a "Submit for
+  // approval" primary alongside the download. Off ⇒ the bar is the classic
+  // single-button print flow, untouched. Null while the master switch loads.
+  const [esignEnv, setEsignEnv] = useState<EsignEnv | null>(null);
+  const [submitOpen, setSubmitOpen] = useState(false);
   const [editingReceiptId, setEditingReceiptId] = useState<string | null>(null);
   const [addingReceipts, setAddingReceipts] = useState(false);
   // Receipt whose failed-extraction placeholder is being filled in by hand, and
@@ -171,6 +178,10 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    void loadEnv().then(setEsignEnv).catch(() => {});
+  }, []);
 
   // Mutations run strictly one at a time. Without this, picking a ministry and
   // clicking Confirm in quick succession races: the verify PATCH can reach the
@@ -327,6 +338,13 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const allVerified = activeItems.length > 0 && verifiedCount === activeItems.length;
   const isDraft = claim.status === "draft";
   const pdfButtonEnabled = !isDraft || allVerified;
+  // E-sign master switch resolved for this user (A5/A8). When on, the action
+  // bar's primary in draft/generated becomes "Submit for approval" and the
+  // download drops to a secondary; post-submission states stay with <EsignPanel>.
+  const esignEnabled =
+    !!esignEnv?.bootstrapped && !!esignEnv.enabled && esignEnv.allowed !== false;
+  const esignActions =
+    esignEnabled && (claim.status === "draft" || claim.status === "generated");
   // First unverified row in display order — the nudge target when the gated
   // Generate PDF button is clicked while rows remain unverified.
   const firstUnverified = groups
@@ -503,6 +521,36 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     }
   }
 
+  // Freeze the packet without streaming a download. Generation and file
+  // delivery used to be one gesture (POST /pdf returns an attachment); the
+  // e-sign path only needs the state transition (draft → generated), so we
+  // discard the bytes — the submit ceremony re-fetches the archived packet.
+  async function freezePacketForSignature(): Promise<boolean> {
+    setDownloading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/reimbursements/${claim!.id}/pdf`, { method: "POST" });
+      if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("pdfFailed")));
+      await load();
+      return true;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("pdfFailed"));
+      return false;
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  // Bar primary for e-sign users. From a verified draft this freezes first
+  // (no forced download), then opens the ceremony; from `generated` it opens
+  // straight away.
+  async function openSubmitForApproval() {
+    if (claim!.status === "draft") {
+      if (!(await freezePacketForSignature())) return;
+    }
+    setSubmitOpen(true);
+  }
+
   async function revertClaim() {
     const underSignature = (SIGNED_STATUSES as readonly string[]).includes(claim!.status);
     if (
@@ -558,7 +606,10 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         </div>
       )}
 
-      {!isDraft && (
+      {/* The post-submission panel (verify banner, reject/resubmit, certificate).
+          `generated`'s submit-for-approval CTA now lives in the action bar, so
+          this only renders once the packet is actually under signature. */}
+      {(SIGNED_STATUSES as readonly string[]).includes(claim.status) && (
         <EsignPanel
           claim={{
             id: claim.id,
@@ -752,10 +803,25 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
       </div>
 
       {/* Floating action bar: verify progress and the claim actions stay in
-          reach while scrolling a long claim. */}
-      <div className="card sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 bg-white/95 p-3 shadow-lg backdrop-blur">
+          reach while scrolling a long claim. When e-sign is on, "Submit for
+          approval" is the primary here (no more top-banner/bottom-bar split)
+          and the download drops to a secondary; the bar stacks on mobile so
+          the two finish actions never crowd. When e-sign is off, this is the
+          classic single-button print flow, unchanged. */}
+      <div
+        className={`card sticky bottom-4 z-20 bg-white/95 p-3 shadow-lg backdrop-blur ${
+          esignActions
+            ? "flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-2"
+            : "flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
+        }`}
+      >
         {isDraft && claim.receipts.length > 1 ? (
-          <div className="flex min-w-48 flex-1 items-center gap-3" data-testid="verify-progress">
+          <div
+            className={`flex items-center gap-3 ${
+              esignActions ? "w-full min-w-0 sm:w-auto sm:min-w-48 sm:flex-1" : "min-w-48 flex-1"
+            }`}
+            data-testid="verify-progress"
+          >
             <div className="h-2 flex-1 overflow-hidden rounded-full bg-stone-200">
               <div
                 className="h-full rounded-full bg-indigo-600 transition-all"
@@ -768,12 +834,29 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               {t("verifiedProgress", { verified: verifiedCount, total: activeItems.length })}
             </span>
           </div>
-        ) : isDraft ? null : (
+        ) : isDraft ? (
+          // Single-receipt e-sign draft has no progress bar; a one-line hint
+          // fills what would otherwise be an empty left gutter and carries the
+          // print-vs-sign guidance that used to live in the removed top banner.
+          esignActions ? (
+            // Hidden on mobile: the stacked, labeled buttons make the choice
+            // obvious there, and the line would only add height to the bar.
+            <span className="hidden text-sm text-stone-500 sm:block sm:flex-1">
+              {t("esignFinishHint")}
+            </span>
+          ) : null
+        ) : (
           <span className="text-sm text-stone-500">
             {claim.status === "generated" ? t("generatedFrozen") : t("underSignatureFrozen")}
           </span>
         )}
-        <div className="ml-auto flex items-center gap-3">
+        <div
+          className={
+            esignActions
+              ? "flex flex-wrap items-center gap-2 sm:ml-auto sm:gap-3"
+              : "ml-auto flex items-center gap-3"
+          }
+        >
           {isDraft && (
             <button
               className="btn-secondary"
@@ -793,32 +876,104 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               {t("revert")}
             </button>
           )}
-          {/* The disabled button drops pointer events so the wrapper catches the
-              click and walks the user to the first row still needing a verify.
-              The real gate stays server-side in the PDF route. */}
-          <span
-            onClick={() => {
-              if (isDraft && !pdfButtonEnabled && !downloading) nudgeFirstUnverified();
-            }}
-            title={isDraft && !pdfButtonEnabled ? t("chooseMinistryFirst") : undefined}
-          >
-            <button
-              className="btn-primary disabled:pointer-events-none"
-              onClick={generatePdf}
-              disabled={!pdfButtonEnabled || downloading}
-              data-testid="generate-pdf"
+          {esignActions ? (
+            // The two "finish" actions are their own group, split from the
+            // edit utilities (Add/Discard/Revert) by a divider so the pair
+            // reads as one unit and the destructive Discard isn't crammed
+            // against them. Stacks full-width on mobile (no text-wrapping,
+            // no ragged orphan row); inline on desktop.
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3 sm:border-l sm:border-stone-200 sm:pl-3">
+              {/* Print/download is the fallback path when e-sign is available:
+                  same generate action, demoted to a secondary. Gated exactly
+                  like the primary — a click while rows are unverified nudges. */}
+              <span
+                className="w-full sm:w-auto"
+                onClick={() => {
+                  if (isDraft && !pdfButtonEnabled && !downloading) nudgeFirstUnverified();
+                }}
+                title={isDraft && !pdfButtonEnabled ? t("chooseMinistryFirst") : undefined}
+              >
+                <button
+                  className="btn-secondary w-full disabled:pointer-events-none sm:w-auto"
+                  onClick={generatePdf}
+                  disabled={!pdfButtonEnabled || downloading}
+                  data-testid="download-pdf"
+                >
+                  {downloading
+                    ? t("buildingPdf")
+                    : claim.status === "generated"
+                      ? t("downloadAgain")
+                      : t("downloadPdf")}
+                </button>
+              </span>
+              <span
+                className="w-full sm:w-auto"
+                onClick={() => {
+                  if (isDraft && !pdfButtonEnabled && !downloading) nudgeFirstUnverified();
+                }}
+                title={isDraft && !pdfButtonEnabled ? t("chooseMinistryFirst") : undefined}
+              >
+                <button
+                  className="btn-primary w-full disabled:pointer-events-none sm:w-auto"
+                  onClick={openSubmitForApproval}
+                  disabled={!pdfButtonEnabled || downloading}
+                  data-testid="submit-for-approval"
+                >
+                  {downloading ? t("buildingPdf") : tEsign("submitForApproval")}
+                </button>
+              </span>
+            </div>
+          ) : (
+            // Classic print flow: the disabled button drops pointer events so
+            // the wrapper catches the click and walks the user to the first row
+            // still needing a verify. The real gate stays server-side.
+            <span
+              onClick={() => {
+                if (isDraft && !pdfButtonEnabled && !downloading) nudgeFirstUnverified();
+              }}
+              title={isDraft && !pdfButtonEnabled ? t("chooseMinistryFirst") : undefined}
             >
-              {downloading
-                ? t("buildingPdf")
-                : isDraft
-                  ? t("generatePdf")
-                  : claim.status === "generated"
-                    ? t("downloadAgain")
-                    : t("downloadSigned")}
-            </button>
-          </span>
+              <button
+                className="btn-primary disabled:pointer-events-none"
+                onClick={generatePdf}
+                disabled={!pdfButtonEnabled || downloading}
+                data-testid="generate-pdf"
+              >
+                {downloading
+                  ? t("buildingPdf")
+                  : isDraft
+                    ? t("generatePdf")
+                    : claim.status === "generated"
+                      ? t("downloadAgain")
+                      : t("downloadSigned")}
+              </button>
+            </span>
+          )}
         </div>
       </div>
+
+      {submitOpen && esignEnv && (
+        <SubmitDialog
+          claim={{
+            id: claim.id,
+            status: claim.status,
+            ownerUid: esignEnv.me.userId,
+            approverUserId: claim.approverUserId,
+            signatureLedgerId: claim.signatureLedgerId,
+            signatureLedgerKey: claim.signatureLedgerKey,
+            packetSha256: claim.packetSha256,
+            submitSeq: claim.submitSeq,
+            totalCents: claim.totalCents,
+            checkNumber: claim.checkNumber,
+          }}
+          env={esignEnv}
+          onClose={() => setSubmitOpen(false)}
+          onDone={async () => {
+            setSubmitOpen(false);
+            await load();
+          }}
+        />
+      )}
 
       {addingReceipts && (
         <AddReceiptsDialog

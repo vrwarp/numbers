@@ -214,6 +214,8 @@
     "chooseMinistryFirst": "Choose a ministry first",
     "buildingPdf": "Working…",
     "generatePdf": "⬇ Generate PDF",
+    "downloadPdf": "⬇ Download PDF",
+    "esignFinishHint": "Submit for an e-signature, or download to print.",
     "downloadAgain": "⬇ Download PDF again",
     "revertConfirm": "Revert this claim to draft? Only do this if you haven’t turned in the printed form yet. Rows become editable again, and the receipts leave “processed”.",
     "revertFailed": "Revert failed",
@@ -296,8 +298,6 @@
     "revertConfirmSigned": "Revert this claim to draft? Every signature collected so far becomes void, and approval starts over."
   },
   "Esign": {
-    "readyTitle": "Ready for approval.",
-    "readyBody": "Submit this packet for an electronic signature instead of printing it.",
     "submitForApproval": "✍️ Submit for approval",
     "panelSubmitted": "Awaiting approval",
     "panelRejected": "Rejected by the approver",

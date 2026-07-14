@@ -1102,6 +1102,18 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Review.downloadPdf": {
+    "source": "⬇ Download PDF",
+    "context": "Secondary download button on e-sign drafts (submit-for-approval is the primary); keep the ⬇.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Review.esignFinishHint": {
+    "source": "Submit for an e-signature, or download to print.",
+    "context": "One-line hint on the action bar for e-sign users on a single-receipt draft, explaining the submit-vs-download choice.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
   "Review.downloadAgain": {
     "source": "⬇ Download PDF again",
     "context": "PDF button on generated claims (re-download); keep the ⬇.",
@@ -1579,18 +1591,6 @@
   "Review.revertConfirmSigned": {
     "source": "Revert this claim to draft? Every signature collected so far becomes void, and approval starts over.",
     "context": "confirm() before reverting a claim that has e-signatures: warns that collected signatures become void and approval restarts.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Esign.readyTitle": {
-    "source": "Ready for approval.",
-    "context": "Bold lead-in on the claim page banner once the PDF is generated: the claim can now be submitted for e-signature.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Esign.readyBody": {
-    "source": "Submit this packet for an electronic signature instead of printing it.",
-    "context": "Rest of that banner sentence, after the bold lead-in.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

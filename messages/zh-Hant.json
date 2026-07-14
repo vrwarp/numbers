@@ -214,6 +214,8 @@
     "chooseMinistryFirst": "請先選擇事工",
     "buildingPdf": "處理中…",
     "generatePdf": "⬇ 產生 PDF",
+    "downloadPdf": "⬇ 下載 PDF",
+    "esignFinishHint": "提交電子簽名，或下載列印。",
     "downloadAgain": "⬇ 重新下載 PDF",
     "revertConfirm": "把這張報銷單退回草稿？僅當紙本表格尚未送出時才這樣做。各列將恢復可編輯，收據也不再是「已處理」狀態。",
     "revertFailed": "退回失敗",
@@ -296,8 +298,6 @@
     "revertConfirmSigned": "要將這張報銷單退回草稿嗎？目前已收集的簽名將全部作廢，審批需要重新開始。"
   },
   "Esign": {
-    "readyTitle": "可以提交審批了。",
-    "readyBody": "無需列印，直接將這份報銷文件提交電子簽名審批。",
     "submitForApproval": "✍️ 提交審批",
     "panelSubmitted": "待審批",
     "panelRejected": "審批人已拒絕",
