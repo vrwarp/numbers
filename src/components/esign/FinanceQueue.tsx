@@ -12,7 +12,7 @@ import { useTranslations } from "next-intl";
 import { formatCents } from "@/lib/money";
 import { runPaidCeremony } from "@/lib/esign/client";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
-import { AuditDetails, ThreadSignatures, VerifiedBanner, useClaimChain } from "./chain";
+import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain } from "./chain";
 import { SigningConnectCard } from "./SigningConnect";
 import { StatusChip, type InboxClaim } from "./ApprovalsInbox";
 
@@ -55,8 +55,8 @@ export default function FinanceQueue() {
       ) : (
         <ul className="space-y-3">
           {queue.map((c) => (
-            <li key={c.id} className="card p-4" data-testid={`finance-${c.id}`}>
-              <button className="flex w-full items-center justify-between gap-3 text-left" onClick={() => setOpenId(openId === c.id ? null : c.id)}>
+            <li key={c.id} className="card card-lift p-4" data-testid={`finance-${c.id}`}>
+              <button className="pressable flex w-full items-center justify-between gap-3 text-left" onClick={() => setOpenId(openId === c.id ? null : c.id)}>
                 {/* min-w-0 + truncate so a long claim description shrinks
                     instead of pushing the amount off the card. */}
                 <div className="min-w-0">
@@ -159,7 +159,7 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {state && (
         <>
-          <VerifiedBanner state={state} />
+          <ChainAlert state={state} />
           {!verified && (
             <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
               {tEsign("failClosed")}
@@ -196,7 +196,7 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
           ) : (
             state.packetUrl && (
               <a className="btn-secondary inline-block" href={state.packetUrl} target="_blank" rel="noreferrer">
-                {tEsign("openVerifiedPacketButton")}
+                {tEsign("openPacketButton")}
               </a>
             )
           )}

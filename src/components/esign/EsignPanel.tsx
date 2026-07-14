@@ -21,7 +21,7 @@ import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { formatCents } from "@/lib/money";
 import type { SignaturePlacement } from "@/lib/esign/placement";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
-import { AuditDetails, ThreadSignatures, VerifiedBanner, useClaimChain, type ClaimRef } from "./chain";
+import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain, type ClaimRef } from "./chain";
 import { SigningConnectCard, useSigningSession } from "./SigningConnect";
 import DocumentSignField from "./DocumentSignField";
 
@@ -90,7 +90,7 @@ export default function EsignPanel({
       {needsConnect && (
         <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
       )}
-      {state && <VerifiedBanner state={state} />}
+      {state && <ChainAlert state={state} />}
       {chainError && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{chainError}</p>}
       {decision?.t === "REJECT" && decision.comment && (
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="rejection-comment">

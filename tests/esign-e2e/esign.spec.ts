@@ -373,7 +373,13 @@ test("submit → approve → pay, fail-closed ceremonies throughout", async () =
 
   // Owner sees the full signed thread; the public link verifies in-browser.
   await alice.page.goto(`${BASE}/claims/${claimId}`);
-  await expect(alice.page.getByText("Everything checks out")).toBeVisible({ timeout: 30_000 });
+  // A clean chain is silent on the main path; the reassurance lives inside the
+  // Audit details disclosure. Open it to confirm verification passed.
+  await alice.page.getByTestId("audit-details").first().getByText("Audit details").click();
+  await expect(alice.page.getByTestId("audit-status").first()).toContainText(
+    "Everything checks out",
+    { timeout: 30_000 }
+  );
   const full = await (
     await alice.context.request.get(`${BASE}/api/reimbursements/${claimId}`)
   ).json();
@@ -499,9 +505,11 @@ test("revoking the phone rotates the AMK server-side and locks it out", async ()
   await expect(aliceTablet.page.getByText("Awaiting approval").first()).toBeVisible({
     timeout: 30_000,
   });
-  await expect(aliceTablet.page.getByText("Everything checks out")).toBeVisible({
-    timeout: 30_000,
-  });
+  await aliceTablet.page.getByTestId("audit-details").first().getByText("Audit details").click();
+  await expect(aliceTablet.page.getByTestId("audit-status").first()).toContainText(
+    "Everything checks out",
+    { timeout: 30_000 }
+  );
 });
 
 test("lost everything: start-over + re-vouch supersedes the key; history stands", async ({
@@ -541,9 +549,11 @@ test("lost everything: start-over + re-vouch supersedes the key; history stands"
   // Repudiation-proofing: her paid claim, signed by the superseded key,
   // still verifies — and so does the public link.
   await aliceNew.page.goto(`${BASE}/claims/${claimId}`);
-  await expect(aliceNew.page.getByText("Everything checks out")).toBeVisible({
-    timeout: 30_000,
-  });
+  await aliceNew.page.getByTestId("audit-details").first().getByText("Audit details").click();
+  await expect(aliceNew.page.getByTestId("audit-status").first()).toContainText(
+    "Everything checks out",
+    { timeout: 30_000 }
+  );
   const anon = await browser.newContext({ viewport: { width: 480, height: 1100 } });
   const anonPage = await anon.newPage();
   await anonPage.goto(`${BASE}/v/${publicToken}`);

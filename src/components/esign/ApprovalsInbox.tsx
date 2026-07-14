@@ -14,7 +14,7 @@ import { formatCents } from "@/lib/money";
 import { runDecisionCeremony } from "@/lib/esign/client";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
-import { AuditDetails, ThreadSignatures, VerifiedBanner, useClaimChain } from "./chain";
+import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain } from "./chain";
 import { SigningConnectCard } from "./SigningConnect";
 import DocumentSignField, { type TextStamp } from "./DocumentSignField";
 import type { FieldAnchor, SignaturePlacement } from "@/lib/esign/placement";
@@ -144,8 +144,8 @@ function ClaimRow({
   const tEsign2 = useTranslations("Esign");
   const format = useFormatter();
   return (
-    <li className="card p-4" data-testid={`approval-${claim.id}`}>
-      <button className="flex w-full items-center justify-between gap-3 text-left" onClick={onToggle}>
+    <li className="card card-lift p-4" data-testid={`approval-${claim.id}`}>
+      <button className="pressable flex w-full items-center justify-between gap-3 text-left" onClick={onToggle}>
         {/* min-w-0 + truncate so a long claim description shrinks instead of
             pushing the amount off the card (flex min-width:auto). */}
         <div className="min-w-0">
@@ -259,7 +259,7 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {state && (
         <>
-          <VerifiedBanner state={state} />
+          <ChainAlert state={state} />
           {!verified && (
             <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="failclosed-note">
               {tEsign("failClosed")}
@@ -293,8 +293,8 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
             ))}
           </div>
           {/* The stamp surface previews only the first form page; this opens the
-              whole verified packet — every form page plus the appended
-              receipts — so the approver can review what they're signing. */}
+              whole packet — every form page plus the appended receipts — so the
+              approver can review what they're signing. */}
           {state.packetUrl && (
             <a
               className="btn-secondary inline-block self-start"
@@ -303,7 +303,7 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
               rel="noreferrer"
               data-testid="open-packet"
             >
-              {tEsign("openVerifiedPacketButton")}
+              {tEsign("openPacketButton")}
             </a>
           )}
           {/* Click-to-stamp on the EXACT verified bytes (never a server

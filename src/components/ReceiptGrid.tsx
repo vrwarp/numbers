@@ -85,7 +85,7 @@ export default function ReceiptGrid({
             data-testid={`receipt-card-${r.id}`}
             // Selection is shown by the filled checkmark alone — no outline.
             className={`card relative overflow-hidden ${
-              selectable ? "cursor-pointer" : "opacity-70"
+              selectable ? "card-lift cursor-pointer select-none" : "opacity-70"
             }`}
             onClick={selectable ? () => onToggle?.(r.id) : undefined}
           >
