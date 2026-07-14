@@ -1102,15 +1102,27 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Review.downloadPdf": {
-    "source": "⬇ Download PDF",
-    "context": "Secondary download button on e-sign drafts (submit-for-approval is the primary); keep the ⬇.",
+  "Review.printAction": {
+    "source": "Print",
+    "context": "Secondary finish action on the e-sign action bar: downloads the packet to print & hand-sign. Terse (pairs with the E-sign primary).",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Review.esignAction": {
+    "source": "E-sign",
+    "context": "Primary finish action on the e-sign action bar: opens the electronic-signature ceremony. Terse (pairs with the Print secondary).",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Review.addReceiptShort": {
+    "source": "+ Receipt",
+    "context": "Compact mobile label for the Add-receipts button in the action bar (desktop shows the fuller Review.addReceipts). Keep the leading + and singular noun.",
     "zh-Hans": "reviewed",
     "zh-Hant": "reviewed"
   },
   "Review.esignFinishHint": {
-    "source": "Submit for an e-signature, or download to print.",
-    "context": "One-line hint on the action bar for e-sign users on a single-receipt draft, explaining the submit-vs-download choice.",
+    "source": "Finish this claim — print, or e-sign.",
+    "context": "One-line hint on the action bar for e-sign users on a single-receipt draft (desktop only), naming the two finish paths.",
     "zh-Hans": "reviewed",
     "zh-Hant": "reviewed"
   },
