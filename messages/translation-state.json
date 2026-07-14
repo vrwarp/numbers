@@ -1096,15 +1096,9 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Review.generatePdf": {
-    "source": "⬇ Generate PDF",
-    "context": "PDF button on drafts; keep the ⬇.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
   "Review.printAction": {
     "source": "Print",
-    "context": "Secondary finish action on the e-sign action bar: downloads the packet to print & hand-sign. Terse (pairs with the E-sign primary).",
+    "context": "Finish action on the review action bar: generates/downloads the packet to print & hand-sign. Sole primary when e-sign is off; secondary beside the E-sign primary when it's on. Terse, no emoji.",
     "zh-Hans": "reviewed",
     "zh-Hant": "reviewed"
   },
@@ -1125,12 +1119,6 @@
     "context": "One-line hint on the action bar for e-sign users on a single-receipt draft (desktop only), naming the two finish paths.",
     "zh-Hans": "reviewed",
     "zh-Hant": "reviewed"
-  },
-  "Review.downloadAgain": {
-    "source": "⬇ Download PDF again",
-    "context": "PDF button on generated claims (re-download); keep the ⬇.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
   },
   "Review.revertConfirm": {
     "source": "Revert this claim to draft? Only do this if you haven’t turned in the printed form yet. Rows become editable again, and the receipts leave “processed”.",

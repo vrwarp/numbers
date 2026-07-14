@@ -344,6 +344,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     !!esignEnv?.bootstrapped && !!esignEnv.enabled && esignEnv.allowed !== false;
   const esignActions =
     esignEnabled && (claim.status === "draft" || claim.status === "generated");
+  const isSigned = (SIGNED_STATUSES as readonly string[]).includes(claim.status);
   // First unverified row in display order — the nudge target when the gated
   // Generate PDF button is clicked while rows remain unverified.
   const firstUnverified = groups
@@ -802,23 +803,15 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
       </div>
 
       {/* Floating action bar: verify progress and the claim actions stay in
-          reach while scrolling a long claim. When e-sign is on, "Submit for
-          approval" is the primary here (no more top-banner/bottom-bar split)
-          and the download drops to a secondary; the bar stacks on mobile so
-          the two finish actions never crowd. When e-sign is off, this is the
-          classic single-button print flow, unchanged. */}
-      <div
-        className={`card sticky bottom-4 z-20 bg-white/95 p-3 shadow-lg backdrop-blur ${
-          esignActions
-            ? "flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-2"
-            : "flex flex-wrap items-center justify-between gap-x-4 gap-y-2"
-        }`}
-      >
+          reach while scrolling a long claim. One structure for every case —
+          edit utilities (soft-red Discard, Add receipts) on the left, the
+          finish action(s) behind a divider on the right — so the e-sign-on
+          and e-sign-off bars read the same. E-sign just adds a second finish
+          button (E-sign primary) beside Print. Terse + one row on mobile. */}
+      <div className="card sticky bottom-4 z-20 flex flex-col gap-3 bg-white/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-2">
         {isDraft && claim.receipts.length > 1 ? (
           <div
-            className={`flex items-center gap-3 ${
-              esignActions ? "w-full min-w-0 sm:w-auto sm:min-w-48 sm:flex-1" : "min-w-48 flex-1"
-            }`}
+            className="flex w-full min-w-0 items-center gap-3 sm:w-auto sm:min-w-48 sm:flex-1"
             data-testid="verify-progress"
           >
             <div className="h-2 flex-1 overflow-hidden rounded-full bg-stone-200">
@@ -836,10 +829,9 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         ) : isDraft ? (
           // Single-receipt e-sign draft has no progress bar; a one-line hint
           // fills what would otherwise be an empty left gutter and carries the
-          // print-vs-sign guidance that used to live in the removed top banner.
+          // print-vs-sign guidance (only meaningful when there's a fork —
+          // hidden on mobile, where the labeled buttons already make it clear).
           esignActions ? (
-            // Hidden on mobile: the stacked, labeled buttons make the choice
-            // obvious there, and the line would only add height to the bar.
             <span className="hidden text-sm text-stone-500 sm:block sm:flex-1">
               {t("esignFinishHint")}
             </span>
@@ -849,115 +841,64 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             {claim.status === "generated" ? t("generatedFrozen") : t("underSignatureFrozen")}
           </span>
         )}
-        <div
-          className={
-            esignActions
-              ? "flex flex-wrap items-center gap-2 sm:ml-auto sm:gap-3"
-              : "ml-auto flex items-center gap-3"
-          }
-        >
-          {esignActions ? (
-            <>
-              {/* Edit utilities first (destructive Discard pulled to the far
-                  left, away from the finish actions), then the finish pair
-                  behind a divider. Terse for one row on mobile: Discard is a
-                  soft-red ✕ and Add receipts is "+ Receipt"; both spell out on
-                  desktop. Compact mobile padding (px-3) is what keeps ✕/＋/
-                  Print/E-sign on a single row down to ~360px. */}
-              {isDraft && (
-                <button
-                  className="btn-soft-danger !px-3 sm:!px-4"
-                  onClick={deleteClaim}
-                  aria-label={t("discard")}
-                  data-testid="discard-claim"
-                >
-                  <span className="sm:hidden" aria-hidden>
-                    ✕
-                  </span>
-                  <span className="hidden sm:inline">{t("discard")}</span>
-                </button>
-              )}
-              {isDraft && (
-                <button
-                  className="btn-secondary !px-3 sm:!px-4"
-                  onClick={() => setAddingReceipts(true)}
-                  data-testid="add-receipts"
-                >
-                  <span className="sm:hidden">{t("addReceiptShort")}</span>
-                  <span className="hidden sm:inline">{t("addReceipts")}</span>
-                </button>
-              )}
-              {!isDraft && claim.status !== "paid" && (
-                <button
-                  className="btn-secondary !px-3 sm:!px-4"
-                  onClick={revertClaim}
-                  data-testid="revert-claim"
-                >
-                  {t("revert")}
-                </button>
-              )}
-              {/* Finish pair: Print (paper fallback) + E-sign (primary), split
-                  from the utilities by a divider on desktop, inline on mobile.
-                  Each is gated exactly as before — a click while rows are
-                  unverified nudges the first one; the real gate stays server-side. */}
-              <div className="flex items-center gap-2 sm:gap-3 sm:border-l sm:border-stone-200 sm:pl-3">
-                <span
-                  onClick={() => {
-                    if (isDraft && !pdfButtonEnabled && !downloading) nudgeFirstUnverified();
-                  }}
-                  title={isDraft && !pdfButtonEnabled ? t("chooseMinistryFirst") : undefined}
-                >
-                  <button
-                    className="btn-secondary !px-3 disabled:pointer-events-none sm:!px-4"
-                    onClick={generatePdf}
-                    disabled={!pdfButtonEnabled || downloading}
-                    data-testid="download-pdf"
-                  >
-                    {downloading ? t("buildingPdf") : t("printAction")}
-                  </button>
-                </span>
-                <span
-                  onClick={() => {
-                    if (isDraft && !pdfButtonEnabled && !downloading) nudgeFirstUnverified();
-                  }}
-                  title={isDraft && !pdfButtonEnabled ? t("chooseMinistryFirst") : undefined}
-                >
-                  <button
-                    className="btn-primary !px-3 disabled:pointer-events-none sm:!px-4"
-                    onClick={openSubmitForApproval}
-                    disabled={!pdfButtonEnabled || downloading}
-                    data-testid="submit-for-approval"
-                  >
-                    {downloading ? t("buildingPdf") : t("esignAction")}
-                  </button>
-                </span>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Classic print flow (e-sign off) — unchanged. */}
-              {isDraft && (
-                <button
-                  className="btn-secondary"
-                  onClick={() => setAddingReceipts(true)}
-                  data-testid="add-receipts"
-                >
-                  {t("addReceipts")}
-                </button>
-              )}
-              {isDraft && (
-                <button className="btn-secondary" onClick={deleteClaim} data-testid="discard-claim">
-                  {t("discard")}
-                </button>
-              )}
-              {!isDraft && claim.status !== "paid" && (
-                <button className="btn-secondary" onClick={revertClaim} data-testid="revert-claim">
-                  {t("revert")}
-                </button>
-              )}
-              {/* The disabled button drops pointer events so the wrapper catches
-                  the click and walks the user to the first row still needing a
-                  verify. The real gate stays server-side in the PDF route. */}
+        <div className="flex flex-wrap items-center gap-2 sm:ml-auto sm:gap-3">
+          {/* Edit utilities. Destructive Discard is a soft-red ✕ pulled to the
+              far left, away from the finish actions; Add receipts is "+ Receipt".
+              Both spell out on desktop. Compact mobile padding (px-3) keeps
+              everything on a single row down to ~360px. */}
+          {isDraft && (
+            <button
+              className="btn-soft-danger !px-3 sm:!px-4"
+              onClick={deleteClaim}
+              aria-label={t("discard")}
+              data-testid="discard-claim"
+            >
+              <span className="sm:hidden" aria-hidden>
+                ✕
+              </span>
+              <span className="hidden sm:inline">{t("discard")}</span>
+            </button>
+          )}
+          {isDraft && (
+            <button
+              className="btn-secondary !px-3 sm:!px-4"
+              onClick={() => setAddingReceipts(true)}
+              data-testid="add-receipts"
+            >
+              <span className="sm:hidden">{t("addReceiptShort")}</span>
+              <span className="hidden sm:inline">{t("addReceipts")}</span>
+            </button>
+          )}
+          {!isDraft && claim.status !== "paid" && (
+            <button
+              className="btn-secondary !px-3 sm:!px-4"
+              onClick={revertClaim}
+              data-testid="revert-claim"
+            >
+              {t("revert")}
+            </button>
+          )}
+          {/* Finish group behind a divider. Print is the paper path — the sole
+              primary when e-sign is off, a secondary when E-sign is offered.
+              Each button is gated the same way: a click while rows are
+              unverified nudges the first one; the real gate stays server-side. */}
+          <div className="flex items-center gap-2 sm:gap-3 sm:border-l sm:border-stone-200 sm:pl-3">
+            <span
+              onClick={() => {
+                if (isDraft && !pdfButtonEnabled && !downloading) nudgeFirstUnverified();
+              }}
+              title={isDraft && !pdfButtonEnabled ? t("chooseMinistryFirst") : undefined}
+            >
+              <button
+                className={`${esignActions ? "btn-secondary" : "btn-primary"} !px-3 disabled:pointer-events-none sm:!px-4`}
+                onClick={generatePdf}
+                disabled={!pdfButtonEnabled || downloading}
+                data-testid={esignActions ? "download-pdf" : "generate-pdf"}
+              >
+                {downloading ? t("buildingPdf") : isSigned ? t("downloadSigned") : t("printAction")}
+              </button>
+            </span>
+            {esignActions && (
               <span
                 onClick={() => {
                   if (isDraft && !pdfButtonEnabled && !downloading) nudgeFirstUnverified();
@@ -965,22 +906,16 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                 title={isDraft && !pdfButtonEnabled ? t("chooseMinistryFirst") : undefined}
               >
                 <button
-                  className="btn-primary disabled:pointer-events-none"
-                  onClick={generatePdf}
+                  className="btn-primary !px-3 disabled:pointer-events-none sm:!px-4"
+                  onClick={openSubmitForApproval}
                   disabled={!pdfButtonEnabled || downloading}
-                  data-testid="generate-pdf"
+                  data-testid="submit-for-approval"
                 >
-                  {downloading
-                    ? t("buildingPdf")
-                    : isDraft
-                      ? t("generatePdf")
-                      : claim.status === "generated"
-                        ? t("downloadAgain")
-                        : t("downloadSigned")}
+                  {downloading ? t("buildingPdf") : t("esignAction")}
                 </button>
               </span>
-            </>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
