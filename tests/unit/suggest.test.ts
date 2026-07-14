@@ -1,9 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  buildCandidatesPrompt,
   buildSuggestionPrompt,
   mockSuggest,
+  mockSuggestCandidates,
+  parseCandidatesResponse,
   parseSuggestionResponse,
   resolveSuggestedMinistry,
+  suggestMinistryCandidates,
   suggestMinistryEvent,
 } from "@/lib/ai/suggest";
 import { MINISTRIES } from "@/lib/ministries";
@@ -120,5 +124,108 @@ describe("suggestMinistryEvent with AI_MOCK=1", () => {
     expect(meta.prompt).toContain("youth retreat");
     expect(meta.rawResponse).toBe(JSON.stringify(suggestion));
     expect(meta.durationMs).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("buildCandidatesPrompt", () => {
+  it("lists every category, the description, and asks for a JSON candidates array", () => {
+    const prompt = buildCandidatesPrompt("supplies for the retreat", null);
+    for (const m of MINISTRIES) expect(prompt).toContain(m);
+    expect(prompt).toContain('"supplies for the retreat"');
+    expect(prompt).toContain('"candidates"');
+    expect(prompt).not.toContain("rejected all of them");
+  });
+
+  it("adds the rejected list and extra detail on the terminal follow-up", () => {
+    const prompt = buildCandidatesPrompt("supplies for the retreat", null, {
+      more: "it was VBS, not a retreat",
+      rejected: ["470 Summer Retreat", "471 Youth Retreat"],
+    });
+    expect(prompt).toContain("rejected all of them");
+    expect(prompt).toContain("470 Summer Retreat");
+    expect(prompt).toContain("it was VBS, not a retreat");
+  });
+});
+
+describe("parseCandidatesResponse", () => {
+  it("resolves each candidate and keeps ranking order", () => {
+    const out = parseCandidatesResponse(
+      '{"candidates":[{"ministry":"470 Summer Retreat","event":"Retreat","rationale":"a"},{"ministry":"471 youth retreat","event":null,"rationale":"b"}]}'
+    );
+    expect(out).toEqual([
+      { ministry: "470 Summer Retreat", event: "Retreat", rationale: "a" },
+      { ministry: "471 Youth Retreat", event: null, rationale: "b" },
+    ]);
+  });
+
+  it("drops unresolvable candidates rather than inventing categories", () => {
+    const out = parseCandidatesResponse(
+      '{"candidates":[{"ministry":"Made Up Fund","event":null,"rationale":"x"},{"ministry":"320 VBS","event":"VBS","rationale":"y"}]}'
+    );
+    expect(out).toEqual([{ ministry: "320 VBS", event: "VBS", rationale: "y" }]);
+  });
+
+  it("dedupes identical pairings and caps at three", () => {
+    const out = parseCandidatesResponse(
+      '{"candidates":[' +
+        '{"ministry":"320 VBS","event":"VBS","rationale":"1"},' +
+        '{"ministry":"320 VBS","event":"VBS","rationale":"dup"},' +
+        '{"ministry":"237 Office Supplies","event":null,"rationale":"2"},' +
+        '{"ministry":"470 Summer Retreat","event":null,"rationale":"3"},' +
+        '{"ministry":"471 Youth Retreat","event":null,"rationale":"4"}]}'
+    );
+    expect(out.map((c) => c.ministry)).toEqual([
+      "320 VBS",
+      "237 Office Supplies",
+      "470 Summer Retreat",
+    ]);
+  });
+
+  it("returns an empty list for an empty or matchless response", () => {
+    expect(parseCandidatesResponse('{"candidates":[]}')).toEqual([]);
+    expect(
+      parseCandidatesResponse('{"candidates":[{"ministry":null,"event":null,"rationale":""}]}')
+    ).toEqual([]);
+  });
+});
+
+describe("mockSuggestCandidates (AI_MOCK fixtures — walkthrough & e2e depend on these)", () => {
+  it("youth + retreat → a single confident candidate", () => {
+    expect(mockSuggestCandidates("Snacks for the youth retreat")).toEqual([
+      { ministry: "471 Youth Retreat", event: "Youth Retreat", rationale: "Mock: youth retreat." },
+    ]);
+  });
+
+  it("retreat alone → three ambiguous budget lines to disambiguate", () => {
+    const out = mockSuggestCandidates("supplies for the retreat");
+    expect(out.map((c) => c.ministry)).toEqual([
+      "470 Summer Retreat",
+      "471 Youth Retreat",
+      "481 TRANSPARENT Retreat",
+    ]);
+  });
+
+  it("the follow-up detail steers the second turn (something else → VBS)", () => {
+    expect(mockSuggestCandidates("supplies for the retreat", "it was VBS, not a retreat")).toEqual([
+      { ministry: "320 VBS", event: "VBS", rationale: "Mock: VBS." },
+    ]);
+  });
+
+  it("no keyword → empty (the 'no confident match' path)", () => {
+    expect(mockSuggestCandidates("miscellaneous unmatchable things")).toEqual([]);
+  });
+});
+
+describe("suggestMinistryCandidates with AI_MOCK=1", () => {
+  afterEach(() => {
+    delete process.env.AI_MOCK;
+  });
+
+  it("returns the mock candidates plus loggable metadata without any network call", async () => {
+    process.env.AI_MOCK = "1";
+    const { candidates, meta } = await suggestMinistryCandidates("supplies for the retreat");
+    expect(candidates).toHaveLength(3);
+    expect(meta.model).toBe("mock");
+    expect(meta.rawResponse).toBe(JSON.stringify({ candidates }));
   });
 });

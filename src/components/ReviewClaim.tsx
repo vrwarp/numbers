@@ -87,11 +87,11 @@ type ClaimSettingsPatch = Partial<
   Pick<Claim, "singleMinistry" | "claimMinistry" | "claimEvent" | "claimDescription">
 >;
 
-interface MinistrySuggestion {
-  ministry: string | null;
-  event: string | null;
-  rationale: string;
-}
+/** A resolved candidate from the suggest route — `ministry` is always real. */
+type Candidate = { ministry: string; event: string | null; rationale: string };
+
+/** Extra detail for the terminal follow-up after "Something else…". */
+type Refine = { more: string; rejected: string[] };
 
 /** Pre-fan-out values of the rows a claim-level ministry change touched. */
 interface FanOutUndo {
@@ -128,10 +128,15 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const [fileVersions, setFileVersions] = useState<Record<string, number>>({});
   // Row whose confirm button is pulsing after a click on the gated PDF button.
   const [nudgedItemId, setNudgedItemId] = useState<string | null>(null);
-  // Single-ministry mode state: the AI's pending suggestion (never applied
-  // until the user clicks Apply), the multi→single confirm dialog, the undo
-  // toast for the last fan-out, and the split-needs-multi-mode gate.
-  const [pendingSuggestion, setPendingSuggestion] = useState<MinistrySuggestion | null>(null);
+  // Single-ministry mode state: the AI's ranked candidates (never applied
+  // until the user taps one), whether we're on the terminal follow-up turn
+  // (escape hatch becomes "pick manually"), the candidate just applied (drives
+  // the applied+undo banner), the multi→single confirm dialog, the undo toast
+  // for the last fan-out, and the split-needs-multi-mode gate.
+  // `aiCandidates === null` means "not asked yet"; `[]` means "asked, no match".
+  const [aiCandidates, setAiCandidates] = useState<Candidate[] | null>(null);
+  const [aiFinal, setAiFinal] = useState(false);
+  const [appliedSuggestion, setAppliedSuggestion] = useState<Candidate | null>(null);
   const [suggesting, setSuggesting] = useState(false);
   const [modeSwitchPrompt, setModeSwitchPrompt] = useState<{
     adopt: { ministry: string; event: string };
@@ -186,10 +191,12 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
 
   const patchItem = useCallback(
     (itemId: string, patch: Partial<LineItem>) => {
-      // Clear active suggestion and undo toast if user interacts with a row
+      // Clear active AI suggestion and undo toast if user interacts with a row
       setFanOutUndo((prev) => {
         if (prev?.source === "ai") {
-          setPendingSuggestion(null);
+          setAiCandidates(null);
+          setAppliedSuggestion(null);
+          setAiFinal(false);
         }
         return null;
       });
@@ -440,24 +447,24 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     });
   }
 
-  async function runSuggest(inputOrValue: HTMLInputElement | null | string) {
+  /**
+   * Ask the AI for ranked candidates. First turn passes just the description;
+   * the terminal "Something else…" turn also passes `refine` (the user's extra
+   * detail + the rejected candidates) — after it, `aiFinal` flips so the pick-
+   * list offers "pick manually" instead of another "Something else…".
+   */
+  async function runSuggest(description: string, refine?: Refine) {
     if (!claim || suggesting) return;
-    const description = typeof inputOrValue === "string"
-      ? inputOrValue.trim()
-      : inputOrValue?.value.trim() ?? "";
-    if (!description) {
-      if (typeof inputOrValue !== "string") {
-        inputOrValue?.focus();
-      }
-      return;
-    }
+    const desc = description.trim();
+    if (!desc) return;
     setSuggesting(true);
-    setPendingSuggestion(null);
     try {
       const res = await fetch(`/api/reimbursements/${claim.id}/suggest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description }),
+        body: JSON.stringify(
+          refine ? { description: desc, more: refine.more, rejected: refine.rejected } : { description: desc }
+        ),
       });
       if (!res.ok) {
         setError(apiError(await res.json().catch(() => null), t("suggestionFailed")));
@@ -466,13 +473,34 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
       setError(null);
       const data = await res.json();
       // The route persisted the description as the claim note.
-      setClaim((prev) => (prev ? { ...prev, claimDescription: description } : prev));
-      setPendingSuggestion(data.suggestion);
+      setClaim((prev) => (prev ? { ...prev, claimDescription: desc } : prev));
+      setAppliedSuggestion(null);
+      setAiCandidates((data.candidates ?? []) as Candidate[]);
+      setAiFinal(!!refine);
     } catch {
       setError(t("suggestionFailed"));
     } finally {
       setSuggesting(false);
     }
+  }
+
+  /** Apply a candidate (fan out onto every active row) and show applied+undo. */
+  function applyCandidate(c: Candidate) {
+    setAppliedSuggestion(c);
+    fanOutClaimPatch({ claimMinistry: c.ministry, claimEvent: c.event ?? "" }, "ai");
+  }
+
+  /** Undo the applied candidate but keep the pick-list up (Apply reappears). */
+  function undoApplied() {
+    undoFanOut();
+    setAppliedSuggestion(null);
+  }
+
+  /** Dismiss the whole AI exchange back to the empty prompt. */
+  function dismissAi() {
+    setAiCandidates(null);
+    setAppliedSuggestion(null);
+    setAiFinal(false);
   }
 
   async function generatePdf() {
@@ -580,21 +608,20 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         <ClaimMinistryPanel
           claim={claim}
           suggesting={suggesting}
-          pendingSuggestion={pendingSuggestion}
+          candidates={aiCandidates}
+          aiFinal={aiFinal}
+          applied={appliedSuggestion}
           onModeSingle={switchToSingle}
           onModeMulti={() => {
-            setPendingSuggestion(null);
+            dismissAi();
             patchClaim({ singleMinistry: false });
           }}
           onFanOut={(next) => fanOutClaimPatch(next, "manual")}
           onPersistDescription={(v) => patchClaim({ claimDescription: v })}
           onSuggest={runSuggest}
-          onApplySuggestion={(s) => {
-            fanOutClaimPatch({ claimMinistry: s.ministry ?? "", claimEvent: s.event ?? "" }, "ai");
-          }}
-          onDismissSuggestion={() => setPendingSuggestion(null)}
-          fanOutUndo={fanOutUndo}
-          onUndo={undoFanOut}
+          onApplyCandidate={applyCandidate}
+          onDismiss={dismissAi}
+          onUndo={undoApplied}
         />
       )}
 
@@ -1017,44 +1044,59 @@ const OTHER_MINISTRY = "__other__";
 /**
  * Claim-level ministry & event controls. In single mode ("most claims are for
  * one thing") the one selector here replaces every per-row selector, and the
- * user can describe the claim in a sentence to get an AI suggestion — which
- * is only ever applied by the human clicking Apply.
+ * AI zone lets the user describe the claim to get up to three ranked
+ * candidates — tapping one applies it (no further model call); only
+ * "Something else…" spends the one terminal follow-up. The AI only ever
+ * suggests; the human applies.
  */
 function ClaimMinistryPanel({
   claim,
   suggesting,
-  pendingSuggestion,
+  candidates,
+  aiFinal,
+  applied,
   onModeSingle,
   onModeMulti,
   onFanOut,
   onPersistDescription,
   onSuggest,
-  onApplySuggestion,
-  onDismissSuggestion,
-  fanOutUndo,
+  onApplyCandidate,
+  onDismiss,
   onUndo,
 }: {
   claim: Claim;
   suggesting: boolean;
-  pendingSuggestion: MinistrySuggestion | null;
+  candidates: Candidate[] | null;
+  aiFinal: boolean;
+  applied: Candidate | null;
   onModeSingle: () => void;
   onModeMulti: () => void;
   onFanOut: (next: { claimMinistry: string; claimEvent: string }) => void;
   onPersistDescription: (value: string) => void;
-  onSuggest: (input: HTMLInputElement | null) => void;
-  onApplySuggestion: (s: MinistrySuggestion) => void;
-  onDismissSuggestion: () => void;
-  fanOutUndo: FanOutUndo | null;
+  onSuggest: (description: string, refine?: Refine) => void;
+  onApplyCandidate: (c: Candidate) => void;
+  onDismiss: () => void;
   onUndo: () => void;
 }) {
   const t = useTranslations("Review");
-  const descRef = useRef<HTMLInputElement | null>(null);
+  const descRef = useRef<HTMLTextAreaElement | null>(null);
+  const followupRef = useRef<HTMLTextAreaElement | null>(null);
+  // "Something else…" reveals a second prompt for the one terminal follow-up.
+  const [followupOpen, setFollowupOpen] = useState(false);
+  // A fresh candidate set closes any open follow-up box.
+  useEffect(() => {
+    setFollowupOpen(false);
+  }, [candidates]);
   // Same "Other…" mechanics as the per-row selector: the sentinel stays
   // selected while the custom text box is still empty.
   const [otherPicked, setOtherPicked] = useState(false);
   const showOtherInput =
     otherPicked || (!!claim.claimMinistry && !isKnownMinistry(claim.claimMinistry));
   const single = claim.singleMinistry;
+  const sendMore = () => {
+    const more = followupRef.current?.value.trim();
+    if (more && candidates) onSuggest(claim.claimDescription, { more, rejected: candidates.map((c) => c.ministry) });
+  };
 
   const modeButton = (active: boolean) =>
     `rounded-md px-3 py-1.5 transition-colors ${
@@ -1091,105 +1133,213 @@ function ClaimMinistryPanel({
 
       {single ? (
         <>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              ref={descRef}
-              key={`claim-desc-${claim.claimDescription}`}
-              className="input flex-1"
-              defaultValue={claim.claimDescription}
-              placeholder={t("descPlaceholder")}
-              maxLength={300}
-              onBlur={(e) => {
-                const v = e.target.value.trim();
-                if (v !== claim.claimDescription) onPersistDescription(v);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") onSuggest(descRef.current);
-              }}
-              aria-label={t("descAria")}
-              data-testid="claim-description"
-            />
-            <button
-              className="btn-secondary whitespace-nowrap"
-              onClick={() => onSuggest(descRef.current)}
-              disabled={suggesting}
-              title={t("suggestTitle")}
-              data-testid="suggest-ministry"
-            >
-              {suggesting ? t("thinking") : t("suggest")}
-            </button>
-          </div>
+          {/* AI zone: a distinct violet "surface" so it reads as assistive, not
+              one more form field. Describe → up to 3 ranked candidates → tap one
+              to apply (no further call); "Something else…" spends the single
+              terminal follow-up, after which the escape hatch is "pick manually". */}
+          <div
+            className="rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white p-3"
+            data-testid="ai-zone"
+          >
+            <div className="mb-2 flex items-center gap-2">
+              <span aria-hidden className="text-sm">✨</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-violet-700">
+                {t("aiTitle")}
+              </span>
+              <span className="ml-auto text-[11px] font-medium text-violet-400">{t("aiOptional")}</span>
+            </div>
 
-          {pendingSuggestion && (
-            <div
-              className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-900"
-              data-testid="suggestion-banner"
-            >
-              {pendingSuggestion.ministry ? (
-                (() => {
-                  const isApplied = fanOutUndo?.source === "ai";
-                  return (
-                    <>
-                      <span>
-                        {t.rich(isApplied ? "suggestionApplied" : "suggestionSuggested", {
-                          value: formatMinistryEvent(
-                            pendingSuggestion.ministry,
-                            pendingSuggestion.event ?? ""
-                          ),
-                          strong: (chunks) => <strong>{chunks}</strong>,
-                        })}
-                      </span>
-                      {pendingSuggestion.rationale && (
-                        <span className="text-xs text-violet-700">{pendingSuggestion.rationale}</span>
-                      )}
-                      <span className="ml-auto flex items-center gap-2">
-                        {isApplied ? (
-                          <button
-                            className="rounded-full bg-stone-600 px-3 py-1 text-xs font-semibold text-white hover:bg-stone-700"
-                            onClick={onUndo}
-                            data-testid="suggestion-undo"
-                          >
-                            {t("undo")}
-                          </button>
-                        ) : (
-                          <>
-                            <button
-                              className="rounded-full bg-violet-600 px-3 py-1 text-xs font-semibold text-white hover:bg-violet-700"
-                              onClick={() => onApplySuggestion(pendingSuggestion)}
-                              data-testid="suggestion-apply"
-                            >
-                              {claim.receipts.length === 1 ? t("apply") : t("applyAllRows")}
-                            </button>
-                            <button
-                              className="text-xs text-violet-700 hover:underline"
-                              onClick={onDismissSuggestion}
-                              data-testid="suggestion-dismiss"
-                            >
-                              {t("dismiss")}
-                            </button>
-                          </>
-                        )}
-                      </span>
-                    </>
-                  );
-                })()
-              ) : (
-                <>
-                  <span>{t("noConfidentMatch")}</span>
-                  {pendingSuggestion.rationale && (
-                    <span className="text-xs text-violet-700">{pendingSuggestion.rationale}</span>
-                  )}
+            {applied ? (
+              <div
+                className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-900"
+                data-testid="suggestion-banner"
+              >
+                <span>
+                  {t.rich("suggestionApplied", {
+                    value: formatMinistryEvent(applied.ministry, applied.event ?? ""),
+                    strong: (chunks) => <strong>{chunks}</strong>,
+                  })}
+                </span>
+                <button
+                  className="ml-auto rounded-full bg-stone-600 px-3 py-1 text-xs font-semibold text-white hover:bg-stone-700"
+                  onClick={onUndo}
+                  data-testid="suggestion-undo"
+                >
+                  {t("undo")}
+                </button>
+              </div>
+            ) : suggesting ? (
+              <div className="flex items-center gap-3 px-1 py-2" data-testid="ai-thinking">
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 text-xs text-white">
+                  ✨
+                </span>
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <div className="h-2 animate-pulse rounded bg-violet-200" />
+                  <div className="h-2 w-3/5 animate-pulse rounded bg-violet-200" />
+                </div>
+                <span className="text-xs text-violet-500">{t("thinking")}</span>
+              </div>
+            ) : candidates === null ? (
+              <>
+                <p className="mb-2 text-xs text-violet-800/80">{t("aiSub")}</p>
+                <div className="rounded-lg border border-violet-200 bg-white p-2">
+                  <textarea
+                    ref={descRef}
+                    key={`claim-desc-${claim.claimDescription}`}
+                    rows={2}
+                    className="field-sizing-content w-full resize-y bg-transparent px-1 py-0.5 text-base outline-none md:text-sm"
+                    defaultValue={claim.claimDescription}
+                    placeholder={t("descPlaceholder")}
+                    maxLength={300}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (v !== claim.claimDescription) onPersistDescription(v);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        onSuggest(descRef.current?.value ?? "");
+                      }
+                    }}
+                    aria-label={t("descAria")}
+                    data-testid="claim-description"
+                  />
+                  <div className="mt-1 flex items-center justify-end">
+                    <button
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:from-violet-700 hover:to-indigo-700 disabled:opacity-50"
+                      onClick={() => onSuggest(descRef.current?.value ?? "")}
+                      disabled={suggesting}
+                      title={t("suggestTitle")}
+                      data-testid="suggest-ministry"
+                    >
+                      {t("send")} <span aria-hidden>➤</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : candidates.length === 0 ? (
+              <div
+                className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-900"
+                data-testid="suggestion-banner"
+              >
+                <span>{t("noConfidentMatch")}</span>
+                <button
+                  className="ml-auto text-xs text-violet-700 hover:underline"
+                  onClick={onDismiss}
+                  data-testid="suggestion-dismiss"
+                >
+                  {t("dismiss")}
+                </button>
+              </div>
+            ) : candidates.length === 1 ? (
+              <div
+                className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-900"
+                data-testid="suggestion-banner"
+              >
+                <span>
+                  {t.rich("suggestionSuggested", {
+                    value: formatMinistryEvent(candidates[0].ministry, candidates[0].event ?? ""),
+                    strong: (chunks) => <strong>{chunks}</strong>,
+                  })}
+                </span>
+                {candidates[0].rationale && (
+                  <span className="text-xs text-violet-700">{candidates[0].rationale}</span>
+                )}
+                <span className="ml-auto flex items-center gap-2">
                   <button
-                    className="ml-auto text-xs text-violet-700 hover:underline"
-                    onClick={onDismissSuggestion}
+                    className="rounded-full bg-violet-600 px-3 py-1 text-xs font-semibold text-white hover:bg-violet-700"
+                    onClick={() => onApplyCandidate(candidates[0])}
+                    data-testid="suggestion-apply"
+                  >
+                    {claim.receipts.length === 1 ? t("apply") : t("applyAllRows")}
+                  </button>
+                  <button
+                    className="text-xs text-violet-700 hover:underline"
+                    onClick={onDismiss}
                     data-testid="suggestion-dismiss"
                   >
                     {t("dismiss")}
                   </button>
-                </>
-              )}
-            </div>
-          )}
+                </span>
+              </div>
+            ) : (
+              <div
+                className="rounded-lg border border-violet-200 bg-violet-50 p-2 text-sm text-violet-900"
+                data-testid="suggestion-banner"
+              >
+                <p className="px-1 pb-1.5 text-xs font-medium text-violet-800">{t("candidatesLead")}</p>
+                <ul className="flex flex-col gap-1.5">
+                  {candidates.map((c, i) => (
+                    <li key={`${c.ministry}-${i}`}>
+                      <button
+                        className="flex w-full items-center justify-between gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2 text-left hover:border-violet-300 hover:bg-violet-50"
+                        onClick={() => onApplyCandidate(c)}
+                        data-testid={`suggestion-candidate-${i}`}
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate font-semibold text-violet-900">
+                            {formatMinistryEvent(c.ministry, c.event ?? "")}
+                          </span>
+                          {c.rationale && (
+                            <span className="block truncate text-xs text-violet-500">{c.rationale}</span>
+                          )}
+                        </span>
+                        <span aria-hidden className="text-violet-400">›</span>
+                      </button>
+                    </li>
+                  ))}
+                  <li>
+                    {aiFinal ? (
+                      <button
+                        className="w-full rounded-lg border border-dashed border-violet-200 px-3 py-2 text-left text-xs text-violet-500 hover:bg-violet-50"
+                        onClick={onDismiss}
+                        data-testid="suggestion-dismiss"
+                      >
+                        {t("pickManuallyEscape")}
+                      </button>
+                    ) : !followupOpen ? (
+                      <button
+                        className="w-full rounded-lg border border-dashed border-violet-200 px-3 py-2 text-left text-xs text-violet-500 hover:bg-violet-50"
+                        onClick={() => setFollowupOpen(true)}
+                        data-testid="suggestion-other"
+                      >
+                        {t("somethingElse")}
+                      </button>
+                    ) : (
+                      <div className="rounded-lg border border-violet-200 bg-white p-2">
+                        <textarea
+                          ref={followupRef}
+                          rows={2}
+                          className="field-sizing-content w-full resize-y bg-transparent px-1 py-0.5 text-base outline-none md:text-sm"
+                          placeholder={t("somethingElsePlaceholder")}
+                          maxLength={300}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              sendMore();
+                            }
+                          }}
+                          aria-label={t("somethingElseAria")}
+                          data-testid="suggestion-followup"
+                          autoFocus
+                        />
+                        <div className="mt-1 flex items-center justify-end">
+                          <button
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:from-violet-700 hover:to-indigo-700 disabled:opacity-50"
+                            onClick={sendMore}
+                            disabled={suggesting}
+                            data-testid="suggestion-followup-send"
+                          >
+                            {t("send")} <span aria-hidden>➤</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
 
           {/* Each field sits in a width-controlling wrapper rather than a `w-*`
               class on the input itself — `.input`'s `@apply w-full` otherwise
@@ -1198,11 +1348,20 @@ function ClaimMinistryPanel({
               wrapper is a plain block, full width); side by side from `sm:`
               up, with the ministry select taking the remaining room. */}
           {claim.receipts.length > 1 && (
-            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-              <div className="sm:w-72 sm:flex-none">
-                <select
-                  className="input"
-                  value={showOtherInput ? OTHER_MINISTRY : claim.claimMinistry}
+            <>
+              {/* The dropdowns are the manual alternative to the AI zone above —
+                  labelled so, so a newcomer reads them as the fallback, not a
+                  second thing to fill in. */}
+              <div className="flex items-center gap-3 py-0.5 text-[11px] font-medium uppercase tracking-wide text-stone-400">
+                <span className="h-px flex-1 bg-stone-200" />
+                {t("orSetYourself")}
+                <span className="h-px flex-1 bg-stone-200" />
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                <div className="sm:w-72 sm:flex-none">
+                  <select
+                    className="input"
+                    value={showOtherInput ? OTHER_MINISTRY : claim.claimMinistry}
                   onChange={(e) => {
                     if (e.target.value === OTHER_MINISTRY) {
                       setOtherPicked(true);
@@ -1263,8 +1422,9 @@ function ClaimMinistryPanel({
                   data-testid="claim-event"
                 />
               </div>
-              <p className="text-xs text-stone-500 sm:basis-full">{t("appliedEveryRow")}</p>
-            </div>
+                <p className="text-xs text-stone-500 sm:basis-full">{t("appliedEveryRow")}</p>
+              </div>
+            </>
           )}
         </>
       ) : (

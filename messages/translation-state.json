@@ -1378,6 +1378,56 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Review.aiTitle": {
+    "source": "Ask AI to categorize",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.aiOptional": {
+    "source": "optional",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.aiSub": {
+    "source": "Describe the claim in a sentence — I’ll pick the budget category & event.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.send": {
+    "source": "Send",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.candidatesLead": {
+    "source": "A few of these could fit — which budget line?",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.somethingElse": {
+    "source": "Something else…",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.somethingElsePlaceholder": {
+    "source": "Add a detail — e.g. “it was VBS, not a retreat”",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.somethingElseAria": {
+    "source": "More detail for the AI",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.pickManuallyEscape": {
+    "source": "None of these — pick a category below",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.orSetYourself": {
+    "source": "or set it yourself",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Review.multiHint": {
     "source": "Each row picks its own ministry below. Switch to “One ministry” to set them all at once.",
     "context": "Fine print in multi mode. Quotes the One-ministry toggle — its exact translation is provided as mustContain and must appear verbatim (test-enforced).",
