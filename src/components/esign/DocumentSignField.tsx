@@ -11,8 +11,12 @@
  *
  * The surface is pinch-to-zoom and pan (plus explicit zoom buttons for
  * mouse-only devices); once the signature is placed it can be dragged to
- * reposition. Because signing is a hold rather than a tap, a plain
- * touch/click-and-drag pans (or drags the stamp) without accidentally signing.
+ * reposition by grabbing the stamp. Because signing is a hold rather than a
+ * tap, a plain touch/click-and-drag pans without accidentally signing. The
+ * surface owns touch (touch-action: none, needed for the custom pinch), so a
+ * one-finger drag chains whatever its pan can't absorb into the nearest
+ * scrollable ancestor — the page still scrolls through the preview at 100%,
+ * and keeps scrolling once a zoomed pan reaches an edge (and vice versa).
  *
  * The page image is rendered from the EXACT bytes passed in (client-side
  * pdf.js), never a server raster — so what you place your signature on is
@@ -33,7 +37,7 @@ import {
   beginPinch as beginPinchView,
   clampView,
   isIdentity,
-  panView,
+  panStep,
   pinchView,
   zoomByCenter,
   type PinchStart,
@@ -55,6 +59,23 @@ const HOLD_MS = 550;
 const HOLD_CANCEL_PX = 10;
 
 type Gesture = "none" | "hold" | "dragSig" | "pan" | "pinch";
+
+/**
+ * Nearest ancestor that can actually scroll vertically — the panel/modal body,
+ * or failing that the page. The preview keeps `touch-action: none` (it owns
+ * pinch/pan), so it can never natively scroll the page; instead a one-finger
+ * drag chains whatever its own pan can't absorb into this element, so touching
+ * the preview never traps the surrounding scroll.
+ */
+function scrollableAncestor(el: Element | null): Element | null {
+  for (let node = el?.parentElement ?? null; node; node = node.parentElement) {
+    const overflowY = getComputedStyle(node).overflowY;
+    if ((overflowY === "auto" || overflowY === "scroll") && node.scrollHeight > node.clientHeight) {
+      return node;
+    }
+  }
+  return typeof document !== "undefined" ? document.scrollingElement : null;
+}
 
 /** A value that fills a named form field on signing — the printed name and date
  *  the certificate route stamps, previewed in place so the signer sees the whole
@@ -100,7 +121,10 @@ export default function DocumentSignField({
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const holdRaf = useRef<number | null>(null);
   const holdStart = useRef({ x: 0, y: 0, t: 0 });
-  const panStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
+  // A pan is tracked incrementally (delta since the last move) so the overflow
+  // that can't move the content can be handed to the scroll parent below.
+  const panLast = useRef({ x: 0, y: 0 });
+  const scrollParent = useRef<Element | null>(null);
   const pinchStart = useRef<PinchStart>({ dist: 0, scale: 1, cx: 0, cy: 0 });
 
   const setView = useCallback((next: View) => {
@@ -202,6 +226,15 @@ export default function DocumentSignField({
 
   const resetZoom = useCallback(() => setView({ scale: 1, tx: 0, ty: 0 }), [setView]);
 
+  // Start a one-finger drag: it pans the zoomed content and chains any leftover
+  // vertical travel into the scroll parent (see onPointerMove "pan"). At 100%
+  // there's nothing to pan, so the whole drag scrolls the panel.
+  const beginPan = useCallback((clientX: number, clientY: number) => {
+    gesture.current = "pan";
+    panLast.current = { x: clientX, y: clientY };
+    scrollParent.current = scrollableAncestor(boxRef.current);
+  }, []);
+
   // ----- long-press to sign ---------------------------------------------
 
   const cancelHold = useCallback(() => {
@@ -269,24 +302,23 @@ export default function DocumentSignField({
     }
 
     const role = (e.target as HTMLElement).closest("[data-role]")?.getAttribute("data-role");
-    const v = viewRef.current;
 
     if (placed) {
-      if (v.scale > 1 && role !== "stamp") {
-        gesture.current = "pan";
-        panStart.current = { x: e.clientX, y: e.clientY, tx: v.tx, ty: v.ty };
-      } else {
+      // Grab the stamp to reposition it; a drag anywhere else pans/scrolls, so
+      // the placed state doesn't trap the page scroll either.
+      if (role === "stamp") {
         gesture.current = "dragSig";
         moveTo(e.clientX, e.clientY);
+      } else {
+        beginPan(e.clientX, e.clientY);
       }
       return;
     }
 
     if (role === "sign-tab") {
       startHold(e.clientX, e.clientY);
-    } else if (v.scale > 1) {
-      gesture.current = "pan";
-      panStart.current = { x: e.clientX, y: e.clientY, tx: v.tx, ty: v.ty };
+    } else {
+      beginPan(e.clientX, e.clientY);
     }
   }
 
@@ -314,7 +346,12 @@ export default function DocumentSignField({
       case "hold": {
         const dx = e.clientX - holdStart.current.x;
         const dy = e.clientY - holdStart.current.y;
-        if (Math.hypot(dx, dy) > HOLD_CANCEL_PX) cancelHold();
+        // The press turned into a drag — abandon signing and let the rest of the
+        // gesture pan/scroll, so a finger that lands on the tab can still scroll.
+        if (Math.hypot(dx, dy) > HOLD_CANCEL_PX) {
+          cancelHold();
+          beginPan(e.clientX, e.clientY);
+        }
         break;
       }
       case "dragSig":
@@ -322,7 +359,15 @@ export default function DocumentSignField({
         break;
       case "pan": {
         const box = boxSize();
-        if (box) setView(panView(viewRef.current, box, panStart.current, e.clientX, e.clientY));
+        if (!box) break;
+        const cur = viewRef.current;
+        const { view, overflowY } = panStep(cur, box, e.clientX - panLast.current.x, e.clientY - panLast.current.y);
+        panLast.current = { x: e.clientX, y: e.clientY };
+        // Skip the state update when the content didn't move (e.g. at 100%, or
+        // already pinned to an edge) so a pure scroll doesn't re-render per move.
+        if (view.tx !== cur.tx || view.ty !== cur.ty || view.scale !== cur.scale) setView(view);
+        // Whatever the pan couldn't absorb keeps scrolling the surrounding panel.
+        if (overflowY && scrollParent.current) scrollParent.current.scrollTop -= overflowY;
         break;
       }
     }
@@ -334,11 +379,10 @@ export default function DocumentSignField({
     if (pointers.current.size === 0) {
       gesture.current = "none";
     } else if (pointers.current.size === 1 && gesture.current === "pinch") {
-      // Lift one finger mid-pinch → continue as a pan from the survivor.
+      // Lift one finger mid-pinch → continue as a pan (with scroll chaining)
+      // from the survivor.
       const [pt] = [...pointers.current.values()];
-      const v = viewRef.current;
-      gesture.current = "pan";
-      panStart.current = { x: pt.x, y: pt.y, tx: v.tx, ty: v.ty };
+      beginPan(pt.x, pt.y);
     }
   }
 
