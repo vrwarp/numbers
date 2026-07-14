@@ -46,6 +46,25 @@ body {
   @apply rounded-xl border border-stone-200 bg-white shadow-sm;
 }
 
+/* Makes a card read and behave as one clickable control. Two halves so they
+   can sit on different elements when a card expands in place (the clickable
+   header is a <button>, the border lives on its <li> wrapper); on a card that
+   is itself the link, stack both on the one element.
+   .pressable — goes on the element that actually receives the click. A native
+   <button> defaults to the arrow cursor and neither buttons nor links give a
+   press cue, so this is what answers hover (pointer), click, and tap: a subtle
+   scale-in on mouse-down / touch, with the grey mobile tap-flash swapped for
+   that same press, plus a keyboard focus ring.
+   .card-lift — goes on the element carrying the card border; the border +
+   shadow lift under the pointer. */
+.pressable {
+  @apply cursor-pointer transition duration-150 ease-out active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2;
+  -webkit-tap-highlight-color: transparent;
+}
+.card-lift {
+  @apply transition duration-150 ease-out hover:border-indigo-300 hover:shadow-md;
+}
+
 /* Expanding-ring pulse pointing the user at the next verify button. */
 @keyframes nudge-ring {
   0% {

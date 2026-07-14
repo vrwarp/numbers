@@ -144,8 +144,8 @@ function ClaimRow({
   const tEsign2 = useTranslations("Esign");
   const format = useFormatter();
   return (
-    <li className="card p-4" data-testid={`approval-${claim.id}`}>
-      <button className="flex w-full items-center justify-between gap-3 text-left" onClick={onToggle}>
+    <li className="card card-lift p-4" data-testid={`approval-${claim.id}`}>
+      <button className="pressable flex w-full items-center justify-between gap-3 text-left" onClick={onToggle}>
         {/* min-w-0 + truncate so a long claim description shrinks instead of
             pushing the amount off the card (flex min-width:auto). */}
         <div className="min-w-0">
