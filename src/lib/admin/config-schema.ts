@@ -50,7 +50,11 @@ export const ADMIN_CONFIG_FIELDS: readonly AdminConfigField[] = [
   { key: "ESIGN_ROOT_FINGERPRINT", group: "esign", type: "text" },
 
   // --- Firebase auth --------------------------------------------------------
-  { key: "FIREBASE_API_KEY", group: "firebase", type: "text", secret: true },
+  // A Firebase web API key is a PUBLIC client identifier (relayed to every
+  // browser by firebaseWebConfig), not a secret — shown, like the other
+  // Firebase fields, so the admin can verify it. The provider keys above are
+  // the real secrets.
+  { key: "FIREBASE_API_KEY", group: "firebase", type: "text" },
   { key: "FIREBASE_AUTH_DOMAIN", group: "firebase", type: "text", placeholder: "project.firebaseapp.com" },
   { key: "FIREBASE_PROJECT_ID", group: "firebase", type: "text" },
   { key: "FIREBASE_APP_ID", group: "firebase", type: "text" },

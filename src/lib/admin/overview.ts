@@ -75,9 +75,6 @@ export interface UsageStats {
   enrolledMembers: number;
   receipts: number;
   claimsByStatus: Record<string, number>;
-  /** Real money: sum of totalCents for approved + paid claims. */
-  settledCents: number;
-  paidCents: number;
   last7: { claims: number; receipts: number };
   last30: { claims: number; receipts: number };
   ai: {
@@ -100,37 +97,21 @@ export async function computeStats(): Promise<UsageStats> {
   const since30 = new Date(now - 30 * DAY_MS);
   const since7 = new Date(now - 7 * DAY_MS);
 
-  const [
-    users,
-    enrolledMembers,
-    receipts,
-    claimGroups,
-    settled,
-    paid,
-    claims7,
-    claims30,
-    receipts7,
-    receipts30,
-    logs,
-  ] = await Promise.all([
-    prisma.user.count(),
-    prisma.signerIdentity.count({ where: { status: "attested" } }),
-    prisma.receipt.count(),
-    prisma.reimbursement.groupBy({ by: ["status"], _count: { _all: true } }),
-    prisma.reimbursement.aggregate({
-      where: { status: { in: ["approved", "paid"] } },
-      _sum: { totalCents: true },
-    }),
-    prisma.reimbursement.aggregate({ where: { status: "paid" }, _sum: { totalCents: true } }),
-    prisma.reimbursement.count({ where: { createdAt: { gte: since7 } } }),
-    prisma.reimbursement.count({ where: { createdAt: { gte: since30 } } }),
-    prisma.receipt.count({ where: { createdAt: { gte: since7 } } }),
-    prisma.receipt.count({ where: { createdAt: { gte: since30 } } }),
-    prisma.extractionLog.findMany({
-      where: { createdAt: { gte: since30 } },
-      select: { status: true, kind: true, createdAt: true },
-    }),
-  ]);
+  const [users, enrolledMembers, receipts, claimGroups, claims7, claims30, receipts7, receipts30, logs] =
+    await Promise.all([
+      prisma.user.count(),
+      prisma.signerIdentity.count({ where: { status: "attested" } }),
+      prisma.receipt.count(),
+      prisma.reimbursement.groupBy({ by: ["status"], _count: { _all: true } }),
+      prisma.reimbursement.count({ where: { createdAt: { gte: since7 } } }),
+      prisma.reimbursement.count({ where: { createdAt: { gte: since30 } } }),
+      prisma.receipt.count({ where: { createdAt: { gte: since7 } } }),
+      prisma.receipt.count({ where: { createdAt: { gte: since30 } } }),
+      prisma.extractionLog.findMany({
+        where: { createdAt: { gte: since30 } },
+        select: { status: true, kind: true, createdAt: true },
+      }),
+    ]);
 
   const claimsByStatus: Record<string, number> = {};
   for (const g of claimGroups) claimsByStatus[g.status] = g._count._all;
@@ -159,8 +140,6 @@ export async function computeStats(): Promise<UsageStats> {
     enrolledMembers,
     receipts,
     claimsByStatus,
-    settledCents: settled._sum.totalCents ?? 0,
-    paidCents: paid._sum.totalCents ?? 0,
     last7: { claims: claims7, receipts: receipts7 },
     last30: { claims: claims30, receipts: receipts30 },
     ai: { total: logs.length, success, error, byKind, daily },

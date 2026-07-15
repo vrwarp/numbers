@@ -87,7 +87,7 @@ link if I'm actually an admin."
 | Overview | Health/"problems" cards + headline counts | every visit |
 | Church Context | Markdown editor for the suggestion context (**the main job**) | as vocabulary changes |
 | Settings | Grouped, guard-railed editor for `config.json` env overrides | rare / setup |
-| Usage | Totals, AI-call success/failure over time, real `paid` money | weekly |
+| Usage | Totals, claims by status, AI-call success/failure over time | weekly |
 | Logs | Audit events + extraction failures, filterable (errors by default) | when troubleshooting |
 | Members | Verified-mirror member table + e-sign switch/scope/allowlist + vouch chain | monthly |
 

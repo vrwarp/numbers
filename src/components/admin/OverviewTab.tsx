@@ -8,7 +8,6 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { formatCents } from "@/lib/money";
 import type { HealthItem, UsageStats } from "@/lib/admin/overview";
 import type { Tab } from "./AdminDashboard";
 
@@ -92,11 +91,10 @@ export default function OverviewTab({ onNavigate }: { onNavigate: (t: Tab) => vo
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-stone-500">{t("headlineTitle")}</h2>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Stat label={t("statUsers")} value={stats.users} />
           <Stat label={t("statReceipts")} value={stats.receipts} />
           <Stat label={t("statClaims")} value={totalClaims} />
-          <Stat label={t("statSettled")} value={formatCents(stats.settledCents)} />
           <Stat label={t("statAi30")} value={stats.ai.total} />
         </div>
         <p className="text-xs text-stone-400">{t("moreInUsage")}</p>

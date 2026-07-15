@@ -8,7 +8,6 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { formatCents } from "@/lib/money";
 import type { UsageStats } from "@/lib/admin/overview";
 
 const CLAIM_STATUSES = ["draft", "generated", "submitted", "approved", "paid", "rejected"] as const;
@@ -50,7 +49,7 @@ export default function UsageTab() {
     <div className="space-y-5" data-testid="usage-tab">
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-stone-500">{t("totalsTitle")}</h2>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <Stat label={t("statUsers")} value={stats.users} sub={t("enrolledSub", { n: stats.enrolledMembers })} />
           <Stat label={t("statReceipts")} value={stats.receipts} sub={t("last30Sub", { n: stats.last30.receipts })} />
           <Stat
@@ -58,7 +57,6 @@ export default function UsageTab() {
             value={Object.values(stats.claimsByStatus).reduce((a, b) => a + b, 0)}
             sub={t("last30Sub", { n: stats.last30.claims })}
           />
-          <Stat label={t("statSettled")} value={formatCents(stats.settledCents)} sub={t("paidSub", { amount: formatCents(stats.paidCents) })} />
         </div>
       </section>
 

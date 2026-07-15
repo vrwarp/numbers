@@ -3863,11 +3863,6 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Admin.statSettled": {
-    "source": "Approved & paid",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
   "Admin.statAi30": {
     "source": "AI calls (30d)",
     "zh-Hans": "machine",
@@ -3995,11 +3990,6 @@
   },
   "Admin.last30Sub": {
     "source": "{n} in last 30 days",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Admin.paidSub": {
-    "source": "{amount} paid out",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4324,7 +4314,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_AI_PROVIDER_help": {
-    "source": "Which service extracts receipts and suggests ministries.",
+    "source": "Which service runs receipt extraction and the “Suggest ministry” calls. Switch anytime — it applies to the next claim built or suggestion; past extractions and their logs are untouched. Fill in the matching API key below.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4334,7 +4324,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_OPENROUTER_API_KEY_help": {
-    "source": "Used when the provider is OpenRouter.",
+    "source": "Your OpenRouter key, used only while the provider above is OpenRouter. Stored on the server and never shown again — leave blank to keep the current one.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4344,7 +4334,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_OPENROUTER_MODEL_help": {
-    "source": "Model id, e.g. google/gemini-3.1-flash-lite.",
+    "source": "The OpenRouter model id used for extraction and suggestions when OpenRouter is the provider. Blank uses the default, google/gemini-3.1-flash-lite.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4354,7 +4344,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_GEMINI_API_KEY_help": {
-    "source": "Used when the provider is Google.",
+    "source": "Your Google AI Studio (Gemini) key, used only while the provider above is Google. Stored on the server and never shown again — leave blank to keep the current one.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4364,7 +4354,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_GEMINI_MODEL_help": {
-    "source": "Gemini model id.",
+    "source": "The Gemini model id used when Google is the provider. Blank uses the default, gemini-3.1-flash-lite.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4374,7 +4364,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_AI_RPM_TARGET_help": {
-    "source": "How fast the app calls the AI. Gemini’s free tier allows 15/min.",
+    "source": "Caps how many provider calls per minute the server makes, so a batch of receipts stays under your plan’s limit (Gemini’s free tier is 15/min). Extra calls wait their turn instead of failing. No effect while AI is mocked. Default 15.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4384,7 +4374,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_AI_QUOTA_COOLDOWN_MS_help": {
-    "source": "How long to wait after a rate-limit before retrying.",
+    "source": "After a rate-limit error, how long to wait before retrying, in milliseconds. The wait is shown to whoever is building the claim. Default 60000 (one minute).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4394,7 +4384,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_AI_QUOTA_MAX_RETRIES_help": {
-    "source": "How many times to retry after a rate-limit.",
+    "source": "How many times to retry after a rate-limit error before giving up (0 surfaces it at once). Applies to receipt extraction; the interactive Suggest call never waits. Default 3.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4404,7 +4394,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_PUBLIC_BASE_URL_help": {
-    "source": "This app’s public URL. Enables the QR code on generated PDFs.",
+    "source": "This deployment’s public web address. When set, generated PDFs carry a QR code back to the claim packet and signature certificates link to it. A reverse proxy hides the real URL, so it’s explicit here. Changing it only affects PDFs generated afterward; it’s also required for first-party sign-in below.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4414,7 +4404,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_ESIGN_ROOT_EMAIL_help": {
-    "source": "The one account allowed to set up electronic signatures.",
+    "source": "The one account allowed to run the one-time e-signature setup. This matters only BEFORE setup: once e-signatures are established the root identity is fixed in the signed genesis record, so changing this afterward does nothing (re-rooting is a separate re-genesis ceremony, not an email change).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4424,7 +4414,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_ESIGN_ROOT_FINGERPRINT_help": {
-    "source": "Optional out-of-band pin of the root signing key.",
+    "source": "Optional out-of-band fingerprint of the root signing key. When set, this app and every verifier reject any roster whose root key doesn’t match — the guard against a swapped trust anchor. Set it before setup to pin the expected root; afterward it must equal the established root’s fingerprint or verification fails closed.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4434,7 +4424,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_FIREBASE_API_KEY_help": {
-    "source": "From your Firebase web app config.",
+    "source": "From your Firebase web-app config. This is a public client identifier (every browser receives it), shown here so you can verify it. Google sign-in appears only when this, the auth domain, and the project ID are all set.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4444,7 +4434,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_FIREBASE_AUTH_DOMAIN_help": {
-    "source": "Usually project.firebaseapp.com.",
+    "source": "From your Firebase web-app config — usually your-project.firebaseapp.com. The sign-in domain in the normal flow; if you enable first-party sign-in below, point it at your own domain instead. A full https:// URL is accepted (only the host is used).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4454,7 +4444,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_FIREBASE_PROJECT_ID_help": {
-    "source": "Your Firebase project id.",
+    "source": "Your Firebase project id. Used both in the browser sign-in config and on the server to verify the Google ID tokens users present — so it must match the project your users actually sign in to. It also derives the first-party sign-in target.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4464,7 +4454,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_FIREBASE_APP_ID_help": {
-    "source": "Optional; from the Firebase web app config.",
+    "source": "Optional, from the Firebase web-app config. Sign-in works without it; include it only if your setup requires it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4474,7 +4464,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_FIREBASE_AUTH_PROXY_help": {
-    "source": "Serve Google sign-in from this app’s domain (fixes iOS sign-in). Needs the public web address.",
+    "source": "Serve Google sign-in from this app’s own domain instead of firebaseapp.com — fixes iOS/Safari sign-in failures. Needs the public web address above, plus the redirect URI and authorized domain registered in the Firebase console.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4484,7 +4474,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_FIREBASE_AUTH_UPSTREAM_HOST_help": {
-    "source": "Advanced: override the sign-in proxy target host.",
+    "source": "Advanced. The host the first-party sign-in proxy forwards to. Blank derives it from the project id (project.firebaseapp.com), which is right for normal projects — set this only for unusual Firebase setups.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4494,7 +4484,7 @@
     "zh-Hant": "machine"
   },
   "Admin.fields_ADMIN_EMAILS_help": {
-    "source": "Emails that get admin access to this area, comma-separated. Lets you add admins without the e-sign roster. It doesn’t change signing roles.",
+    "source": "Emails that get admin access to this area, comma-separated — the way to add admins without the e-sign roster. It’s app-access only and never changes anyone’s signing role. Takes effect immediately; keep your own email here so you don’t lock yourself out.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   }

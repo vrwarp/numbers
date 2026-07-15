@@ -51,11 +51,12 @@ describe("admin config schema", () => {
     expect(normalizeConfigValue(f, "")).toBeNull(); // off clears
   });
 
-  it("marks the expected fields as secret", () => {
+  it("marks the provider keys secret but not the public Firebase key", () => {
     const secrets = ADMIN_CONFIG_FIELDS.filter((f) => f.secret).map((f) => f.key);
     expect(secrets).toContain("OPENROUTER_API_KEY");
     expect(secrets).toContain("GEMINI_API_KEY");
-    expect(secrets).toContain("FIREBASE_API_KEY");
+    // A Firebase web API key is a public client identifier, not a secret.
+    expect(secrets).not.toContain("FIREBASE_API_KEY");
   });
 
   it("unknown keys are not editable fields", () => {

@@ -29,7 +29,7 @@ const beats = [
     tab: "Settings",
     cadence: "setup · rare",
     title: "Configure the deployment without a shell",
-    body: "Plain-language fields grouped by concern, each tagged with its real env name for operators who know it. Secrets are <b>write-only</b> — the form shows only whether one is <em>set</em>, never its value, and never echoes it back. Numbers and enums validate before anything touches <span class=\"mono\">config.json</span>. Auth-critical and bootstrap keys are deliberately absent, so no admin can lock the deployment out through the form.",
+    body: "Plain-language fields grouped by concern, each tagged with its real env name and a precise explanation of what it does <em>and when it takes effect</em> — e.g. the e-sign root email only matters before setup, since genesis fixes the root. True secrets (the provider keys) are <b>write-only</b>; a public value like the Firebase web key is shown so you can verify it. Numbers and enums validate before anything touches <span class=\"mono\">config.json</span>, and auth-critical keys are absent, so no admin can lock the deployment out through the form.",
   },
   {
     img: "04-usage.png",
