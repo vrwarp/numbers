@@ -385,6 +385,7 @@
   },
   "ReceiptGrid.processedSuffix": {
     "source": " · processed",
+    "context": "Lowercase suffix appended mid-sentence to a receipt card's date·size line when the receipt sits on a frozen claim. Leading ' · ' separator kept. Matches the 'processed' status word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1397,6 +1398,7 @@
   },
   "Review.aiOptional": {
     "source": "optional",
+    "context": "Tiny hint beside a form field meaning it's optional. One word, lowercase.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1407,6 +1409,7 @@
   },
   "Review.send": {
     "source": "Send",
+    "context": "Button that sends the typed message to the AI assistant. One word, imperative verb.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1417,6 +1420,7 @@
   },
   "Review.somethingElse": {
     "source": "Something else…",
+    "context": "Last option in a picker: the user will type their own answer instead. Trailing ellipsis.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1741,6 +1745,7 @@
   },
   "Esign.openOriginalPacketLink": {
     "source": "Original (as submitted)",
+    "context": "Link that opens the originally-submitted (un-stamped) PDF version. '(as submitted)' says which version.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1846,11 +1851,13 @@
   },
   "Esign.connectButton": {
     "source": "Connect signing",
+    "context": "Button to connect this device's signing session (unlock the signing key for a ceremony). Imperative.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Esign.connecting": {
     "source": "Connecting…",
+    "context": "Transient status shown while the signing session connects. Trailing ellipsis.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -2992,6 +2999,7 @@
   },
   "VouchScan.cancel": {
     "source": "Stop camera",
+    "context": "Button that stops the QR-scanner camera during a vouch. Imperative.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3040,6 +3048,7 @@
   },
   "Verify.confirmedTitle": {
     "source": "Confirmed genuine",
+    "context": "Big verdict headline on the public /v verification page when every check passes. Plain, reassuring — not technical. Pairs with 'warningsTitle'.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3051,31 +3060,37 @@
   },
   "Verify.storyGeneric": {
     "source": "This paperwork was cryptographically checked in your browser — see the details below.",
+    "context": "One-line summary under the verdict when the claim's owner/amount are unknown (e.g. a deleted claim). Plain language.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.story.paid": {
     "source": "<b>{name}</b> asked to be paid back <b>{amount}</b>. A different, authorized person approved it, and the church treasurer paid it — and the paperwork you're looking at hasn't changed since it was signed.",
+    "context": "Verdict summary sentence for a fully-paid claim. {name}=claimant, {amount}=money; <b> bolds them. The reader scanned a QR and wants the gist.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.story.approved": {
     "source": "<b>{name}</b> asked to be paid back <b>{amount}</b>. A different, authorized person approved it. The treasurer hasn't recorded payment yet, and the paperwork hasn't changed since it was signed.",
+    "context": "Verdict summary sentence when the claim is approved but not yet paid. {name}=claimant, {amount}=money.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.story.submitted": {
     "source": "<b>{name}</b> asked to be paid back <b>{amount}</b> and signed the request. It's waiting for an authorized approver — and nothing has changed since it was signed.",
+    "context": "Verdict summary sentence when the claim is submitted and awaiting an approver. {name}=claimant, {amount}=money.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.story.rejected": {
     "source": "<b>{name}</b> asked to be paid back <b>{amount}</b>, and an authorized approver reviewed it and asked for changes. The paperwork itself is genuine and unchanged.",
+    "context": "Verdict summary sentence when an approver sent the claim back for changes. {name}=claimant, {amount}=money.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.story.warn": {
     "source": "Most of this checks out, but one thing doesn't add up — check the details below before treating this as the genuine paperwork.",
+    "context": "Verdict summary sentence when a check FAILED — cautionary; tells the reader not to trust the paperwork yet.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3087,111 +3102,133 @@
   },
   "Verify.pillsLabel": {
     "source": "Summary of checks",
+    "context": "Accessibility label (screen readers) for the four-pill lifecycle row. Not visible on screen.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.pillRequested": {
     "source": "Requested",
+    "context": "Status pill in a 4-pill row (Requested·Approved·Paid·Unchanged): the reimbursement was requested/submitted by the claimant. One word, past-tense state.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.pillApproved": {
     "source": "Approved",
+    "context": "Status pill: an approver signed off. One word, past-tense state — same idea as the claim-status word 'Approved'.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.pillPaid": {
     "source": "Paid",
+    "context": "Status pill: the treasurer recorded payment. One word, past-tense state.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.pillUnchanged": {
     "source": "Unchanged",
+    "context": "Status pill: the document has NOT been altered since it was signed. One word; opposite of 'changed/tampered'.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.peopleTitle": {
     "source": "The people who signed",
+    "context": "Small uppercase section heading above the list of people who signed the claim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.peopleHint": {
     "source": "Tap anyone to see who confirmed their identity, in person — then keep opening to follow the chain up to the church's root. Links deeper than the direct vouchers are shown by their key, not their name.",
+    "context": "Helper sentence under the people heading: tap a person to walk the chain of trust up to the church root; deeper links show a key instead of a name (privacy).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.tag.requested": {
     "source": "requested the money",
+    "context": "Tiny role tag after a signer's name in the people list: this person requested the money. Lowercase verb phrase. Pairs with tag.approved / tag.paid.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.tag.approved": {
     "source": "approved it",
+    "context": "Tiny role tag after a signer's name: this person approved the claim. Lowercase verb phrase.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.tag.paid": {
     "source": "paid it",
+    "context": "Tiny role tag after a signer's name: this person (the treasurer) paid the claim. Lowercase verb phrase.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.confirmedInPerson": {
     "source": "Identity confirmed in person",
+    "context": "Green badge under a signer's name: their identity was vouched for face-to-face. Short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.confirmedByLabel": {
     "source": "Confirmed in person by",
+    "context": "Tiny uppercase label above the voucher(s) when a chain-of-trust node is expanded — reads 'Confirmed in person by [the people listed below]'.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.personByKey": {
     "source": "Person",
+    "context": "Placeholder shown INSTEAD of a real name for a voucher deeper in the chain than the direct vouchers (privacy — identified only by the key fingerprint shown beside it). Means 'an unnamed person', not 'person' in general.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.rootName": {
     "source": "The church's root",
+    "context": "Label for the trust-anchor node at the top of every chain of trust — the church's root identity, shown generically (not the root person's real name) with its key fingerprint beside it. 'root' = the single trust anchor.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.rootCaption": {
     "source": "The trust anchor set when the church first opened its records. You confirm this one identity out-of-band — the key shown here matches the fingerprint printed in the church's records.",
+    "context": "Explanation under the root node: it's the out-of-band trust anchor; the shown key matches the fingerprint the church publishes.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.docTitle": {
     "source": "The document — what you're holding",
+    "context": "Small section heading above the document card. 'what you're holding' = the printed pages the reader has in hand.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.docLeadOk": {
     "source": "These pages are the approved copy.",
+    "context": "Bold lead line of the document card when checks pass: these pages are the final approved copy.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.docBodyOk": {
     "source": "The final, stamped version — safe to print and file. Your phone confirmed it's built from the original everyone signed, unchanged.",
+    "context": "Body under docLeadOk: the approved copy is safe to print/file and was confirmed built from the signed original.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.docLeadWarn": {
     "source": "This copy no longer matches what was signed.",
+    "context": "Bold lead line of the document card when a check FAILED: the copy no longer matches what was signed.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.docBodyWarn": {
     "source": "Your phone found that these pages were changed after they were signed. Don't treat them as the genuine paperwork.",
+    "context": "Body under docLeadWarn: the pages were changed after signing; don't trust them.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.docOpen": {
     "source": "Open the approved copy",
+    "context": "Button/link that opens the approved-copy PDF. 'copy' = the stamped delivery version.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.stepsTitle": {
     "source": "Step by step — and what each step sealed",
+    "context": "Small section heading above the step-by-step timeline; each step also shows which document version it 'sealed' (froze).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3221,96 +3258,115 @@
   },
   "Verify.stepSubmit": {
     "source": "The form was filled out and signed",
+    "context": "Timeline step title for submission: the claimant filled out and signed the form. Shown before the status word 'Submitted'.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.stepApprove": {
     "source": "Reviewed and approved",
+    "context": "Timeline step title for approval: the approver reviewed and approved. Shown before the status word 'Approved'.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.stepReject": {
     "source": "Reviewed and declined",
+    "context": "Timeline step title for rejection: the approver reviewed and declined. Shown before the status word 'Rejected'.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.stepPaid": {
     "source": "Payment recorded",
+    "context": "Timeline step title for payment: the treasurer recorded payment. Shown before the status word 'Paid'.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.howSubmit": {
     "source": "Made with {name}'s own signing key — the identity vouched for above, kept on their device — so this is their signature, not just a typed name.",
+    "context": "Plain 'how we know' line under the submit step. {name}=claimant. The signature was made with the person's own signing key, not just a typed name. Avoid overclaiming ('impossible to forge').",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.howApprove": {
     "source": "They reviewed the very same document that was signed, and they are authorized to approve.",
+    "context": "Plain 'how we know' line under the approve step: the approver saw the same document and is authorized to approve.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.howPaid": {
     "source": "Only the church treasurer can mark a claim paid.",
+    "context": "Plain 'how we know' line under the paid step: only the treasurer can mark a claim paid.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.howPaidCheck": {
     "source": "Only the church treasurer can mark a claim paid. Recorded as check #{number}.",
+    "context": "Like howPaid but includes the recorded cheque number. {number}=cheque number.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.vtagOriginal": {
     "source": "Sealed original",
+    "context": "Tiny tag on the submit step's document chip: this version is the frozen original that every signature points to. Short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.vtagApproved": {
     "source": "Approved copy",
+    "context": "Tiny tag on the approve step's document chip: this version is the original plus the approver's stamp (the copy you print). Short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.vtagNone": {
     "source": "No new version",
+    "context": "Tiny tag on the paid step's document chip: payment created no new document version. Short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.vcapOriginal": {
     "source": "Signing the form sealed <b>the original</b> — the one version every later signature points to. It's frozen here and can never change.",
+    "context": "Caption on the sealed-original chip; <b> bolds 'the original'. It's frozen and unchangeable.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.vcapApproved": {
     "source": "Approving <b>sealed a copy</b>: the original plus the approver's stamp, with the original's mark printed on it — so the stamp can't be moved onto another document.",
+    "context": "Caption on the approved-copy chip; <b> bolds 'sealed a copy'. The copy carries the original's mark so the stamp can't be moved.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.vcapNone": {
     "source": "The payment didn't create another document — it points back to the approved copy above.",
+    "context": "Caption on the paid step's chip: no new document; it points back to the approved copy above.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.viewPage": {
     "source": "View this exact page",
+    "context": "Disclosure toggle on a document chip that reveals this exact version's mark (fingerprint) and a link to open it. 'this exact page' stresses the precise archived bytes.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.markLabel": {
     "source": "Its mark:",
+    "context": "Label before a short hex fingerprint identifying a document version. 'mark' = the version's unique cryptographic fingerprint, NOT a checkmark or symbol.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.openThisPage": {
     "source": "Open the sealed page",
+    "context": "Link that opens this exact archived document version (a PDF). 'sealed page' = the frozen version.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.lockLine": {
     "source": "Each step seals its own copy the moment it happens, and every later copy is built from the original and carries its mark. So no page, and no step, can be edited, removed, or swapped afterward.",
+    "context": "Reassurance line under the timeline: each step seals its own copy and later copies descend from the original, so nothing can be edited, removed, or swapped afterward.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.forAuditors": {
     "source": "For auditors",
+    "context": "Heading of the collapsed technical/audit disclosure at the bottom. 'auditors' = people doing a technical check.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3415,11 +3471,13 @@
   },
   "Errors.receiptNotFound": {
     "source": "Receipt not found",
+    "context": "API error message: the requested receipt doesn't exist (or isn't the user's).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.invalidReceiptUpdate": {
     "source": "Invalid receipt update",
+    "context": "API error message: a receipt-edit request was malformed.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3430,6 +3488,7 @@
   },
   "Errors.noFilesUploaded": {
     "source": "No files uploaded",
+    "context": "API error message: an upload request contained no files.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3452,16 +3511,19 @@
   },
   "Errors.invalidPreviewPage": {
     "source": "Invalid preview page",
+    "context": "API error message: the requested preview page number is out of range/invalid.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.invalidImageEdit": {
     "source": "Invalid image edit",
+    "context": "API error message: an image-edit request was malformed.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.nothingToChange": {
     "source": "Nothing to change",
+    "context": "API error message: an edit request contained no actual changes.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3510,6 +3572,7 @@
   },
   "Errors.invalidSplitRequest": {
     "source": "Invalid split request",
+    "context": "API error message: a line-item split request was malformed.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3530,11 +3593,13 @@
   },
   "Errors.claimNotFound": {
     "source": "Claim not found",
+    "context": "API error message: the reimbursement claim doesn't exist (or isn't the user's).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.invalidClaimUpdate": {
     "source": "Invalid claim update",
+    "context": "API error message: a claim-update request was malformed.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3587,6 +3652,7 @@
   },
   "Errors.invalidManualEntry": {
     "source": "Invalid manual-entry fields",
+    "context": "API error message: manual line-item entry fields were invalid.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3634,11 +3700,13 @@
   },
   "Errors.userNotFound": {
     "source": "User not found",
+    "context": "API error message: the user record was not found.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Errors.invalidProfileUpdate": {
     "source": "Invalid profile update",
+    "context": "API error message: a profile-update request was malformed.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
