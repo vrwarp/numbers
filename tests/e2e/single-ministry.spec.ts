@@ -79,6 +79,18 @@ test("describe → Suggest → apply fans the ministry onto every row and unlock
     await approveButtons.first().click();
     await expect(page.getByTestId("verify-progress")).toContainText(`${i + 1} / 3 verified`);
   }
+  // The verify clicks are optimistic + queued client-side, so "3 / 3 verified"
+  // can show before the last PATCH commits. The real Download button drains
+  // that queue (ReviewClaim.generatePdf); this raw POST bypasses it, so wait
+  // for the server to actually reflect all three before hitting the gate.
+  await expect
+    .poll(async () =>
+      (
+        (await (await page.request.get(`/api/reimbursements/${claimId}`)).json())
+          .reimbursement.lineItems as { isVerified: boolean }[]
+      ).filter((li) => li.isVerified).length
+    )
+    .toBe(3);
   expect((await page.request.post(`/api/reimbursements/${claimId}/pdf`)).status()).toBe(200);
 
   // Telemetry: the suggestion call was logged alongside the extractions.

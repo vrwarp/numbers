@@ -198,6 +198,12 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     mutationChain.current = next.catch(() => undefined);
     return next;
   }, []);
+  // Await every mutation enqueued so far. Optimistic row updates (verify,
+  // ministry) land in the UI before their PATCH commits server-side, so any
+  // action that then hits an endpoint which RE-READS that server state — the
+  // PDF gate re-checks every row isVerified — must drain the queue first, or it
+  // races its own in-flight writes into a spurious 400.
+  const flushMutations = useCallback(() => mutationChain.current, []);
 
   const patchItem = useCallback(
     (itemId: string, patch: Partial<LineItem>) => {
@@ -525,6 +531,9 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     setDownloading(true);
     setError(null);
     try {
+      // Let any queued verify/ministry writes commit before the gate re-checks
+      // them server-side (a fast Confirm→Download would otherwise 400).
+      await flushMutations();
       // Under signature the packet is frozen (hash-bound) — download the
       // archived bytes; regenerating would 409 and would change the hash.
       const signed = (SIGNED_STATUSES as readonly string[]).includes(claim!.status);
@@ -557,6 +566,8 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     setDownloading(true);
     setError(null);
     try {
+      // Same drain as generatePdf: the gate re-checks verification server-side.
+      await flushMutations();
       const res = await fetch(`/api/reimbursements/${claim!.id}/pdf`, { method: "POST" });
       if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("pdfFailed")));
       await load();
