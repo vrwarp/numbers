@@ -843,6 +843,8 @@
     "fields_FIREBASE_AUTH_PROXY_label": "第一方登录",
     "fields_FIREBASE_AUTH_PROXY_help": "从本应用域名提供 Google 登录（修复 iOS 登录）。需要公开网址。",
     "fields_FIREBASE_AUTH_UPSTREAM_HOST_label": "登录代理上游",
-    "fields_FIREBASE_AUTH_UPSTREAM_HOST_help": "高级：覆盖登录代理的目标主机。"
+    "fields_FIREBASE_AUTH_UPSTREAM_HOST_help": "高级：覆盖登录代理的目标主机。",
+    "fields_ADMIN_EMAILS_label": "管理员邮箱",
+    "fields_ADMIN_EMAILS_help": "获得本区域管理权限的邮箱，用逗号分隔。可在不经过电子签署名册的情况下添加管理员；不会更改签署角色。"
   }
 }

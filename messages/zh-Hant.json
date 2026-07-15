@@ -843,6 +843,8 @@
     "fields_FIREBASE_AUTH_PROXY_label": "第一方登入",
     "fields_FIREBASE_AUTH_PROXY_help": "從本應用程式網域提供 Google 登入（修正 iOS 登入）。需要公開網址。",
     "fields_FIREBASE_AUTH_UPSTREAM_HOST_label": "登入代理上游",
-    "fields_FIREBASE_AUTH_UPSTREAM_HOST_help": "進階：覆寫登入代理的目標主機。"
+    "fields_FIREBASE_AUTH_UPSTREAM_HOST_help": "進階：覆寫登入代理的目標主機。",
+    "fields_ADMIN_EMAILS_label": "管理員信箱",
+    "fields_ADMIN_EMAILS_help": "取得本區域管理權限的信箱，以逗號分隔。可在不經過電子簽署名冊的情況下新增管理員；不會變更簽署角色。"
   }
 }

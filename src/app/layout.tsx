@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import "./globals.css";
 import { currentUser } from "@/auth";
+import { isAppAdmin } from "@/lib/config";
 import NavBar from "@/components/NavBar";
 import DeviceRequestsBanner from "@/components/esign/DeviceRequestsBanner";
 
@@ -34,7 +35,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale}>
       <body className="min-h-screen">
         <NextIntlClientProvider locale={locale} messages={messages}>
-          {user && <NavBar userName={user.fullName ?? user.email} isAdmin={user.role === "admin"} />}
+          {user && <NavBar userName={user.fullName ?? user.email} isAdmin={isAppAdmin(user)} />}
           {user && <DeviceRequestsBanner />}
           <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
         </NextIntlClientProvider>

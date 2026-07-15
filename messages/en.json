@@ -843,6 +843,8 @@
     "fields_FIREBASE_AUTH_PROXY_label": "First-party sign-in",
     "fields_FIREBASE_AUTH_PROXY_help": "Serve Google sign-in from this app’s domain (fixes iOS sign-in). Needs the public web address.",
     "fields_FIREBASE_AUTH_UPSTREAM_HOST_label": "Sign-in proxy upstream",
-    "fields_FIREBASE_AUTH_UPSTREAM_HOST_help": "Advanced: override the sign-in proxy target host."
+    "fields_FIREBASE_AUTH_UPSTREAM_HOST_help": "Advanced: override the sign-in proxy target host.",
+    "fields_ADMIN_EMAILS_label": "Admin emails",
+    "fields_ADMIN_EMAILS_help": "Emails that get admin access to this area, comma-separated. Lets you add admins without the e-sign roster. It doesn’t change signing roles."
   }
 }

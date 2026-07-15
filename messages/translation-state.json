@@ -4487,5 +4487,15 @@
     "source": "Advanced: override the sign-in proxy target host.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Admin.fields_ADMIN_EMAILS_label": {
+    "source": "Admin emails",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_ADMIN_EMAILS_help": {
+    "source": "Emails that get admin access to this area, comma-separated. Lets you add admins without the e-sign roster. It doesn’t change signing roles.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   }
 }

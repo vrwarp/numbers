@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { currentUser } from "@/auth";
-import { esignRootEmail, esignRootFingerprint, isEsignMock } from "@/lib/config";
+import { esignRootEmail, esignRootFingerprint, isEsignMock, isAppAdmin } from "@/lib/config";
 import { firebaseWebConfig } from "@/lib/firebase-admin";
 import { esignAccessAllowed, getRegistry, reportRosterEvents } from "@/lib/esign/server";
 import { openLedger } from "@/lib/esign/envelope";
@@ -57,7 +57,7 @@ export async function GET() {
       enabled: registry.enabled,
       scope: registry.scope,
       allowed,
-      canToggle: user!.role === "admin",
+      canToggle: isAppAdmin(user!),
       backend: isEsignMock() ? "mock" : "firestore",
       firebaseConfig: isEsignMock() ? null : firebaseWebConfig(),
       consentVersion: registry.consentVersion,
@@ -77,7 +77,7 @@ export async function PATCH(req: Request) {
   return handleApi(async () => {
     const userId = await requireUserId();
     const user = await currentUser();
-    if (user!.role !== "admin") throw new ApiError(404, "Not found");
+    if (!isAppAdmin(user!)) throw new ApiError(404, "Not found");
     const registry = await getRegistry();
     if (!registry) throw new ApiError(404, "E-sign is not set up yet", "esign.notSetUp");
     const body = (await req.json().catch(() => ({}))) as { enabled?: boolean; scope?: string };

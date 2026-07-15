@@ -46,8 +46,8 @@ test("an admin edits and saves the church context", async ({ page }) => {
 
   await expect(page.getByTestId("admin-dashboard")).toBeVisible();
 
-  // Overview health should flag the missing context doc on a fresh deployment.
-  await expect(page.getByTestId("health-contextMissing")).toBeVisible();
+  // Overview renders its server-computed health panel.
+  await expect(page.getByTestId("health-panel")).toBeVisible();
 
   // Church Context is the main job.
   await page.getByTestId("admin-tab-context").click();

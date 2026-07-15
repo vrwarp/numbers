@@ -75,6 +75,37 @@ export function isAuthTestMode(): boolean {
   return configValue("AUTH_TEST_MODE") === "1";
 }
 
+// --- Admin area access ------------------------------------------------------
+
+/**
+ * Emails granted admin access to the /admin area without a roster GRANT_ROLE
+ * (ADMIN_EMAILS, comma/whitespace-separated). Lets a fresh deployment seed its
+ * first admin before — or instead of — the e-sign roster bootstrap. These are
+ * an APP-SURFACE grant only: they NEVER write the verified `User.role` mirror,
+ * so the e-sign roster's cryptographic truth (docs/ESIGN_DESIGN.md §5.5) is
+ * untouched. Read fresh per call, like the other knobs.
+ */
+export function adminEmails(): string[] {
+  const raw = configValue("ADMIN_EMAILS");
+  if (!raw) return [];
+  return raw
+    .split(/[,\s]+/)
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/**
+ * App-admin = the verified roster admin role OR a configured ADMIN_EMAILS
+ * address. Gates the /admin area and the e-sign APP-SURFACE controls (master
+ * switch, rollout allowlist) — never roster/signature validity. When
+ * ADMIN_EMAILS is empty this is exactly `role === "admin"`, so existing
+ * behavior is unchanged.
+ */
+export function isAppAdmin(user: { email: string; role: string }): boolean {
+  if (user.role === "admin") return true;
+  return adminEmails().includes(user.email.toLowerCase());
+}
+
 // --- E-signature & approval workflow (docs/ESIGN_DESIGN.md) -----------------
 
 /**

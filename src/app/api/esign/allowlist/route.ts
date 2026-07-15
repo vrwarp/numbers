@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { currentUser } from "@/auth";
+import { isAppAdmin } from "@/lib/config";
 import { requireRegistry } from "@/lib/esign/server";
 
 export const runtime = "nodejs";
@@ -17,7 +18,7 @@ export const runtime = "nodejs";
 async function requireAdmin() {
   const userId = await requireUserId();
   const user = await currentUser();
-  if (user!.role !== "admin") throw new ApiError(404, "Not found");
+  if (!isAppAdmin(user!)) throw new ApiError(404, "Not found");
   await requireRegistry();
   return userId;
 }

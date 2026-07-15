@@ -90,24 +90,28 @@ export default function UsageTab() {
           <span className="text-emerald-700">{t("aiSuccess", { n: stats.ai.success })}</span>
           <span className="text-red-700">{t("aiError", { n: stats.ai.error })}</span>
         </div>
-        {/* 30-day success/error volume. App convention: emerald = ok, red = fail. */}
-        <div className="flex h-24 items-end gap-[3px]" data-testid="ai-chart" role="img" aria-label={t("aiChartAria")}>
+        {/* 30-day success/error volume. App convention: emerald = ok, red = fail.
+            Columns stretch to the row height so the percentage-height bars have a
+            definite parent to resolve against. */}
+        <div className="flex h-24 items-stretch gap-[3px]" data-testid="ai-chart" role="img" aria-label={t("aiChartAria")}>
           {stats.ai.daily.map((d) => {
             const total = d.success + d.error;
-            const h = (total / maxDay) * 100;
+            const h = Math.max((total / maxDay) * 100, 6);
             const errFrac = total ? d.error / total : 0;
             return (
               <div
                 key={d.date}
-                className="flex-1"
+                className="flex flex-1 flex-col justify-end"
                 title={t("dayTip", { date: d.date, success: d.success, error: d.error })}
               >
-                <div className="flex h-full flex-col justify-end">
-                  <div className="w-full rounded-sm bg-stone-100" style={{ height: `${Math.max(h, total ? 4 : 0)}%` }}>
-                    <div className="w-full rounded-t-sm bg-red-400" style={{ height: `${errFrac * 100}%` }} />
+                {total === 0 ? (
+                  <div className="w-full rounded-sm bg-stone-200/70" style={{ height: "3%" }} />
+                ) : (
+                  <div className="w-full overflow-hidden rounded-sm" style={{ height: `${h}%` }}>
+                    <div className="w-full bg-red-400" style={{ height: `${errFrac * 100}%` }} />
                     <div className="w-full bg-emerald-400" style={{ height: `${(1 - errFrac) * 100}%` }} />
                   </div>
-                </div>
+                )}
               </div>
             );
           })}

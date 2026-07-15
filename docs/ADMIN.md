@@ -6,10 +6,23 @@ the `/data` volume — chiefly editing the **church context** document fed to th
 ministry-suggestion AI, plus configuring the app, watching usage, reading the
 audit/extraction trail, and reviewing the e-sign roster (the vouch-for chain).
 
-Admin = `User.role === "admin"` (the verified mirror of the roster; the root is
-always admin — see `docs/ESIGN_DESIGN.md §5.5`). The area gates like every other
+Admin = the verified roster role `User.role === "admin"` (the root is always
+admin — see `docs/ESIGN_DESIGN.md §5.5`) **OR** a `ADMIN_EMAILS` address
+(`isAppAdmin` in `src/lib/config.ts`). The area gates like every other
 cross-tenant surface: **404, never 403** (`requireAdmin` in
 `src/lib/admin/guard.ts`).
+
+### Seeding the first admin
+
+The roster role is only granted by a signature-verified `GRANT_ROLE` event, so
+a brand-new deployment has no admin until the e-sign root bootstraps. To seed an
+admin immediately — before, or instead of, standing up e-signatures — set
+`ADMIN_EMAILS` (comma/space-separated) in the environment or `config.json`.
+It is an **app-surface** grant: it opens the `/admin` area and the e-sign
+app-surface toggles (master switch, rollout allowlist) but is *never* written
+into `User.role`, so the roster's cryptographic truth and signing validity are
+untouched. `ADMIN_EMAILS` is itself editable under Admin → Settings, so once one
+admin is in, the rest can be managed in-app.
 
 ## Why this shape — the ideation ↔ admin-critique loop
 

@@ -43,6 +43,7 @@ export const ADMIN_CONFIG_FIELDS: readonly AdminConfigField[] = [
 
   // --- Deployment -----------------------------------------------------------
   { key: "PUBLIC_BASE_URL", group: "deployment", type: "text", placeholder: "https://numbers.example.org" },
+  { key: "ADMIN_EMAILS", group: "deployment", type: "text", placeholder: "you@example.org, other@example.org" },
 
   // --- E-signatures ---------------------------------------------------------
   { key: "ESIGN_ROOT_EMAIL", group: "esign", type: "text", placeholder: "root@example.org" },
