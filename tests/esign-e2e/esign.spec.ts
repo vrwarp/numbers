@@ -389,7 +389,7 @@ test("submit → approve → pay, fail-closed ceremonies throughout", async () =
   });
   const anonPage = await anon.newPage();
   await anonPage.goto(`${BASE}/v/${publicToken}`);
-  await expect(anonPage.getByText("Signatures verified")).toBeVisible({ timeout: 30_000 });
+  await expect(anonPage.getByText("Confirmed genuine")).toBeVisible({ timeout: 30_000 });
   await anon.close();
 });
 
@@ -557,7 +557,7 @@ test("lost everything: start-over + re-vouch supersedes the key; history stands"
   const anon = await browser.newContext({ viewport: { width: 480, height: 1100 } });
   const anonPage = await anon.newPage();
   await anonPage.goto(`${BASE}/v/${publicToken}`);
-  await expect(anonPage.getByText("Signatures verified")).toBeVisible({ timeout: 30_000 });
+  await expect(anonPage.getByText("Confirmed genuine")).toBeVisible({ timeout: 30_000 });
   await anon.close();
 });
 

@@ -113,6 +113,33 @@ describe("roster reducer", () => {
     ).toBeUndefined();
   });
 
+  it("records vouch edges (vouchedBy) for the walkable chain of trust", async () => {
+    const roster = await standardRoster();
+    // Genesis root has no vouchers — it is the terminus of every chain.
+    expect(roster.members.find((m) => m.uid === "root")?.vouchedBy).toEqual([]);
+    // A single approver (root) vouch tips alice — one edge, pinning the exact
+    // key the voucher signed with.
+    expect(roster.memberAt(alicePK, nextT + 1)?.vouchedBy).toEqual([
+      { uid: "root", publicKey: rootPK },
+    ]);
+
+    // Two distinct plain members tip a key: both edges kept, deduped by uid,
+    // in first-seen order — a repeat voucher never adds a second edge.
+    const events = [
+      await ev(rootPK, genesis()),
+      await ev(rootPK, attest({ uid: "alice", publicKey: alicePK })),
+      await ev(rootPK, attest({ uid: "bob", publicKey: bobPK })),
+      await ev(alicePK, attest({ uid: "mallory", publicKey: malloryPK })),
+      await ev(alicePK, attest({ uid: "mallory", publicKey: malloryPK })),
+      await ev(bobPK, attest({ uid: "mallory", publicKey: malloryPK })),
+    ];
+    const r2 = replayRoster(ROSTER, events as VerifiedEvent<RosterAction>[]);
+    expect(r2.memberAt(malloryPK, nextT + 1)?.vouchedBy).toEqual([
+      { uid: "alice", publicKey: alicePK },
+      { uid: "bob", publicKey: bobPK },
+    ]);
+  });
+
   it("role grants are root-only and time-scoped; key revocation is forward-only", async () => {
     const base = [
       await ev(rootPK, genesis()),

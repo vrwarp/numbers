@@ -3038,33 +3038,279 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Verify.verifiedTitle": {
-    "source": "Signatures verified",
-    "context": "Green card title when every check passed.",
+  "Verify.confirmedTitle": {
+    "source": "Confirmed genuine",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.warningsTitle": {
-    "source": "Verification finished with warnings",
+    "source": "Needs a closer look",
     "context": "Amber card title when checks finished but something is off.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Verify.claimByLine": {
-    "source": "Reimbursement claim by <b>{name}</b> · ",
-    "context": "Summary line; {name} is the requester (<b>-wrapped). Ends with a separator before 'checked just now'.",
+  "Verify.storyGeneric": {
+    "source": "This paperwork was cryptographically checked in your browser — see the details below.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Verify.claimByAmountLine": {
-    "source": "Reimbursement claim by <b>{name}</b> for {amount} · ",
-    "context": "Variant with {amount}, the claim total.",
+  "Verify.story.paid": {
+    "source": "<b>{name}</b> asked to be paid back <b>{amount}</b>. A different, authorized person approved it, and the church treasurer paid it — and the paperwork you're looking at hasn't changed since it was signed.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.story.approved": {
+    "source": "<b>{name}</b> asked to be paid back <b>{amount}</b>. A different, authorized person approved it. The treasurer hasn't recorded payment yet, and the paperwork hasn't changed since it was signed.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.story.submitted": {
+    "source": "<b>{name}</b> asked to be paid back <b>{amount}</b> and signed the request. It's waiting for an authorized approver — and nothing has changed since it was signed.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.story.rejected": {
+    "source": "<b>{name}</b> asked to be paid back <b>{amount}</b>, and an authorized approver reviewed it and asked for changes. The paperwork itself is genuine and unchanged.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.story.warn": {
+    "source": "Most of this checks out, but one thing doesn't add up — check the details below before treating this as the genuine paperwork.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Verify.checkedNow": {
-    "source": "checked just now, in this browser.",
+    "source": "Checked on your device just now — not taken on trust from a server.",
     "context": "End of the summary sentence: the verdict was computed just now, in this browser (not by the server).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.pillsLabel": {
+    "source": "Summary of checks",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.pillRequested": {
+    "source": "Requested",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.pillApproved": {
+    "source": "Approved",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.pillPaid": {
+    "source": "Paid",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.pillUnchanged": {
+    "source": "Unchanged",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.peopleTitle": {
+    "source": "The people who signed",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.peopleHint": {
+    "source": "Tap anyone to see who confirmed their identity, in person — then keep opening to follow the chain up to the church's root. Links deeper than the direct vouchers are shown by their key, not their name.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.tag.requested": {
+    "source": "requested the money",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.tag.approved": {
+    "source": "approved it",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.tag.paid": {
+    "source": "paid it",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.confirmedInPerson": {
+    "source": "Identity confirmed in person",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.confirmedByLabel": {
+    "source": "Confirmed in person by",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.personByKey": {
+    "source": "Person",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.rootName": {
+    "source": "The church's root",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.rootCaption": {
+    "source": "The trust anchor set when the church first opened its records. You confirm this one identity out-of-band — the key shown here matches the fingerprint printed in the church's records.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.docTitle": {
+    "source": "The document — what you're holding",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.docLeadOk": {
+    "source": "These pages are the approved copy.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.docBodyOk": {
+    "source": "The final, stamped version — safe to print and file. Your phone confirmed it's built from the original everyone signed, unchanged.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.docLeadWarn": {
+    "source": "This copy no longer matches what was signed.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.docBodyWarn": {
+    "source": "Your phone found that these pages were changed after they were signed. Don't treat them as the genuine paperwork.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.docOpen": {
+    "source": "Open the approved copy",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.stepsTitle": {
+    "source": "Step by step — and what each step sealed",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.submitted": {
+    "source": "Submitted",
+    "context": "Signature line title: the requester's submission signature.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.approved": {
+    "source": "Approved",
+    "context": "Signature line title: the approval signature.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.rejected": {
+    "source": "Rejected",
+    "context": "Signature line title: the rejection signature.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.paid": {
+    "source": "Paid",
+    "context": "Signature line title: the payment signature.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.stepSubmit": {
+    "source": "The form was filled out and signed",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.stepApprove": {
+    "source": "Reviewed and approved",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.stepReject": {
+    "source": "Reviewed and declined",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.stepPaid": {
+    "source": "Payment recorded",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.howSubmit": {
+    "source": "Made with {name}'s own signing key — the identity vouched for above, kept on their device — so this is their signature, not just a typed name.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.howApprove": {
+    "source": "They reviewed the very same document that was signed, and they are authorized to approve.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.howPaid": {
+    "source": "Only the church treasurer can mark a claim paid.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.howPaidCheck": {
+    "source": "Only the church treasurer can mark a claim paid. Recorded as check #{number}.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.vtagOriginal": {
+    "source": "Sealed original",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.vtagApproved": {
+    "source": "Approved copy",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.vtagNone": {
+    "source": "No new version",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.vcapOriginal": {
+    "source": "Signing the form sealed <b>the original</b> — the one version every later signature points to. It's frozen here and can never change.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.vcapApproved": {
+    "source": "Approving <b>sealed a copy</b>: the original plus the approver's stamp, with the original's mark printed on it — so the stamp can't be moved onto another document.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.vcapNone": {
+    "source": "The payment didn't create another document — it points back to the approved copy above.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.viewPage": {
+    "source": "View this exact page",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.markLabel": {
+    "source": "Its mark:",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.openThisPage": {
+    "source": "Open the sealed page",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.lockLine": {
+    "source": "Each step seals its own copy the moment it happens, and every later copy is built from the original and carries its mark. So no page, and no step, can be edited, removed, or swapped afterward.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Verify.forAuditors": {
+    "source": "For auditors",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3122,81 +3368,9 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Verify.threadTitle": {
-    "source": "Submission thread {seq}",
-    "context": "Card title per submission attempt; {seq} is the attempt number.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Verify.submitted": {
-    "source": "Submitted",
-    "context": "Signature line title: the requester's submission signature.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Verify.approved": {
-    "source": "Approved",
-    "context": "Signature line title: the approval signature.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Verify.rejected": {
-    "source": "Rejected",
-    "context": "Signature line title: the rejection signature.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Verify.paid": {
-    "source": "Paid",
-    "context": "Signature line title: the payment signature.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Verify.keySummary": {
-    "source": "key",
-    "context": "Tiny <details> summary revealing the signer's key fingerprint (lowercase).",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
   "Verify.unknown": {
     "source": "Unknown",
     "context": "Fallback signer name when the key maps to nobody on the roster.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Verify.state.open": {
-    "source": "open",
-    "context": "Thread state chip: submitted, awaiting decision.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Verify.state.approved": {
-    "source": "approved",
-    "context": "Thread state chip: approved.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Verify.state.rejected": {
-    "source": "rejected",
-    "context": "Thread state chip: rejected.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Verify.state.paid": {
-    "source": "paid",
-    "context": "Thread state chip: paid.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Verify.state.withdrawn": {
-    "source": "withdrawn",
-    "context": "Thread state chip: the requester withdrew this submission.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Verify.state.superseded": {
-    "source": "superseded",
-    "context": "Thread state chip: replaced by a newer submission.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
