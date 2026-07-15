@@ -18,7 +18,8 @@ test("language switcher flips the UI, persists, and follows the account", async 
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.getByRole("heading", { name: "Receipts" })).toBeVisible();
 
-  // Switch to Simplified Chinese via the NavBar switcher.
+  // Switch to Simplified Chinese via the switcher, now inside the account menu.
+  await page.getByTestId("account-menu").click();
   await page.getByTestId("locale-switcher").selectOption("zh-Hans");
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hans");
   await expect(page.getByRole("heading", { name: "收据" })).toBeVisible();
@@ -28,6 +29,7 @@ test("language switcher flips the UI, persists, and follows the account", async 
   await expect(page.getByRole("heading", { name: "收据" })).toBeVisible();
 
   // Traditional Chinese renders its own catalog, not a conversion.
+  await page.getByTestId("account-menu").click();
   await page.getByTestId("locale-switcher").selectOption("zh-Hant");
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-Hant");
   await expect(page.getByRole("heading", { name: "收據" })).toBeVisible();

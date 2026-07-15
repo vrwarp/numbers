@@ -4,8 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import LocaleSwitcher from "./LocaleSwitcher";
-import { signOut } from "@/lib/sign-out";
+import AccountMenu from "./AccountMenu";
 
 interface Badges {
   enabled: boolean;
@@ -38,11 +37,9 @@ export default function NavBar({ userName, isAdmin }: { userName: string; isAdmi
   if (badges.enabled && badges.finance !== null && badges.finance !== undefined) {
     links.push({ href: "/finance", label: t("finance"), badge: badges.finance || undefined });
   }
-  links.push({ href: "/profile", label: t("profile") });
-  // Admin link is role-gated (the verified mirror); the page + API 404 for
-  // anyone else regardless, so this only decides visibility.
-  if (isAdmin) links.push({ href: "/admin", label: t("admin") });
-
+  // Profile, language, Admin and sign out live in the AccountMenu (below), so
+  // the tab row stays functional-only and fits a phone even for a treasurer or
+  // admin. Admin's page + API still 404 for anyone unauthorized regardless.
 
   return (
     <header className="sticky top-0 z-40 border-b border-stone-200 bg-white/90 backdrop-blur">
@@ -50,36 +47,33 @@ export default function NavBar({ userName, isAdmin }: { userName: string; isAdmi
         <Link href="/" className="flex shrink-0 items-center gap-1.5 text-lg font-bold text-indigo-700">
           <span aria-hidden>⛪</span> <span className="hidden sm:inline">Numbers</span>
         </Link>
-        <nav className="-my-1 flex min-w-0 items-center gap-0.5 overflow-x-auto py-1 sm:gap-2" aria-label="Main">
-          {links.map((l) => {
-            const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={`relative whitespace-nowrap rounded-lg px-2 py-1.5 text-sm font-medium sm:px-3 ${
-                  active ? "bg-indigo-50 text-indigo-700" : "text-stone-600 hover:bg-stone-100"
-                }`}
-              >
-                {l.label}
-                {l.badge ? (
-                  <span
-                    className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"
-                    data-testid={`badge-${l.href.slice(1) || "shoebox"}`}
-                  />
-                ) : null}
-              </Link>
-            );
-          })}
-          <LocaleSwitcher signedIn variant="compact" className="ml-1" />
-          <button
-            onClick={() => signOut()}
-            className="ml-1 hidden rounded-lg px-3 py-1.5 text-sm text-stone-500 hover:bg-stone-100 sm:block"
-            title={t("signedInAs", { name: userName })}
-          >
-            {t("signOut")}
-          </button>
-        </nav>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <nav className="-my-1 flex min-w-0 items-center gap-0.5 overflow-x-auto py-1 sm:gap-2" aria-label="Main">
+            {links.map((l) => {
+              const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={`relative whitespace-nowrap rounded-lg px-2 py-1.5 text-sm font-medium sm:px-3 ${
+                    active ? "bg-indigo-50 text-indigo-700" : "text-stone-600 hover:bg-stone-100"
+                  }`}
+                >
+                  {l.label}
+                  {l.badge ? (
+                    <span
+                      className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"
+                      data-testid={`badge-${l.href.slice(1) || "shoebox"}`}
+                    >
+                      <span className="sr-only">{t("pendingWork")}</span>
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })}
+          </nav>
+          <AccountMenu userName={userName} isAdmin={isAdmin} />
+        </div>
       </div>
     </header>
   );

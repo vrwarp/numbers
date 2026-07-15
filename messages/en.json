@@ -36,7 +36,9 @@
     "signedInAs": "Signed in as {name}",
     "approvals": "Approvals",
     "finance": "Finance",
-    "admin": "Admin"
+    "admin": "Admin",
+    "account": "Account",
+    "pendingWork": "pending work"
   },
   "Home": {
     "profileNudge": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form."

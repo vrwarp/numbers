@@ -20,7 +20,10 @@ function e2ePrisma(): PrismaClient {
 
 test("a member cannot see or reach the admin area", async ({ page }) => {
   await signInAs(page, "plain-member@example.org", "Plain Member");
+  // Admin lives in the account menu now; a member has no such entry there.
+  await page.getByTestId("account-menu").click();
   await expect(page.getByRole("link", { name: "Admin" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
   // Direct navigation is bounced home (the page redirects; the API 404s).
   await page.goto("/admin");
   await page.waitForURL("/");
@@ -38,8 +41,9 @@ test("an admin edits and saves the church context", async ({ page }) => {
     await prisma.$disconnect();
   }
 
-  // The nav link appears after the role is in place.
+  // The admin entry appears in the account menu once the role is in place.
   await page.reload();
+  await page.getByTestId("account-menu").click();
   const adminLink = page.getByRole("link", { name: "Admin" });
   await expect(adminLink).toBeVisible();
   await adminLink.click();
