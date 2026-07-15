@@ -83,7 +83,8 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    device-sync stores, no Firebase.
 10. **Every user-visible string comes from `messages/<locale>.json`** (en source of truth,
    zh-Hans + zh-Hant) via next-intl; API errors carry machine-readable `code`s translated
-   client-side. New/changed English ⇒ `npm run translate` (staleness is a red `npm test`).
+   client-side. New/changed English ⇒ give each key a translator `context` note (required
+   for short/ambiguous strings) then `npm run translate` (staleness is a red `npm test`).
    Rules and workflow: `docs/agent/CONVENTIONS.md` "Localization". The official form itself
    stays English; user data and ministry canonical values are never translated.
 

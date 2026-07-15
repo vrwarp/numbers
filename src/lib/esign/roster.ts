@@ -14,6 +14,15 @@ import type {
   VerifiedEvent,
 } from "./types";
 
+/** A voucher edge: the identity (uid + the exact key it signed with) whose
+ *  ATTEST counted toward a member's attestation. Retained so verifiers can
+ *  render the walkable chain of trust up to the root (docs/ESIGN_DESIGN.md
+ *  §7.2). Display metadata only — validity never depends on it. */
+export interface Voucher {
+  uid: string;
+  publicKey: string;
+}
+
 export interface RosterMember {
   uid: string;
   email: string;
@@ -23,6 +32,9 @@ export interface RosterMember {
   attestedAtMs: number;
   /** When this key was revoked, if ever. */
   revokedAtMs?: number;
+  /** The vouchers that carried this key over the attestation threshold
+   *  (deduped by uid, in first-seen order). Empty for the genesis root. */
+  vouchedBy: Voucher[];
 }
 
 interface RoleGrant {
@@ -37,7 +49,10 @@ export interface RosterTimeline {
   /** Every key that ever became attested (including later-revoked ones). */
   members: RosterMember[];
   /** Attestations pending more vouches, keyed by subject public key. */
-  pending: Map<string, { subject: AttestAction["subject"]; voucherUids: Set<string> }>;
+  pending: Map<
+    string,
+    { subject: AttestAction["subject"]; voucherUids: Set<string>; vouchers: Voucher[] }
+  >;
   /** Events that were valid envelopes but failed roster rules — surfaced, not hidden. */
   anomalies: { event: VerifiedEvent<RosterAction>; reason: string }[];
   /** Member record for a key if attested (and not yet revoked) at time t. */
@@ -64,7 +79,7 @@ export function replayRoster(
   const members: RosterMember[] = [];
   const pending = new Map<
     string,
-    { subject: AttestAction["subject"]; voucherUids: Set<string> }
+    { subject: AttestAction["subject"]; voucherUids: Set<string>; vouchers: Voucher[] }
   >();
   const roles = new Map<string, RoleGrant[]>(); // uid → grants
 
@@ -80,7 +95,7 @@ export function replayRoster(
     throw new Error("Roster genesis is missing or not self-signed by the root key");
   }
   const root = { uid: g.root.uid, name: g.root.name, email: g.root.email, publicKey: g.root.publicKey };
-  members.push({ ...g.root, attestedAtMs: genesis.createdAtMs });
+  members.push({ ...g.root, attestedAtMs: genesis.createdAtMs, vouchedBy: [] });
 
   const memberAt = (publicKey: string, tMs: number): RosterMember | undefined => {
     return members.find(
@@ -135,7 +150,11 @@ export function replayRoster(
       const entry = pending.get(a.subject.publicKey) ?? {
         subject: a.subject,
         voucherUids: new Set<string>(),
+        vouchers: [] as Voucher[],
       };
+      if (!entry.voucherUids.has(signer.uid)) {
+        entry.vouchers.push({ uid: signer.uid, publicKey: event.signerPublicKey });
+      }
       entry.voucherUids.add(signer.uid);
       pending.set(a.subject.publicKey, entry);
       // Threshold (§4.3): two distinct attested vouchers, or one approver+.
@@ -149,7 +168,7 @@ export function replayRoster(
         for (const m of members) {
           if (m.uid === entry.subject.uid && m.revokedAtMs === undefined) m.revokedAtMs = t;
         }
-        members.push({ ...entry.subject, attestedAtMs: t });
+        members.push({ ...entry.subject, attestedAtMs: t, vouchedBy: entry.vouchers });
         pending.delete(a.subject.publicKey);
       }
       continue;
