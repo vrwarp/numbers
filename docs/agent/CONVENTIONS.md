@@ -57,10 +57,22 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   `${n > 1 ? "s" : ""}`; named arguments; each ternary branch is its own key; enum → label
   through `Common.status.*`; never translate data (user text, merchant names, ministry
   canonical values, "Numbers", "CFCC").
-- Adding/rewording English: update `en.json` in the same PR, then `npm run translate`
-  (drafts the Chinese, updates `messages/translation-state.json`) — or
-  `npm run translate -- --todo` without an AI key. Reviewed keys are never overwritten
-  without `--force`. Terminology lives in `messages/GLOSSARY.md`.
+- Adding/rewording English: update `en.json` in the same PR, **write each new key's
+  translator `context` (next bullet)**, then `npm run translate` (drafts the Chinese,
+  updates `messages/translation-state.json`) — or `npm run translate -- --todo` without
+  an AI key, or `-- --sync-state` to adopt hand-written translations offline. Reviewed
+  keys are never overwritten without `--force`. Terminology lives in `messages/GLOSSARY.md`.
+- **Every new key gets a `context` note** (`StateEntry.context`,
+  `messages/translation-state.json`) — it is fed verbatim into the drafting prompt, so the
+  translator (model or human) never guesses. REQUIRED for anything short or ambiguous:
+  one/two-word labels, status pills, role tags, buttons, `Errors.*` messages — a lone word
+  like "Paid", "Person", or "Its mark" is unresolvable without it. Skip it only for a
+  self-explanatory full sentence. Match the house style already in the file: say **where it
+  appears and what it pairs with**, then whatever the words alone don't carry — casing
+  ("lowercase, appended mid-sentence"), length ("one word"), a term that is NOT what it
+  looks like ("'mark' = a document's fingerprint, not a checkmark"), or which of several
+  senses is meant ("Paid = payment recorded, not a fee"). `--sync-state` preserves existing
+  context, so write it once. When you reword an existing short string, revisit its context too.
 - Wording shared across the UI is DECLARED, not remembered: `SAME_VALUE_GROUPS` and
   `QUOTED_IN` in `src/lib/translation-state.ts`. Same-value members are auto-copied from
   their canonical key (translate the canonical); a message that quotes another element
@@ -74,9 +86,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   Codes are typed against en.Errors (flat keys plus one dotted level, e.g.
   `esign.notEnrolled`) — a code without a catalog entry fails the build. THROWN errors
   (the e-sign ceremony paths) go through `useThrownErrorMessage()`: jsonOrThrow
-  (src/lib/esign/client.ts) attaches the server body so codes still translate. Give
-  ambiguous short strings a translator hint via the `context` field in
-  `messages/translation-state.json` (fed into drafting prompts).
+  (src/lib/esign/client.ts) attaches the server body so codes still translate. Every new
+  `Errors.*` key needs a `context` note like any other short string (above).
 - E-sign carve-outs, all deliberate: the UETA consent document
   (src/lib/esign/consent.ts) is hash-bound (`consentSha256` travels in every signed
   payload) so the binding text stays English ueta-v1 verbatim — the UI translates the
