@@ -65,3 +65,57 @@ export function configValue(name: string): string | undefined {
   }
   return process.env[name];
 }
+
+/** True when a key is set by the config FILE (not process.env). */
+export function configFileHas(name: string): boolean {
+  return loadFileConfig()[name] !== undefined;
+}
+
+/** Absolute path of the config file (for surfacing it to the admin). */
+export function configFilePathPublic(): string {
+  return configFilePath();
+}
+
+/**
+ * Read the config file's own values, without the process.env overlay — the
+ * source of truth the admin editor writes back. Returns {} when absent.
+ * SERVER ONLY.
+ */
+export function readConfigFile(): Record<string, string> {
+  return { ...loadFileConfig() };
+}
+
+/**
+ * Merge `updates` into `<DATA_DIR>/config.json` and write it back. A `null`
+ * value deletes the key (falls back to process.env / the built-in default);
+ * a string sets it. Creates the file (and DATA_DIR) if missing. The mtime
+ * cache picks up the new file on the next read, so changes apply without a
+ * restart — matching `configValue`'s hot-read contract. SERVER ONLY (fs).
+ */
+export function writeConfigValues(updates: Record<string, string | null>): void {
+  if (BOOTSTRAP_ONLY.has("DATA_DIR") && "DATA_DIR" in updates) {
+    // DATA_DIR locates this very file; it can never be written into it.
+    delete updates.DATA_DIR;
+  }
+  const file = configFilePath();
+  const current = (() => {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(file, "utf8")) as unknown;
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      // missing or malformed → start clean
+    }
+    return {} as Record<string, unknown>;
+  })();
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (value === null) delete current[key];
+    else current[key] = value;
+  }
+
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, `${JSON.stringify(current, null, 2)}\n`, "utf8");
+  cache = null; // force a re-read on the next configValue() call
+}

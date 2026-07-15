@@ -34,7 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale}>
       <body className="min-h-screen">
         <NextIntlClientProvider locale={locale} messages={messages}>
-          {user && <NavBar userName={user.fullName ?? user.email} />}
+          {user && <NavBar userName={user.fullName ?? user.email} isAdmin={user.role === "admin"} />}
           {user && <DeviceRequestsBanner />}
           <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
         </NextIntlClientProvider>

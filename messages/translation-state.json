@@ -167,6 +167,11 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "NavBar.admin": {
+    "source": "Admin",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Home.profileNudge": {
     "source": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
     "context": "Warning banner on the home page; <link> wraps the word that opens the profile page.",
@@ -3575,6 +3580,26 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Errors.admin.contentString": {
+    "source": "Content must be text.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.admin.contextTooLong": {
+    "source": "The church context is too long (max {max} bytes).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.admin.unknownField": {
+    "source": "That setting can’t be edited here.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.admin.nothingToChange": {
+    "source": "Nothing to change.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "AddReceipts.title": {
     "source": "Add receipts to this claim",
     "context": "Dialog heading: add receipts to an existing draft claim.",
@@ -3680,6 +3705,786 @@
   "AddReceipts.confirm": {
     "source": "✨ Add receipts",
     "context": "Primary button with no selection yet; keep the ✨.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.title": {
+    "source": "Admin",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.subtitle": {
+    "source": "Configure the app, watch usage, and review the roster.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.tab_overview": {
+    "source": "Overview",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.tab_context": {
+    "source": "Church Context",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.tab_settings": {
+    "source": "Settings",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.tab_usage": {
+    "source": "Usage",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.tab_logs": {
+    "source": "Logs",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.tab_members": {
+    "source": "Members",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.loading": {
+    "source": "Loading…",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.loadFailed": {
+    "source": "Couldn’t load this.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.saveFailed": {
+    "source": "Couldn’t save.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.save": {
+    "source": "Save",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.saved": {
+    "source": "Saved",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.saving": {
+    "source": "Saving…",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.problemsTitle": {
+    "source": "Needs attention",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.allClear": {
+    "source": "Everything looks healthy.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.headlineTitle": {
+    "source": "At a glance",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fixInSettings": {
+    "source": "Fix in Settings",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.editContext": {
+    "source": "Edit",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.health_aiMock": {
+    "source": "AI is in mock mode — extraction and suggestions use canned data, not a real provider.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.health_aiNoKey": {
+    "source": "No API key set for the {provider} AI provider ({keyVar}). Receipt extraction will fail.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.health_aiErrors": {
+    "source": "Failed AI calls in the last 24 hours: {count}. See the Logs tab.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.health_contextMissing": {
+    "source": "No church context document yet — ministry suggestions use the chart of accounts alone.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.health_publicUrlUnset": {
+    "source": "Public web address not set — generated PDFs won’t carry a QR link.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.health_firebaseIncomplete": {
+    "source": "Firebase sign-in isn’t fully configured — Google sign-in is unavailable.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.health_esignNotSetUp": {
+    "source": "Electronic signatures aren’t set up yet.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.health_esignDisabled": {
+    "source": "Electronic signatures are set up but currently turned off.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.health_claimsStuck": {
+    "source": "Claims awaiting approval more than {days} days: {count}.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.statUsers": {
+    "source": "Users",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.statReceipts": {
+    "source": "Receipts",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.statClaims": {
+    "source": "Claims",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.statSettled": {
+    "source": "Approved & paid",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.statAi30": {
+    "source": "AI calls (30d)",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.moreInUsage": {
+    "source": "More detail in the Usage tab.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.contextTitle": {
+    "source": "Church context for AI suggestions",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.contextIntro": {
+    "source": "Names of small groups, recurring events, and labeling rules the chart of accounts can’t resolve. It is added to every “Suggest ministry” call and applies immediately after saving.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.contextPrivacy": {
+    "source": "Everything here is sent to your AI provider whenever someone clicks Suggest. Think twice before naming individuals.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.contextPlaceholder": {
+    "source": "# Vocabulary & aliases\n- …",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.contextSavedNote": {
+    "source": "Saved. New suggestions use this right away.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.bytesOf": {
+    "source": "{bytes} / {max} bytes",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fileAt": {
+    "source": "File: {path}",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.insertStarter": {
+    "source": "Insert starter template",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.revert": {
+    "source": "Revert",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.settingsIntro": {
+    "source": "Deployment settings. Changes are written to the data volume and picked up without a restart.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.settingsSaved": {
+    "source": "Settings saved.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.saveChanges": {
+    "source": "Save {count} change(s)",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.discard": {
+    "source": "Discard",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.group_ai": {
+    "source": "AI extraction & suggestions",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.group_deployment": {
+    "source": "Deployment",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.group_esign": {
+    "source": "E-signatures",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.group_firebase": {
+    "source": "Firebase sign-in",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.secretSet": {
+    "source": "Set",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.willClear": {
+    "source": "Will clear",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.secretKeepPlaceholder": {
+    "source": "Leave blank to keep current",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.clear": {
+    "source": "Clear",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.totalsTitle": {
+    "source": "Totals",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.enrolledSub": {
+    "source": "{n} enrolled to sign",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.last30Sub": {
+    "source": "{n} in last 30 days",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.paidSub": {
+    "source": "{amount} paid out",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.claimsByStatus": {
+    "source": "Claims by status",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.status_draft": {
+    "source": "Draft",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.status_generated": {
+    "source": "Generated",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.status_submitted": {
+    "source": "Submitted",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.status_approved": {
+    "source": "Approved",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.status_paid": {
+    "source": "Paid",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.status_rejected": {
+    "source": "Rejected",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.noneYet": {
+    "source": "None yet.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.aiTitle": {
+    "source": "AI calls (last 30 days)",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.providerLine": {
+    "source": "{provider} · {model}",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.aiSuccess": {
+    "source": "{n} succeeded",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.aiError": {
+    "source": "{n} failed",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.aiChartAria": {
+    "source": "Daily AI call volume over the last 30 days",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.dayTip": {
+    "source": "{date}: {success} ok, {error} failed",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.daysAgo": {
+    "source": "{n}d ago",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.today": {
+    "source": "Today",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.aiCallsTitle": {
+    "source": "AI calls",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.aiProblemsTitle": {
+    "source": "AI problems",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.showAllCalls": {
+    "source": "Show all calls",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.noCalls": {
+    "source": "No AI calls recorded.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.noProblems": {
+    "source": "No AI failures. 🎉",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.kind_receipt": {
+    "source": "Receipt",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.kind_suggestion": {
+    "source": "Suggestion",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.durationMs": {
+    "source": "{ms} ms",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.auditTitle": {
+    "source": "Activity log",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.allActions": {
+    "source": "All actions",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.noEvents": {
+    "source": "No activity recorded.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.esignTitle": {
+    "source": "Electronic signatures",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.esignNotSetUpAdmin": {
+    "source": "Not set up yet. The root account sets this up from their Profile.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.esignOn": {
+    "source": "Turned on",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.esignOff": {
+    "source": "Turned off",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.esignOnBody": {
+    "source": "Members can enroll, sign, and approve.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.esignOffBody": {
+    "source": "Signing is paused; existing signatures still verify.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.turnOn": {
+    "source": "Turn on",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.turnOff": {
+    "source": "Turn off",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.scopeLabel": {
+    "source": "Who can use it",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.scopeAllowlist": {
+    "source": "Allowlisted members only",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.scopeEveryone": {
+    "source": "Everyone",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.membersTitle": {
+    "source": "Members",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.colMember": {
+    "source": "Member",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.colRole": {
+    "source": "Role",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.colEnrollment": {
+    "source": "Signing",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.colClaims": {
+    "source": "Claims",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.colAccess": {
+    "source": "Access",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.enrollAttested": {
+    "source": "Enrolled",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.enrollPending": {
+    "source": "Pending vouch",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.enrollRevoked": {
+    "source": "Revoked",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.enrollNone": {
+    "source": "Not enrolled",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.alwaysOn": {
+    "source": "Always on",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.access": {
+    "source": "Allowed",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.noAccess": {
+    "source": "Blocked",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.chainTitle": {
+    "source": "Vouch-for chain",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.chainIntro": {
+    "source": "The signing roster, verified from the ledger in your browser — who is attested, their roles, and pending vouches.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.chainNeedsEsign": {
+    "source": "Turn on electronic signatures to see the roster.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.chainNeedsEnroll": {
+    "source": "Enroll to sign (Profile) to load the roster in this browser.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.chainLoading": {
+    "source": "Verifying the roster…",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.chainLoadFailed": {
+    "source": "Couldn’t verify the roster.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.chainRoot": {
+    "source": "Trust root",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.chainRevoked": {
+    "source": "Key revoked",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.chainAttestedOn": {
+    "source": "Attested {date}",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.chainPendingTitle": {
+    "source": "Pending attestations",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.chainPending": {
+    "source": "{name} — {vouches} vouch(es) so far (needs 2, or one from an approver+).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.chainAnomaliesTitle": {
+    "source": "Roster anomalies ({count})",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_AI_PROVIDER_label": {
+    "source": "AI provider",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_AI_PROVIDER_help": {
+    "source": "Which service extracts receipts and suggests ministries.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_OPENROUTER_API_KEY_label": {
+    "source": "OpenRouter API key",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_OPENROUTER_API_KEY_help": {
+    "source": "Used when the provider is OpenRouter.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_OPENROUTER_MODEL_label": {
+    "source": "OpenRouter model",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_OPENROUTER_MODEL_help": {
+    "source": "Model id, e.g. google/gemini-3.1-flash-lite.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_GEMINI_API_KEY_label": {
+    "source": "Google AI Studio API key",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_GEMINI_API_KEY_help": {
+    "source": "Used when the provider is Google.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_GEMINI_MODEL_label": {
+    "source": "Google model",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_GEMINI_MODEL_help": {
+    "source": "Gemini model id.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_AI_RPM_TARGET_label": {
+    "source": "AI requests per minute",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_AI_RPM_TARGET_help": {
+    "source": "How fast the app calls the AI. Gemini’s free tier allows 15/min.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_AI_QUOTA_COOLDOWN_MS_label": {
+    "source": "Rate-limit wait (ms)",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_AI_QUOTA_COOLDOWN_MS_help": {
+    "source": "How long to wait after a rate-limit before retrying.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_AI_QUOTA_MAX_RETRIES_label": {
+    "source": "Rate-limit retries",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_AI_QUOTA_MAX_RETRIES_help": {
+    "source": "How many times to retry after a rate-limit.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_PUBLIC_BASE_URL_label": {
+    "source": "Public web address",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_PUBLIC_BASE_URL_help": {
+    "source": "This app’s public URL. Enables the QR code on generated PDFs.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_ESIGN_ROOT_EMAIL_label": {
+    "source": "E-sign root email",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_ESIGN_ROOT_EMAIL_help": {
+    "source": "The one account allowed to set up electronic signatures.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_ESIGN_ROOT_FINGERPRINT_label": {
+    "source": "E-sign root fingerprint",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_ESIGN_ROOT_FINGERPRINT_help": {
+    "source": "Optional out-of-band pin of the root signing key.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_FIREBASE_API_KEY_label": {
+    "source": "Firebase API key",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_FIREBASE_API_KEY_help": {
+    "source": "From your Firebase web app config.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_FIREBASE_AUTH_DOMAIN_label": {
+    "source": "Firebase auth domain",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_FIREBASE_AUTH_DOMAIN_help": {
+    "source": "Usually project.firebaseapp.com.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_FIREBASE_PROJECT_ID_label": {
+    "source": "Firebase project ID",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_FIREBASE_PROJECT_ID_help": {
+    "source": "Your Firebase project id.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_FIREBASE_APP_ID_label": {
+    "source": "Firebase app ID",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_FIREBASE_APP_ID_help": {
+    "source": "Optional; from the Firebase web app config.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_FIREBASE_AUTH_PROXY_label": {
+    "source": "First-party sign-in",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_FIREBASE_AUTH_PROXY_help": {
+    "source": "Serve Google sign-in from this app’s domain (fixes iOS sign-in). Needs the public web address.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_FIREBASE_AUTH_UPSTREAM_HOST_label": {
+    "source": "Sign-in proxy upstream",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_FIREBASE_AUTH_UPSTREAM_HOST_help": {
+    "source": "Advanced: override the sign-in proxy target host.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   }

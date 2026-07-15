@@ -14,7 +14,7 @@ interface Badges {
   finance?: number | null;
 }
 
-export default function NavBar({ userName }: { userName: string }) {
+export default function NavBar({ userName, isAdmin }: { userName: string; isAdmin?: boolean }) {
   const pathname = usePathname();
   const t = useTranslations("NavBar");
   // E-sign work badges (no notification infra — the nav surfaces state).
@@ -39,6 +39,9 @@ export default function NavBar({ userName }: { userName: string }) {
     links.push({ href: "/finance", label: t("finance"), badge: badges.finance || undefined });
   }
   links.push({ href: "/profile", label: t("profile") });
+  // Admin link is role-gated (the verified mirror); the page + API 404 for
+  // anyone else regardless, so this only decides visibility.
+  if (isAdmin) links.push({ href: "/admin", label: t("admin") });
 
 
   return (
