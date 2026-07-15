@@ -2,7 +2,13 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { CONFIG_FILE_NAME, configValue } from "@/lib/config-file";
+import {
+  CONFIG_FILE_NAME,
+  configValue,
+  configFileHas,
+  readConfigFile,
+  writeConfigValues,
+} from "@/lib/config-file";
 
 // configValue overlays a JSON file under DATA_DIR on top of process.env. Each
 // test gets a throwaway DATA_DIR so the loader's mtime cache can't leak state.
@@ -60,5 +66,54 @@ describe("configValue (data-dir config file)", () => {
     const future = new Date(Date.now() + 10_000);
     fs.utimesSync(path.join(dir, CONFIG_FILE_NAME), future, future);
     expect(configValue("OPENROUTER_MODEL")).toBe("model-b");
+  });
+});
+
+// The admin editor writes back to the same file the loader reads.
+describe("writeConfigValues (admin editor)", () => {
+  const oldEnv = { ...process.env };
+  let dir: string;
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "numbers-cfgw-"));
+    process.env.DATA_DIR = dir;
+  });
+  afterEach(() => {
+    process.env = { ...oldEnv };
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("creates the file and is readable back immediately (hot-reload)", () => {
+    writeConfigValues({ AI_PROVIDER: "google", GEMINI_MODEL: "gemini-x" });
+    expect(readConfigFile()).toEqual({ AI_PROVIDER: "google", GEMINI_MODEL: "gemini-x" });
+    expect(configValue("AI_PROVIDER")).toBe("google");
+    expect(configFileHas("GEMINI_MODEL")).toBe(true);
+  });
+
+  it("merges into existing values without clobbering others", () => {
+    writeConfigValues({ AI_PROVIDER: "google", GEMINI_MODEL: "a" });
+    writeConfigValues({ GEMINI_MODEL: "b" });
+    expect(readConfigFile()).toEqual({ AI_PROVIDER: "google", GEMINI_MODEL: "b" });
+  });
+
+  it("deletes a key on null, reverting to process.env", () => {
+    process.env.AI_PROVIDER = "openrouter";
+    writeConfigValues({ AI_PROVIDER: "google" });
+    expect(configValue("AI_PROVIDER")).toBe("google");
+    writeConfigValues({ AI_PROVIDER: null });
+    expect(configFileHas("AI_PROVIDER")).toBe(false);
+    expect(configValue("AI_PROVIDER")).toBe("openrouter");
+  });
+
+  it("refuses to write DATA_DIR into the file", () => {
+    writeConfigValues({ DATA_DIR: "/evil", AI_PROVIDER: "google" });
+    expect(readConfigFile().DATA_DIR).toBeUndefined();
+    expect(configValue("DATA_DIR")).toBe(dir);
+  });
+
+  it("recovers from a malformed existing file", () => {
+    fs.writeFileSync(path.join(dir, CONFIG_FILE_NAME), "{not json");
+    writeConfigValues({ AI_PROVIDER: "google" });
+    expect(readConfigFile()).toEqual({ AI_PROVIDER: "google" });
   });
 });

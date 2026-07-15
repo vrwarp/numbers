@@ -298,6 +298,7 @@ through `configValue()`; add new ones the same way.
 | `AI_MOCK=1` | deterministic extraction + suggestions, no network (tests/dev) — bypasses throttle/retry |
 | `CHURCH_CONTEXT_PATH` | operator-authored church vocabulary markdown fed into suggestion prompts; default `<DATA_DIR>/church-context.md`; feature degrades gracefully when absent. Contents are sent to the AI provider |
 | `AUTH_TEST_MODE=1` | enables dev login (tests/dev only) |
+| `ADMIN_EMAILS` | comma/space-separated emails granted `/admin` access without a roster GRANT_ROLE — seeds a deployment's first admin. App-surface only (`isAppAdmin` in `src/lib/config.ts`); never writes the verified `User.role` mirror, so e-sign roster validity is untouched. Also gates the e-sign app-surface controls (master switch, rollout allowlist). Empty → admin is the roster role alone |
 | `TEMPLATE_PDF` | optional replacement blank form path |
 | `CJK_FONT_PATH` | optional replacement CJK font for PDF values (default `assets/fonts/NotoSansCJKtc-Regular.otf`; unreadable → warn + bundled) |
 | `E2E_BROWSERS`, `E2E_FORCE_BUILD`, `PLAYWRIGHT_CHROMIUM_PATH` | test harness (see TESTING.md) |

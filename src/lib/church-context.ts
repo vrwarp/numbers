@@ -38,3 +38,38 @@ export async function loadChurchContext(): Promise<string | null> {
     ? trimmed.slice(0, CHURCH_CONTEXT_MAX_BYTES)
     : trimmed;
 }
+
+/**
+ * The raw stored document (untrimmed, uncapped) for the admin editor — null
+ * when the file is missing. Distinct from loadChurchContext(), which returns
+ * the trimmed/capped text the AI actually receives. SERVER ONLY (fs).
+ */
+export async function readChurchContextRaw(): Promise<string | null> {
+  try {
+    return await fs.readFile(churchContextPath(), "utf8");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Persist the admin-edited context document. Written atomically (tmp + rename)
+ * so a half-written file is never read by a concurrent suggestion call. Empty
+ * input removes the file, reverting suggestions to chart-of-accounts only.
+ * Throws when the text exceeds the byte cap. SERVER ONLY (fs).
+ */
+export async function writeChurchContext(text: string): Promise<void> {
+  const bytes = Buffer.byteLength(text, "utf8");
+  if (bytes > CHURCH_CONTEXT_MAX_BYTES) {
+    throw new Error(`Church context exceeds ${CHURCH_CONTEXT_MAX_BYTES}-byte cap`);
+  }
+  const target = churchContextPath();
+  if (!text.trim()) {
+    await fs.rm(target, { force: true });
+    return;
+  }
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  const tmp = `${target}.${process.pid}.tmp`;
+  await fs.writeFile(tmp, text, "utf8");
+  await fs.rename(tmp, target);
+}
