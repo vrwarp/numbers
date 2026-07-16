@@ -115,40 +115,33 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
             {t("decided")}
           </h2>
           <ul className="space-y-2">
-            {history.map((c) => (
-              <li
-                key={c.id}
-                className="card card-lift flex items-center justify-between gap-3 text-sm"
-                data-testid={`decided-${c.id}`}
-              >
-                {/* The row opens the latest packet — the approved copy for an
-                    approved/paid claim, the signed submission for a rejected
-                    one. The certificate download (approved/paid only) stays a
-                    separate control on the right, so this is a stretched link
-                    across the left rather than a nested anchor. */}
-                <a
-                  className="pressable min-w-0 flex-1 truncate rounded-l-xl py-3 pl-3"
-                  href={`/api/reimbursements/${c.id}/packet`}
-                  target="_blank"
-                  rel="noreferrer"
-                  data-testid={`decided-packet-${c.id}`}
-                >
-                  {c.ownerName} · {formatCents(c.totalCents)}
-                </a>
-                <span className="flex shrink-0 items-center gap-3 py-3 pr-3">
-                  {(c.status === "approved" || c.status === "paid") && (
-                    <a
-                      className="text-indigo-600 underline"
-                      href={`/api/reimbursements/${c.id}/certificate`}
-                      data-testid={`certificate-${c.id}`}
-                    >
-                      {tEsign("certificateLink")}
-                    </a>
-                  )}
-                  <StatusChip status={c.status} />
-                </span>
-              </li>
-            ))}
+            {history.map((c) => {
+              // Approved/paid claims have a certificate (signature cover page +
+              // full signed packet + offline verification bundle); a rejected
+              // claim has none, so its row falls back to the signed submission
+              // packet. The certificate is a download; the packet is an inline
+              // PDF, so only the latter opens in its own tab.
+              const hasCertificate = c.status === "approved" || c.status === "paid";
+              return (
+                <li key={c.id} className="card card-lift" data-testid={`decided-${c.id}`}>
+                  <a
+                    className="pressable flex w-full items-center justify-between gap-3 rounded-xl p-3 text-sm"
+                    href={
+                      hasCertificate
+                        ? `/api/reimbursements/${c.id}/certificate`
+                        : `/api/reimbursements/${c.id}/packet`
+                    }
+                    {...(hasCertificate ? {} : { target: "_blank", rel: "noreferrer" })}
+                    data-testid={`decided-open-${c.id}`}
+                  >
+                    <span className="min-w-0 truncate">
+                      {c.ownerName} · {formatCents(c.totalCents)}
+                    </span>
+                    <StatusChip status={c.status} />
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
