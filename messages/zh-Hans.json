@@ -120,6 +120,7 @@
     "generateEnded": "报销单生成意外中断",
     "emptyTitle": "还没有收据",
     "emptyBody": "上传收据的照片或 PDF 即可开始。",
+    "languagePrompt": "想使用其他语言？",
     "step1": "<step>1. 拍照。</step>买完东西立刻拍下收据。",
     "step2": "<step>2. 汇总。</step>之后有空时，选择收据并点“新建报销单”。",
     "step3": "<step>3. 核对。</step>逐行对照收据检查，可修改、拆分或排除项目。",

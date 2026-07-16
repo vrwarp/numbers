@@ -10,11 +10,13 @@ import { LOCALES, LOCALE_COOKIE, LOCALE_LABELS, LOCALE_SHORT_LABELS } from "@/li
  * also persisted to User.locale so it follows the user to their next device
  * (sign-in copies it back into the cookie).
  *
- * Two looks: "full" (sign-in page) is a plain select showing the language's
+ * Three looks: "full" (sign-in page) is a plain select showing the language's
  * own name; "compact" (NavBar) is a small chip showing a one-glyph badge
  * (EN / 简 / 繁) with an invisible native select stretched over it, so a tap
  * still opens the platform picker with the full language names — the chip
- * stays narrow enough for a phone-width nav with CJK link labels.
+ * stays narrow enough for a phone-width nav with CJK link labels; "prominent"
+ * (empty Receipts screen) is a segmented row of tappable pills, each labelled
+ * with its language's own name, sized to catch a brand-new user's eye.
  */
 export default function LocaleSwitcher({
   signedIn = false,
@@ -22,7 +24,7 @@ export default function LocaleSwitcher({
   className = "",
 }: {
   signedIn?: boolean;
-  variant?: "full" | "compact";
+  variant?: "full" | "compact" | "prominent";
   className?: string;
 }) {
   const locale = useLocale();
@@ -46,6 +48,36 @@ export default function LocaleSwitcher({
       {LOCALE_LABELS[l]}
     </option>
   ));
+
+  if (variant === "prominent") {
+    return (
+      <div
+        className={`inline-flex flex-wrap items-center justify-center gap-1 rounded-full border border-stone-200 bg-white p-1 shadow-sm ${className}`}
+        role="group"
+        aria-label={t("language")}
+        data-testid="locale-switcher-prominent"
+      >
+        {LOCALES.map((l) => {
+          const active = l === locale;
+          return (
+            <button
+              key={l}
+              type="button"
+              onClick={() => change(l)}
+              aria-current={active ? "true" : undefined}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                active
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-stone-600 hover:bg-stone-100"
+              }`}
+            >
+              {LOCALE_LABELS[l]}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
 
   if (variant === "compact") {
     return (

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
+import LocaleSwitcher from "./LocaleSwitcher";
 import ReceiptViewer from "./ReceiptViewer";
 import PdfReceiptPreview from "@/components/PdfReceiptPreview";
 import ReceiptGrid, { type ReceiptSummary as Receipt } from "./ReceiptGrid";
@@ -542,6 +543,12 @@ export default function Shoebox() {
           <div className="text-4xl">🧾</div>
           <p className="mt-2 font-medium">{t("emptyTitle")}</p>
           <p className="text-sm">{t("emptyBody")}</p>
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-stone-400">
+              {t("languagePrompt")}
+            </p>
+            <LocaleSwitcher signedIn variant="prominent" />
+          </div>
           <ol className="mx-auto mt-8 grid max-w-3xl gap-3 text-left text-sm text-stone-600 sm:grid-cols-4">
             {(["step1", "step2", "step3", "step4"] as const).map((step) => (
               <li key={step}>
