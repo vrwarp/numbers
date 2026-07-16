@@ -1,6 +1,7 @@
 # Semantic search across receipts and claims — design
 
-Status: **proposed** (embedding endpoint contract pending — see §12 Open questions).
+Status: **proposed; endpoint contract verified live** (§3.1, 2026-07-16 — re-check
+anytime with `scripts/probe-embedding-endpoint.mjs`).
 Companion to `docs/ESIGN_DESIGN.md` (this feature amends its §6.3 read-grant list) and
 `docs/agent/DATA_MODEL.md` (three new tables).
 
@@ -17,16 +18,16 @@ for VBS", "that Costco run with the returned chairs", "王姐妹's retreat snack
   **grouped by year**, best match first within each year.
 - **All claims are indexed, drafts included**: a draft becomes searchable once it has
   been left unchanged for **10 minutes** (a debounce, so active editing never burns
-  10 s embeds on every keystroke — §5.2); frozen claims index immediately.
+  15 s embeds on every keystroke — §5.2); frozen claims index immediately.
 - The embedding backend (endpoint, model, dimension) is **operator-changeable from the
   admin interface at runtime**, including a safe migration path to a new model (§3.3).
 
 Two latency constraints drive the architecture:
 
-| Operation | Latency | Consequence |
+| Operation | Latency (measured, §3.1) | Consequence |
 | :-- | :-- | :-- |
-| Embed a search query (text) | ~500 ms | Query embedding happens synchronously per search; the UI is designed around an explicit-submit, sub-second search — never per-keystroke |
-| Embed a receipt image / claim PDF | ~10 s | Document embedding is NEVER done in a request path. A durable SQLite-backed job queue with retry embeds items in the background as they appear, plus a backfill sweep for pre-existing items |
+| Embed a search query (text) | ~150–700 ms (design budget 500 ms) | Query embedding happens synchronously per search; the UI is designed around an explicit-submit, sub-second search — never per-keystroke |
+| Embed a receipt image / claim composite | ~15 s at 640 px (~90 s undownscaled — hence `EMBEDDING_MAX_PX`) | Document embedding is NEVER done in a request path. A durable SQLite-backed job queue with retry embeds items in the background as they appear, plus a backfill sweep for pre-existing items |
 
 ## 2. Non-goals
 
@@ -43,18 +44,47 @@ Two latency constraints drive the architecture:
 
 ## 3. Embedding backend
 
-### 3.1 Provider contract
+### 3.1 Provider contract — VERIFIED against the real endpoint
 
-A self-hosted Qwen multimodal embedding endpoint, **most likely OpenAI-compatible**
-(`POST <base>/v1/embeddings` with `{model, input}` → `{data: [{embedding: [...]}]}`).
-The provider module defaults to that shape, with image inputs sent the way
-OpenAI-compatible multimodal embedding servers (e.g. vLLM) accept them — a data-URI /
-`image_url` content part. The integration is isolated behind one module so whatever the
-final contract turns out to be only touches one file:
+The endpoint (`https://apollo.vrwarp.com`, llama.cpp serving `qwen3-vl-embedding-2b`)
+was probed on 2026-07-16; `scripts/probe-embedding-endpoint.mjs` re-runs the full check
+suite anytime (`EMBEDDING_ENDPOINT=… EMBEDDING_API_KEY=… node scripts/…`). Verified:
+
+- **Vectors**: dim **2048**, already unit-normalized, deterministic. Text and image
+  vectors live in ONE space (native-route text ≡ `/v1` text, cos 1.0000), and
+  cross-modal ranking is real: "coffee at Starbucks" → coffee-receipt image 0.67 vs
+  hardware-receipt image 0.34 (and symmetrically for a hardware query).
+- **Queries — `POST /v1/embeddings`** (OpenAI-compatible): `{model, input}` where
+  input is a string **or array of strings** (batch works). Text only — images cannot
+  go through this route (a data-URI is tokenized as text). The `model` field is
+  accepted but ignored (single-model llama.cpp server). ~150–700 ms per call.
+- **Documents — `POST /embeddings`** (native): `{content: [{prompt_string,
+  multimodal_data: [rawBase64, …]}]}`, one `<__media__>` token in `prompt_string` per
+  image. **Raw base64 only** — a data-URI prefix fails. **Text+image pairing works**
+  (prose around the `<__media__>` token) and batch = multiple `content` items (one
+  vector each, identical to singles).
+- **Formats**: PNG, JPEG, GIF accepted. **WebP is REJECTED** ("Failed to load image")
+  — critical, because the app stores receipts as WebP. **PDF bytes are rejected** too.
+  Ingest therefore always sends JPEG: WebP → JPEG transcode via sharp (embedding
+  fidelity of the transcode: cos 0.9995), PDF → page-1 raster → JPEG.
+- **Image size drives latency hard**: ~15 s at 480×640, **~90 s at 1200×1600** (the
+  app's stored-image cap). Ingest embeds a **downscaled copy (≤640 px long side,
+  `EMBEDDING_MAX_PX`)** — a 480×640 embed agrees with the 1200×1600 one at cos 0.982,
+  so we pay 15 s instead of 90 for essentially the same vector. Budget ~15 s/item.
+- **Server context is 8192 tokens** — bounds the claim text composite (§5.1); truncate
+  the items list to fit (a receipt image is ~1–2 k patch tokens at 640 px).
+- The instruction prefix (`"Instruct: Retrieve the receipt matching the query.
+  Query: "`) is confirmed working on the query side; documents embed without a prefix.
+
+The integration stays isolated behind one module:
 
 ```
 src/lib/embeddings/provider.ts     embedText(text, cfg) / embedImage(bytes, mime, text?, cfg)
                                    → Float32Array(cfg.dim), L2-normalized.
+                                   embedText → /v1/embeddings; embedImage → native
+                                   /embeddings, after normalizing the input to a
+                                   ≤EMBEDDING_MAX_PX JPEG via sharp (WebP/PNG/
+                                   oversized → transcode+downscale, §3.1).
                                    cfg = a ModelConfig (§3.2) — the provider is
                                    STATELESS about which model is current, so the
                                    migration worker can drive two models at once
@@ -111,12 +141,13 @@ no longer override silently (the admin card shows a hint when env and DB disagre
 
 | Var (seed only) | Notes |
 | :-- | :-- |
-| `EMBEDDING_ENDPOINT` | OpenAI-compatible base URL; feature is OFF until some config exists (no nav entry, routes 404, worker idle) |
-| `EMBEDDING_API_KEY` | optional bearer token |
-| `EMBEDDING_MODEL` | model id string, stored on every vector row |
-| `EMBEDDING_DIM` | vector dimension |
-| `EMBEDDING_QUERY_PREFIX` | optional instruction prefix for query embeds |
-| `EMBEDDING_TIMEOUT_MS` | default 30000 (not in DB — plumbing, not policy) |
+| `EMBEDDING_ENDPOINT` | base URL (serves both `/v1/embeddings` and native `/embeddings`); feature is OFF until some config exists (no nav entry, routes 404, worker idle) |
+| `EMBEDDING_API_KEY` | bearer token |
+| `EMBEDDING_MODEL` | model id string, stored on every vector row (`qwen3-vl-embedding-2b`; llama.cpp ignores the request field, but it is our row-identity key) |
+| `EMBEDDING_DIM` | vector dimension (2048 for qwen3-vl-embedding-2b) |
+| `EMBEDDING_QUERY_PREFIX` | instruction prefix for query embeds — confirmed effective: `"Instruct: Retrieve the receipt matching the query. Query: "` |
+| `EMBEDDING_MAX_PX` | default 640 — long-side cap for image inputs (§3.1: 15 s vs 90 s per embed, cos 0.982 agreement) |
+| `EMBEDDING_TIMEOUT_MS` | default 120000 — a 15 s embed with queueing ahead of it needs headroom (not in DB — plumbing, not policy) |
 | `EMBEDDING_DRAFT_IDLE_MS` | default 600000 — the 10 min draft-idle debounce (§5.2); tests shrink it |
 | `EMBEDDING_MOCK=1` | deterministic vectors, no network |
 
@@ -228,16 +259,19 @@ Deletion: the receipt DELETE route and claim DELETE route also delete the matchi
 `Embedding` + `EmbeddingJob` rows — all models' rows (no FK cascade — do it in the
 route transaction).
 
-## 5. Ingest pipeline (the 10 s path)
+## 5. Ingest pipeline (the 15 s path)
 
 ### 5.1 What gets embedded
 
 **Receipts — the stored image.** Input to `embedImage()` is the already-compressed
-stored file (`filePath`, ~100 KB WebP — plenty for an embedding; never the original).
-If the endpoint accepts an optional text pairing, send the user's `note` +
-extracted `merchant` alongside the pixels. PDF receipts embed their **page-1 raster**,
-reusing the existing preview machinery (`src/lib/pdf/preview.ts` cache; generate on
-demand if not yet cached).
+stored file (`filePath`, ~100 KB WebP — never the original), which the provider
+normalizes to a **≤640 px JPEG** before sending: the endpoint rejects WebP outright
+and an undownscaled image costs ~90 s instead of ~15 s for a near-identical vector
+(§3.1). Text pairing is supported and used: the user's `note` + extracted `merchant`
+ride in `prompt_string` ahead of the `<__media__>` token. PDF receipts embed their
+**page-1 raster**, reusing the existing preview machinery (`src/lib/pdf/preview.ts`
+cache; generate on demand if not yet cached) — those cached pages are WebP too, so
+they pass through the same JPEG normalization.
 
 **Claims — a text composite of the claim's content + first receipt image.**
 The naïve reading of "embed the claim PDF" — rasterize the form page — would be a
@@ -255,6 +289,9 @@ Merchants: <distinct receipt merchants>. Total $<total>. <MM/YYYY>.
 ```
 
 (Amounts formatted at this boundary via `src/lib/money.ts`, like the LLM boundary.)
+The composite is capped to fit the server's 8192-token context (§3.1) minus the paired
+image's ~1–2 k patch tokens: the items list truncates with an "… and N more items"
+tail — a 60-row claim's gist survives; verbatim completeness is not the goal.
 `sourceSha256` for a claim is the **sha256 of the composite text itself** — the
 fingerprint of exactly what was embedded. This works uniformly for drafts (no packet
 exists) and frozen claims, and makes staleness checks trivial: rebuild the composite,
@@ -281,7 +318,7 @@ so continuous editing keeps pushing the embed into the future, and the job only 
 runnable once the draft has sat untouched for 10 minutes. Two guards keep it honest:
 the worker embeds whatever the claim contains *at run time* (never a snapshot from
 enqueue time), and an enqueue-upsert that lands while the same job is `running`
-re-queues it, so an edit racing a 10 s embed just schedules a follow-up whose hash
+re-queues it, so an edit racing a 15 s embed just schedules a follow-up whose hash
 check makes it cheap. The window is `EMBEDDING_DRAFT_IDLE_MS` (default 600000).
 All draft mutation paths already write the claim row (`totalCents` recompute /
 `updatedAt`), so the trigger list above is exactly the routes that must call
@@ -310,7 +347,7 @@ loop:
   cfg = model config the JOB names (active or target — from EmbeddingSettings)
   build input (§5.1); if its sourceSha256 already matches the stored Embedding row
     → mark done WITHOUT a provider call (makes re-queues after benign races free)
-  provider call (~10 s) → verify dim → normalize
+  provider call (~15 s) → verify dim → normalize
   upsert Embedding row for (kind, targetId, job.model)
   (+ write ExtractionLog kind="embedding", §9)
   mark done; bump the in-memory index version (§6.3) if job.model == activeModel;
@@ -321,8 +358,8 @@ on error:
   else       → status failed  (surfaces in the admin panel, §10; manual retry re-queues)
 ```
 
-**Concurrency 1.** Each call holds the (self-hosted, likely single-GPU) endpoint for
-10 s; parallel calls would just queue server-side. Make it a config
+**Concurrency 1.** Each call holds the (self-hosted, single-GPU llama.cpp) endpoint for
+~15 s; parallel calls would just queue server-side. Make it a config
 (`EMBEDDING_CONCURRENCY`, default 1) for a beefier endpoint later. Terminal races are
 benign: if a receipt is deleted mid-embed, the final upsert notices the target is gone
 and drops the result.
@@ -337,8 +374,8 @@ recently-touched drafts are skipped because their debounced job already exists).
 the **target** model — the sweep IS the migration's re-index engine, no separate code
 path. It also purges `Embedding`/job rows whose model is neither active nor target
 (leftovers of a cancelled migration interrupted mid-cleanup). The sweep is a single
-indexed query pair + upserts; idempotent and cheap. At 10 s per item a 1,000-receipt
-history backfills in ~3 h of quiet background work while new uploads still jump the
+indexed query pair + upserts; idempotent and cheap. At ~15 s per item a 1,000-receipt
+history backfills in ~4 h of quiet background work while new uploads still jump the
 line at priority 0.
 
 ## 6. Query path (the 500 ms path)
@@ -588,26 +625,36 @@ A "Search index" card on `/admin` behind the existing `isAppAdmin()` gate
 - **Mock design note**: the mock must be similarity-meaningful (bag-of-tokens folded
   into the space), not random — e2e asserts *ranking*, not just presence.
 
-## 12. Open questions (blocked on the endpoint contract)
+## 12. Endpoint questions — RESOLVED by live probing (§3.1)
 
-1. **Confirm OpenAI-compatibility details**: exact image-input encoding for
-   `/v1/embeddings` (data-URI content part vs. a custom field), auth header, and
-   whether text+image can be embedded as ONE input (affects §5.1 pairing) — or images
-   and text land in a shared space via separate calls (Qwen3-VL-style unified space
-   assumed).
-2. **Dimension & truncation**: native dim? MRL-truncatable (store 1024 instead of 4096
-   → 4× smaller matrix)? If truncation is chosen, it's part of the model config and a
-   change to it is just another §3.3 migration.
-3. **Batching**: can the endpoint take a batch? (Worker stays sequential either way,
-   but backfill could batch 4–8 images per call if supported.)
-4. **Instruction prefixes**: Qwen embedding models score better with an instruction on
-   the *query* side — confirm and set the exact string in `queryPrefix` (§3.2; admin-
-   editable, no re-index needed to tune it).
+The former open questions, answered on 2026-07-16 against the real endpoint
+(`scripts/probe-embedding-endpoint.mjs` re-verifies all of this on demand):
+
+1. **Image encoding**: images do NOT go through `/v1/embeddings` (text-only there);
+   they go through native `/embeddings` as raw base64 in `multimodal_data` with a
+   `<__media__>` token per image — no data-URI. Text+image pairing in one input
+   works. Bearer auth on both routes.
+2. **Dimension**: 2048, unit-normalized at the source. No MRL truncation offered by
+   the server; at church scale the full-dim matrix is fine (§6.3). If it ever appears,
+   a dim change is just a §3.3 migration.
+3. **Batching**: yes on both routes (array input on `/v1`; multiple `content` items on
+   native — results identical to singles). Worker stays sequential; the probe's 2-item
+   native batch took ~2× a single, so batching buys queueing simplicity, not GPU time.
+4. **Instruction prefix**: confirmed working — `"Instruct: Retrieve the receipt
+   matching the query. Query: "` is the `queryPrefix` seed (§3.2; admin-tunable, no
+   re-index needed).
+
+New facts the probe surfaced that the design now depends on: **no WebP, no PDF** at
+the endpoint (ingest normalizes everything to JPEG), **image size → latency** (≤640 px
+inputs, `EMBEDDING_MAX_PX`), and an **8192-token server context** (bounds the claim
+composite).
 
 ## 13. Build order
 
-1. Schema + migration (3 tables); provider (OpenAI-compatible default) + mock;
-   settings accessor with env seed + probe; ingest module with composite builder.
+1. Schema + migration (3 tables); provider (verified contract, §3.1 — the probe
+   script `scripts/probe-embedding-endpoint.mjs` already exists and doubles as its
+   spec) + mock; settings accessor with env seed + probe; ingest module with
+   composite builder.
 2. Worker + triggers + backfill/reconcile sweep (gated on settings existing+enabled).
 3. `/api/search` + index cache + permission matrix (+ file/preview role gate + §6.3
    amendment + security-sweep update in the same PR).
