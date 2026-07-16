@@ -972,9 +972,21 @@ with the outcome and keeps machinery in expandos:
   mock's `__EMBED_FAIL__` lever shows exact matches + banner; admin model change →
   rebuild → search works on the new model; security sweep updated for the ratified
   grant.
-- **Mock design note**: the mock must be similarity-meaningful (bag-of-tokens folded
-  into the space), not random — e2e asserts *ranking*, not just presence — and must
-  fold CJK bigrams so Chinese fixtures rank for Chinese queries.
+- **Mock design note**: the unit-test mock must be similarity-meaningful
+  (bag-of-tokens folded into the space), not random — tests assert *ranking*, not
+  just presence — and must fold CJK bigrams so Chinese fixtures rank for Chinese
+  queries.
+- **Recorded real embeddings (implemented)**: the e2e server replays REAL vectors
+  recorded from the production endpoint (`npm run record:embeddings` →
+  `tests/e2e/embedding-fixtures/embeddings.json`; replay server
+  `tests/e2e/mock-embedding-server.mjs`). `search-journeys.spec.ts` runs the
+  bilingual corpus journeys (en→en, zh→en, en→zh, zh→zh), amount journeys
+  (incl. full-width IME input), the zh claim draft→frozen journey, the decided
+  browse, and a score-fidelity check asserting the app serves the recorded
+  cosines end-to-end (±0.02) — which doubles as a byte-determinism canary for
+  the image pipeline. Unknown texts (dynamic composites) project onto recorded
+  anchors by token overlap, so they stay in real model geometry. See
+  docs/agent/TESTING.md "Recorded real embeddings".
 
 ## 12. Endpoint questions — RESOLVED by live probing (§3.1)
 

@@ -61,9 +61,10 @@ export async function embeddingSettings(): Promise<EmbeddingSettingsRow | null> 
   if (row) return row;
   try {
     return await seedFromEnv();
-  } catch {
+  } catch (err) {
     // Racing seed (two requests on a fresh DB) — the unique-less table may get
     // two rows only via this race; findFirst keeps one authoritative.
+    console.error("embedding settings seed failed:", err);
     return prisma.embeddingSettings.findFirst();
   }
 }
