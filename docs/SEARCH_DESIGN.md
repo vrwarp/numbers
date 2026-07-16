@@ -1,6 +1,6 @@
 # Semantic search across receipts and claims — design
 
-Status: **proposed (rev 4 — post critique round 3); endpoint contract verified live**
+Status: **proposed (rev 5 — post critique round 4); endpoint contract verified live**
 (§3.1, 2026-07-16 — re-check anytime with `scripts/probe-embedding-endpoint.mjs`).
 Companion to `docs/ESIGN_DESIGN.md` (this feature amends its §6.3 read-grant list) and
 `docs/agent/DATA_MODEL.md` (three new tables + one new Receipt column).
@@ -139,6 +139,10 @@ model EmbeddingSettings {
   // editable because it is model-specific. Changing it only affects queries —
   // no re-index needed, but the query LRU keys on it (§6.1).
   queryPrefix String   @default("")
+  // Semantic score floor (×1000, integer — SQLite/Prisma float hygiene).
+  // Same edit class as queryPrefix: apply in place, no probe, no re-index.
+  // The admin test box shows scores; this is the knob next to the dial.
+  minScoreMilli Int    @default(250)
   updatedAt   DateTime @updatedAt
 }
 ```
@@ -153,31 +157,39 @@ no longer override silently (the admin card shows a hint when env and DB disagre
 `EMBEDDING_DEV=1`** — a `.env` holding real endpoint values must never silently start
 a backfill against a production GPU from someone's laptop.
 
-| Var (seed only) | Notes |
-| :-- | :-- |
-| `EMBEDDING_ENDPOINT` | base URL (serves both `/v1/embeddings` and native `/embeddings`); feature is OFF until some config exists (no entry points, routes 404, worker idle) |
-| `EMBEDDING_API_KEY` | bearer token |
-| `EMBEDDING_MODEL` | model id string, stored on every vector row (`qwen3-vl-embedding-2b`; llama.cpp ignores the request field, but it is our row-identity key) |
-| `EMBEDDING_DIM` | vector dimension (2048 for qwen3-vl-embedding-2b) |
-| `EMBEDDING_QUERY_PREFIX` | instruction prefix for query embeds — confirmed effective: `"Instruct: Retrieve the receipt matching the query. Query: "` |
-| `EMBEDDING_MAX_PX` | default 640 — long-side cap for image inputs (§3.1: 15 s vs 90 s per embed, cos 0.982 agreement) |
-| `EMBEDDING_TIMEOUT_MS` | default 120000 — a 15 s embed with queueing ahead of it needs headroom (not in DB — plumbing, not policy) |
-| `EMBEDDING_DRAFT_IDLE_MS` | default 600000 — the 10 min draft-idle debounce (§5.2); tests shrink it |
-| `EMBEDDING_POLL_MS` | default 15000 — worker idle poll; e2e relies on the in-process wake (§5.3), not on shrinking this |
-| `EMBEDDING_MIN_SCORE` | default 0.25 — semantic score floor (§6.1; tuned via the admin test box) |
-| `EMBEDDING_DEV=1` | dev only: allow env seed + worker under `next dev` |
-| `EMBEDDING_MOCK=1` | deterministic vectors, no network |
+| Var | Class | Notes |
+| :-- | :-- | :-- |
+| `EMBEDDING_ENDPOINT` | seed | base URL (serves both `/v1/embeddings` and native `/embeddings`); feature is OFF until some config exists (no entry points, routes 404, worker idle) |
+| `EMBEDDING_API_KEY` | seed | bearer token |
+| `EMBEDDING_MODEL` | seed | model id string, stored on every vector row (`qwen3-vl-embedding-2b`; llama.cpp ignores the request field, but it is our row-identity key) |
+| `EMBEDDING_DIM` | seed | vector dimension — optional: the probe detects it (§10), this seeds a headless deploy (2048 for qwen3-vl-embedding-2b) |
+| `EMBEDDING_QUERY_PREFIX` | seed | instruction prefix for query embeds — confirmed effective: `"Instruct: Retrieve the receipt matching the query. Query: "` |
+| `EMBEDDING_MIN_SCORE` | seed | default 0.25 — seeds `minScoreMilli`; thereafter tuned in the admin card next to the test box |
+| `EMBEDDING_MAX_PX` | plumbing | default 640 — long-side cap for image inputs (§3.1: 15 s vs 90 s per embed, cos 0.982 agreement) |
+| `EMBEDDING_TIMEOUT_MS` | plumbing | default 120000 — a 15 s embed with queueing ahead of it needs headroom |
+| `EMBEDDING_DRAFT_IDLE_MS` | plumbing | default 600000 — the 10 min draft-idle debounce (§5.2); tests shrink it |
+| `EMBEDDING_POLL_MS` | plumbing | default 15000 — worker idle poll; e2e relies on the in-process wake (§5.3), not on shrinking this |
+| `EMBEDDING_DEV=1` | flag | dev only: allow env seed + worker under `next dev` |
+| `EMBEDDING_MOCK=1` | flag | deterministic vectors, no network (vitest sets it via `test.env` in `vitest.config.ts`; e2e via `tests/e2e/start-server.sh`) |
 
-**Probe policy (no admin lockout).** The live probe (embed a fixed test string, check
-HTTP success + vector length == dim; **10 s timeout**, independent of
-`EMBEDDING_TIMEOUT_MS`) runs only when a save would make the worker/search *do more*:
-enabling the feature, or changing endpoint/model/dim while enabled. It never gates
-turning `enabled` off or editing `queryPrefix`. An explicit "Save without testing"
-toggle (audited as such) covers the endpoint-is-down-and-I-know-it case, so a dead
-endpoint can never lock the admin out of their own config. A "Test connection" button
-runs the same probe standalone. Every settings change writes an `AuditEvent`
+**Probe policy (no admin lockout).** The live probe (embed a fixed test string;
+**10 s timeout**, independent of `EMBEDDING_TIMEOUT_MS`) runs only when a save would
+make the worker/search *do more*: enabling the feature, or changing endpoint/model
+while enabled. It never gates turning `enabled` off or editing
+`queryPrefix`/`minScoreMilli`. **The probe returns the detected vector dimension** —
+the admin never types "2048": the card shows "Detected: 2048" read-only and saves it
+(a manual dim field appears only under "Save without testing", the
+endpoint-is-down-and-I-know-it escape, audited as such). A dead endpoint can never
+lock the admin out of their own config. A "Test connection" button runs the same
+probe standalone. Every settings change writes an `AuditEvent`
 (`action="update-embedding-config"`, detail = field diff with the API key redacted to
 a fingerprint).
+
+**API-key readback contract** (not just a UI affordance): the admin settings **GET
+returns `apiKeyFingerprint` + `apiKeySet: boolean`, never the key**; a PUT with the
+field absent or empty preserves the stored key. A test asserts the GET body never
+contains the stored key string — the bearer token must not ride into every admin page
+load and browser cache.
 
 ### 3.3 Changing the model — wipe and rebuild
 
@@ -272,6 +284,11 @@ model EmbeddingJob {
   // Crash-safety lease: a "running" row whose lease has expired is reclaimable.
   leaseExpiresAt DateTime?
   lastError     String    @default("")
+  // Fingerprint of the input at the moment the job went terminal-failed. The
+  // sweep re-enqueues a failed job ONLY when the rebuilt fingerprint differs
+  // (content changed) — otherwise failed stays failed instead of re-burning
+  // 8 retries of GPU time per day forever (§5.4).
+  failedSourceSha256 String @default("")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -423,11 +440,15 @@ loop:
          short-circuit makes it free if content settled back).
     2. re-check the target row exists (same txn); gone → done, write nothing.
     3. upsert Embedding row for (kind, targetId, job.model).
-  write ExtractionLog kind="embedding" (§9); bump index-cache version
+  write ExtractionLog kind="embedding" (§9); apply DELTA to the index cache
+  (upsert this one row in-process, §6.4 — never a version bump per job)
 on error:
   attempts++; lastError = message
   attempts < 8 → status queued, nextAttemptAt = now + min(30 s × 2^attempts, 1 h)
-  else       → status failed  (surfaces in the admin panel, §10; manual retry re-queues)
+  else       → status failed, failedSourceSha256 = current fingerprint
+               (surfaces in the admin panel, §10; manual retry re-queues; the
+               member loses nothing visible — the item still surfaces via the
+               exact-match pass, just not semantically)
 ```
 
 **Concurrency 1.** Each call holds the (self-hosted, single-GPU llama.cpp) endpoint
@@ -442,10 +463,14 @@ either has no `Embedding` row for the current model or whose fingerprint, rebuil
 **from DB columns only** (`fileSha256`/note/merchant/purchaseDate; composite from the
 claim rows — no file reads), no longer matches (covers: pre-feature rows, rows that
 missed a trigger, edits that raced; recently-touched drafts are skipped because their
-debounced job already exists). The sweep also GCs: `Embedding`/`EmbeddingJob` rows
-whose model isn't the current one (interrupted model change) or whose **target row no
-longer exists** (deletion racing an in-flight embed — the backstop behind §5.3's
-in-transaction check). Idempotent, pure-DB, cheap. At ~15 s per item a 1,000-receipt
+debounced job already exists). **Failed jobs are exempt unless their content
+changed**: a failed job re-enqueues only when the rebuilt fingerprint differs from
+`failedSourceSha256` (or the model changed) — a permanently unreadable item must not
+re-burn 8 retries of single-GPU time every day and repopulate the admin's triage list
+forever. The sweep also GCs: `Embedding`/`EmbeddingJob` rows whose model isn't the
+current one (interrupted model change) or whose **target row no longer exists**
+(deletion racing an in-flight embed — the backstop behind §5.3's in-transaction
+check). Idempotent, pure-DB, cheap. At ~15 s per item a 1,000-receipt
 history backfills in ~4 h of quiet background work while new uploads still jump the
 line at priority 0.
 
@@ -473,8 +498,12 @@ POST /api/search        { query: string (0..300),
         claims: [{id, status}] },       // empty array = "Not on a claim" (§7.3)
       { kind: "claim", id, score?, status, totalCents, claimDescription,
         ministries: string[], ownerName?, createdAt } ] }],
-    indexed: { pending: n, myPendingReceipts: n, myPendingClaims: n,
-               myNextReadyAt?: iso },              // §7.4 wording per kind
+    indexed: { myPendingReceipts: n, myPendingClaims: n, myNextReadyAt?: iso,
+               // rebuildPending: GLOBAL queue depth — present ONLY while a
+               // backfill/rebuild is running, rounded to a coarse figure (a
+               // deliberate, stated aggregate exception to tenant scoping —
+               // §6.3; per-user activity must not be inferable from it)
+               rebuildPending?: n },
     degraded?: "semanticUnavailable",              // §6.2 fallback marker
     nextCursor?: string                            // browse mode only
   }
@@ -497,9 +526,9 @@ Flow:
    instead of 502ing the whole search (§6.2).
 4. Score against the in-memory index (§6.4) **after** applying the permission scope
    (§6.3) — tenant scoping is a pre-filter, never a post-filter.
-5. Keep the global top **50** with score ≥ **0.25** (threshold behind a config,
-   `EMBEDDING_MIN_SCORE`, tunable via the admin test box where scores are visible,
-   §10). Dedupe anything already in `exact`. Pin the top remaining hit as `best`
+5. Keep the global top **50** with score ≥ `minScoreMilli/1000` (default 0.25;
+   tuned in the admin card beside the test box where scores are visible, §10).
+   Dedupe anything already in `exact`. Pin the top remaining hit as `best`
    **only when `exact` is empty** — when exact hits exist they ARE the best match,
    and a "Best match" header over leftovers would lie (§7.2). Group the rest by
    `year` descending, items within a year by score descending.
@@ -568,7 +597,13 @@ that list with:
 > *Role read (ratified): holders of a verified approver/treasurer/admin role may read
 > receipts and claims across all tenants — search summaries and receipt files today;
 > future role-facing read surfaces may rely on the same grant. Draft claims are
-> included. Writes remain owner-only (plus the existing ceremony paths).*
+> included, and so are **receipts never placed on any claim** (Shoebox staging photos
+> and their notes) — the operator's instruction was "search across all receipts",
+> which is deliberately broader than "all reimbursements"; this sentence exists so
+> that breadth is signed off, not accidental. Writes remain owner-only (plus the
+> existing ceremony paths). One aggregate exception rides along: while a
+> backfill/rebuild runs, ALL users see a coarse global queue-depth figure
+> (`rebuildPending`, §6.1) — no per-user activity may be inferable from it.*
 
 Delivery: the grant itself (file/preview role gate + ESIGN §6.3 amendment + the
 security-sweep exception) lands as its **own commit with its own tests, before the
@@ -629,8 +664,8 @@ A dedicated **`/search`** page. Entry points, in order of importance:
    it must not steal focus while an IME composition is active elsewhere).
 
 Server component does the usual `currentUserId()` redirect and passes the caller's
-role capabilities (may use scope all/decided?) so the client renders only the filters
-this user is allowed to touch. All entry points render only when the feature is
+role capabilities so the client renders only the controls this user is allowed to
+touch. All entry points render only when the feature is
 configured and enabled (`EmbeddingSettings.enabled`).
 
 ### 7.2 Layout
@@ -667,8 +702,8 @@ configured and enabled (`EmbeddingSettings.enabled`).
   any new submit or filter change resets the strip to capped. The pinned **Best
   match** card renders only when the exact strip is empty — if exact hits exist,
   they are the best match and a second "best" header would lie. Year headers are
-  sticky, newest first, and suppressed **only when all results (≤ 5) share one
-  year** — two results from different years keep their headers, because for a
+  sticky, newest first, and suppressed **only when all results share one year** —
+  two results from different years always keep their headers, because for a
   temporally-phrased query ("上个月买的桌布") the year is the only disambiguator on
   the page. All card dates render through the next-intl formatter (zh-Hant:
   2024年5月12日 — never raw MM/DD). When the query contains a recognizable
@@ -689,6 +724,9 @@ configured and enabled (`EmbeddingSettings.enabled`).
   or reopening in the same tab) restores results without re-typing — IME users must
   never pay the composition tax twice for one search session. No query text ever
   enters the URL.
+- **Shared devices are a normal church pattern** (family iPad, the office computer):
+  both storages are **namespaced by userId and cleared on sign-out** — one member's
+  recent queries must never surface for the next person who signs in.
 - **No relevance scores in the user UI.** Scores are ordinal, tooltips don't exist on
   touch, and a visible number invites questions it can't answer. Ordering carries the
   signal; exact scores appear only in the admin test box (§10).
@@ -715,12 +753,14 @@ whole-card links and users tap the card, not a 24 px chip:
   ReceiptViewer (ambiguous, so show the thing itself).
 - **Thumbnail** → ReceiptViewer (zoom/pan) as everywhere else. **Status chips**
   (secondary) → their claim's surface.
-- **"Find in Receipts"** deep-links to `/?highlight=<id>` with a landing contract:
-  the Shoebox waits for receipts to load, auto-expands the processed `<details>`
-  section if the target lives there, `scrollIntoView`s the card with a ~3 s pulse
-  ring, strips the param from the URL once handled (back/refresh must not
-  re-scroll), and shows a toast ("That receipt is no longer in your Receipts") if
-  the id is gone. E2e covers a below-the-fold receipt, not just presence.
+- **"Find in Receipts"** deep-links to `/?open=<id>`. **`?open=<id>` is THE app-wide
+  deep-link convention this feature mints** (no page reads any such param today, and
+  search needs it on three pages — one name, one shared hook, documented in
+  CONVENTIONS.md): wait for the list to load → expand the enclosing section if
+  needed (the Shoebox's processed `<details>`, an approvals row) → `scrollIntoView`
+  → ~3 s `highlight-pulse` ring → strip the param from the URL (back/refresh must
+  not re-scroll) → toast if the id is gone ("That receipt is no longer in your
+  Receipts"). E2e covers a below-the-fold receipt, not just presence.
 
 **Claim cards** — status pill (existing `Common.status.*` labels), total
 (`formatCents`), claimDescription (one truncated line), ministry chips, owner.
@@ -731,9 +771,9 @@ detail view for decided claims** and no per-claim URL today):
 | Viewer | Claim state | Card links to |
 | :-- | :-- | :-- |
 | owner | any | `/claims/[id]` review screen (existing) |
-| assigned approver | submitted | `/approvals?open=<id>` — landing contract mirrors the Shoebox one: scroll to the row, expand it (it is expandable today), pulse, strip param |
+| assigned approver | submitted | `/approvals?open=<id>` — the shared `?open` contract: scroll to the row, expand it (it is expandable today), pulse, strip param |
 | assigned approver | decided (approved/rejected/paid) | `/approvals?open=<id>` — scroll + pulse the history row; its existing certificate/packet links are the detail (no new detail view is built for this feature) |
-| treasurer/admin | approved/paid | `/finance?open=<id>` — same scroll-and-pulse contract on the finance queue |
+| treasurer/admin | approved/paid | `/finance?open=<id>` — same shared contract on the finance queue |
 | role-holder, none of the above (e.g. foreign draft) | any | no link — informational card, visually distinct (no `pressable` affordance) so a non-tappable card doesn't read as broken |
 
 ### 7.4 Designing around the 500 ms query embed
@@ -771,8 +811,9 @@ too slow for search-as-you-type, comfortably fast for explicit search. So:
     minutes after you stop editing." (`myNextReadyAt` from the job's `nextAttemptAt`
     lets the UI say "in about N minutes" honestly.)
   Empty result + own pending items → the note is the headline; non-empty + pending →
-  a quiet one-liner. During initial backfill/rebuild the note falls back to the
-  global pending count ("Search is still indexing older items — n to go").
+  a quiet one-liner. While a backfill/rebuild runs, the note falls back to the coarse
+  global figure (`rebuildPending`, §6.1): "Search is still indexing older items —
+  about n to go."
 - Empty state distinguishes "no matches" (offer: fewer words, different wording —
   exact matching already ran, §6.2) from "nothing indexed yet".
 
@@ -780,7 +821,23 @@ too slow for search-as-you-type, comfortably fast for explicit search. So:
 
 Every string through `messages/<locale>.json` with translator `context` notes
 (the short ones especially: "Whole church", "Claims I decided", "Searching…",
-"Not on a claim", the example queries). New testids, following the existing
+"Not on a claim", the example queries). Localization decisions that must land WITH
+the strings, not after:
+
+- **Glossary rows** (`messages/GLOSSARY.md`): *search* = 搜索 (zh-Hans) / 搜尋
+  (zh-Hant); *whole church* (scope label) = 全教会 / 全教會; *decide (a claim)* uses
+  the approval register with completed aspect — 我审批过的 / 我審批過的 — never 决定
+  (wrong register) or bare 我审批的 (reads as "awaiting my approval"); *not on a
+  claim* (chip). "Search" appears in ≥4 keys (nav, two pills, button) — declare any
+  identical English values in `SAME_VALUE_GROUPS` or the parity test fails.
+- **Example queries are hand-authored per locale, not drafted**: write the zh values
+  by hand, mark them `"reviewed"` in `translation-state.json` (the pipeline's only
+  durable protection against redraft-clobbering), and write each `context` note as
+  "write an idiomatic Chinese search query a church member would actually type — do
+  NOT translate the English example", so even a `--force` redraft carries the
+  intent.
+- The relative-date hint's **token detector is per-locale code**, not translated
+  copy: the zh token list (上个月/上個月/去年/昨天/…) ships beside the English one. New testids, following the existing
 convention: `search-input, search-submit, search-type-chip, search-scope-filter,
 search-exact-section, search-exact-show-all, search-best-match, search-group-<year>,
 search-result-<kind>-<id>, search-find-in-receipts-<id>, search-example-<n>,
@@ -797,7 +854,7 @@ embedding-retry-job-<id>, embedding-test-query`.
 | :-- | :-- |
 | Endpoint down during search | exact-match results + outcome-focused degraded banner (§6.2) — never a dead search page |
 | Endpoint down during ingest | jobs retry with backoff (§5.3); queue depth visible in admin; search keeps serving the existing index |
-| Job fails 8 times | `status="failed"`, listed in admin with `lastError`; "Retry" re-queues; a later daily sweep also re-queues it (fingerprint mismatch persists) |
+| Job fails 8 times | `status="failed"` + `failedSourceSha256`; listed in admin in outcome language (§10); "Retry" re-queues; the sweep re-queues it ONLY if its content later changes — failed is otherwise stable (§5.4). The item remains findable via exact match |
 | Claim composite exceeds server context | worker halves the items list and retries once (§3.1) before counting a failure |
 | Admin enters a bad endpoint/model/dim | the save-time probe (§3.2) rejects it — misconfiguration cannot reach the worker or the index |
 | Admin needs to change config while endpoint is down | disable/queryPrefix never probe; "Save without testing" escape is audited (§3.2) — no lockout |
@@ -832,24 +889,41 @@ is deliberately not retained. Queue mutations themselves are not AuditEvents (no
 action); admin actions **are**: `update-embedding-config` (field diff, API key
 redacted, probe-skipped flag), `retry-embedding`, `rebuild-embeddings`.
 
-## 10. Admin surface
+## 10. Admin surface — outcome language for a volunteer, not operator language
 
-A "Search index" card on `/admin` behind the existing `isAppAdmin()` gate
-(API under `/api/admin/…`):
+A "Search" card on `/admin` behind the existing `isAppAdmin()` gate (API under
+`/api/admin/…`). Its audience is a volunteer church admin, so every element leads
+with the outcome and keeps machinery in expandos:
 
-- **Backend settings** (§3.2): endpoint, API key (write-only field, shows
-  fingerprint), model, dim, query prefix, enabled toggle; "Test connection" runs the
-  probe standalone; "Save without testing" escape per the probe policy. Saving a
-  model/dim change warns inline that the index will rebuild (~n hours at current
-  corpus size) before asking to proceed.
-- **Queue health**: counts by job status, oldest queued age, failed-job list with
-  `lastError` + per-row and bulk Retry; rebuild progress bar (n/m) whenever a
-  wipe-rebuild or forced rebuild is running.
-- **Test query box**: run a search as-admin with visible scores — the only place
-  scores render (threshold tuning, §6.1) and the natural smoke test after any
-  settings change.
+- **Unconfigured (the first thing a new admin sees)**: a "Connect search" panel —
+  one sentence on what the feature does, and exactly two fields: endpoint URL and
+  API key ("from whoever runs your church's AI server — ask them for these two
+  values"). Everything else is derived (dim via the probe) or defaulted (model name,
+  prefix, threshold).
+- **Backend settings** (§3.2): endpoint; API key (write-only, shows fingerprint);
+  **model name labeled with its real meaning** — "identifies this search index —
+  changing it rebuilds search from scratch (~N hours at the current corpus size)" —
+  the consequence lives in the label, not only a post-hoc warning; dimension shown
+  as read-only "Detected: 2048" (manual field only under Save-without-testing);
+  query prefix and match threshold (`minScoreMilli`, next to the test box that shows
+  scores); enabled toggle; "Test connection".
+- **Status line first, counts second**: "Search is up to date" / "N items waiting —
+  about X minutes" (queue depth × measured per-item time) / "Rebuilding: n of m,
+  about X h left". While any backfill/rebuild runs, one literal-preview line shows
+  what the congregation is seeing: *Members currently see: "Search is still indexing
+  older items — n to go."* Detailed per-status counts and oldest-queued-age live in
+  an expando.
+- **Failed items** (§5.4 makes this list stable, not Sisyphean): each row leads with
+  outcome language mapped from the known error classes — e.g. "The search server
+  couldn't read this receipt's image. It can still be found by its text (exact
+  match), just not by description." — with the raw `lastError` in a details expando;
+  per-row and bulk Retry.
+- **Test query box**: run a search as-admin (admin scope = everything, per the §6.3
+  matrix — stated, not implicit) with visible scores — the only place scores render,
+  and the natural smoke test after any settings change.
 - **Rebuild index**: forced-staleness sweep on the current model — the hammer for
-  "the endpoint was silently swapped under me".
+  "the endpoint was silently swapped under me". Kicks the sweep synchronously
+  (§3.3) so progress starts moving before the admin's eyes.
 
 ## 11. Testing plan
 
@@ -867,7 +941,11 @@ A "Search index" card on `/admin` behind the existing `isAppAdmin()` gate
   404s exactly where the matrix says; decided-scope prefetch sets + empty-query
   browse; **model change** — settings swap wipes rows/jobs atomically, sweep
   re-enqueues, mock model salting proves old vectors can't score; probe policy
-  (disable never probed; skip-probe audited); IME guard via dispatched
+  (disable never probed; skip-probe audited; probe response carries detected dim);
+  **failed-job stability** — sweep skips failed jobs whose fingerprint equals
+  `failedSourceSha256`, re-enqueues on content change; **API-key readback** — admin
+  GET never contains the stored key (fingerprint + `apiKeySet` only), absent PUT
+  field preserves it; IME guard via dispatched
   `KeyboardEvent({key:"Enter", isComposing:true})`.
 - **e2e** (chromium; `EMBEDDING_MOCK=1` + shrunk `EMBEDDING_DRAFT_IDLE_MS` wired into
   `tests/e2e/start-server.sh`; determinism via `wakeEmbeddingWorker`, §5.3): upload →
@@ -920,7 +998,9 @@ retrieval cases (§3.1) before implementation lands.
 3. Worker (`instrumentation.ts` + guards) + triggers + backfill/reconcile/GC sweep.
 4. `/api/search`: exact pass (NFKC/tokenized/escaped) + index cache + permission
    matrix + decided-scope prefetch + degraded mode.
-5. `/search` UI + entry points (pills, NavBar) + landing contract in Shoebox +
-   i18n catalogs (en/zh-Hans/zh-Hant).
+5. `/search` UI + entry points (pills, NavBar) + the shared `?open` deep-link hook
+   (Shoebox/approvals/finance + CONVENTIONS.md entry) + i18n catalogs
+   (en/zh-Hans/zh-Hant) **with the §7.5 glossary rows and hand-authored reviewed
+   example queries in the same commit**.
 6. Admin card: settings + queue health/rebuild progress + test query box.
 7. Docs graduation: new invariants into `CLAUDE.md` / `DATA_MODEL.md`.
