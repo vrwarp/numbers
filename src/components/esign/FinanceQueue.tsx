@@ -55,8 +55,8 @@ export default function FinanceQueue() {
       ) : (
         <ul className="space-y-3">
           {queue.map((c) => (
-            <li key={c.id} className="card card-lift p-4" data-testid={`finance-${c.id}`}>
-              <button className="pressable flex w-full items-center justify-between gap-3 text-left" onClick={() => setOpenId(openId === c.id ? null : c.id)}>
+            <li key={c.id} className="card card-lift" data-testid={`finance-${c.id}`}>
+              <button className="pressable flex w-full items-center justify-between gap-3 p-4 text-left" onClick={() => setOpenId(openId === c.id ? null : c.id)}>
                 {/* min-w-0 + truncate so a long claim description shrinks
                     instead of pushing the amount off the card. */}
                 <div className="min-w-0">
@@ -151,7 +151,7 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
   }
 
   return (
-    <div className="mt-4 space-y-3 border-t border-stone-100 pt-4">
+    <div className="space-y-3 border-t border-stone-100 px-4 pb-4 pt-4">
       {needsConnect && (
         <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
       )}
