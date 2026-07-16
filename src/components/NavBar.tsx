@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import AccountMenu from "./AccountMenu";
+import NavTabs, { type NavLink } from "./NavTabs";
+import { ApprovalsIcon, ClaimsIcon, FinanceIcon, ReceiptsIcon } from "./nav-icons";
 
 interface Badges {
   enabled: boolean;
@@ -25,55 +27,38 @@ export default function NavBar({ userName, isAdmin }: { userName: string; isAdmi
       .catch(() => {});
   }, [pathname]);
 
-  const links: { href: string; label: string; badge?: number }[] = [
-    { href: "/", label: t("shoebox") },
-    { href: "/claims", label: t("claims") },
+  // Priority sets the collapse order when room runs out (lower collapses first);
+  // a badge outranks all of it, and the home tab is pinned (see NavTabs).
+  const links: NavLink[] = [
+    { href: "/", label: t("shoebox"), icon: <ReceiptsIcon />, priority: 100, pinned: true },
+    { href: "/claims", label: t("claims"), icon: <ClaimsIcon />, priority: 90 },
   ];
   if (badges.enabled && (badges.approvals ?? 0) > 0) {
-    links.push({ href: "/approvals", label: t("approvals"), badge: badges.approvals });
+    links.push({ href: "/approvals", label: t("approvals"), icon: <ApprovalsIcon />, badge: badges.approvals, priority: 80 });
   } else if (badges.enabled && ["approver", "treasurer", "admin"].includes(badges.role ?? "")) {
-    links.push({ href: "/approvals", label: t("approvals") });
+    links.push({ href: "/approvals", label: t("approvals"), icon: <ApprovalsIcon />, priority: 80 });
   }
   if (badges.enabled && badges.finance !== null && badges.finance !== undefined) {
-    links.push({ href: "/finance", label: t("finance"), badge: badges.finance || undefined });
+    links.push({ href: "/finance", label: t("finance"), icon: <FinanceIcon />, badge: badges.finance || undefined, priority: 70 });
   }
-  // Profile, language, Admin and sign out live in the AccountMenu (below), so
-  // the tab row stays functional-only and fits a phone even for a treasurer or
-  // admin. Admin's page + API still 404 for anyone unauthorized regardless.
+  // Profile, language, Admin and sign out live in the AccountMenu, so the tab
+  // row stays functional-only. Admin's page + API still 404 for anyone
+  // unauthorized regardless.
 
   return (
     <header className="sticky top-0 z-40 border-b border-stone-200 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 sm:px-4">
-        <Link href="/" className="flex shrink-0 items-center gap-1.5 text-lg font-bold text-indigo-700">
+      <div className="mx-auto flex max-w-6xl items-center gap-2 px-3 py-3 sm:px-4">
+        <Link
+          href="/"
+          className="flex shrink-0 items-center gap-1.5 text-lg font-bold text-indigo-700"
+          aria-label="Numbers"
+        >
           <span aria-hidden>⛪</span> <span className="hidden sm:inline">Numbers</span>
         </Link>
-        <div className="flex min-w-0 items-center gap-1.5">
-          <nav className="-my-1 flex min-w-0 items-center gap-0.5 overflow-x-auto py-1 sm:gap-2" aria-label="Main">
-            {links.map((l) => {
-              const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
-              return (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  className={`relative whitespace-nowrap rounded-lg px-2 py-1.5 text-sm font-medium sm:px-3 ${
-                    active ? "bg-indigo-50 text-indigo-700" : "text-stone-600 hover:bg-stone-100"
-                  }`}
-                >
-                  {l.label}
-                  {l.badge ? (
-                    <span
-                      className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"
-                      data-testid={`badge-${l.href.slice(1) || "shoebox"}`}
-                    >
-                      <span className="sr-only">{t("pendingWork")}</span>
-                    </span>
-                  ) : null}
-                </Link>
-              );
-            })}
-          </nav>
-          <AccountMenu userName={userName} isAdmin={isAdmin} />
-        </div>
+        <nav className="flex min-w-0 flex-1 items-center" aria-label="Main">
+          <NavTabs links={links} />
+        </nav>
+        <AccountMenu userName={userName} isAdmin={isAdmin} />
       </div>
     </header>
   );

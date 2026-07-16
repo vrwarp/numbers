@@ -38,7 +38,8 @@
     "finance": "财务",
     "admin": "管理",
     "account": "账户",
-    "pendingWork": "有待处理"
+    "pendingWork": "有待处理",
+    "more": "更多"
   },
   "Home": {
     "profileNudge": "您的<link>个人资料</link>需要填写姓名和邮寄地址——两者都会打印在报销表上。"

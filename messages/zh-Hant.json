@@ -38,7 +38,8 @@
     "finance": "財務",
     "admin": "管理",
     "account": "帳戶",
-    "pendingWork": "有待處理"
+    "pendingWork": "有待處理",
+    "more": "更多"
   },
   "Home": {
     "profileNudge": "您的<link>個人資料</link>需要填寫姓名和郵寄地址——兩者都會列印在報銷表上。"

@@ -38,7 +38,8 @@
     "finance": "Finance",
     "admin": "Admin",
     "account": "Account",
-    "pendingWork": "pending work"
+    "pendingWork": "pending work",
+    "more": "More"
   },
   "Home": {
     "profileNudge": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form."
