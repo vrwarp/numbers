@@ -120,7 +120,6 @@
     "generateEnded": "報銷單產生意外中斷",
     "emptyTitle": "還沒有收據",
     "emptyBody": "上傳收據的相片或 PDF 即可開始。",
-    "languagePrompt": "想使用其他語言？",
     "step1": "<step>1. 拍照。</step>買完東西立刻拍下收據。",
     "step2": "<step>2. 彙整。</step>之後有空時，選取收據並按「新增報銷單」。",
     "step3": "<step>3. 核對。</step>逐行對照收據檢查，可修改、拆分或排除項目。",

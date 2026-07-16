@@ -40,8 +40,9 @@ src/lib/use-api-error.ts        useApiErrorMessage(): client hook translating {e
 src/lib/translation-state.ts    flatten/unflatten/messageArguments + StateEntry — shared by the
                                 parity test and scripts/translate-messages.ts
 src/components/LocaleSwitcher.tsx  language picker (compact NavBar chip, small sign-in
-                                select, prominent pills on the empty Receipts screen): writes
-                                the cookie, PATCHes profile when signed in, router.refresh()
+                                select, prominent segmented control on the empty Receipts
+                                screen): writes the cookie, PATCHes profile when signed in,
+                                router.refresh()
 messages/*.json                 the string catalogs (en = source of truth) + GLOSSARY.md +
                                 translation-state.json (per-key English source/status/context)
 scripts/translate-messages.ts   npm run translate — drafting/staleness/state pipeline

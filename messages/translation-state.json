@@ -586,12 +586,6 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Shoebox.languagePrompt": {
-    "source": "Prefer another language?",
-    "context": "Short prompt shown above a prominent language switcher on the empty Receipts screen (a brand-new user is the likely reader). Question inviting them to change the app's UI language.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
   "Shoebox.step1": {
     "source": "<step>1. Snap.</step> Photograph receipts the moment you buy.",
     "context": "Onboarding step 1 of 4; <step> wraps the numbered lead word — keep the 'N. Verb.' pattern.",

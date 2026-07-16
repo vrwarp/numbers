@@ -543,10 +543,7 @@ export default function Shoebox() {
           <div className="text-4xl">🧾</div>
           <p className="mt-2 font-medium">{t("emptyTitle")}</p>
           <p className="text-sm">{t("emptyBody")}</p>
-          <div className="mt-6 flex flex-col items-center gap-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-stone-400">
-              {t("languagePrompt")}
-            </p>
+          <div className="mt-6 flex justify-center">
             <LocaleSwitcher signedIn variant="prominent" />
           </div>
           <ol className="mx-auto mt-8 grid max-w-3xl gap-3 text-left text-sm text-stone-600 sm:grid-cols-4">

@@ -50,13 +50,33 @@ export default function LocaleSwitcher({
   ));
 
   if (variant === "prominent") {
+    // A quiet segmented control, not a loud toggle: a neutral stone track with
+    // a soft white "selected" pill (indigo *text*, never a saturated fill that
+    // would out-shout the page's real CTAs). The monochrome globe labels it as
+    // a language picker at a glance without adding a color spot, so the native
+    // language names can carry the meaning. Inactive options stay legible —
+    // they are exactly what a non-English reader is looking for.
     return (
       <div
-        className={`inline-flex flex-wrap items-center justify-center gap-1 rounded-full border border-stone-200 bg-white p-1 shadow-sm ${className}`}
+        className={`inline-flex items-center gap-0.5 rounded-full bg-stone-100 p-1 pl-3 ${className}`}
         role="group"
         aria-label={t("language")}
         data-testid="locale-switcher-prominent"
       >
+        <svg
+          aria-hidden
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="mr-1.5 h-4 w-4 shrink-0 text-stone-400"
+        >
+          <circle cx="12" cy="12" r="9.5" />
+          <path d="M2.5 12h19" />
+          <path d="M12 2.5a15 15 0 0 1 0 19 15 15 0 0 1 0-19" />
+        </svg>
         {LOCALES.map((l) => {
           const active = l === locale;
           return (
@@ -67,8 +87,8 @@ export default function LocaleSwitcher({
               aria-current={active ? "true" : undefined}
               className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                 active
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "text-stone-600 hover:bg-stone-100"
+                  ? "bg-white text-indigo-700 shadow-sm"
+                  : "text-stone-500 hover:text-stone-800"
               }`}
             >
               {LOCALE_LABELS[l]}

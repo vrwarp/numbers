@@ -120,7 +120,6 @@
     "generateEnded": "Claim generation ended unexpectedly",
     "emptyTitle": "No receipts yet",
     "emptyBody": "Upload a photo or PDF of a receipt to get started.",
-    "languagePrompt": "Prefer another language?",
     "step1": "<step>1. Snap.</step> Photograph receipts the moment you buy.",
     "step2": "<step>2. Batch.</step> Later, when you're ready, select receipts and hit New Claim.",
     "step3": "<step>3. Verify.</step> Check every row against the receipt. Fix, split, or exclude items.",
