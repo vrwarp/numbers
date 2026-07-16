@@ -13,7 +13,7 @@ export async function requireAdmin(): Promise<string> {
   const userId = await requireUserId();
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { email: true, role: true },
+    select: { email: true, role: true, adminPaused: true },
   });
   if (!user || !isAppAdmin(user)) throw new ApiError(404, "Not found");
   return userId;

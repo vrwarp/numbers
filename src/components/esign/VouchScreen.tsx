@@ -518,9 +518,12 @@ function VouchInner() {
                 {/* Role grants are root-signed roster events (§4.3) — only the
                     root's browser can produce them, and only once its signing
                     session is connected (they sign a roster event). */}
-                {env.me.role === "admin" && phase === "ready" && m.userId !== env.me.userId && (
-                  <RoleControls env={env} member={m} onDone={refreshMembers} />
-                )}
+                {env.me.role === "admin" &&
+                  !env.me.adminPaused &&
+                  phase === "ready" &&
+                  m.userId !== env.me.userId && (
+                    <RoleControls env={env} member={m} onDone={refreshMembers} />
+                  )}
               </li>
             ))}
           </ul>

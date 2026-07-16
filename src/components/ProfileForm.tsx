@@ -12,6 +12,64 @@ interface Profile {
   fullName: string | null;
   mailingAddress: string | null;
   locale: string;
+  approvalsPaused: boolean;
+  financePaused: boolean;
+  adminPaused: boolean;
+}
+
+/** Which duty toggles this member's grants make relevant (server-computed:
+ *  approver-or-above / treasurer-or-admin / app-admin incl. ADMIN_EMAILS). */
+interface Duties {
+  approvals: boolean;
+  finance: boolean;
+  admin: boolean;
+}
+
+const DUTY_FLAGS = ["approvalsPaused", "financePaused", "adminPaused"] as const;
+type DutyFlag = (typeof DUTY_FLAGS)[number];
+
+/** One duty on/off row — same idiom as the e-sign master switch card. */
+function DutyRow({
+  flag,
+  paused,
+  title,
+  body,
+  busy,
+  onLabel,
+  offLabel,
+  onToggle,
+}: {
+  flag: DutyFlag;
+  paused: boolean;
+  title: string;
+  body: string;
+  busy: boolean;
+  onLabel: string;
+  offLabel: string;
+  onToggle: (flag: DutyFlag, paused: boolean) => Promise<void>;
+}) {
+  return (
+    <div
+      className={`flex items-center justify-between gap-3 rounded-xl border p-3 ${
+        paused ? "border-stone-200 bg-stone-50" : "border-emerald-200 bg-emerald-50"
+      }`}
+      data-testid={`duty-${flag}`}
+    >
+      <div className="text-sm">
+        <p className="font-semibold">{title}</p>
+        <p className="text-xs text-stone-500">{body}</p>
+      </div>
+      <button
+        type="button"
+        className={paused ? "btn-primary" : "btn-secondary"}
+        disabled={busy}
+        onClick={() => void onToggle(flag, !paused)}
+        data-testid={`duty-${flag}-toggle`}
+      >
+        {busy ? "…" : paused ? onLabel : offLabel}
+      </button>
+    </div>
+  );
 }
 
 export default function ProfileForm() {
@@ -22,24 +80,48 @@ export default function ProfileForm() {
   const activeLocale = useLocale();
   const apiError = useApiErrorMessage();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [duties, setDuties] = useState<Duties | null>(null);
   const [fullName, setFullName] = useState("");
   const [mailingAddress, setMailingAddress] = useState("");
   const [locale, setLocale] = useState<string>(activeLocale);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [dutyBusy, setDutyBusy] = useState<DutyFlag | null>(null);
+  const [dutyError, setDutyError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/profile")
       .then((r) => r.json())
-      .then(({ user }) => {
+      .then(({ user, duties }) => {
         setProfile(user);
+        setDuties(duties ?? null);
         setFullName(user.fullName ?? "");
         setMailingAddress(user.mailingAddress ?? "");
         setLocale(user.locale ?? "en");
       })
       .catch(() => setError(t("loadFailed")));
   }, []);
+
+  /** Duty pauses save immediately — they change what other members see. */
+  async function toggleDuty(flag: DutyFlag, paused: boolean) {
+    if (!profile) return;
+    setDutyBusy(flag);
+    setDutyError(null);
+    const res = await fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [flag]: paused }),
+    });
+    if (res.ok) {
+      const { user, duties } = await res.json();
+      setProfile(user);
+      setDuties(duties ?? null);
+    } else {
+      setDutyError(apiError(await res.json().catch(() => null), t("saveFailed")));
+    }
+    setDutyBusy(null);
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -127,6 +209,54 @@ export default function ProfileForm() {
           {error && <span className="text-sm text-red-700">{error}</span>}
         </div>
       </form>
+      {/* Duty pauses (A10): role-holders step back without a role change —
+          paused members drop out of pickers/queues; the roster is untouched. */}
+      {duties && (duties.approvals || duties.finance || duties.admin) && (
+        <div className="card space-y-3 p-6" data-testid="duties-card">
+          <div>
+            <h2 className="font-semibold">{t("dutiesTitle")}</h2>
+            <p className="text-sm text-stone-500">{t("dutiesNote")}</p>
+          </div>
+          {duties.approvals && (
+            <DutyRow
+              flag="approvalsPaused"
+              paused={profile.approvalsPaused}
+              title={t("dutyApprovalsTitle")}
+              body={profile.approvalsPaused ? t("dutyApprovalsOff") : t("dutyApprovalsOn")}
+              busy={dutyBusy === "approvalsPaused"}
+              onLabel={t("dutyTurnOn")}
+              offLabel={t("dutyTurnOff")}
+              onToggle={toggleDuty}
+            />
+          )}
+          {duties.finance && (
+            <DutyRow
+              flag="financePaused"
+              paused={profile.financePaused}
+              title={t("dutyFinanceTitle")}
+              body={profile.financePaused ? t("dutyFinanceOff") : t("dutyFinanceOn")}
+              busy={dutyBusy === "financePaused"}
+              onLabel={t("dutyTurnOn")}
+              offLabel={t("dutyTurnOff")}
+              onToggle={toggleDuty}
+            />
+          )}
+          {duties.admin && (
+            <DutyRow
+              flag="adminPaused"
+              paused={profile.adminPaused}
+              title={t("dutyAdminTitle")}
+              body={profile.adminPaused ? t("dutyAdminOff") : t("dutyAdminOn")}
+              busy={dutyBusy === "adminPaused"}
+              onLabel={t("dutyTurnOn")}
+              offLabel={t("dutyTurnOff")}
+              onToggle={toggleDuty}
+            />
+          )}
+          {dutyError && <p className="text-sm text-red-700">{dutyError}</p>}
+        </div>
+      )}
+
       {/* The NavBar's sign-out is hidden on phone widths — this is the mobile home for it. */}
       <div className="flex justify-center sm:hidden">
         <button

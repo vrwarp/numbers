@@ -24,10 +24,22 @@ Reimbursement.status:  "draft"      ──(PDF generated)───────�
 ## Tables
 
 ### User
-`id, firebaseUid?, email(unique), fullName?, mailingAddress?, role("member"), createdAt`
+`id, firebaseUid?, email(unique), fullName?, mailingAddress?, role("member"),
+esignAllowed(false), approvalsPaused(false), financePaused(false), adminPaused(false),
+locale("en"), createdAt`
 - Upserted by email at login (`/api/auth/session` after Firebase ID-token verification;
-  the test-login route creates rows with `firebaseUid` NULL). `role` is currently unread
-  — reserved for a treasurer feature.
+  the test-login route creates rows with `firebaseUid` NULL).
+- `role` = `member | approver | treasurer | admin` — the VERIFIED roster mirror
+  (docs/ESIGN_DESIGN.md §5.5): written only from signature-verified GRANT_ROLE/
+  REVOKE_ROLE replay, never by hand. Gates app surfaces (queues, pickers, admin);
+  the roster is the signed truth.
+- `esignAllowed` — A8 rollout allowlist flag (admin-managed app gate; never validity).
+- `approvalsPaused` / `financePaused` / `adminPaused` — A10 self-service duty pauses,
+  toggled by the member on their own profile (audited `update-availability`). App
+  routing only: paused approvers leave the picker and refuse NEW submissions but keep
+  already-assigned claims; paused treasurers lose queue+mark-paid; paused admins fail
+  `isAppAdmin()` everywhere. Never a role change, invisible to ledger validity, and
+  independent of the role — the flags survive role churn.
 - `fullName`/`mailingAddress` are stamped onto the PDF; empty is allowed (PDF prints email /
   blank), dashboard nudges the user.
 

@@ -12,6 +12,7 @@ interface Badges {
   enabled: boolean;
   role?: string;
   approvals?: number;
+  approvalsPaused?: boolean;
   finance?: number | null;
   vouch?: boolean;
 }
@@ -49,9 +50,16 @@ export default function NavBar({ userName, isAdmin }: { userName: string; isAdmi
     { href: "/", label: t("shoebox"), icon: <ReceiptsIcon />, priority: 100, pinned: true, keepLabel: true },
     { href: "/claims", label: t("claims"), icon: <ClaimsIcon />, priority: 90, pinned: true, keepLabel: true },
   ];
+  // Claims already assigned keep the tab (with its badge) even while the
+  // member has paused approvals (A10) — pausing stops new submissions, not
+  // the ones waiting on them. Paused + nothing pending ⇒ no tab.
   if (badges.enabled && (badges.approvals ?? 0) > 0) {
     links.push({ href: "/approvals", label: t("approvals"), icon: <ApprovalsIcon />, badge: badges.approvals, priority: 80 });
-  } else if (badges.enabled && ["approver", "treasurer", "admin"].includes(badges.role ?? "")) {
+  } else if (
+    badges.enabled &&
+    ["approver", "treasurer", "admin"].includes(badges.role ?? "") &&
+    !badges.approvalsPaused
+  ) {
     links.push({ href: "/approvals", label: t("approvals"), icon: <ApprovalsIcon />, priority: 80 });
   }
   if (badges.enabled && badges.finance !== null && badges.finance !== undefined) {

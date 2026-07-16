@@ -73,7 +73,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       }
       const approver = await prisma.signerIdentity.findUnique({
         where: { userId: body.approverUserId },
-        include: { user: { select: { role: true } } },
+        include: { user: { select: { role: true, approvalsPaused: true } } },
       });
       if (
         !approver ||
@@ -81,6 +81,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         !["approver", "treasurer", "admin"].includes(approver.user.role)
       ) {
         throw new ApiError(409, "That member is not an attested approver", "esign.notApprover");
+      }
+      // Duty pause (A10): a paused approver takes no NEW submissions. The
+      // picker already hides them — this is the authoritative check behind it
+      // (stale picker lists, races, or hand-crafted requests all land here).
+      if (approver.user.approvalsPaused) {
+        throw new ApiError(
+          409,
+          "That approver is not taking new approval requests right now",
+          "esign.approverUnavailable"
+        );
       }
 
       const ledgerId = claim.signatureLedgerId ?? body.ledgerId;

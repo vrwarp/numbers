@@ -67,6 +67,11 @@ interface Claim {
   totalCents: number;
   // E-sign mirror fields (docs/ESIGN_DESIGN.md §9.1); null pre-submission.
   approverUserId: string | null;
+  // Assigned approver's routing availability (A9/A10), server-computed on GET.
+  approverInfo?: {
+    name: string;
+    availability: "available" | "paused" | "ineligible";
+  } | null;
   signatureLedgerId: string | null;
   signatureLedgerKey: string | null;
   packetSha256: string | null;
@@ -738,6 +743,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             status: claim.status,
             ownerUid: "", // owner view — filled server-side checks apply
             approverUserId: claim.approverUserId,
+            approverInfo: claim.approverInfo ?? null,
             signatureLedgerId: claim.signatureLedgerId,
             signatureLedgerKey: claim.signatureLedgerKey,
             packetSha256: claim.packetSha256,

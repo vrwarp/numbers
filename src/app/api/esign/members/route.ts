@@ -21,7 +21,11 @@ export async function GET() {
 
     const identities = await prisma.signerIdentity.findMany({
       where: { status: "attested" },
-      include: { user: { select: { id: true, email: true, fullName: true, role: true } } },
+      include: {
+        user: {
+          select: { id: true, email: true, fullName: true, role: true, approvalsPaused: true },
+        },
+      },
       orderBy: { attestedAt: "asc" },
     });
     const members = await Promise.all(
@@ -30,6 +34,10 @@ export async function GET() {
         name: identity.user.fullName || identity.user.email,
         email: identity.user.email,
         role: identity.user.role,
+        // Duty pause (A10): the approver PICKER drops paused members; the
+        // vouch screen (same payload) still lists them — availability is a
+        // routing preference, not an identity/roster fact.
+        approvalsPaused: identity.user.approvalsPaused,
         publicKey: identity.publicKey,
         fingerprint: identity.publicKey ? await keyFingerprint(identity.publicKey) : null,
       }))

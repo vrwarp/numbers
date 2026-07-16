@@ -75,7 +75,20 @@
     "mailingAddressPlaceholder": "123 Main St, San Jose, CA 95110",
     "saved": "已儲存 ✓",
     "loadFailed": "個人資料載入失敗",
-    "saveFailed": "儲存失敗"
+    "saveFailed": "儲存失敗",
+    "dutiesTitle": "我的職責",
+    "dutiesNote": "需要暫時放下某項職責時可在此關閉——關閉期間，其他成員不會再看到您這個選項。",
+    "dutyApprovalsTitle": "審批報銷單",
+    "dutyApprovalsOn": "成員提交報銷單時可以選您作為審批人。",
+    "dutyApprovalsOff": "您目前不接收新的審批請求。已指派給您的報銷單仍等待您的決定。",
+    "dutyFinanceTitle": "記錄支付",
+    "dutyFinanceOn": "您可以查看財務佇列，並將已批准的報銷單標記為已支付。",
+    "dutyFinanceOff": "財務佇列已隱藏，您暫時無法將報銷單標記為已支付。",
+    "dutyAdminTitle": "管理",
+    "dutyAdminOn": "您可以管理成員、設定和電子簽名。",
+    "dutyAdminOff": "管理頁面和控制項已隱藏，重新開啟後即可恢復。",
+    "dutyTurnOn": "開啟",
+    "dutyTurnOff": "關閉"
   },
   "ReceiptGrid": {
     "pdfChip": "PDF",
@@ -392,7 +405,10 @@
     "docAlt": "待簽署的文件",
     "signatureAlt": "你的簽名",
     "signAbove": "用手指或滑鼠在上方簽名",
-    "clearPad": "清除重簽"
+    "clearPad": "清除重簽",
+    "waitingFor": "正在等待 {name} 審閱這張報銷單。",
+    "approverPausedNote": "{name} 目前不接收新的審批請求。對方仍可以處理這張報銷單；您也可以撤回並改選其他審批人。",
+    "approverIneligibleNote": "{name} 已無法再審批報銷單。請撤回本次提交並改選其他審批人。"
   },
   "Approvals": {
     "title": "審批",
@@ -403,7 +419,9 @@
     "commentLabel": "留言（拒絕時必填）",
     "rejectNeedsComment": "請填寫拒絕原因",
     "reject": "✗ 拒絕",
-    "approveAndSign": "✓ 批准並簽署"
+    "approveAndSign": "✓ 批准並簽署",
+    "pausedNotice": "您已關閉新的審批請求。以下報銷單是在此之前指派給您的——請儘快處理，或由提交人改選其他審批人。",
+    "roleLostNotice": "您的審批人角色已被移除。您可以拒絕這些報銷單，讓提交人改選其他審批人，但無法批准。"
   },
   "Finance": {
     "title": "財務",
@@ -708,7 +726,10 @@
       "notEnrolled": "尚未開通簽名",
       "notSetUp": "教會尚未設定電子簽名",
       "switchedOff": "電子簽名已關閉",
-      "notAllowed": "您的帳號尚未開通電子簽名"
+      "notAllowed": "您的帳號尚未開通電子簽名",
+      "approverUnavailable": "該審批人目前不接收新的審批請求——請改選其他人",
+      "approverRoleLost": "您的審批人角色已被移除——您可以拒絕，但無法批准",
+      "decisionNotBinding": "已簽署的決定未能在帳本上生效——請重新整理本報銷單後重試，或請提交人改選其他審批人"
     },
     "admin": {
       "contentString": "內容必須為文字。",

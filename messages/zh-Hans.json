@@ -75,7 +75,20 @@
     "mailingAddressPlaceholder": "123 Main St, San Jose, CA 95110",
     "saved": "已保存 ✓",
     "loadFailed": "个人资料加载失败",
-    "saveFailed": "保存失败"
+    "saveFailed": "保存失败",
+    "dutiesTitle": "我的职责",
+    "dutiesNote": "需要暂时放下某项职责时可在此关闭——关闭期间，其他成员不会再看到您这个选项。",
+    "dutyApprovalsTitle": "审批报销单",
+    "dutyApprovalsOn": "成员提交报销单时可以选您作为审批人。",
+    "dutyApprovalsOff": "您目前不接收新的审批请求。已指派给您的报销单仍等待您的决定。",
+    "dutyFinanceTitle": "记录支付",
+    "dutyFinanceOn": "您可以查看财务队列，并将已批准的报销单标记为已支付。",
+    "dutyFinanceOff": "财务队列已隐藏，您暂时无法将报销单标记为已支付。",
+    "dutyAdminTitle": "管理",
+    "dutyAdminOn": "您可以管理成员、设置和电子签名。",
+    "dutyAdminOff": "管理页面和控制项已隐藏，重新开启后即可恢复。",
+    "dutyTurnOn": "开启",
+    "dutyTurnOff": "关闭"
   },
   "ReceiptGrid": {
     "pdfChip": "PDF",
@@ -392,7 +405,10 @@
     "docAlt": "待签署的文件",
     "signatureAlt": "你的签名",
     "signAbove": "用手指或鼠标在上方签名",
-    "clearPad": "清除重签"
+    "clearPad": "清除重签",
+    "waitingFor": "正在等待 {name} 审阅这张报销单。",
+    "approverPausedNote": "{name} 目前不接收新的审批请求。对方仍可以处理这张报销单；您也可以撤回并改选其他审批人。",
+    "approverIneligibleNote": "{name} 已无法再审批报销单。请撤回本次提交并改选其他审批人。"
   },
   "Approvals": {
     "title": "审批",
@@ -403,7 +419,9 @@
     "commentLabel": "留言（拒绝时必填）",
     "rejectNeedsComment": "请填写拒绝原因",
     "reject": "✗ 拒绝",
-    "approveAndSign": "✓ 批准并签署"
+    "approveAndSign": "✓ 批准并签署",
+    "pausedNotice": "您已关闭新的审批请求。以下报销单是在此之前指派给您的——请尽快处理，或由提交人改选其他审批人。",
+    "roleLostNotice": "您的审批人角色已被移除。您可以拒绝这些报销单，让提交人改选其他审批人，但无法批准。"
   },
   "Finance": {
     "title": "财务",
@@ -708,7 +726,10 @@
       "notEnrolled": "尚未开通签名",
       "notSetUp": "教会尚未设置电子签名",
       "switchedOff": "电子签名已关闭",
-      "notAllowed": "您的账号尚未开通电子签名"
+      "notAllowed": "您的账号尚未开通电子签名",
+      "approverUnavailable": "该审批人目前不接收新的审批请求——请改选其他人",
+      "approverRoleLost": "您的审批人角色已被移除——您可以拒绝，但无法批准",
+      "decisionNotBinding": "已签署的决定未能在账本上生效——请刷新本报销单后重试，或请提交人改选其他审批人"
     },
     "admin": {
       "contentString": "内容必须为文本。",

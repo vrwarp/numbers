@@ -5,6 +5,13 @@
  * (`submitRef`), payment latches (`approveRef`) — and settled threads are
  * never invalidated by later events. Timestamps are used ONLY to pick the
  * binding decision among an approver's own conflicting events.
+ *
+ * Role-at-exercise rule (A9): every event that GRANTS something checks its
+ * signer's role at that event's own `createdAt` — SUBMIT's named approver,
+ * the APPROVE itself, and MARK_PAID's treasurer. A role revocation between
+ * submit and decision therefore voids the pending APPROVE (forward-only:
+ * decisions made while the role was held stand forever). REJECT carries no
+ * role check — declining to sign stays possible for a demoted approver.
  */
 
 import type {
@@ -207,6 +214,14 @@ export function evaluateClaimLedger(input: Input): ClaimEvaluation {
         const uid = signerUid(d);
         if (uid !== submitAction.approverUid || a.approverUid !== uid) {
           return bad(d, "decision not signed by the named approver"), false;
+        }
+        // A9: granting authority is checked WHEN IT IS EXERCISED — an APPROVE
+        // binds only while the named approver still holds approver-or-above
+        // (same rule MARK_PAID always had). REJECT is deliberately exempt: it
+        // declines to sign rather than signing, so a demoted approver can
+        // still hand a claim back instead of wedging it.
+        if (a.t === "APPROVE" && !roster.isApproverAt(uid, d.createdAtMs)) {
+          return bad(d, "APPROVE requires the approver role at decision time"), false;
         }
         return true;
       })

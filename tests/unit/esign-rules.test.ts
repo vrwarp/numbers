@@ -359,6 +359,98 @@ describe("claim thread validity", () => {
   });
 });
 
+describe("role-at-exercise (A9 — approver demoted between submit and decision)", () => {
+  const revokeRole = (uid: string, role: "approver" | "treasurer" | "admin"): RosterAction => ({
+    t: "REVOKE_ROLE",
+    v: 1,
+    ledger: ROSTER,
+    ts: 1,
+    uid,
+    role,
+  });
+  // Base roster events; tests append REVOKE_ROLE/GRANT_ROLE interleaved (by
+  // creation order = createdAtMs order) with the claim events they exercise.
+  async function baseRosterEvents() {
+    return [
+      await ev(rootPK, genesis()),
+      await ev(rootPK, attest({ uid: "alice", publicKey: alicePK })),
+      await ev(rootPK, attest({ uid: "bob", publicKey: bobPK })),
+      await ev(rootPK, attest({ uid: "carol", publicKey: carolPK })),
+      await ev(rootPK, grant("bob", "approver")),
+      await ev(rootPK, grant("carol", "treasurer")),
+    ];
+  }
+  function evaluateWith(rosterEvents: VerifiedEvent<RosterAction>[], events: VerifiedEvent<ClaimAction>[]) {
+    const r = replayRoster(ROSTER, rosterEvents);
+    return evaluateClaimLedger({ claimId: CLAIM, ledgerId: LEDGER, ownerUid: "alice", roster: r, events });
+  }
+
+  it("an APPROVE signed after the approver's role was revoked never binds", async () => {
+    const rosterEvents = await baseRosterEvents();
+    const s1 = await ev(alicePK, submit({}));
+    const revoke = await ev(rootPK, revokeRole("bob", "approver"));
+    const lateApprove = await ev(bobPK, approve(s1.actionHash));
+    const stalePaid = await ev(carolPK, paid(lateApprove.actionHash));
+    const out = evaluateWith(
+      [...rosterEvents, revoke] as VerifiedEvent<RosterAction>[],
+      [s1, lateApprove, stalePaid] as VerifiedEvent<ClaimAction>[]
+    );
+    // The thread stays open (undecided) — the claim needs reassignment, and a
+    // MARK_PAID latched to the void APPROVE is stranded too.
+    expect(out.threads.map((t) => t.state)).toEqual(["open"]);
+    const reasons = out.anomalies.map((a) => a.reason).join("\n");
+    expect(reasons).toMatch(/APPROVE requires the approver role at decision time/);
+    expect(reasons).toMatch(/MARK_PAID references no binding APPROVE/);
+  });
+
+  it("a demoted approver can still REJECT, and the requestor can resubmit over it", async () => {
+    const rosterEvents = await baseRosterEvents();
+    const s1 = await ev(alicePK, submit({}));
+    const revoke = await ev(rootPK, revokeRole("bob", "approver"));
+    const regrantDan = await ev(rootPK, attest({ uid: "dan", publicKey: "PK_dan" }));
+    const grantDan = await ev(rootPK, grant("dan", "approver"));
+    const handBack = await ev(bobPK, reject(s1.actionHash));
+    const s2 = await ev(alicePK, submit({ seq: 2, closesRef: [handBack.actionHash], approverUid: "dan" }));
+    const a2 = await ev("PK_dan", approve(s2.actionHash, { approverUid: "dan", typedName: "Dan" }));
+    const out = evaluateWith(
+      [...rosterEvents, revoke, regrantDan, grantDan] as VerifiedEvent<RosterAction>[],
+      [s1, handBack, s2, a2] as VerifiedEvent<ClaimAction>[]
+    );
+    expect(out.threads.map((t) => t.state)).toEqual(["rejected", "approved"]);
+    expect(out.anomalies).toHaveLength(0);
+  });
+
+  it("re-granting the role makes a fresh APPROVE bind again", async () => {
+    const rosterEvents = await baseRosterEvents();
+    const s1 = await ev(alicePK, submit({}));
+    const revoke = await ev(rootPK, revokeRole("bob", "approver"));
+    const voidApprove = await ev(bobPK, approve(s1.actionHash));
+    const regrant = await ev(rootPK, grant("bob", "approver"));
+    const goodApprove = await ev(bobPK, approve(s1.actionHash, { comment: "second look" }));
+    const out = evaluateWith(
+      [...rosterEvents, revoke, regrant] as VerifiedEvent<RosterAction>[],
+      [s1, voidApprove, goodApprove] as VerifiedEvent<ClaimAction>[]
+    );
+    expect(out.threads[0].state).toBe("approved");
+    expect(out.threads[0].decision!.actionHash).toBe(goodApprove.actionHash);
+    expect(out.anomalies.some((a) => /APPROVE requires the approver role/.test(a.reason))).toBe(true);
+  });
+
+  it("forward-only: an approval made while the role was held survives a later revocation", async () => {
+    const rosterEvents = await baseRosterEvents();
+    const s1 = await ev(alicePK, submit({}));
+    const a1 = await ev(bobPK, approve(s1.actionHash));
+    const p1 = await ev(carolPK, paid(a1.actionHash));
+    const revoke = await ev(rootPK, revokeRole("bob", "approver"));
+    const out = evaluateWith(
+      [...rosterEvents, revoke] as VerifiedEvent<RosterAction>[],
+      [s1, a1, p1] as VerifiedEvent<ClaimAction>[]
+    );
+    expect(out.threads[0].state).toBe("paid");
+    expect(out.anomalies).toHaveLength(0);
+  });
+});
+
 describe("key supersession (§4.5 — re-vouching is the lost-device recovery)", () => {
   it("a newly attested key retires the uid's old key at that instant; history stands", async () => {
     const g = await ev(rootPK, genesis());

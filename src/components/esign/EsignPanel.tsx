@@ -30,6 +30,9 @@ export interface EsignClaim extends ClaimRef {
   approverUserId: string | null;
   totalCents: number;
   checkNumber?: string;
+  /** Assigned approver's routing availability (server-computed mirror state,
+   *  A9/A10) — drives the owner's waiting/reassign notices while submitted. */
+  approverInfo?: { name: string; availability: "available" | "paused" | "ineligible" } | null;
 }
 
 interface Member {
@@ -37,6 +40,7 @@ interface Member {
   name: string;
   email: string;
   role: string;
+  approvalsPaused: boolean;
 }
 
 export default function EsignPanel({
@@ -87,6 +91,25 @@ export default function EsignPanel({
               : t("panelPaid"))}
         </h2>
       </div>
+      {/* Who the claim is waiting on, and whether they're still reachable —
+          a paused approver may still decide (soft nudge); a demoted/revoked
+          one cannot approve anymore (A9), so reassigning is the only way
+          forward. The withdraw button below is the existing escape hatch. */}
+      {claim.status === "submitted" && claim.approverInfo && (
+        <p className="text-sm text-stone-500" data-testid="waiting-approver">
+          {t("waitingFor", { name: claim.approverInfo.name })}
+        </p>
+      )}
+      {claim.status === "submitted" && claim.approverInfo?.availability === "paused" && (
+        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="approver-paused-note">
+          {t("approverPausedNote", { name: claim.approverInfo.name })}
+        </p>
+      )}
+      {claim.status === "submitted" && claim.approverInfo?.availability === "ineligible" && (
+        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="approver-ineligible-note">
+          {t("approverIneligibleNote", { name: claim.approverInfo.name })}
+        </p>
+      )}
       {needsConnect && (
         <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
       )}
@@ -187,9 +210,14 @@ export function SubmitDialog({
       const res = await fetch("/api/esign/members");
       if (res.ok) {
         const all = ((await res.json()).members ?? []) as Member[];
+        // Approver-or-above, not me, and not paused (A10) — the submit
+        // preflight re-checks all three server-side.
         setMembers(
           all.filter(
-            (m) => m.userId !== env.me.userId && ["approver", "treasurer", "admin"].includes(m.role)
+            (m) =>
+              m.userId !== env.me.userId &&
+              ["approver", "treasurer", "admin"].includes(m.role) &&
+              !m.approvalsPaused
           )
         );
       }
