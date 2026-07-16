@@ -38,6 +38,11 @@ zh-Hans (登录→登錄 would be wrong; Taiwan says 登入).
 | photo | 照片 | 相片 | |
 | crop | 裁剪 | 裁切 | |
 | retreat | 退修会 | 退修會 | church register |
+| search | 搜索 | 搜尋 | vocabulary divergence |
+| whole church (search scope) | 全教会 | 全教會 | the congregation's data, not the building |
+| decide (a claim) | 审批 | 審批 | completed aspect for past decisions: 我审批过的 / 我審批過的 — never 决定 (wrong register); bare 我审批的 reads as "awaiting my approval" |
+| not on a claim | 未加入报销单 | 未加入報銷單 | receipt-state chip |
+| exact match (search) | 完全匹配 | 完全符合 | vocabulary divergence |
 | electronic signing / e-sign | 电子签名 | 電子簽名 | the feature as a whole |
 | sign (a ceremony) | 签署 | 簽署 | the act of signing a claim/vouch; drawing the signature = 签名 / 簽名 |
 | signature (drawn) | 签名 | 簽名 | the hand-drawn mark |

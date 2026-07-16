@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { useOpenParam } from "@/lib/use-open-param";
 import { useFormatter, useTranslations } from "next-intl";
 import { formatCents } from "@/lib/money";
 import { runDecisionCeremony } from "@/lib/esign/client";
@@ -50,6 +51,15 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
   const [claims, setClaims] = useState<InboxClaim[]>([]);
   const [me, setMe] = useState<InboxMe | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  // ?open=<id> deep link from search results (shared contract,
+  // src/lib/use-open-param.ts): expand a submitted row, pulse a decided one.
+  useOpenParam({
+    ready: claims.length > 0,
+    exists: (id) => claims.some((c) => c.id === id),
+    beforeScroll: (id) => {
+      if (claims.find((c) => c.id === id)?.status === "submitted") setOpenId(id);
+    },
+  });
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -124,7 +134,7 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
               // PDF, so only the latter opens in its own tab.
               const hasCertificate = c.status === "approved" || c.status === "paid";
               return (
-                <li key={c.id} className="card card-lift" data-testid={`decided-${c.id}`}>
+                <li key={c.id} className="card card-lift" data-testid={`decided-${c.id}`} data-open-id={c.id}>
                   <a
                     className="pressable flex w-full items-center justify-between gap-3 rounded-xl p-3 text-sm"
                     href={
@@ -185,7 +195,7 @@ function ClaimRow({
   const tEsign2 = useTranslations("Esign");
   const format = useFormatter();
   return (
-    <li className="card card-lift" data-testid={`approval-${claim.id}`}>
+    <li className="card card-lift" data-testid={`approval-${claim.id}`} data-open-id={claim.id}>
       <button className="pressable flex w-full items-center justify-between gap-3 p-4 text-left" onClick={onToggle}>
         {/* min-w-0 + truncate so a long claim description shrinks instead of
             pushing the amount off the card (flex min-width:auto). */}

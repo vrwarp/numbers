@@ -15,8 +15,9 @@ import SettingsTab from "./SettingsTab";
 import UsageTab from "./UsageTab";
 import LogsTab from "./LogsTab";
 import MembersTab from "./MembersTab";
+import SearchIndexTab from "./SearchIndexTab";
 
-const TABS = ["overview", "context", "settings", "usage", "logs", "members"] as const;
+const TABS = ["overview", "context", "settings", "search", "usage", "logs", "members"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function AdminDashboard() {
@@ -56,6 +57,7 @@ export default function AdminDashboard() {
         {tab === "overview" && <OverviewTab onNavigate={setTab} />}
         {tab === "context" && <ChurchContextTab />}
         {tab === "settings" && <SettingsTab />}
+        {tab === "search" && <SearchIndexTab />}
         {tab === "usage" && <UsageTab />}
         {tab === "logs" && <LogsTab />}
         {tab === "members" && <MembersTab />}

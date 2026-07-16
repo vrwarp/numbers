@@ -88,11 +88,26 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    Rules and workflow: `docs/agent/CONVENTIONS.md` "Localization". The official form itself
    stays English; user data and ministry canonical values are never translated.
 
+11. **Semantic search is a secondary index with a privacy boundary**
+   (`docs/SEARCH_DESIGN.md` is the contract): embeddings/queue rows must never
+   gate or fail a mutation (enqueues are fire-and-forget); every route that
+   changes embedded content (receipt file/note/merchant, claim content/status
+   year key) calls the matching `src/lib/embeddings/queue.ts` helper — a new
+   mutation route joining invariant 7's telemetry duty joins this one; scope
+   filtering is a PRE-filter re-applied at hydration; `kind="embedding"`
+   ExtractionLogs store hashes/labels, never query text or composites (90-day
+   retention), and the admin settings GET never returns the API key. The
+   role-read grant (verified approver/treasurer/admin may READ all receipts +
+   claims incl. drafts and never-claimed receipts) is a deliberate §6.3-style
+   exception beside invariant 2 — writes stay owner-only.
+
 ## Docs map
 
 - `docs/agent/ARCHITECTURE.md` — file map, request flows, PDF field names, env vars
 - `docs/ESIGN_DESIGN.md` — e-signature & approval workflow: trust model, ledger threads,
   ceremonies, attack/defense matrix (ratified design, now implemented)
+- `docs/SEARCH_DESIGN.md` — semantic search: embedding ingest queue/worker, exact-match
+  pass, permission matrix, admin runtime config (ratified design, now implemented)
 - `docs/agent/DATA_MODEL.md` — schema semantics, state machines, invariants per table
 - `docs/agent/CONVENTIONS.md` — code patterns + gotchas that have already bitten (read before UI/test work)
 - `docs/agent/TESTING.md` — how suites run, how to write tests here, known failure modes

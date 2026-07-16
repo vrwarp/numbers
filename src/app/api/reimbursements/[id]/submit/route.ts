@@ -22,6 +22,8 @@ import { buildClaimPdfBytes } from "@/lib/esign/packet";
 import { roundPlacement, type SignaturePlacement } from "@/lib/esign/placement";
 import type { RawLedgerEventDoc, SubmitAction } from "@/lib/esign/types";
 
+import { enqueueClaimEmbeddingNow } from "@/lib/embeddings/queue";
+
 export const runtime = "nodejs";
 
 const LEDGER_ID = /^[A-Za-z0-9_-]{8,64}$/;
@@ -245,6 +247,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       }),
     ]);
     await recordSignature(id, userId, event);
+    // submittedAt becomes the search year key (§6.5) → re-bucket.
+    enqueueClaimEmbeddingNow(id, userId);
     return NextResponse.json({ ok: true, status: "submitted" });
   });
 }

@@ -4,6 +4,7 @@ import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import "./globals.css";
 import { currentUser } from "@/auth";
 import { isAppAdmin } from "@/lib/config";
+import { embeddingEnabled } from "@/lib/embeddings/settings";
 import NavBar from "@/components/NavBar";
 import DeviceRequestsBanner from "@/components/esign/DeviceRequestsBanner";
 
@@ -30,7 +31,12 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [user, locale, messages] = await Promise.all([currentUser(), getLocale(), getMessages()]);
+  const [user, locale, messages, searchEnabled] = await Promise.all([
+    currentUser(),
+    getLocale(),
+    getMessages(),
+    embeddingEnabled().catch(() => false),
+  ]);
   return (
     <html lang={locale}>
       <body className="min-h-screen">
@@ -40,6 +46,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               userName={user.fullName ?? user.email}
               isAdmin={isAppAdmin(user)}
               canManageMinistries={user.role === "treasurer" || isAppAdmin(user)}
+              searchEnabled={searchEnabled}
             />
           )}
           {user && <DeviceRequestsBanner />}

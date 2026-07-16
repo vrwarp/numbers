@@ -172,6 +172,21 @@ rawResponse?, parsedJson?, status("success"|"error"), errorMessage?, durationMs,
 - If you add a new mutation route, emit an AuditEvent — the tuning pipeline assumes the trail
   is complete.
 
+### EmbeddingSettings / Embedding / EmbeddingJob (semantic search — docs/SEARCH_DESIGN.md)
+- `EmbeddingSettings`: single row, admin-editable backend config (endpoint/key/model/
+  dim/queryPrefix/minScoreMilli). Seeded once from `EMBEDDING_*` config; thereafter the
+  DB row is authoritative. The admin GET returns a key FINGERPRINT, never the key.
+  Model/dim change = wipe both tables + rebuild sweep.
+- `Embedding`: one vector per (kind, targetId, model); denormalized userId/year so
+  search scans one table join-free; `sourceSha256` = fingerprint of the FULL embedding
+  input rebuilt from DB columns (receipt: fileSha256‖note‖merchant‖purchaseDate;
+  claim: composite text). No FKs — routes delete alongside targets, the sweep GCs.
+- `EmbeddingJob`: durable queue; upsert-per-(kind,targetId,model) with `generation++`
+  (the worker's terminal write is generation-conditional — racing enqueues never lose);
+  draft debounce = `nextAttemptAt = now + EMBEDDING_DRAFT_IDLE_MS`; `failedSourceSha256`
+  keeps failed jobs stable until content changes. Receipt gains `fileSha256` (stamped at
+  upload/edit/restore + lazily at first embed).
+
 ## Corrections diff (derived, not stored)
 
 `GET /api/extraction-logs/[id]` computes per item: for each non-null `original*` field

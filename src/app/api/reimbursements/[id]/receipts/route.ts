@@ -12,6 +12,8 @@ import {
   manualClaimRows,
 } from "@/lib/claims";
 
+import { enqueueClaimEmbeddingDebounced, enqueueReceiptEmbedding } from "@/lib/embeddings/queue";
+
 export const runtime = "nodejs";
 // Same budget as claim creation: extraction can sit through quota cooldowns.
 export const maxDuration = 900;
@@ -134,6 +136,13 @@ async function addReceipts(
     await prisma.extractionLog.createMany({
       data: outcomes.map((o) => extractionLogRow(userId, o, reimbursementId)),
     });
+  }
+
+  // Search triggers (docs/SEARCH_DESIGN.md §5.2): draft content changed +
+  // extraction restamped the added receipts' merchant/purchaseDate.
+  enqueueClaimEmbeddingDebounced(reimbursementId, userId);
+  for (const e of extractions) {
+    if (e.receiptUpdate) enqueueReceiptEmbedding(e.receiptUpdate.id, userId);
   }
 
   return totalCents;

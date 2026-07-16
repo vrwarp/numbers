@@ -37,6 +37,7 @@ export type TranslationState = Record<string, StateEntry>;
  * the script copies its value onto the rest.
  */
 export const SAME_VALUE_GROUPS: readonly (readonly string[])[] = [
+  ["Search.title", "NavBar.search", "Search.searchButton"],
   ["Shoebox.title", "NavBar.shoebox"],
   ["Claims.title", "NavBar.claims"],
   ["Profile.title", "NavBar.profile"],

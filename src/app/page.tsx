@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { currentUserId } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import Shoebox from "@/components/Shoebox";
+import { embeddingEnabled } from "@/lib/embeddings/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ export default async function HomePage() {
     select: { fullName: true, mailingAddress: true },
   });
   const profileIncomplete = !user?.fullName || !user?.mailingAddress;
+  const searchEnabled = await embeddingEnabled().catch(() => false);
   const t = await getTranslations("Home");
 
   return (
@@ -31,7 +33,7 @@ export default async function HomePage() {
           })}
         </div>
       )}
-      <Shoebox />
+      <Shoebox searchEnabled={searchEnabled} />
     </div>
   );
 }

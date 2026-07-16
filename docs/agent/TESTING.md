@@ -162,3 +162,33 @@ regenerate and actually look at them (or have the agent Read the PNGs).
 `.github/workflows/ci.yml`: `unit` job + `e2e` matrix job per engine
 (`npx playwright install --with-deps <engine>`, `E2E_BROWSERS=<engine>`, `E2E_FORCE_BUILD=1`);
 Playwright report artifact on failure. Docker dry-run/push lives in `docker.yml`.
+
+
+## Recorded real embeddings (search e2e)
+
+The e2e server does NOT hit the embedding endpoint: `tests/e2e/start-server.sh`
+boots `tests/e2e/mock-embedding-server.mjs`, which replays REAL vectors recorded
+from the production endpoint into `tests/e2e/embedding-fixtures/embeddings.json`
+(committed). Search journeys therefore assert genuine model geometry — bilingual
+receipts, zh↔en cross-language ranking, and exact recorded cosine scores
+(`search-journeys.spec.ts`; the score-fidelity test doubles as a canary for the
+image pipeline's byte determinism, since a sha miss degrades to projection and
+shifts the scores).
+
+- **Resolution**: recorded image (sha of the app-normalized JPEG) or recorded
+  text → verbatim vector; anything else (dynamic claim composites, ad-hoc spec
+  queries) → token-overlap projection onto the recorded anchors + a hash-bag
+  component, so arbitrary texts still rank by wording. `__EMBED_FAIL__` → 500
+  (degraded-mode lever).
+- **Re-record against a new model/endpoint** (regenerates vectors + the
+  expected-score matrix; `--render` also re-rasterizes the receipt images with
+  Chromium — reliable CJK):
+
+  ```bash
+  EMBEDDING_ENDPOINT=https://… EMBEDDING_API_KEY=sk-… npm run record:embeddings -- --render
+  ```
+
+  The manifest of receipts/queries/anchors lives in
+  `tests/e2e/embedding-fixtures/manifest.ts`; model + dim flow from the
+  recording into the e2e env automatically, so a model swap is: re-record,
+  re-run, commit the json/pngs.

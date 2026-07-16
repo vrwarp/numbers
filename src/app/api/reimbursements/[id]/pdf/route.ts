@@ -5,6 +5,8 @@ import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { saveGeneratedPdf } from "@/lib/storage";
 import { buildClaimPdfBytes } from "@/lib/esign/packet";
 
+import { enqueueClaimEmbeddingNow } from "@/lib/embeddings/queue";
+
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
@@ -79,6 +81,9 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
         data: { status: "processed" },
       }),
     ]);
+
+    // Content is frozen at generation → index immediately (§5.2).
+    enqueueClaimEmbeddingNow(id, userId);
 
     return new NextResponse(new Uint8Array(pdfBytes), {
       headers: {

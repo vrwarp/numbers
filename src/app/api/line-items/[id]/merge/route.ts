@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 
+import { enqueueClaimEmbeddingDebounced } from "@/lib/embeddings/queue";
+
 export const runtime = "nodejs";
 
 /**
@@ -82,6 +84,7 @@ export async function POST(_req: NextRequest, ctx: { params: Promise<{ id: strin
       data: { totalCents },
     });
 
+    enqueueClaimEmbeddingDebounced(item.reimbursement.id, userId);
     return NextResponse.json({ lineItem: merged, totalCents });
   });
 }

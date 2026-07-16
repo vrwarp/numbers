@@ -2,7 +2,7 @@
   "name": "numbers",
   "version": "1.0.0",
   "private": true,
-  "description": "CFCC Reimbursement App — shoebox receipt capture, AI extraction, human-verified PDF generation",
+  "description": "CFCC Reimbursement App \u2014 shoebox receipt capture, AI extraction, human-verified PDF generation",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -21,7 +21,8 @@
     "esign:rules-canary": "node scripts/check-rules.mjs",
     "test:e2e:esign": "playwright test -c playwright.esign.config.ts",
     "test:e2e:esign:local": "firebase emulators:exec --only auth,firestore --project demo-numbers \"npm run test:e2e:esign\"",
-    "test:e2e:esign:docker": "docker build -t numbers-esign-e2e -f Dockerfile.e2e . && docker run --rm -e CI -v ~/.cache/firebase/emulators:/root/.cache/firebase/emulators numbers-esign-e2e"
+    "test:e2e:esign:docker": "docker build -t numbers-esign-e2e -f Dockerfile.e2e . && docker run --rm -e CI -v ~/.cache/firebase/emulators:/root/.cache/firebase/emulators numbers-esign-e2e",
+    "record:embeddings": "tsx scripts/record-embedding-fixtures.ts"
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.2",

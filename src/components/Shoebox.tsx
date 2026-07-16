@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useOpenParam } from "@/lib/use-open-param";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
@@ -35,7 +37,7 @@ interface UploadedPending {
 
 type PendingItem = LocalPending | UploadedPending;
 
-export default function Shoebox() {
+export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) {
   const t = useTranslations("Shoebox");
   const tCommon = useTranslations("Common");
   const tErrors = useTranslations("Errors");
@@ -409,6 +411,22 @@ export default function Shoebox() {
   const unassigned = (receipts ?? []).filter((r) => r.status === "unassigned");
   const processed = (receipts ?? []).filter((r) => r.status !== "unassigned");
 
+  // ?open=<id> deep-link landing (search results → "Find in Receipts"):
+  // auto-expand the processed section when the target lives there, scroll +
+  // pulse, toast on a miss. Shared contract in src/lib/use-open-param.ts.
+  const processedDetails = useRef<HTMLDetailsElement>(null);
+  const [openGone, setOpenGone] = useState(false);
+  useOpenParam({
+    ready: receipts !== null,
+    exists: (id) => (receipts ?? []).some((r) => r.id === id),
+    beforeScroll: (id) => {
+      if ((receipts ?? []).find((r) => r.id === id)?.status !== "unassigned") {
+        processedDetails.current?.setAttribute("open", "");
+      }
+    },
+    onGone: () => setOpenGone(true),
+  });
+
   return (
     <div
       className="relative space-y-6"
@@ -460,6 +478,22 @@ export default function Shoebox() {
         <div className="card border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
           {error}
         </div>
+      )}
+
+      {openGone && (
+        <div className="card border-amber-200 bg-amber-50 p-3 text-sm text-amber-800" role="status" data-testid="open-gone-toast">
+          {t("openGoneToast")}
+        </div>
+      )}
+
+      {searchEnabled && (
+        <Link
+          href="/search?type=receipt"
+          data-testid="shoebox-search-pill"
+          className="card pressable flex items-center gap-2 px-4 py-2.5 text-sm text-stone-500"
+        >
+          <span aria-hidden>🔍</span> {t("searchPill")}
+        </Link>
       )}
 
       {receipts !== null && (unassigned.length > 0 || processed.length > 0) && (
@@ -569,7 +603,7 @@ export default function Shoebox() {
             onView={setViewing}
           />
           {processed.length > 0 && (
-            <details className="pt-2">
+            <details className="pt-2" ref={processedDetails}>
               <summary className="cursor-pointer text-sm font-medium text-stone-500">
                 {t("processedSummary", { count: processed.length })}
               </summary>

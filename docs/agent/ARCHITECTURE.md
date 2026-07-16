@@ -160,6 +160,24 @@ src/app/claims|profile          thin server components: currentUserId() → redi
 assets/cfcc-form-template.pdf   the real church AcroForm — DO NOT regenerate or optimize
 prisma/schema.prisma            data model (see DATA_MODEL.md)
 tests/unit/*.test.ts            Vitest; tests/e2e/*.spec.ts Playwright (see TESTING.md)
+src/lib/embeddings/             semantic search (docs/SEARCH_DESIGN.md): provider.ts
+                                (verified endpoint contract; WebP/PDF→JPEG ≤640px),
+                                mock.ts (similarity-meaningful, __EMBED_FAIL__ lever),
+                                settings.ts (DB-authoritative config + env seed),
+                                content.ts (composite/fingerprints), queue.ts
+                                (fire-and-forget enqueues + debounce), worker.ts
+                                (singleton loop, generation-conditional finalize,
+                                backfill/GC sweep), index-cache.ts (delta-maintained
+                                Float32 matrix), exact.ts + normalize.ts (NFKC
+                                tokenized LIKE pass), search.ts (the §6 engine),
+                                query-cache.ts (query-embedding LRU)
+src/instrumentation.ts          starts the embedding worker (nodejs runtime only,
+                                never at build, dev needs EMBEDDING_DEV/MOCK)
+src/lib/use-open-param.ts       the ?open=<id> deep-link contract (see CONVENTIONS)
+src/lib/roles.ts                hasRoleReadGrant() — the ratified §6.3 role-read grant
+src/components/SearchClient.tsx /search screen (IME-safe submit, exact strip, best
+                                match, year groups, recents, sessionStorage restore)
+src/components/admin/SearchIndexTab.tsx  admin search tab (outcome language)
 src/lib/pdf/preview.ts          rasterize a PDF receipt to PER-PAGE WebP images (pdfjs-dist +
                                 @napi-rs/canvas + sharp) for inline mobile display; ~300 DPI,
                                 each page gets its own ~100 KB WebP q10→5→1 ladder; first 10
@@ -208,7 +226,9 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/line-items/[id]/split` | POST | `{firstAmountCents?}` default even split; both halves unverified; new row original*=NULL; AuditEvent(split); renumbers sortOrder so new half follows original |
 | `/api/line-items/[id]/merge` | POST | no body; undo-split: folds row into the same-receipt row directly above (400 if none, or if either row excluded); draft only (409); survivor keeps its description/ministry/event/original*, sums amounts, isVerified=false; merged row deleted; AuditEvent(merge); renumbers sortOrder; recomputes totalCents |
 | `/api/profile` | GET PATCH | fullName, mailingAddress (printed on the form), locale, and the A10 duty pauses (`approvalsPaused`/`financePaused`/`adminPaused` — self-service; changes audited `update-availability`). Returns `{user, duties}` where `duties` says which toggles the member's grants make relevant |
-| `/api/extraction-logs` | GET | own logs, `?reimbursementId=`, newest first, summaries |
+| `/api/search` | POST | semantic + exact search (docs/SEARCH_DESIGN.md §6): scope mine/all/decided (role-gated by the verified mirror; member asking beyond mine → 404), exact-match SQL pass + cosine over the in-memory index, degraded exact-only mode when the embed call fails, decided browse with cursor. 404 while unconfigured |
+| `/api/admin/embeddings` (+ `/probe`, `/jobs`, `/rebuild`, `/test-query`) | GET PUT POST | admin search backend config (probe detects dim; GET returns key fingerprint only), queue health/failed retries, forced rebuild, scored test query — behind `requireAdmin()` |
+| `/api/extraction-logs` | GET | own logs, `?reimbursementId=`, newest first, summaries (kind="embedding" rows excluded — operational, §9) |
 | `/api/extraction-logs/[id]` | GET | full tuning record: log + lineItems w/ computed `corrections` + `humanCreated` + parsed auditEvents |
 
 ## Request flows (condensed)
@@ -301,6 +321,10 @@ through `configValue()`; add new ones the same way.
 | `AI_MOCK=1` | deterministic extraction + suggestions, no network (tests/dev) — bypasses throttle/retry |
 | `CHURCH_CONTEXT_PATH` | operator-authored church vocabulary markdown fed into suggestion prompts; default `<DATA_DIR>/church-context.md`; feature degrades gracefully when absent. Contents are sent to the AI provider |
 | `AUTH_TEST_MODE=1` | enables dev login (tests/dev only) |
+| `EMBEDDING_ENDPOINT`, `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_DIM`, `EMBEDDING_QUERY_PREFIX`, `EMBEDDING_MIN_SCORE` | semantic search backend — SEEDS ONLY: first read creates the admin-editable `EmbeddingSettings` row, which is authoritative thereafter (docs/SEARCH_DESIGN.md §3.2) |
+| `EMBEDDING_MAX_PX` (640), `EMBEDDING_TIMEOUT_MS` (120000), `EMBEDDING_DRAFT_IDLE_MS` (600000), `EMBEDDING_POLL_MS` (15000) | search ingest plumbing (image downscale cap, provider timeout, draft debounce, worker idle poll) |
+| `EMBEDDING_DEV=1` | dev only: allow the env seed + worker under `next dev` (a laptop .env must not start a backfill against a production GPU) |
+| `EMBEDDING_MOCK=1` | deterministic similarity-meaningful embeddings, no network (tests/dev) |
 | `ADMIN_EMAILS` | comma/space-separated emails granted `/admin` access without a roster GRANT_ROLE — seeds a deployment's first admin. App-surface only (`isAppAdmin` in `src/lib/config.ts`); never writes the verified `User.role` mirror, so e-sign roster validity is untouched. Also gates the e-sign app-surface controls (master switch, rollout allowlist). Empty → admin is the roster role alone |
 | `TEMPLATE_PDF` | optional replacement blank form path |
 | `CJK_FONT_PATH` | optional replacement CJK font for PDF values (default `assets/fonts/NotoSansCJKtc-Regular.otf`; unreadable → warn + bundled) |

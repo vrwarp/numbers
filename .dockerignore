@@ -7,6 +7,9 @@ test-results
 playwright-report
 screenshots
 tests
+# …but the search e2e fixture manifest is imported by scripts/record-embedding-fixtures.ts,
+# which IS in the context and typechecked by `next build` (tsconfig includes **/*.ts).
+!tests/e2e/embedding-fixtures
 *.md
 .env
 .env.*
