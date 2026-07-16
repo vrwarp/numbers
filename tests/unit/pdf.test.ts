@@ -334,6 +334,32 @@ describe("toEncodableText (per-font sanitizing net)", () => {
     const font = await cjk();
     expect(toEncodableText("VBS 手工材料 📷 receipts", font)).toBe("VBS 手工材料 … receipts");
   });
+
+  it("normalizes exotic whitespace so the field never blanks or 500s", async () => {
+    // A value whose only non-WinAnsi char is the ideographic space U+3000 (a
+    // Chinese IME emits it) used to slip past the encodability check, then
+    // helv.widthOfTextAtSize threw 'WinAnsi cannot encode "\\u3000"'.
+    const helv = await helvetica();
+    const out = toEncodableText("receipt　scan.jpg", helv);
+    // The result must be fully Helvetica-encodable (no throw when measured).
+    expect(() => helv.widthOfTextAtSize(out, 8)).not.toThrow();
+    expect(out).not.toMatch(/[\u3000\u00a0\u2028\u2029]/);
+    expect(out).toContain("scan.jpg");
+  });
+
+  it("generateClaimPdf survives an ideographic-space filename in a receipt note", async () => {
+    const png = await sharp({
+      create: { width: 100, height: 100, channels: 3, background: { r: 200, g: 200, b: 200 } },
+    })
+      .png()
+      .toBuffer();
+    const bytes = await generateClaimPdf({
+      ...baseInput(),
+      items: items(1),
+      receipts: [{ data: png, mimeType: "image/png", originalName: "receipt　scan.png" }],
+    });
+    expect(bytes.length).toBeGreaterThan(1000);
+  });
 });
 
 describe("wrapTextMeasured (pre-wrapping for unspaced CJK runs)", () => {
