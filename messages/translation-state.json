@@ -1216,24 +1216,6 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Review.splitModeTitle": {
-    "source": "Split across ministries?",
-    "context": "Dialog heading when Split is pressed on a single-ministry claim.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Review.splitModeBody": {
-    "source": "This claim is set to use <strong>one ministry</strong> for every row.",
-    "context": "Dialog body; <strong> emphasizes the one-ministry setting.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Review.splitModeBody2": {
-    "source": "Switch the claim to multiple ministries to split this row.",
-    "context": "Second paragraph: switching to multi-ministry enables the split.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
   "Review.switchAndSplit": {
     "source": "Switch & split",
     "context": "Primary button of that dialog: flip the mode, then open the split dialog.",
@@ -1528,7 +1510,7 @@
     "zh-Hant": "machine"
   },
   "Review.splitButton": {
-    "source": "⑂ Split",
+    "source": "⑂ Split…",
     "context": "Row action; keep the ⑂. Glossary: 拆分. Keep short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -1546,13 +1528,13 @@
     "zh-Hant": "machine"
   },
   "Review.mergeButton": {
-    "source": "⤴ Merge up",
+    "source": "⤴ Undo split",
     "context": "Row action; keep the ⤴. Keep short.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.restoreTitle": {
-    "source": "Restore item",
+    "source": "Add back to the claim",
     "context": "Tooltip of the exclude button when the row is already excluded.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -1564,14 +1546,29 @@
     "zh-Hant": "machine"
   },
   "Review.restoreButton": {
-    "source": "↩ Restore",
+    "source": "↩ Claim this",
     "context": "Row action un-excluding an item; keep the ↩.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Review.excludeButton": {
-    "source": "🗑 Exclude",
+    "source": "⊘ Don’t claim",
     "context": "Row action excluding an item; keep the 🗑.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.notClaimedBadge": {
+    "source": "Not claimed — personal",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.coachHint": {
+    "source": "One receipt can cover more than one ministry — or include personal items. Use Split on a row to send part of it elsewhere, or leave it off the claim.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.coachDismiss": {
+    "source": "Got it",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1612,26 +1609,68 @@
     "zh-Hant": "machine"
   },
   "Review.splitDialogTitle": {
-    "source": "Split line item",
+    "source": "Split off a portion",
     "context": "Heading of the split dialog.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Review.splitTotal": {
-    "source": "Total: {amount}",
-    "context": "Line showing the row's total; {amount} is a pre-formatted $ value.",
+  "Review.splitAmountQuestion": {
+    "source": "How much of the {amount} is for something else?",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Review.firstPart": {
-    "source": "First part ($)",
-    "context": "Input label for the first half's amount; keep the ($).",
+  "Review.splitStays": {
+    "source": "Stays on claim",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Review.secondPart": {
-    "source": "Second part: <strong>{amount}</strong>",
-    "context": "Computed remainder line; <strong>{amount} is pre-formatted (or — while invalid).",
+  "Review.splitPortion": {
+    "source": "Split-off portion",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitPortionExcluded": {
+    "source": "Won’t be claimed",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitWhatFor": {
+    "source": "What is the split-off portion?",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitForOther": {
+    "source": "For something else",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitForOtherSub": {
+    "source": "A different ministry or event.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitForPersonal": {
+    "source": "Personal",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitForPersonalSub": {
+    "source": "Not reimbursable — kept off the claim.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitModeSwitchNote": {
+    "source": "One ministry is set for the whole claim — assigning a different one here switches it to <strong>multiple ministries</strong>.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitCancelAria": {
+    "source": "Cancel split",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.splitConfirmExclude": {
+    "source": "Split & don’t claim",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

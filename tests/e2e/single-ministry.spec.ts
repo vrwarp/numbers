@@ -154,7 +154,7 @@ test("switching multi → single adopts the most common ministry, un-verifies, a
   await expect(page.getByTestId("verify-progress")).toContainText("1 / 3 verified");
 });
 
-test("Split in single mode offers the mode switch instead of silently diverging", async ({
+test("Reassigning a split-off portion in single mode switches the claim to multiple", async ({
   page,
 }, testInfo) => {
   await signInAs(
@@ -171,19 +171,53 @@ test("Split in single mode offers the mode switch instead of silently diverging"
   // Clear the undo toast so it can't sit over the row buttons below.
   await page.getByTestId("fanout-toast").getByLabel("Dismiss").click();
 
+  // The inline editor opens in the row (no modal); reassigning the portion to a
+  // *different* ministry warns that the claim will become multi-ministry.
   await page.getByTitle("Split into two rows").first().click();
-  await expect(page.getByTestId("split-mode-dialog")).toBeVisible();
-  await page.getByTestId("split-mode-switch").click();
+  await page.getByTestId("split-amount").fill("50.00");
+  await expect(page.getByTestId("split-mode-note")).toBeHidden();
+  await page.getByTestId("split-ministry").selectOption("440 Youth Fellowship (aka Footprint)");
+  await expect(page.getByTestId("split-mode-note")).toBeVisible();
+  await page.getByTestId("split-confirm").click(); // labelled "Switch & split"
 
-  // The real split dialog opens, and the claim is now multi-ministry.
-  await page.getByTestId("split-first-amount").fill("50.00");
-  await page.getByTestId("split-confirm").click();
+  // The claim is now multi-ministry: per-row selects, three rows.
   await expect(page.locator('li[data-testid^="row-"]')).toHaveCount(3);
   const selects = page.getByLabel("Ministry", { exact: true });
   await expect(selects).toHaveCount(3);
-  // Both halves keep the ministry the fan-out gave the original row.
+  // The original keeps its ministry; the split-off portion carries the new one.
   await expect(selects.nth(0)).toHaveValue("250 Luncheon Catering");
-  await expect(selects.nth(1)).toHaveValue("250 Luncheon Catering");
+  await expect(selects.nth(1)).toHaveValue("440 Youth Fellowship (aka Footprint)");
+});
+
+test("A personal split in single mode stays single-ministry (no needless switch)", async ({
+  page,
+}, testInfo) => {
+  await signInAs(
+    page,
+    `splitpers-${testInfo.project.name}-r${testInfo.retry}@example.com`,
+    "Splid Person"
+  );
+  await makeClaim(page, ["sg-a.jpg", "sg-b.jpg"]);
+
+  await page.getByTestId("claim-ministry").selectOption("250 Luncheon Catering");
+  await expect(
+    page.locator('[data-testid^="row-ministry-badge-"]').filter({ hasText: "250 Luncheon Catering" })
+  ).toHaveCount(2);
+  await page.getByTestId("fanout-toast").getByLabel("Dismiss").click();
+
+  // Carve off a personal portion — nothing about the claim's ministry changes,
+  // so it must NOT prompt a mode switch and stays single-ministry.
+  await page.getByTitle("Split into two rows").first().click();
+  await page.getByTestId("split-amount").fill("40.00");
+  await page.getByTestId("split-mode-personal").click();
+  await expect(page.getByTestId("split-mode-note")).toBeHidden();
+  await page.getByTestId("split-confirm").click(); // labelled "Split & don't claim"
+
+  // Still single-ministry: rows keep read-only badges (not per-row selects), and
+  // the carved-off portion is marked "not claimed".
+  await expect(page.getByLabel("Ministry", { exact: true })).toHaveCount(0);
+  await expect(page.locator('[data-testid^="row-ministry-badge-"]')).toHaveCount(2);
+  await expect(page.locator('[data-testid^="row-notclaimed-"]')).toHaveCount(1);
 });
 
 test("claim settings and suggestions are tenant-scoped (404, never 403)", async ({

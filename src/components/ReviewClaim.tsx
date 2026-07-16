@@ -117,7 +117,10 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const router = useRouter();
   const [claim, setClaim] = useState<Claim | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [splitItem, setSplitItem] = useState<LineItem | null>(null);
+  // The row whose inline "split off a portion" editor is open (only one at a
+  // time). The editor lives in the row so the receipt image stays in view.
+  const [splitOpenId, setSplitOpenId] = useState<string | null>(null);
+  const [coachDismissed, setCoachDismissed] = useState(true);
   const [downloading, setDownloading] = useState(false);
   // E-sign availability drives whether the action bar offers a "Submit for
   // approval" primary alongside the download. Off ⇒ the bar is the classic
@@ -150,7 +153,6 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     unverify: number;
   } | null>(null);
   const [fanOutUndo, setFanOutUndo] = useState<FanOutUndo | null>(null);
-  const [splitModeItem, setSplitModeItem] = useState<LineItem | null>(null);
 
   useEffect(() => {
     if (!nudgedItemId) return;
@@ -185,6 +187,24 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
 
   useEffect(() => {
     void loadEnv().then(setEsignEnv).catch(() => {});
+  }, []);
+
+  // The split/exclude coach line shows until the user dismisses it once; the
+  // choice is remembered so it doesn't nag on every claim.
+  useEffect(() => {
+    try {
+      setCoachDismissed(localStorage.getItem("numbers.splitCoachDismissed") === "1");
+    } catch {
+      setCoachDismissed(false);
+    }
+  }, []);
+  const dismissCoach = useCallback(() => {
+    setCoachDismissed(true);
+    try {
+      localStorage.setItem("numbers.splitCoachDismissed", "1");
+    } catch {
+      /* private mode — the in-memory dismissal still holds for this session */
+    }
   }, []);
 
   // Mutations run strictly one at a time. Without this, picking a ministry and
@@ -297,6 +317,69 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     [apiError, enqueue, load, t]
   );
 
+  // Carve a portion off a row in one step. `firstAmountCents` stays on the
+  // original; the split-off remainder becomes the new row, which is either sent
+  // to another ministry/event (reassign) or excluded (personal). Splitting the
+  // portion to a *different* ministry while in single-ministry mode diverges
+  // the claim, so we switch it to multiple first — but a personal exclude never
+  // touches the ministry, so it stays single-ministry (no needless prompt).
+  const doSplit = useCallback(
+    async (
+      item: LineItem,
+      opts: {
+        firstAmountCents: number;
+        mode: "reassign" | "personal";
+        ministry: string;
+        event: string;
+        switchToMultiple: boolean;
+      }
+    ) => {
+      const body =
+        opts.mode === "personal"
+          ? { firstAmountCents: opts.firstAmountCents, secondExcluded: true }
+          : {
+              firstAmountCents: opts.firstAmountCents,
+              // The editor's fields are prefilled from the row, so their current
+              // values are exactly what the split-off portion should carry —
+              // send them verbatim (an unchanged pick just re-sets the same value).
+              secondMinistry: opts.ministry,
+              secondEvent: opts.event,
+            };
+      await enqueue(async () => {
+        try {
+          if (opts.switchToMultiple) {
+            const modeRes = await fetch(`/api/reimbursements/${claimId}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ singleMinistry: false }),
+            });
+            if (!modeRes.ok) {
+              setError(apiError(await modeRes.json().catch(() => null), t("splitFailed")));
+              await load();
+              return;
+            }
+          }
+          const res = await fetch(`/api/line-items/${item.id}/split`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) {
+            setError(apiError(await res.json().catch(() => null), t("splitFailed")));
+            await load();
+            return;
+          }
+          setSplitOpenId(null);
+          await load();
+        } catch {
+          setError(t("splitFailed"));
+          await load();
+        }
+      });
+    },
+    [apiError, claimId, enqueue, load, t]
+  );
+
   const groups = useMemo(() => {
     if (!claim) return [];
     return claim.receipts.map((ref) => ({
@@ -320,7 +403,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   // land here — unless they deferred it or another dialog is already open.
   useEffect(() => {
     if (!claim || claim.status !== "draft") return;
-    if (manualEntryReceiptId || splitItem || editingReceiptId || addingReceipts) return;
+    if (manualEntryReceiptId || splitOpenId || editingReceiptId || addingReceipts) return;
     const pending = groups.find(
       (g) => needsManualEntry(g.items) && !deferredManual.has(g.receipt.id)
     );
@@ -331,7 +414,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     needsManualEntry,
     deferredManual,
     manualEntryReceiptId,
-    splitItem,
+    splitOpenId,
     editingReceiptId,
     addingReceipts,
   ]);
@@ -687,6 +770,26 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         />
       )}
 
+      {/* Teaches the split/exclude model in context — most people never guess
+          that one receipt can be carved across ministries or trimmed of personal
+          items. Dismissed once, remembered thereafter. */}
+      {isDraft && !coachDismissed && (
+        <div
+          className="mb-4 flex items-start gap-3 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900"
+          data-testid="split-coach"
+        >
+          <span aria-hidden>💡</span>
+          <span className="flex-1">{t("coachHint")}</span>
+          <button
+            className="whitespace-nowrap font-semibold text-indigo-600 hover:text-indigo-800"
+            onClick={dismissCoach}
+            data-testid="split-coach-dismiss"
+          >
+            {t("coachDismiss")}
+          </button>
+        </div>
+      )}
+
       {/* One card per receipt: the image and its digitized rows travel together
           (rows are 1:1 with receipts; splitting is the only multiplier), so
           there are no independently scrolling columns to keep in sync. */}
@@ -800,11 +903,10 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                       singleMode={claim.singleMinistry && claim.receipts.length > 1}
                       nudged={item.id === nudgedItemId}
                       onPatch={patchItem}
-                      onSplit={() =>
-                        claim.singleMinistry && claim.receipts.length > 1
-                          ? setSplitModeItem(item)
-                          : setSplitItem(item)
-                      }
+                      isSplitting={splitOpenId === item.id}
+                      onSplitOpen={() => setSplitOpenId(item.id)}
+                      onSplitCancel={() => setSplitOpenId(null)}
+                      onSplitConfirm={(opts) => doSplit(item, opts)}
                       canMergeUp={idx > 0}
                       mergeUpBlocked={idx > 0 && group.items[idx - 1].isExcluded}
                       onMergeUp={() => mergeUp(item.id)}
@@ -1030,57 +1132,6 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             setEditingReceiptId(null);
           }}
         />
-      )}
-
-      {splitItem && (
-        <SplitDialog
-          item={splitItem}
-          onClose={() => setSplitItem(null)}
-          onDone={async () => {
-            setSplitItem(null);
-            await load();
-          }}
-        />
-      )}
-
-      {/* Split is the multi-ministry mechanism, so in single mode it first
-          offers the mode switch instead of silently diverging a row. */}
-      {splitModeItem && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          role="dialog"
-          aria-modal
-          data-testid="split-mode-dialog"
-        >
-          <div className="card w-full max-w-sm p-6">
-            <h2 className="font-bold">{t("splitModeTitle")}</h2>
-            <p className="mt-2 text-sm text-stone-600">
-              {t.rich("splitModeBody", { strong: (chunks) => <strong>{chunks}</strong> })}
-            </p>
-            <p className="mt-2 text-sm text-stone-600">{t("splitModeBody2")}</p>
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                className="btn-secondary"
-                onClick={() => setSplitModeItem(null)}
-                data-testid="split-mode-cancel"
-              >
-                {tCommon("cancel")}
-              </button>
-              <button
-                className="btn-primary"
-                data-testid="split-mode-switch"
-                onClick={async () => {
-                  const item = splitModeItem;
-                  setSplitModeItem(null);
-                  await patchClaim({ singleMinistry: false });
-                  setSplitItem(item);
-                }}
-              >
-                {t("switchAndSplit")}
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Multi → single is the one destructive transition: rows with other
@@ -1573,7 +1624,10 @@ function LineItemRow({
   singleMode,
   nudged,
   onPatch,
-  onSplit,
+  isSplitting,
+  onSplitOpen,
+  onSplitCancel,
+  onSplitConfirm,
   canMergeUp,
   mergeUpBlocked,
   onMergeUp,
@@ -1583,7 +1637,16 @@ function LineItemRow({
   singleMode: boolean;
   nudged: boolean;
   onPatch: (id: string, patch: Partial<LineItem>) => Promise<void>;
-  onSplit: () => void;
+  isSplitting: boolean;
+  onSplitOpen: () => void;
+  onSplitCancel: () => void;
+  onSplitConfirm: (opts: {
+    firstAmountCents: number;
+    mode: "reassign" | "personal";
+    ministry: string;
+    event: string;
+    switchToMultiple: boolean;
+  }) => Promise<void>;
   canMergeUp: boolean;
   mergeUpBlocked: boolean;
   onMergeUp: () => void;
@@ -1601,9 +1664,11 @@ function LineItemRow({
       className={`px-4 py-3 transition-all border-l-4 ${
         excluded
           ? "bg-stone-50 opacity-60 border-transparent"
-          : item.isVerified
-            ? "bg-emerald-50/20 border-emerald-500"
-            : "bg-white border-transparent"
+          : isSplitting
+            ? "bg-indigo-50/30 border-indigo-400"
+            : item.isVerified
+              ? "bg-emerald-50/20 border-emerald-500"
+              : "bg-white border-transparent"
       }`}
       data-testid={`row-${item.id}`}
       data-description={item.description}
@@ -1627,7 +1692,17 @@ function LineItemRow({
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {singleMode ? (
+          {excluded ? (
+            // Excluded rows stay visible (faded, struck through) but drop out of
+            // the claim total and the PDF — an explicit badge states that so it
+            // reads at a glance, not just as dimmed text.
+            <span
+              className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700"
+              data-testid={`row-notclaimed-${item.id}`}
+            >
+              {t("notClaimedBadge")}
+            </span>
+          ) : singleMode ? (
             // The ministry is set once for the whole claim; the badge shows
             // this row's actual stored value (the PDF's source of truth).
             <span
@@ -1729,12 +1804,21 @@ function LineItemRow({
           )}
         </div>
         {/* Action line: row operations on the left, confirm on the right —
-            always the last line of the row. */}
-        {!readOnly && (
-          <div className="flex flex-wrap items-center gap-1 pt-1">
+            always the last line of the row. While a split is open the inline
+            editor takes the row's place so the receipt image stays in view. */}
+        {!readOnly && isSplitting && (
+          <InlineSplit
+            item={item}
+            singleMode={singleMode}
+            onCancel={onSplitCancel}
+            onConfirm={onSplitConfirm}
+          />
+        )}
+        {!readOnly && !isSplitting && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
             <button
-              className="rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 disabled:opacity-30"
-              onClick={onSplit}
+              className="inline-flex items-center gap-1 rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-600 hover:border-stone-400 hover:bg-stone-50 disabled:opacity-30"
+              onClick={onSplitOpen}
               disabled={excluded}
               title={t("splitRowTitle")}
               data-testid={`split-${item.id}`}
@@ -1743,7 +1827,7 @@ function LineItemRow({
             </button>
             {canMergeUp && (
               <button
-                className="rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 disabled:opacity-30"
+                className="inline-flex items-center gap-1 rounded-lg border border-transparent px-2 py-1 text-xs font-medium text-stone-400 hover:bg-stone-100 hover:text-stone-600 disabled:opacity-30"
                 onClick={onMergeUp}
                 disabled={excluded || mergeUpBlocked}
                 title={excluded || mergeUpBlocked ? t("mergeBlockedTitle") : t("mergeTitle")}
@@ -1753,7 +1837,7 @@ function LineItemRow({
               </button>
             )}
             <button
-              className="rounded px-2 py-1 text-xs text-stone-500 hover:bg-red-50 hover:text-red-600"
+              className="inline-flex items-center gap-1 rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-600 hover:border-red-300 hover:bg-red-50 hover:text-red-600"
               onClick={() => onPatch(item.id, { isExcluded: !excluded, isVerified: false })}
               title={excluded ? t("restoreTitle") : t("excludeTitle")}
               data-testid={`exclude-${item.id}`}
@@ -1811,86 +1895,268 @@ function LineItemRow({
   );
 }
 
-function SplitDialog({
+/**
+ * The inline "split off a portion" editor. Lives inside the row (not a modal)
+ * so the receipt image stays visible while the user decides how much to carve
+ * off. The split-off portion either goes to another ministry/event (reassign)
+ * or is marked personal (excluded). Sending it to a *different* ministry while
+ * the claim is in single-ministry mode diverges the claim, so the confirm
+ * switches it to multiple — a personal exclude leaves the mode untouched.
+ */
+function InlineSplit({
   item,
-  onClose,
-  onDone,
+  singleMode,
+  onCancel,
+  onConfirm,
 }: {
   item: LineItem;
-  onClose: () => void;
-  onDone: () => Promise<void>;
+  singleMode: boolean;
+  onCancel: () => void;
+  onConfirm: (opts: {
+    firstAmountCents: number;
+    mode: "reassign" | "personal";
+    ministry: string;
+    event: string;
+    switchToMultiple: boolean;
+  }) => Promise<void>;
 }) {
   const t = useTranslations("Review");
   const tCommon = useTranslations("Common");
-  const apiError = useApiErrorMessage();
-  const [firstText, setFirstText] = useState(() => {
-    const sign = item.amountCents < 0 ? -1 : 1;
-    return centsToDollarString(sign * Math.ceil(Math.abs(item.amountCents) / 2));
-  });
-  const [error, setError] = useState<string | null>(null);
+  const total = item.amountCents;
+  const sign = total < 0 ? -1 : 1;
+  // Default: split off roughly half; the odd cent stays on the original row.
+  const [portionText, setPortionText] = useState(() =>
+    centsToDollarString(total - sign * Math.ceil(Math.abs(total) / 2))
+  );
+  const [mode, setMode] = useState<"reassign" | "personal">("reassign");
+  // Prefill the destination with the row's own ministry/event: the common case
+  // is "same ministry, just a different slice", so the user only touches these
+  // when the portion truly belongs elsewhere.
+  const [ministry, setMinistry] = useState(item.ministry);
+  const [otherPicked, setOtherPicked] = useState(false);
+  const [event, setEvent] = useState(item.event);
   const [busy, setBusy] = useState(false);
 
-  let firstCents: number | null = null;
+  const amountRef = useRef<HTMLInputElement>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    amountRef.current?.focus();
+    amountRef.current?.select();
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  let portionCents: number | null = null;
   try {
-    firstCents = parseDollarsToCents(firstText);
+    portionCents = parseDollarsToCents(portionText);
   } catch {
-    firstCents = null;
+    portionCents = null;
   }
-  const secondCents = firstCents !== null ? item.amountCents - firstCents : null;
+  const staysCents = portionCents !== null ? total - portionCents : null;
+  // Valid: same sign as the total, non-zero, and leaving a non-zero remainder
+  // (the server rejects a zero on either side of the split).
+  const valid =
+    portionCents !== null &&
+    portionCents !== 0 &&
+    staysCents !== null &&
+    staysCents !== 0 &&
+    Math.sign(portionCents) === Math.sign(total) &&
+    Math.abs(portionCents) < Math.abs(total);
+
+  const showOther = otherPicked || (!!ministry && !isKnownMinistry(ministry));
+  // Only a portion that actually diverges from the row's own ministry/event
+  // needs the claim to leave single-ministry mode — keeping the prefilled
+  // values (or marking it personal) does not.
+  const diverges = ministry !== item.ministry || event !== item.event;
+  const switchToMultiple = singleMode && mode === "reassign" && diverges;
+  const confirmLabel =
+    mode === "personal"
+      ? t("splitConfirmExclude")
+      : switchToMultiple
+        ? t("switchAndSplit")
+        : t("splitConfirm");
 
   async function submit() {
-    if (firstCents === null) return;
+    if (!valid || staysCents === null) return;
     setBusy(true);
-    setError(null);
-    const res = await fetch(`/api/line-items/${item.id}/split`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ firstAmountCents: firstCents }),
-    });
-    if (!res.ok) {
-      setError(apiError(await res.json().catch(() => null), t("splitFailed")));
-      setBusy(false);
-      return;
+    try {
+      await onConfirm({
+        firstAmountCents: staysCents,
+        mode,
+        ministry: mode === "personal" ? "" : ministry,
+        event: mode === "personal" ? "" : event,
+        switchToMultiple,
+      });
+    } finally {
+      if (mounted.current) setBusy(false);
     }
-    await onDone();
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal>
-      <div className="card w-full max-w-sm p-6">
-        <h2 className="font-bold">{t("splitDialogTitle")}</h2>
-        <p className="mt-1 truncate text-sm text-stone-500">{item.description}</p>
-        <p className="text-sm text-stone-500">{t("splitTotal", { amount: formatCents(item.amountCents) })}</p>
-        <label className="mt-4 block text-sm font-medium">
-          {t("firstPart")}
+    <div
+      className="mt-1 flex flex-col gap-3 rounded-lg border border-indigo-200 bg-indigo-50 p-3"
+      data-testid={`split-panel-${item.id}`}
+    >
+      <div className="flex items-center gap-2 text-sm font-semibold text-indigo-800">
+        <span>{t("splitDialogTitle")}</span>
+        <button
+          className="ml-auto rounded px-1.5 text-indigo-500 hover:bg-white hover:text-indigo-700"
+          onClick={onCancel}
+          disabled={busy}
+          aria-label={t("splitCancelAria")}
+          data-testid="split-cancel"
+        >
+          ✕
+        </button>
+      </div>
+
+      <label className="block text-xs font-medium text-stone-700">
+        {t("splitAmountQuestion", { amount: formatCents(total) })}
+        <div className="mt-1.5 flex max-w-[220px] items-center overflow-hidden rounded-lg border border-stone-300 bg-white focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
+          <span className="self-stretch border-r border-stone-200 bg-stone-50 px-3 py-2 text-stone-400">$</span>
           <input
-            className="input mt-1"
-            value={firstText}
-            onChange={(e) => setFirstText(e.target.value)}
-            autoFocus
-            data-testid="split-first-amount"
+            ref={amountRef}
+            className="w-full bg-transparent px-2 py-2 text-sm font-semibold outline-none"
+            inputMode="decimal"
+            value={portionText}
+            onChange={(e) => setPortionText(e.target.value)}
+            aria-label={t("amountAria")}
+            data-testid="split-amount"
           />
-        </label>
-        <p className="mt-2 text-sm text-stone-600">
-          {t.rich("secondPart", {
-            amount: secondCents !== null ? formatCents(secondCents) : "—",
-            strong: (chunks) => <strong>{chunks}</strong>,
-          })}
-        </p>
-        {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
-        <div className="mt-5 flex justify-end gap-2">
-          <button className="btn-secondary" onClick={onClose} disabled={busy} data-testid="split-cancel">
-            {tCommon("cancel")}
+        </div>
+      </label>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-lg border border-stone-200 bg-white px-3 py-2">
+          <div className="text-[10px] uppercase tracking-wide text-stone-400">{t("splitStays")}</div>
+          <div className="font-mono text-sm font-bold tabular-nums" data-testid="split-stays">
+            {staysCents !== null ? formatCents(staysCents) : "—"}
+          </div>
+        </div>
+        <div
+          className={`rounded-lg border px-3 py-2 ${
+            mode === "personal" ? "border-amber-200 bg-amber-50" : "border-stone-200 bg-white"
+          }`}
+        >
+          <div className="text-[10px] uppercase tracking-wide text-stone-400">
+            {mode === "personal" ? t("splitPortionExcluded") : t("splitPortion")}
+          </div>
+          <div
+            className={`font-mono text-sm font-bold tabular-nums ${mode === "personal" ? "text-amber-700" : ""}`}
+            data-testid="split-portion"
+          >
+            {portionCents !== null ? formatCents(portionCents) : "—"}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-1.5 text-xs font-medium text-stone-700">{t("splitWhatFor")}</div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            className={`flex flex-col gap-0.5 rounded-lg border p-2.5 text-left transition-colors ${
+              mode === "reassign"
+                ? "border-indigo-500 bg-white ring-1 ring-indigo-500"
+                : "border-stone-300 bg-white hover:border-stone-400"
+            }`}
+            onClick={() => setMode("reassign")}
+            aria-pressed={mode === "reassign"}
+            data-testid="split-mode-reassign"
+          >
+            <span className="text-xs font-semibold text-stone-800">{t("splitForOther")}</span>
+            <span className="text-[11px] text-stone-500">{t("splitForOtherSub")}</span>
           </button>
           <button
-            className="btn-primary"
-            onClick={submit}
-            disabled={busy || firstCents === null || firstCents === 0 || secondCents === 0}
-            data-testid="split-confirm"
+            type="button"
+            className={`flex flex-col gap-0.5 rounded-lg border p-2.5 text-left transition-colors ${
+              mode === "personal"
+                ? "border-amber-500 bg-amber-50 ring-1 ring-amber-500"
+                : "border-stone-300 bg-white hover:border-stone-400"
+            }`}
+            onClick={() => setMode("personal")}
+            aria-pressed={mode === "personal"}
+            data-testid="split-mode-personal"
           >
-            {t("splitConfirm")}
+            <span className="text-xs font-semibold text-stone-800">{t("splitForPersonal")}</span>
+            <span className="text-[11px] text-stone-500">{t("splitForPersonalSub")}</span>
           </button>
         </div>
+      </div>
+
+      {mode === "reassign" && (
+        <div className="flex flex-col gap-2 border-t border-indigo-100 pt-3">
+          <div className="flex flex-wrap gap-2">
+            <select
+              className="input w-auto max-w-full flex-1"
+              value={showOther ? OTHER_MINISTRY : ministry}
+              onChange={(e) => {
+                if (e.target.value === OTHER_MINISTRY) {
+                  setOtherPicked(true);
+                  setMinistry("");
+                } else {
+                  setOtherPicked(false);
+                  setMinistry(e.target.value);
+                }
+              }}
+              aria-label={t("ministryAria")}
+              data-testid="split-ministry"
+            >
+              <option value="">{t("pickMinistry")}</option>
+              {MINISTRY_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+              <option value={OTHER_MINISTRY}>{t("otherOption")}</option>
+            </select>
+            {showOther && (
+              <input
+                className="input w-40"
+                value={ministry}
+                onChange={(e) => setMinistry(e.target.value)}
+                placeholder={t("customMinistryPlaceholder")}
+                aria-label={t("customMinistryAria")}
+                data-testid="split-ministry-other"
+              />
+            )}
+            <input
+              className="input w-36"
+              value={event}
+              onChange={(e) => setEvent(e.target.value)}
+              placeholder={t("eventPlaceholder")}
+              aria-label={t("eventAria")}
+              data-testid="split-event"
+            />
+          </div>
+          {switchToMultiple && (
+            <p
+              className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700"
+              data-testid="split-mode-note"
+            >
+              {t.rich("splitModeSwitchNote", { strong: (chunks) => <strong>{chunks}</strong> })}
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="flex justify-end gap-2 pt-1">
+        <button className="btn-secondary" onClick={onCancel} disabled={busy}>
+          {tCommon("cancel")}
+        </button>
+        <button
+          className="btn-primary"
+          onClick={submit}
+          disabled={busy || !valid}
+          data-testid="split-confirm"
+        >
+          {confirmLabel}
+        </button>
       </div>
     </div>
   );

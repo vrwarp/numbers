@@ -102,10 +102,11 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   await costcoRow.getByLabel("Amount").blur();
   await expect(page.getByTestId("claim-total")).toHaveText("$120.95");
 
-  // Split the Amazon order between two ministries.
+  // Split the Amazon order between two ministries. The editor opens inline in
+  // the row; "how much is for something else" is the split-off portion.
   const amazonRow = rowByDesc("Amazon 06/04").first();
   await amazonRow.getByTitle("Split into two rows").click();
-  await page.getByTestId("split-first-amount").fill("15.00");
+  await page.getByTestId("split-amount").fill("15.00");
   await page.getByTestId("split-confirm").click();
   await expect(rows).toHaveCount(4);
   const amazonRows = rowByDesc("Amazon 06/04");
@@ -124,7 +125,7 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
 
   // Split again for the two-ministry flow below.
   await amazonRow.getByTitle("Split into two rows").click();
-  await page.getByTestId("split-first-amount").fill("15.00");
+  await page.getByTestId("split-amount").fill("15.00");
   await page.getByTestId("split-confirm").click();
   await expect(rows).toHaveCount(4);
   await expect(amazonRows).toHaveCount(2);
