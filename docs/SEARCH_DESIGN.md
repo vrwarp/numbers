@@ -15,6 +15,9 @@ for VBS", "that Costco run with the returned chairs", "王姐妹's retreat snack
 - **Treasurers** (and admins) search **all** receipts and **all** claims.
 - Results are ranked by cosine similarity of a Qwen multimodal embedding and presented
   **grouped by year**, best match first within each year.
+- **All claims are indexed, drafts included**: a draft becomes searchable once it has
+  been left unchanged for **10 minutes** (a debounce, so active editing never burns
+  10 s embeds on every keystroke — §5.2); frozen claims index immediately.
 - The embedding backend (endpoint, model, dimension) is **operator-changeable from the
   admin interface at runtime**, including a safe migration path to a new model (§3.3).
 
@@ -35,7 +38,8 @@ Two latency constraints drive the architecture:
   matrix a memory problem (see §6.3).
 - No keyword/substring search engine. This is purely embedding search; the existing list
   screens keep their filters.
-- Draft claims are not semantically indexed (§5.2 explains why); receipts on them are.
+- No instant indexing of in-flight drafts: a draft under active edit is only re-embedded
+  after 10 idle minutes (§5.2) — mid-edit staleness of up to that window is accepted.
 
 ## 3. Embedding backend
 
@@ -113,6 +117,7 @@ no longer override silently (the admin card shows a hint when env and DB disagre
 | `EMBEDDING_DIM` | vector dimension |
 | `EMBEDDING_QUERY_PREFIX` | optional instruction prefix for query embeds |
 | `EMBEDDING_TIMEOUT_MS` | default 30000 (not in DB — plumbing, not policy) |
+| `EMBEDDING_DRAFT_IDLE_MS` | default 600000 — the 10 min draft-idle debounce (§5.2); tests shrink it |
 | `EMBEDDING_MOCK=1` | deterministic vectors, no network |
 
 Admin edits are validated by a **live probe** before saving: embed a fixed test string
@@ -185,7 +190,8 @@ model Embedding {
   dim          Int
   vector       Bytes    // Float32Array little-endian, L2-normalized, length == dim
   // Fingerprint of the exact bytes/text that were embedded — staleness detector.
-  // Receipts: sha256 of the stored image file. Claims: packetSha256.
+  // Receipts: sha256 of the stored image file. Claims: sha256 of the text
+  // composite (§5.1) — uniform across drafts and frozen claims.
   sourceSha256 String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -233,13 +239,13 @@ extracted `merchant` alongside the pixels. PDF receipts embed their **page-1 ras
 reusing the existing preview machinery (`src/lib/pdf/preview.ts` cache; generate on
 demand if not yet cached).
 
-**Claims — the generated packet, represented as text + first receipt image.**
+**Claims — a text composite of the claim's content + first receipt image.**
 The naïve reading of "embed the claim PDF" — rasterize the form page — would be a
 mistake: every form page is 90% identical AcroForm boilerplate, so all claims would
 cluster together and similarity would be dominated by the template, not the content.
-Instead the claim's embedding input is a **structured text composite** of exactly what
-the packet contains, optionally paired with the first receipt image if the endpoint
-supports text+image inputs:
+Instead the claim's embedding input is a **structured text composite** of the claim's
+content (for a frozen claim, exactly what the packet contains), optionally paired with
+the first receipt image if the endpoint supports text+image inputs:
 
 ```
 Reimbursement claim by <fullName>. <claimDescription>.
@@ -249,8 +255,11 @@ Merchants: <distinct receipt merchants>. Total $<total>. <MM/YYYY>.
 ```
 
 (Amounts formatted at this boundary via `src/lib/money.ts`, like the LLM boundary.)
-`sourceSha256` for a claim is the `packetSha256` — the composite is derived from the
-same frozen content, so the packet hash is the correct staleness key.
+`sourceSha256` for a claim is the **sha256 of the composite text itself** — the
+fingerprint of exactly what was embedded. This works uniformly for drafts (no packet
+exists) and frozen claims, and makes staleness checks trivial: rebuild the composite,
+compare hashes. Excluded rows are left out of the composite, so excluding/restoring is
+a content change like any other.
 
 ### 5.2 Triggers (event-driven — items embed "as soon as available")
 
@@ -258,23 +267,31 @@ same frozen content, so the packet hash is the correct staleness key.
 | :-- | :-- |
 | Receipt uploaded (`POST /api/receipts`) | enqueue `{kind:"receipt"}`, priority 0 |
 | Receipt image edited / restored (`/api/receipts/[id]/edit`) | re-enqueue (file bytes changed ⇒ `sourceSha256` stale) |
-| Claim PDF generated (`POST …/pdf`) and e-sign packet archived | enqueue `{kind:"claim"}`, priority 0; regeneration re-enqueues (new `packetSha256`) |
-| Claim reverted to draft | delete the claim's `Embedding`/job rows — drafts are not indexed |
+| Any draft-claim content mutation (claim created, claim PATCH, line-item PATCH/split/merge, receipts added/removed, manual entry) | enqueue `{kind:"claim"}`, priority 0, **`nextAttemptAt = now + 10 min`** — the draft-idle debounce, see below |
+| Claim PDF generated (`POST …/pdf`) | re-enqueue `{kind:"claim"}` with `nextAttemptAt = now` (content is frozen; index immediately); regeneration likewise |
+| Claim reverted to draft | re-enqueue with the draft debounce (the claim stays searchable; its embedding refreshes if post-revert edits change content) |
 | Receipt / claim deleted | delete `Embedding` + job rows (all models) |
 
 Every enqueue targets the **active** model — and additionally the **target** model
 while a migration is `indexing`/`ready` (§3.3), so cutover has no coverage holes.
 
-Drafts are deliberately not indexed: their content churns with every row edit (each
-would be a 10 s re-embed), they have no packet to fingerprint, and they are few, recent,
-and easy to find on the Claims screen. A claim becomes searchable when it freezes —
-which is also the moment its content stops moving. (Receipts, by contrast, are indexed
-from upload, so the *material* of a draft is still findable.)
+**The draft-idle debounce costs no new machinery** — it is the queue's own upsert
+semantics: every draft mutation re-upserts the job with `nextAttemptAt = now + 10 min`,
+so continuous editing keeps pushing the embed into the future, and the job only becomes
+runnable once the draft has sat untouched for 10 minutes. Two guards keep it honest:
+the worker embeds whatever the claim contains *at run time* (never a snapshot from
+enqueue time), and an enqueue-upsert that lands while the same job is `running`
+re-queues it, so an edit racing a 10 s embed just schedules a follow-up whose hash
+check makes it cheap. The window is `EMBEDDING_DRAFT_IDLE_MS` (default 600000).
+All draft mutation paths already write the claim row (`totalCents` recompute /
+`updatedAt`), so the trigger list above is exactly the routes that must call
+`enqueueClaimEmbedding()` — a new mutation route joining invariant-7's telemetry duty
+also joins this one.
 
 "Enqueue" = upsert on `(kind, targetId, model)`: reset `status="queued"`, `attempts=0`,
-`nextAttemptAt=now`, keep/raise priority. Never blocks or fails the calling route —
-queue write errors are logged and swallowed (search is a secondary index, the upload
-must not fail because of it).
+set `nextAttemptAt` as the trigger dictates, keep/raise priority. Never blocks or fails
+the calling route — queue write errors are logged and swallowed (search is a secondary
+index, the upload must not fail because of it).
 
 ### 5.3 The worker
 
@@ -291,7 +308,9 @@ loop:
   if none → sleep POLL_MS (default 15 s; an enqueue also pings the loop to wake early)
   mark running, leaseExpiresAt = now + 5 min
   cfg = model config the JOB names (active or target — from EmbeddingSettings)
-  build input (§5.1) → provider call (~10 s) → verify dim → normalize
+  build input (§5.1); if its sourceSha256 already matches the stored Embedding row
+    → mark done WITHOUT a provider call (makes re-queues after benign races free)
+  provider call (~10 s) → verify dim → normalize
   upsert Embedding row for (kind, targetId, job.model)
   (+ write ExtractionLog kind="embedding", §9)
   mark done; bump the in-memory index version (§6.3) if job.model == activeModel;
@@ -311,9 +330,10 @@ and drops the result.
 ### 5.4 Backfill / reconcile sweep
 
 On worker start (and once a day thereafter) a sweep enqueues, at **priority 1**, every
-receipt and every FROZEN claim that either has no `Embedding` row for the active model
-or whose `sourceSha256` no longer matches (covers: pre-feature rows, rows that missed a
-trigger, edits that raced). While a migration is in flight the sweep does the same for
+receipt and every claim — including drafts whose `updatedAt` is ≥ 10 min old — that
+either has no `Embedding` row for the active model or whose `sourceSha256` no longer
+matches (covers: pre-feature rows, rows that missed a trigger, edits that raced;
+recently-touched drafts are skipped because their debounced job already exists). While a migration is in flight the sweep does the same for
 the **target** model — the sweep IS the migration's re-index engine, no separate code
 path. It also purges `Embedding`/job rows whose model is neither active nor target
 (leftovers of a cancelled migration interrupted mid-cleanup). The sweep is a single
@@ -369,16 +389,24 @@ Flow:
 | approver | own | all receipts + all claims | claims where `approverUserId = me` AND status ∈ approved/rejected/paid (their decided set; receipts attached to those claims ride along) |
 | treasurer / admin | own | all receipts + all claims | same as approver (a treasurer can also hold assignments) |
 
+"All claims" includes **drafts** — consistent with the ratified principle below (role
+holders may read all reimbursements); the result card shows the `draft` status pill so
+a searcher knows they are looking at work in progress.
+
 Duty pauses (`approvalsPaused`/`financePaused`) do **not** narrow search: pauses are
 workflow routing, not access revocation (same posture as keeping already-assigned
 claims decidable). Role loss does narrow it — the mirror is re-read on every request.
 
-**This is a new cross-tenant read grant.** ESIGN_DESIGN §6.3 currently enumerates
-approver-inbox / finance-queue / packet / certificate / reconcile / `/v/<token>` as the
-only non-owner reads. Shipping this feature amends that list with:
+**This is a new cross-tenant read grant — ratified.** The operator's position: approvers
+and treasurers should have read access across all reimbursements anyway; search is
+simply the first surface built on that principle. ESIGN_DESIGN §6.3 currently
+enumerates approver-inbox / finance-queue / packet / certificate / reconcile /
+`/v/<token>` as the only non-owner reads. Shipping this feature amends that list with:
 
-> *Search read (role-gated): holders of a verified approver/treasurer/admin role may
-> read search summaries and receipt files across all tenants.*
+> *Role read (ratified): holders of a verified approver/treasurer/admin role may read
+> receipts and claims across all tenants — search summaries and receipt files today;
+> future role-facing read surfaces may rely on the same grant. Draft claims are
+> included. Writes remain owner-only (plus the existing ceremony paths).*
 
 Consequences that must land in the same PR:
 - `GET /api/receipts/[id]/file` (and `/preview`) gain the same role gate beside the
@@ -409,7 +437,9 @@ grouping needs no joins:
 - **Receipt**: `purchaseDate` prefix (`YYYY` of the transcription string) when it looks
   like a date; else `createdAt` year. This is a substring read of a transcription for
   display bucketing — not date arithmetic (invariant respected).
-- **Claim**: `submittedAt ?? createdAt` year.
+- **Claim**: `submittedAt ?? createdAt` year (drafts have no `submittedAt`, so they
+  bucket by creation year and move buckets at submission if the years differ — the
+  re-embed at freeze recomputes it).
 
 Ingest recomputes it on every (re-)embed; a re-extraction that changes `purchaseDate`
 also re-triggers via the image-edit path or is corrected by the daily sweep.
@@ -539,14 +569,19 @@ A "Search index" card on `/admin` behind the existing `isAppAdmin()` gate
 
 - **Unit** (Vitest, `EMBEDDING_MOCK`): cosine/top-K/threshold/year-grouping pure
   functions; queue state machine (enqueue-dedupe, backoff schedule, lease reclaim,
-  failed-terminal); claim composite builder (money formatting, CJK content untouched);
+  failed-terminal, **draft debounce** — successive mutations push `nextAttemptAt`,
+  the job runs only after quiet, an edit racing a running job re-queues it and the
+  hash short-circuit makes the follow-up a no-op); claim composite builder (money
+  formatting, CJK content untouched, excluded rows omitted, draft vs frozen);
   permission matrix as a table test — member/approver/treasurer × scope × filter,
   asserting 404s exactly where the matrix says; **migration lifecycle** — start →
   dual-model enqueue on live triggers → coverage → ready → cutover flips the index
   and purges old rows; cancel purges target rows; settings probe rejects a dim
   mismatch (mock models are deliberately incompatible, §3.1, so these tests are real).
-- **e2e** (chromium, mock embeddings): upload → worker indexes → search finds it;
-  approver searches another member's receipt and can open the image; member with
+- **e2e** (chromium, mock embeddings, `EMBEDDING_DRAFT_IDLE_MS` shrunk to ~1 s):
+  upload → worker indexes → search finds it; a draft claim becomes searchable after
+  the idle window and an edit refreshes its embedding; approver searches another
+  member's receipt and can open the image; member with
   `scope:"all"` gets 404; "Decided by me" returns only decided claims; admin changes
   the model → search still works mid-migration → cutover → search works on the new
   model; security sweep updated for the new deliberate grant.
