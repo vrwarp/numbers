@@ -23,6 +23,16 @@ model User {
   // switch. Gates ONLY who can see/enroll/run ceremonies in this app — never
   // roster validity (signatures collected while allowed stay valid forever).
   esignAllowed   Boolean         @default(false)
+  // Self-service duty pauses (A10): a role-holder switching a duty off on
+  // their profile. App-surface routing only, same posture as esignAllowed —
+  // paused approvers vanish from the approver picker and refuse NEW
+  // submissions (claims already assigned stay decidable); a paused treasurer
+  // loses the finance queue/mark-paid; a paused admin loses the admin
+  // surfaces. Never a role change: User.role stays the verified roster
+  // mirror, and ledger validity ignores these flags entirely.
+  approvalsPaused Boolean        @default(false)
+  financePaused   Boolean        @default(false)
+  adminPaused     Boolean        @default(false)
   locale         String          @default("en") // UI language: en | zh-Hans | zh-Hant
   createdAt      DateTime        @default(now())
   receipts       Receipt[]

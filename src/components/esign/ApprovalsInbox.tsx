@@ -35,11 +35,19 @@ export interface InboxClaim {
   rows: { description: string; amountCents: number; ministry: string; event: string }[];
 }
 
+/** Own-eligibility context from /api/approvals (A9/A10) — mirror state; the
+ *  decision route and ledger validity enforce it regardless of what renders. */
+interface InboxMe {
+  approvalsPaused: boolean;
+  canApprove: boolean;
+}
+
 export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoint?: string }) {
   const t = useTranslations("Approvals");
   const tEsign = useTranslations("Esign");
   const apiError = useApiErrorMessage();
   const [claims, setClaims] = useState<InboxClaim[]>([]);
+  const [me, setMe] = useState<InboxMe | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +57,9 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
       setError(apiError(await res.json().catch(() => null), tEsign("loadFailed")));
       return;
     }
-    setClaims((await res.json()).claims ?? []);
+    const data = await res.json();
+    setClaims(data.claims ?? []);
+    setMe(data.me ?? null);
   }, [endpoint, apiError, tEsign]);
   useEffect(() => {
     void load();
@@ -65,6 +75,19 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
         <p className="text-sm text-stone-500">{t("subtitle")}</p>
       </div>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {/* Grandfathered work while paused (A10): claims assigned before the
+          pause stay decidable — say so instead of leaving a silent pile. */}
+      {me?.approvalsPaused && me.canApprove && pending.length > 0 && (
+        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="paused-notice">
+          {t("pausedNotice")}
+        </p>
+      )}
+      {/* Role revoked (A9): approving is off the table — declining is not. */}
+      {me && !me.canApprove && pending.length > 0 && (
+        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="role-lost-notice">
+          {t("roleLostNotice")}
+        </p>
+      )}
 
       {pending.length === 0 ? (
         <div className="card p-8 text-center text-stone-500">
@@ -74,7 +97,14 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
       ) : (
         <ul className="space-y-3">
           {pending.map((c) => (
-            <ClaimRow key={c.id} claim={c} open={openId === c.id} onToggle={() => setOpenId(openId === c.id ? null : c.id)} onChanged={load} />
+            <ClaimRow
+              key={c.id}
+              claim={c}
+              canApprove={me?.canApprove ?? true}
+              open={openId === c.id}
+              onToggle={() => setOpenId(openId === c.id ? null : c.id)}
+              onChanged={load}
+            />
           ))}
         </ul>
       )}
@@ -131,11 +161,13 @@ export function StatusChip({ status }: { status: string }) {
 
 function ClaimRow({
   claim,
+  canApprove,
   open,
   onToggle,
   onChanged,
 }: {
   claim: InboxClaim;
+  canApprove: boolean;
   open: boolean;
   onToggle: () => void;
   onChanged: () => Promise<void>;
@@ -167,12 +199,20 @@ function ClaimRow({
           <span className="text-stone-400">{open ? "▾" : "▸"}</span>
         </div>
       </button>
-      {open && <DecisionCeremony claim={claim} onChanged={onChanged} />}
+      {open && <DecisionCeremony claim={claim} canApprove={canApprove} onChanged={onChanged} />}
     </li>
   );
 }
 
-function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () => Promise<void> }) {
+function DecisionCeremony({
+  claim,
+  canApprove,
+  onChanged,
+}: {
+  claim: InboxClaim;
+  canApprove: boolean;
+  onChanged: () => Promise<void>;
+}) {
   const t = useTranslations("Approvals");
   const tEsign = useTranslations("Esign");
   const thrown = useThrownErrorMessage();
@@ -350,11 +390,19 @@ function DecisionCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: 
             </button>
             <button
               className="btn-primary disabled:opacity-50"
+              // canApprove: role-at-exercise (A9) — a demoted approver may
+              // still reject above, and the server/ledger refuse regardless.
               disabled={
-                !verified || busy || !typedName.trim() || !affirmed || (!!signatureImage && !placement)
+                !verified ||
+                !canApprove ||
+                busy ||
+                !typedName.trim() ||
+                !affirmed ||
+                (!!signatureImage && !placement)
               }
               onClick={() => decide("approve")}
               data-testid="approve-button"
+              title={!canApprove ? t("roleLostNotice") : undefined}
             >
               {busy ? tEsign("signing") : t("approveAndSign")}
             </button>

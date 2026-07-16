@@ -15,21 +15,31 @@ export async function GET() {
     if (!registry?.enabled) return NextResponse.json({ enabled: false });
     const me = await prisma.user.findUnique({
       where: { id: userId },
-      select: { role: true, esignAllowed: true, signerIdentity: { select: { status: true } } },
+      select: {
+        role: true,
+        esignAllowed: true,
+        approvalsPaused: true,
+        financePaused: true,
+        signerIdentity: { select: { status: true } },
+      },
     });
     // Outside the rollout allowlist (A8) ⇒ same nothing-to-see as switched off.
     if (me && !esignAccessAllowed(registry, me)) return NextResponse.json({ enabled: false });
+    // Claims already assigned still count while paused (A10) — pausing stops
+    // NEW submissions, not the ones waiting on you.
     const approvals = await prisma.reimbursement.count({
       where: { approverUserId: userId, status: "submitted" },
     });
+    // A paused treasurer loses the finance queue outright (null = no tab).
     const finance =
-      me?.role === "treasurer" || me?.role === "admin"
+      (me?.role === "treasurer" || me?.role === "admin") && !me.financePaused
         ? await prisma.reimbursement.count({ where: { status: "approved" } })
         : null;
     return NextResponse.json({
       enabled: true,
       role: me?.role ?? "member",
       approvals,
+      approvalsPaused: me?.approvalsPaused ?? false,
       finance,
       // Only attested members can vouch (§4.3) — gates the nav's Vouch tab.
       vouch: me?.signerIdentity?.status === "attested",

@@ -190,7 +190,11 @@ function evaluateClaim({ claimId, ledgerId, ownerUid, roster, events }) {
           d.action.submitRef === submit.actionHash &&
           d.action.packetSha256 === submit.action.packetSha256 &&
           uidOf(d) === submit.action.approverUid &&
-          d.action.approverUid === uidOf(d)
+          d.action.approverUid === uidOf(d) &&
+          // A9: an APPROVE binds only while the named approver still holds
+          // approver-or-above at decision time (REJECT is exempt — it
+          // declines to sign rather than signing).
+          (d.action.t !== "APPROVE" || roster.isApproverAt(uidOf(d), d.createdAtMs))
       )
       .sort((x, y) => x.createdAtMs - y.createdAtMs || (x.eventId < y.eventId ? -1 : 1));
     thread.decision = bound[0] ?? null;

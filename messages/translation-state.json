@@ -358,6 +358,84 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Profile.dutiesTitle": {
+    "source": "My duties",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Card heading on the profile page listing the member's duty on/off switches (approve / record payments / administer). Short."
+  },
+  "Profile.dutiesNote": {
+    "source": "Step back from a duty for a while — while it's off, other members won't see you as an option.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Subtitle under the “My duties” card heading, explaining what switching a duty off does."
+  },
+  "Profile.dutyApprovalsTitle": {
+    "source": "Approving claims",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Row title for the approver duty toggle on the profile page. Noun phrase — the activity of approving claims."
+  },
+  "Profile.dutyApprovalsOn": {
+    "source": "Members can pick you as the approver when they submit a claim.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Body text of the approver duty row while the duty is ON."
+  },
+  "Profile.dutyApprovalsOff": {
+    "source": "You're not taking new approval requests. Claims already assigned to you still wait for your decision.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Body text of the approver duty row while the duty is OFF — claims already assigned remain the member's to decide."
+  },
+  "Profile.dutyFinanceTitle": {
+    "source": "Recording payments",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Row title for the treasurer duty toggle on the profile page. The duty is marking approved claims as paid."
+  },
+  "Profile.dutyFinanceOn": {
+    "source": "You can see the finance queue and mark approved claims as paid.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Body text of the treasurer duty row while ON. “finance queue” = the Finance page's list of approved claims awaiting payment."
+  },
+  "Profile.dutyFinanceOff": {
+    "source": "The finance queue is hidden and you can't mark claims as paid.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Body text of the treasurer duty row while OFF."
+  },
+  "Profile.dutyAdminTitle": {
+    "source": "Administration",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Row title for the administrator duty toggle on the profile page. One word if possible."
+  },
+  "Profile.dutyAdminOn": {
+    "source": "You can manage members, settings, and electronic signing.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Body text of the admin duty row while ON."
+  },
+  "Profile.dutyAdminOff": {
+    "source": "Admin pages and controls are hidden until you turn this back on.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Body text of the admin duty row while OFF — the member can always return here to re-enable."
+  },
+  "Profile.dutyTurnOn": {
+    "source": "Turn on",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Button that re-enables a paused duty — same wording as the e-sign master switch's turn-on button (auto-copied from Identity.turnOn)."
+  },
+  "Profile.dutyTurnOff": {
+    "source": "Turn off",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Button that pauses a duty — same wording as the e-sign master switch's turn-off button (auto-copied from Identity.turnOff)."
+  },
   "ReceiptGrid.pdfChip": {
     "source": "PDF",
     "context": "Tiny chip on a card when a PDF thumbnail can't render; 'PDF' acronym stays.",
@@ -2137,6 +2215,24 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Esign.waitingFor": {
+    "source": "Waiting for {name} to review this claim.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Line on the claim owner's panel while status is “awaiting approval”; {name} is the chosen approver's display name."
+  },
+  "Esign.approverPausedNote": {
+    "source": "{name} isn't taking new approval requests right now. They can still decide this claim, or you can withdraw it and pick a different approver.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Amber notice on the owner's claim panel when the assigned approver has switched off NEW approval requests; they can still decide this already-assigned claim. Pairs with the withdraw/change-approver button below it."
+  },
+  "Esign.approverIneligibleNote": {
+    "source": "{name} can no longer approve claims. Withdraw this submission and pick a different approver.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Amber notice on the owner's claim panel when the assigned approver lost the approver role (or signing key) and can no longer approve at all — the owner must withdraw and reassign."
+  },
   "Approvals.title": {
     "source": "Approvals",
     "context": "Page title of the approver's inbox; also the nav link.",
@@ -2190,6 +2286,18 @@
     "context": "Approve button — approving IS signing. Keep the ✓.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Approvals.pausedNotice": {
+    "source": "You've turned off new approval requests. These claims were assigned to you before that — please decide them, or their owners can reassign them.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Banner atop the approver's inbox when they have paused new requests but still have earlier-assigned claims waiting."
+  },
+  "Approvals.roleLostNotice": {
+    "source": "Your approver role has been removed. You can decline these claims so their owners can reassign them, but you can't approve them.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Banner atop the approver's inbox when their approver role was revoked: rejecting (declining) is still allowed, approving is not. Also the tooltip on the disabled approve button."
   },
   "Finance.title": {
     "source": "Finance",
@@ -3872,6 +3980,24 @@
     "context": "409 from e-sign routes when the rollout scope is allowlist and this member is not on it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Errors.esign.approverUnavailable": {
+    "source": "That approver isn't taking new approval requests right now — pick someone else",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Error when submitting a claim to an approver who has paused new approval requests (e.g. the picker was stale)."
+  },
+  "Errors.esign.approverRoleLost": {
+    "source": "Your approver role has been removed — you can decline, but not approve",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Error when a demoted approver tries to approve a claim still assigned to them; rejecting remains possible."
+  },
+  "Errors.esign.decisionNotBinding": {
+    "source": "The signed decision doesn't bind on the ledger — reload this claim and try again, or ask its owner to reassign it",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Error when a signed approve/reject reached the signature ledger but does not bind there (e.g. the approver's role was revoked mid-ceremony). “ledger” = the tamper-evident signature record, 账本/帳本."
   },
   "Errors.admin.contentString": {
     "source": "Content must be text.",

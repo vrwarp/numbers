@@ -42,6 +42,8 @@ export interface EsignMe {
   email: string;
   name: string;
   role: string;
+  /** Duty pause (A10): a paused admin's role-management controls hide. */
+  adminPaused: boolean;
   identityStatus: string | null;
   publicKey: string | null;
   signatureImage: string | null;

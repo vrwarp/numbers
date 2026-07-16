@@ -40,8 +40,42 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       include: REVIEW_INCLUDE,
     });
     if (!reimbursement) throw new ApiError(404, "Claim not found", "claimNotFound");
-    return NextResponse.json({ reimbursement });
+    return NextResponse.json({
+      reimbursement: {
+        ...reimbursement,
+        approverInfo: await approverInfo(reimbursement.approverUserId),
+      },
+    });
   });
+}
+
+/**
+ * The assigned approver's routing availability, for the owner's waiting view
+ * (A9/A10): "paused" = they stopped taking new requests (they can still
+ * decide this one); "ineligible" = role or attested key gone, so an approval
+ * can no longer bind and the owner should withdraw + reassign. Mirror state
+ * for display — ledger validity and the decision route enforce the rules.
+ */
+async function approverInfo(approverUserId: string | null) {
+  if (!approverUserId) return null;
+  const approver = await prisma.user.findUnique({
+    where: { id: approverUserId },
+    select: {
+      fullName: true,
+      email: true,
+      role: true,
+      approvalsPaused: true,
+      signerIdentity: { select: { status: true } },
+    },
+  });
+  if (!approver) return null;
+  const eligible =
+    ["approver", "treasurer", "admin"].includes(approver.role) &&
+    approver.signerIdentity?.status === "attested";
+  return {
+    name: approver.fullName || approver.email,
+    availability: !eligible ? "ineligible" : approver.approvalsPaused ? "paused" : "available",
+  };
 }
 
 const ClaimPatchSchema = z

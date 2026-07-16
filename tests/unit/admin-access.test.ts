@@ -40,4 +40,14 @@ describe("ADMIN_EMAILS / isAppAdmin", () => {
   it("never depends on it for a roster admin", () => {
     expect(isAppAdmin({ email: "root@church.org", role: "admin" })).toBe(true);
   });
+
+  // A10: the self-service duty pause beats BOTH grant paths — and omitting
+  // the column (older call sites, fixtures) means not paused.
+  it("adminPaused fails the check for role and email admins alike", () => {
+    process.env.ADMIN_EMAILS = "pastor@church.org";
+    expect(isAppAdmin({ email: "root@church.org", role: "admin", adminPaused: true })).toBe(false);
+    expect(isAppAdmin({ email: "pastor@church.org", role: "member", adminPaused: true })).toBe(false);
+    expect(isAppAdmin({ email: "root@church.org", role: "admin", adminPaused: false })).toBe(true);
+    expect(isAppAdmin({ email: "pastor@church.org", role: "member" })).toBe(true);
+  });
 });

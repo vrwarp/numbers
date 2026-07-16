@@ -100,8 +100,15 @@ export function adminEmails(): string[] {
  * switch, rollout allowlist) — never roster/signature validity. When
  * ADMIN_EMAILS is empty this is exactly `role === "admin"`, so existing
  * behavior is unchanged.
+ *
+ * A paused admin (User.adminPaused, the profile duty toggle — A10) fails this
+ * check everywhere it gates, whichever way the adminship was granted. The
+ * toggle itself lives on the (never admin-gated) profile route, so pausing
+ * can always be undone by its owner. Callers that don't carry the column
+ * (e.g. tests of the email list alone) omit it ⇒ not paused.
  */
-export function isAppAdmin(user: { email: string; role: string }): boolean {
+export function isAppAdmin(user: { email: string; role: string; adminPaused?: boolean }): boolean {
+  if (user.adminPaused) return false;
   if (user.role === "admin") return true;
   return adminEmails().includes(user.email.toLowerCase());
 }

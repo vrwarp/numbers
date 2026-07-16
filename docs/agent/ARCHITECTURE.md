@@ -206,7 +206,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/line-items/[id]` | PATCH | zod partial {description,amountCents,ministry,event,isVerified,isExcluded}; draft only (409); isVerified:true refused (400) while ministry is empty (event is always optional); content change ⇒ isVerified=false unless patch sets it; un-excluding a row on a single-ministry claim stamps the claim's ministry/event onto it (it missed any fan-outs while excluded); writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
 | `/api/line-items/[id]/split` | POST | `{firstAmountCents?}` default even split; both halves unverified; new row original*=NULL; AuditEvent(split); renumbers sortOrder so new half follows original |
 | `/api/line-items/[id]/merge` | POST | no body; undo-split: folds row into the same-receipt row directly above (400 if none, or if either row excluded); draft only (409); survivor keeps its description/ministry/event/original*, sums amounts, isVerified=false; merged row deleted; AuditEvent(merge); renumbers sortOrder; recomputes totalCents |
-| `/api/profile` | GET PATCH | fullName, mailingAddress (printed on the form) |
+| `/api/profile` | GET PATCH | fullName, mailingAddress (printed on the form), locale, and the A10 duty pauses (`approvalsPaused`/`financePaused`/`adminPaused` — self-service; changes audited `update-availability`). Returns `{user, duties}` where `duties` says which toggles the member's grants make relevant |
 | `/api/extraction-logs` | GET | own logs, `?reimbursementId=`, newest first, summaries |
 | `/api/extraction-logs/[id]` | GET | full tuning record: log + lineItems w/ computed `corrections` + `humanCreated` + parsed auditEvents |
 

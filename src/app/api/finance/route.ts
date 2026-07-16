@@ -16,8 +16,15 @@ export async function GET() {
   return handleApi(async () => {
     const userId = await requireUserId();
     await requireEsignAccess(userId);
-    const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-    if (me?.role !== "treasurer" && me?.role !== "admin") throw new ApiError(404, "Not found");
+    const me = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, financePaused: true },
+    });
+    // Duty pause (A10): a paused treasurer gets the same 404 as a non-
+    // treasurer — the queue vanishes until they flip the profile toggle back.
+    if ((me?.role !== "treasurer" && me?.role !== "admin") || me.financePaused) {
+      throw new ApiError(404, "Not found");
+    }
     const claims = await prisma.reimbursement.findMany({
       where: { status: { in: ["approved", "paid"] } },
       include: { lineItems: true, user: { select: { fullName: true, email: true } } },

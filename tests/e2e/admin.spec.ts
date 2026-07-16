@@ -30,6 +30,44 @@ test("a member cannot see or reach the admin area", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Receipts" })).toBeVisible();
 });
 
+test("a paused admin loses the admin area until they turn the duty back on", async ({ page }, testInfo) => {
+  // Unique per project — desktop chromium and webkit share one server+db, and
+  // this test flips account state that must not race across projects.
+  const email = `duty-admin-${testInfo.project.name}@example.org`;
+  await signInAs(page, email, "Duty Admin");
+  const prisma = e2ePrisma();
+  try {
+    await prisma.user.update({ where: { email }, data: { role: "admin" } });
+  } finally {
+    await prisma.$disconnect();
+  }
+
+  // All three duty rows exist for an admin; pause administration.
+  await page.goto("/profile");
+  await expect(page.getByTestId("duty-approvalsPaused")).toBeVisible();
+  await expect(page.getByTestId("duty-financePaused")).toBeVisible();
+  await expect(page.getByTestId("duty-adminPaused")).toBeVisible();
+  await page.getByTestId("duty-adminPaused-toggle").click();
+  await expect(page.getByText("Admin pages and controls are hidden")).toBeVisible();
+
+  // Nav entry gone, page bounces home, API 404s — same posture as a member.
+  await page.reload();
+  await page.getByTestId("account-menu").click();
+  await expect(page.getByRole("link", { name: "Admin" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.goto("/admin");
+  await page.waitForURL("/");
+  const denied = await page.request.get("/api/admin/overview");
+  expect(denied.status()).toBe(404);
+
+  // The toggle itself is never admin-gated — unpausing restores everything.
+  await page.goto("/profile");
+  await page.getByTestId("duty-adminPaused-toggle").click();
+  await expect(page.getByText("You can manage members, settings")).toBeVisible();
+  await page.goto("/admin");
+  await expect(page.getByTestId("admin-dashboard")).toBeVisible();
+});
+
 test("an admin edits and saves the church context", async ({ page }) => {
   const email = "church-admin@example.org";
   await signInAs(page, email, "Church Admin");

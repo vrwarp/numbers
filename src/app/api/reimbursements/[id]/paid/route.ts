@@ -31,8 +31,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const registry = await requireEsignAccess(userId);
     const preflight = new URL(req.url).searchParams.get("preflight") === "1";
 
-    const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-    if (me?.role !== "treasurer" && me?.role !== "admin") throw new ApiError(404, "Claim not found");
+    const me = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, financePaused: true },
+    });
+    // Duty pause (A10): mark-paid is never claim-assigned (any treasurer may
+    // pay), so pausing simply removes the ability — nothing to grandfather.
+    if ((me?.role !== "treasurer" && me?.role !== "admin") || me.financePaused) {
+      throw new ApiError(404, "Claim not found");
+    }
     const claim = await prisma.reimbursement.findUnique({ where: { id } });
     if (!claim) throw new ApiError(404, "Claim not found");
     if (claim.status !== "approved") {

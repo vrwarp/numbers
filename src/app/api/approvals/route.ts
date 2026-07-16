@@ -30,6 +30,20 @@ export async function GET() {
         signatureLedgerKey: claim.signatureLedgerKey,
       }))
     );
-    return NextResponse.json({ claims: items });
+    // The inbox's own-eligibility context (A9/A10): paused shows a notice on
+    // grandfathered claims; a lost role disables Approve (Reject stays — a
+    // demoted approver hands claims back). Mirror state, enforced server-side
+    // in the decision route and by ledger validity regardless.
+    const me = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, approvalsPaused: true },
+    });
+    return NextResponse.json({
+      claims: items,
+      me: {
+        approvalsPaused: me?.approvalsPaused ?? false,
+        canApprove: ["approver", "treasurer", "admin"].includes(me?.role ?? ""),
+      },
+    });
   });
 }

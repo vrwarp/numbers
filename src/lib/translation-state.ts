@@ -58,6 +58,9 @@ export const SAME_VALUE_GROUPS: readonly (readonly string[])[] = [
   ["Common.status.approved", "Esign.blockApproved", "Verify.approved"],
   ["Common.status.rejected", "Esign.blockRejected", "Verify.rejected"],
   ["Common.status.paid", "Esign.panelPaid", "Esign.blockPaid", "Finance.paidHeader", "Verify.paid"],
+  // The duty rows reuse the master switch's on/off button wording.
+  ["Identity.turnOn", "Profile.dutyTurnOn"],
+  ["Identity.turnOff", "Profile.dutyTurnOff"],
 ];
 
 /**

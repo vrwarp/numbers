@@ -31,6 +31,9 @@ export async function GET() {
       email: user!.email,
       name: user!.fullName || user!.email,
       role: user!.role,
+      // Duty pause (A10): hides the vouch screen's role controls; the master
+      // switch/allowlist already follow via canToggle (isAppAdmin).
+      adminPaused: user!.adminPaused,
       identityStatus: identity?.status ?? null,
       publicKey: identity?.publicKey || null,
       signatureImage: identity?.signatureImage || null,

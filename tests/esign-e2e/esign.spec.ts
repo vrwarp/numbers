@@ -399,6 +399,93 @@ test("submit → approve → pay, fail-closed ceremonies throughout", async () =
   await anon.close();
 });
 
+test("duty pause: a paused approver leaves the picker; assigned work stays decidable", async () => {
+  test.setTimeout(300_000);
+
+  // Bob switches his approver duty off on his profile (A10).
+  await bob.page.goto(`${BASE}/profile`);
+  await bob.page.waitForSelector('[data-testid="duty-approvalsPaused"]', { timeout: 30_000 });
+  await bob.page.click('[data-testid="duty-approvalsPaused-toggle"]');
+  await expect(bob.page.getByText("not taking new approval requests")).toBeVisible({
+    timeout: 30_000,
+  });
+
+  // The members payload carries the flag, and the picker drops him — while
+  // Carol (treasurer = approver-or-above, not paused) stays offered.
+  const members = await (
+    await alice.context.request.get(`${BASE}/api/esign/members`)
+  ).json();
+  const bobRow = members.members.find((m: { email: string }) => m.email === "bob@example.com");
+  expect(bobRow.approvalsPaused).toBe(true);
+  const pausedClaim = await seedClaim(alice, "Duty Pause 2026");
+  await alice.page.goto(`${BASE}/claims/${pausedClaim}`);
+  await alice.page.click('[data-testid="submit-for-approval"]');
+  await alice.page.waitForSelector('[data-testid="approver-select"]', { timeout: 30_000 });
+  await expect(
+    alice.page.locator('[data-testid="approver-select"] option', { hasText: "Bob Chen" })
+  ).toHaveCount(0);
+  await expect(
+    alice.page.locator('[data-testid="approver-select"] option', { hasText: "Carol Okafor" })
+  ).toHaveCount(1);
+  await alice.page.getByRole("button", { name: "Cancel" }).click();
+
+  // The picker filter is cosmetic — the preflight is the real gate.
+  const denied = await alice.context.request.post(
+    `${BASE}/api/reimbursements/${pausedClaim}/submit?preflight=1`,
+    { data: { approverUserId: bobRow.userId, typedName: "Alice Rivera" } }
+  );
+  expect(denied.status()).toBe(409);
+  expect((await denied.json()).code).toBe("esign.approverUnavailable");
+
+  // Unpause ⇒ Bob is pickable again; Alice routes the claim to him.
+  await bob.page.click('[data-testid="duty-approvalsPaused-toggle"]');
+  await expect(bob.page.getByText("Members can pick you as the approver")).toBeVisible({
+    timeout: 30_000,
+  });
+  await submitForApproval(alice, pausedClaim);
+
+  // Bob pauses AGAIN with the claim now assigned. Pausing stops NEW routing
+  // only: the claim stays in his inbox behind a notice, Alice's panel names
+  // him and flags the pause beside the withdraw/reassign button, and his
+  // decision ceremony still works (the ledger would accept it regardless).
+  await bob.page.goto(`${BASE}/profile`);
+  await bob.page.waitForSelector('[data-testid="duty-approvalsPaused"]', { timeout: 30_000 });
+  await bob.page.click('[data-testid="duty-approvalsPaused-toggle"]');
+  await expect(bob.page.getByText("not taking new approval requests")).toBeVisible({
+    timeout: 30_000,
+  });
+
+  await alice.page.goto(`${BASE}/claims/${pausedClaim}`);
+  await expect(alice.page.getByTestId("waiting-approver")).toContainText("Bob Chen", {
+    timeout: 30_000,
+  });
+  await expect(alice.page.getByTestId("approver-paused-note")).toBeVisible();
+  await expect(alice.page.getByTestId("change-approver")).toBeVisible();
+
+  await bob.page.goto(`${BASE}/approvals`);
+  await bob.page.waitForSelector(`[data-testid="approval-${pausedClaim}"]`, { timeout: 30_000 });
+  await expect(bob.page.getByTestId("paused-notice")).toBeVisible();
+  await bob.page.click(`[data-testid="approval-${pausedClaim}"] button`);
+  await bob.page.waitForSelector('[data-testid="document-sign-field"]', { timeout: 30_000 });
+  await bob.page.check('[data-testid="decision-intent"]');
+  await bob.page.click('[data-testid="tap-to-sign"]', { delay: 900 });
+  await bob.page.waitForSelector('[data-testid="approve-button"]:not([disabled])', {
+    timeout: 30_000,
+  });
+  await bob.page.click('[data-testid="approve-button"]');
+  await expect(bob.page.getByText("Approved", { exact: false }).first()).toBeVisible({
+    timeout: 30_000,
+  });
+
+  // Back on duty for the later scenes (the phone story routes to Bob again).
+  await bob.page.goto(`${BASE}/profile`);
+  await bob.page.waitForSelector('[data-testid="duty-approvalsPaused"]', { timeout: 30_000 });
+  await bob.page.click('[data-testid="duty-approvalsPaused-toggle"]');
+  await expect(bob.page.getByText("Members can pick you as the approver")).toBeVisible({
+    timeout: 30_000,
+  });
+});
+
 test("a phone joins by typed 6-digit code and signs a whole claim", async ({ browser }) => {
   test.setTimeout(300_000);
   alicePhone = await newPersona(browser, "alice@example.com", "Alice Rivera");

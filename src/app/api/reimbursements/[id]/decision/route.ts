@@ -73,6 +73,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       if (body.decision === "approve" && !body.typedName?.trim()) {
         throw new ApiError(400, "Type your name to sign an approval", "esign.typeNameApproval");
       }
+      // Role-at-exercise (A9): an APPROVE binds only while the signer still
+      // holds approver-or-above — mirror check here for a friendly early
+      // error; the ledger rule (validity.ts) is what actually enforces it.
+      // REJECT stays open to a demoted approver (hand the claim back), and a
+      // PAUSED approver (A10) may still decide claims already assigned to
+      // them — pausing only stops new submissions naming them.
+      if (body.decision === "approve") {
+        const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+        if (!["approver", "treasurer", "admin"].includes(me?.role ?? "")) {
+          throw new ApiError(
+            409,
+            "Your approver role has been removed — you can decline, but not approve",
+            "esign.approverRoleLost"
+          );
+        }
+      }
       const { evaluation } = await claimEvaluation(registry, ledgerCtx);
       const thread = evaluation.threads.find((t) => t.seq === claim.submitSeq);
       if (
@@ -164,6 +180,21 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     }
     if (event.signerPublicKey !== identity.publicKey) {
       throw new ApiError(409, "Event signed by a key that is not your attested identity");
+    }
+    // Believe the ledger, not the pin (A9): the event is mirrored above, so
+    // re-evaluate and flip status only if THIS event is the thread's binding
+    // decision. Closes the preflight→append race — a REVOKE_ROLE reported in
+    // between voids the APPROVE on the ledger, and the mirror must not say
+    // otherwise. The raw event stays mirrored either way (it is ledger fact,
+    // surfaced as an anomaly by every verifying view).
+    const { evaluation } = await claimEvaluation(registry, ledgerCtx);
+    const thread = evaluation.threads.find((t) => t.seq === claim.submitSeq);
+    if (thread?.decision?.actionHash !== event.actionHash) {
+      throw new ApiError(
+        409,
+        "The reported decision does not bind on the ledger (was your approver role revoked?) — reconcile the claim",
+        "esign.decisionNotBinding"
+      );
     }
 
     const cleared = JSON.parse(claim.pendingActionsJson) as Record<string, unknown>;
