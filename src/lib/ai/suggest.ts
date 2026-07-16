@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { isAiMock } from "@/lib/config";
 import { MINISTRIES } from "@/lib/ministries";
-import { loadActiveMinistryValues } from "@/lib/ministries-catalog";
+import { loadActiveMinistryOptions } from "@/lib/ministries-catalog";
 import { loadChurchContext } from "@/lib/church-context";
 import { extractJsonObject } from "./parse";
 import {
@@ -53,18 +53,45 @@ const ModelSuggestionSchema = z.object({
   rationale: z.string().max(500).default(""),
 });
 
+/**
+ * A budget category as the prompt renders it: the composed value the model
+ * must copy verbatim, plus the treasurer's optional per-category guidance
+ * (the configurable description). When present the description is appended to
+ * the category's line so the model can tell look-alike categories apart.
+ */
+export interface MinistryOption {
+  value: string;
+  description?: string;
+}
+
+/** The built-in list as bare options (no descriptions) — the default when a
+ *  caller doesn't supply the catalog, mainly the unit tests. */
+const DEFAULT_OPTIONS: readonly MinistryOption[] = MINISTRIES.map((value) => ({ value }));
+
+/** Render the budget categories as the prompt's bullet list. A description is
+ *  appended after an em dash, with internal whitespace collapsed so each
+ *  category stays on a single line. */
+function renderMinistryList(options: readonly MinistryOption[]): string {
+  return options
+    .map((o) => {
+      const desc = o.description?.replace(/\s+/g, " ").trim();
+      return desc ? `- ${o.value} — ${desc}` : `- ${o.value}`;
+    })
+    .join("\n");
+}
+
 export function buildSuggestionPrompt(
   description: string,
   churchContext: string | null,
-  ministries: readonly string[] = MINISTRIES
+  options: readonly MinistryOption[] = DEFAULT_OPTIONS
 ): string {
   const contextBlock = churchContext
     ? `\nChurch-specific context (group names, recurring events, labeling rules):\n---\n${churchContext}\n---\n`
     : "";
   return `You are helping a church member label a reimbursement claim.
 
-The church tracks expenses against this chart of accounts. These are the ONLY valid budget categories:
-${ministries.map((m) => `- ${m}`).join("\n")}
+The church tracks expenses against this chart of accounts. These are the ONLY valid budget categories (some carry a short note describing what belongs in them):
+${renderMinistryList(options)}
 ${contextBlock}
 The member describes what the whole claim is for:
 "${description}"
@@ -166,7 +193,7 @@ export function buildCandidatesPrompt(
   description: string,
   churchContext: string | null,
   refine?: CandidateRefine,
-  ministries: readonly string[] = MINISTRIES
+  options: readonly MinistryOption[] = DEFAULT_OPTIONS
 ): string {
   const contextBlock = churchContext
     ? `\nChurch-specific context (group names, recurring events, labeling rules):\n---\n${churchContext}\n---\n`
@@ -178,8 +205,8 @@ export function buildCandidatesPrompt(
     : "";
   return `You are helping a church member label a reimbursement claim.
 
-The church tracks expenses against this chart of accounts. These are the ONLY valid budget categories:
-${ministries.map((m) => `- ${m}`).join("\n")}
+The church tracks expenses against this chart of accounts. These are the ONLY valid budget categories (some carry a short note describing what belongs in them):
+${renderMinistryList(options)}
 ${contextBlock}
 The member describes what the whole claim is for:
 "${description}"
@@ -256,11 +283,12 @@ export async function suggestMinistryCandidates(
   description: string,
   refine?: CandidateRefine
 ): Promise<CandidatesResult> {
-  const [churchContext, ministries] = await Promise.all([
+  const [churchContext, options] = await Promise.all([
     loadChurchContext(),
-    loadActiveMinistryValues(),
+    loadActiveMinistryOptions(),
   ]);
-  const prompt = buildCandidatesPrompt(description, churchContext, refine, ministries);
+  const ministries = options.map((o) => o.value);
+  const prompt = buildCandidatesPrompt(description, churchContext, refine, options);
   const started = Date.now();
 
   if (isAiMock()) {
@@ -349,11 +377,12 @@ export function mockSuggest(description: string): MinistrySuggestion {
 export async function suggestMinistryEvent(
   description: string
 ): Promise<{ suggestion: MinistrySuggestion; meta: SuggestionMeta }> {
-  const [churchContext, ministries] = await Promise.all([
+  const [churchContext, options] = await Promise.all([
     loadChurchContext(),
-    loadActiveMinistryValues(),
+    loadActiveMinistryOptions(),
   ]);
-  const prompt = buildSuggestionPrompt(description, churchContext, ministries);
+  const ministries = options.map((o) => o.value);
+  const prompt = buildSuggestionPrompt(description, churchContext, options);
   const started = Date.now();
 
   if (isAiMock()) {

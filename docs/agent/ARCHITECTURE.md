@@ -91,7 +91,8 @@ src/lib/ai/providers.ts         AI_PROVIDER dispatch (openrouter | google) + the
                                 throw ProviderCallError carrying the raw body
 src/lib/ai/suggest.ts           suggestMinistryEvent(description): text-only "which ministry/
                                 event is this claim for?" call — prompt embeds the chart of
-                                accounts + church context; answer validated against MINISTRIES
+                                accounts (each category with its optional treasurer-authored
+                                description) + church context; answer validated against MINISTRIES
                                 (unknown → null, never invented); mockSuggest keyword rules for
                                 AI_MOCK=1. A SUGGESTION only — applying it is the human's click
 src/lib/pdf/paginate.ts         paginateItems(items, 13) → pages; [] → [[]]

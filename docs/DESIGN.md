@@ -165,7 +165,9 @@ mirroring, leaving row values in place. Split — the multi-ministry mechanism �
 in single mode but offers the mode switch instead of silently diverging a row.
 
 **Suggest.** In single mode the user can type one sentence ("snacks for the youth retreat")
-and ask the model to propose a ministry + event. The prompt carries the chart of accounts plus
+and ask the model to propose a ministry + event. The prompt carries the chart of accounts —
+each category with its optional treasurer-authored description (the configurable per-category
+note from the Budget Categories editor) — plus
 an operator-maintained *church context* document (`<DATA_DIR>/church-context.md` — group
 names, recurring events, labeling rules: the vocabulary the account list alone can't resolve;
 template in `docs/church-context.example.md`). The answer is validated against the known
