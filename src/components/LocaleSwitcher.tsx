@@ -10,11 +10,13 @@ import { LOCALES, LOCALE_COOKIE, LOCALE_LABELS, LOCALE_SHORT_LABELS } from "@/li
  * also persisted to User.locale so it follows the user to their next device
  * (sign-in copies it back into the cookie).
  *
- * Two looks: "full" (sign-in page) is a plain select showing the language's
+ * Three looks: "full" (sign-in page) is a plain select showing the language's
  * own name; "compact" (NavBar) is a small chip showing a one-glyph badge
  * (EN / 简 / 繁) with an invisible native select stretched over it, so a tap
  * still opens the platform picker with the full language names — the chip
- * stays narrow enough for a phone-width nav with CJK link labels.
+ * stays narrow enough for a phone-width nav with CJK link labels; "prominent"
+ * (empty Receipts screen) is a segmented row of tappable pills, each labelled
+ * with its language's own name, sized to catch a brand-new user's eye.
  */
 export default function LocaleSwitcher({
   signedIn = false,
@@ -22,7 +24,7 @@ export default function LocaleSwitcher({
   className = "",
 }: {
   signedIn?: boolean;
-  variant?: "full" | "compact";
+  variant?: "full" | "compact" | "prominent";
   className?: string;
 }) {
   const locale = useLocale();
@@ -46,6 +48,56 @@ export default function LocaleSwitcher({
       {LOCALE_LABELS[l]}
     </option>
   ));
+
+  if (variant === "prominent") {
+    // A quiet segmented control, not a loud toggle: a neutral stone track with
+    // a soft white "selected" pill (indigo *text*, never a saturated fill that
+    // would out-shout the page's real CTAs). The monochrome globe labels it as
+    // a language picker at a glance without adding a color spot, so the native
+    // language names can carry the meaning. Inactive options stay legible —
+    // they are exactly what a non-English reader is looking for.
+    return (
+      <div
+        className={`inline-flex items-center gap-0.5 rounded-full bg-stone-100 p-1 pl-3 ${className}`}
+        role="group"
+        aria-label={t("language")}
+        data-testid="locale-switcher-prominent"
+      >
+        <svg
+          aria-hidden
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="mr-1.5 h-4 w-4 shrink-0 text-stone-400"
+        >
+          <circle cx="12" cy="12" r="9.5" />
+          <path d="M2.5 12h19" />
+          <path d="M12 2.5a15 15 0 0 1 0 19 15 15 0 0 1 0-19" />
+        </svg>
+        {LOCALES.map((l) => {
+          const active = l === locale;
+          return (
+            <button
+              key={l}
+              type="button"
+              onClick={() => change(l)}
+              aria-current={active ? "true" : undefined}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                active
+                  ? "bg-white text-indigo-700 shadow-sm"
+                  : "text-stone-500 hover:text-stone-800"
+              }`}
+            >
+              {LOCALE_LABELS[l]}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
 
   if (variant === "compact") {
     return (

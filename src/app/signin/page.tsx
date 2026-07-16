@@ -21,7 +21,10 @@ export default async function SignInPage() {
 
         <SignInCard firebaseConfig={firebaseWebConfig()} testMode={isAuthTestMode()} />
       </div>
-      <div className="mt-4 flex justify-center">
+      <div className="mt-4 flex items-center justify-center gap-1 text-stone-400">
+        <span aria-hidden className="text-sm">
+          🌐
+        </span>
         <LocaleSwitcher />
       </div>
     </div>
