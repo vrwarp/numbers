@@ -172,6 +172,18 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "NavBar.account": {
+    "source": "Account",
+    "context": "aria-label for the top-right account menu button (avatar). Holds profile, language, admin, sign out. Keep short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "NavBar.pendingWork": {
+    "source": "pending work",
+    "context": "Screen-reader-only text on the red dot badge marking a nav tab (Approvals/Finance) that has items waiting. Announced after the tab name.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Home.profileNudge": {
     "source": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
     "context": "Warning banner on the home page; <link> wraps the word that opens the profile page.",
