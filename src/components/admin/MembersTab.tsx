@@ -128,24 +128,42 @@ export default function MembersTab() {
               </button>
             </div>
             {enabled && (
-              <label className="block text-sm">
-                <span className="font-medium">{t("scopeLabel")}</span>
-                <select
-                  className="input mt-1 max-w-xs"
-                  value={scope}
-                  data-testid="scope-select"
-                  onChange={async (e) => {
-                    try {
-                      await patchRegistry({ scope: e.target.value });
-                    } catch (err) {
-                      setError(thrown(err, t("saveFailed")));
-                    }
-                  }}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="text-sm font-medium">{t("scopeLabel")}</span>
+                <div
+                  className="inline-flex items-center gap-0.5 rounded-lg bg-stone-100 p-0.5"
+                  role="group"
+                  aria-label={t("scopeLabel")}
+                  data-testid="scope-switch"
                 >
-                  <option value="allowlist">{t("scopeAllowlist")}</option>
-                  <option value="everyone">{t("scopeEveryone")}</option>
-                </select>
-              </label>
+                  {(["allowlist", "everyone"] as const).map((value) => {
+                    const active = scope === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={active}
+                        data-testid={`scope-${value}`}
+                        className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+                          active
+                            ? "bg-white text-indigo-700 shadow-sm"
+                            : "text-stone-500 hover:text-stone-800"
+                        }`}
+                        onClick={async () => {
+                          if (active) return;
+                          try {
+                            await patchRegistry({ scope: value });
+                          } catch (err) {
+                            setError(thrown(err, t("saveFailed")));
+                          }
+                        }}
+                      >
+                        {value === "allowlist" ? t("scopeAllowlist") : t("scopeEveryone")}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </>
         )}
