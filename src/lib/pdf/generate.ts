@@ -138,10 +138,19 @@ function textFits(
  */
 export function toEncodableText(text: string, font: PDFFont): string {
   const charset = new Set(font.getCharacterSet());
+  // Normalize whitespace the appearance font cannot encode BEFORE the charset
+  // check: U+2028/U+2029 act as newlines, every other exotic space (tab,
+  // NBSP, the ideographic space U+3000 a Chinese IME emits) becomes a plain
+  // space. Without this, a value whose only non-WinAnsi character is such
+  // whitespace passes as "encodable" and widthOfTextAtSize later throws —
+  // blanking the field or 500ing the whole PDF.
+  const normalized = text
+    .replace(/[\u2028\u2029\u0085]/g, "\n")
+    .replace(/[^\S\n\f\r]/g, " ");
   let out = "";
   let inDroppedRun = false;
-  for (const ch of text) {
-    if (/\s/.test(ch) || charset.has(ch.codePointAt(0)!)) {
+  for (const ch of normalized) {
+    if (/[\n\f\r ]/.test(ch) || charset.has(ch.codePointAt(0)!)) {
       out += ch;
       inDroppedRun = false;
     } else if (!inDroppedRun) {

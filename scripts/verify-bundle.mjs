@@ -73,6 +73,11 @@ async function openLedger(keyB64, docs) {
 
 // --- Roster replay (rules of ESIGN_DESIGN §4.3–4.4) ----------------------------
 
+/** Two ATTEST subjects name the same identity (all four bound fields agree). */
+function sameSubject(a, b) {
+  return a.uid === b.uid && a.email === b.email && a.name === b.name && a.publicKey === b.publicKey;
+}
+
 function replayRoster(rosterLedgerId, events) {
   if (events.length === 0) throw new Error("empty roster");
   const g = events[0];
@@ -99,12 +104,18 @@ function replayRoster(rosterLedgerId, events) {
       if (!signer || signer.uid === a.subject.uid) continue;
       if (a.subject.uid === root.uid) continue; // root rotates by re-genesis, never a vouch
       if (members.some((m) => m.publicKey === a.subject.publicKey && m.revokedAtMs === undefined)) continue;
-      const entry = pending.get(a.subject.publicKey) ?? { subject: a.subject, vouchers: new Set() };
+      const existing = pending.get(a.subject.publicKey);
+      // Pooled vouches must name the same identity for the key — mirrors
+      // src/lib/esign/roster.ts (sameSubject). Divergent uid/email/name means
+      // the vouchers didn't agree on ownership, so they don't combine.
+      if (existing && !sameSubject(existing.subject, a.subject)) continue;
+      const entry = existing ?? { subject: a.subject, vouchers: new Set() };
       entry.vouchers.add(signer.uid);
       pending.set(a.subject.publicKey, entry);
       if (entry.vouchers.size >= 2 || isApproverAt(signer.uid, e.createdAtMs)) {
-        // Key supersession (§4.5): a newly attested key retires the uid's earlier keys.
-        for (const m of members) if (m.uid === a.subject.uid && m.revokedAtMs === undefined) m.revokedAtMs = e.createdAtMs;
+        // Key supersession (§4.5): a newly attested key retires the uid's earlier
+        // keys. entry.subject.uid === a.subject.uid here (sameSubject guard).
+        for (const m of members) if (m.uid === entry.subject.uid && m.revokedAtMs === undefined) m.revokedAtMs = e.createdAtMs;
         members.push({ ...entry.subject, attestedAtMs: e.createdAtMs });
         pending.delete(a.subject.publicKey);
       }

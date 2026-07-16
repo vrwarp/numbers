@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { readStoredFile } from "@/lib/storage";
 import { hasRoleReadGrant } from "@/lib/roles";
+import { contentDisposition } from "@/lib/http";
 
 export const runtime = "nodejs";
 
@@ -26,7 +27,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     return new NextResponse(new Uint8Array(data), {
       headers: {
         "Content-Type": receipt.mimeType,
-        "Content-Disposition": `inline; filename="${receipt.originalName.replace(/"/g, "")}"`,
+        "Content-Disposition": contentDisposition(receipt.originalName),
         "Cache-Control": "private, max-age=3600",
       },
     });

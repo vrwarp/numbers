@@ -65,6 +65,11 @@ export interface RosterTimeline {
 
 const APPROVER_PLUS: EsignRole[] = ["approver", "treasurer", "admin"];
 
+/** Two ATTEST subjects name the same identity (all four bound fields agree). */
+function sameSubject(a: AttestAction["subject"], b: AttestAction["subject"]): boolean {
+  return a.uid === b.uid && a.email === b.email && a.name === b.name && a.publicKey === b.publicKey;
+}
+
 /**
  * Replay verified roster events (already envelope-checked, deduped, and
  * ordered by (createdAtMs, eventId) — see openLedger). Throws only on a
@@ -147,7 +152,19 @@ export function replayRoster(
       if (members.some((m) => m.publicKey === a.subject.publicKey && m.revokedAtMs === undefined)) {
         continue; // already attested — extra vouches are harmless
       }
-      const entry = pending.get(a.subject.publicKey) ?? {
+      const existing = pending.get(a.subject.publicKey);
+      // Vouches pool by subject KEY, but every pooled vouch must name the SAME
+      // identity for that key. Two vouchers attesting the same key under
+      // different uids/emails/names have not agreed on who the key belongs to,
+      // so their vouches must not combine to reach threshold (that would let a
+      // key be attested under an identity no single voucher endorsed, and would
+      // make supersession retire an ambiguous uid — the point where this
+      // module and scripts/verify-bundle.mjs could disagree).
+      if (existing && !sameSubject(existing.subject, a.subject)) {
+        bad("conflicting subject identity for an already-pending key");
+        continue;
+      }
+      const entry = existing ?? {
         subject: a.subject,
         voucherUids: new Set<string>(),
         vouchers: [] as Voucher[],

@@ -99,8 +99,14 @@ function checkRawDocs(docs: unknown): RawLedgerEventDoc[] {
       typeof doc.eventId !== "string" ||
       !/^[A-Za-z0-9_-]{8,80}$/.test(doc.eventId) ||
       typeof doc.createdAtMs !== "number" ||
+      // Reject NaN/Infinity: they pass `typeof === "number"` but later
+      // BigInt(Math.round(NaN)) throws a RangeError → unhandled 500 for every
+      // route that mirrors this doc. A negative timestamp is nonsense too.
+      !Number.isFinite(doc.createdAtMs) ||
+      doc.createdAtMs < 0 ||
       typeof doc.encryptedData !== "string" ||
       typeof doc.iv !== "string" ||
+      doc.iv.length > 100 ||
       doc.encryptedData.length > 200_000
     ) {
       throw new ApiError(400, "Bad event doc");

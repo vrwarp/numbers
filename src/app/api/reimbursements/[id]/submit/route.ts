@@ -61,7 +61,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const identity = await requireAttestedIdentity(userId);
 
     if (preflight) {
-      const body = (await req.json()) as {
+      const body = (await req.json().catch(() => ({}))) as {
         approverUserId?: string;
         typedName?: string;
         ledgerId?: string;
@@ -176,7 +176,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     }
 
     // --- Full call: verify the reported envelope against the pin -------------
-    const body = (await req.json()) as Partial<RawLedgerEventDoc> & { ledgerKey?: string };
+    const body = (await req.json().catch(() => ({}))) as Partial<RawLedgerEventDoc> & { ledgerKey?: string };
     const pending = getPendingAction(claim, userId) as SubmitAction | null;
     if (!pending || pending.t !== "SUBMIT") {
       throw new ApiError(409, "No pending submission ceremony — preflight first");

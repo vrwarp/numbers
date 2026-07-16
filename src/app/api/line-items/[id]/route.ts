@@ -44,29 +44,38 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     if (item.reimbursement.status !== "draft") {
       throw new ApiError(409, "Claim already generated; line items are frozen", "claimFrozen");
     }
-    // Verification is an explicit human sign-off, and the ministry is part of
-    // it — the AI never assigns one, so the user must choose before approving.
-    if (patch.isVerified === true && !(patch.ministry ?? item.ministry)) {
-      throw new ApiError(400, "Choose a ministry before verifying this row", "ministryRequiredToVerify");
-    }
     // A row restored in single-ministry mode missed any fan-out that happened
     // while it was excluded — stamp it back to the claim's ministry/event.
+    // This must run BEFORE the verify gate: restore + verify in one PATCH is
+    // legitimate, and the stamped ministry is what satisfies the gate.
     if (patch.isExcluded === false && item.isExcluded && item.reimbursement.singleMinistry) {
       if (patch.ministry === undefined) patch.ministry = item.reimbursement.claimMinistry;
       if (patch.event === undefined) patch.event = item.reimbursement.claimEvent;
+    }
+    // Verification is an explicit human sign-off, and the ministry is part of
+    // it — the AI never assigns one, so the user must choose before approving.
+    // Trim so a whitespace-only ministry (" ") can't satisfy the gate and then
+    // print as a blank column on the official form.
+    const effectiveMinistry = (patch.ministry ?? item.ministry).trim();
+    if (patch.isVerified === true && !effectiveMinistry) {
+      throw new ApiError(400, "Choose a ministry before verifying this row", "ministryRequiredToVerify");
     }
 
     const changes = computeLineItemChanges(item, patch);
     const contentChanged = ["description", "amountCents", "ministry", "event"].some(
       (f) => f in changes
     );
+    // Fold the implicit re-verification revocation into the patch so the audit
+    // trail records the isVerified true→false flip that a content edit triggers
+    // (invariant 4), instead of a content change with no verification change.
+    if (contentChanged && patch.isVerified === undefined && item.isVerified) {
+      patch.isVerified = false;
+      Object.assign(changes, computeLineItemChanges(item, { isVerified: false }));
+    }
 
     const updated = await prisma.lineItem.update({
       where: { id },
-      data: {
-        ...patch,
-        ...(contentChanged && patch.isVerified === undefined ? { isVerified: false } : {}),
-      },
+      data: patch,
     });
 
     // Record what the human changed — the counterpart to the AI extraction log.

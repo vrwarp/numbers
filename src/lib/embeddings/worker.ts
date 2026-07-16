@@ -190,6 +190,7 @@ async function processOne(): Promise<boolean> {
     // Finalize — ORDER MATTERS (§5.3): the generation-conditional job update
     // comes FIRST; 0 rows = an enqueue raced us (or the job vanished) → skip
     // the vector write entirely, the follow-up run re-embeds.
+    let persisted = false;
     await prisma.$transaction(async (tx) => {
       const done = await tx.embeddingJob.updateMany({
         where: { id: job.id, status: "running", generation: gen },
@@ -201,6 +202,7 @@ async function processOne(): Promise<boolean> {
           ? await tx.receipt.findUnique({ where: { id: job.targetId }, select: { id: true } })
           : await tx.reimbursement.findUnique({ where: { id: job.targetId }, select: { id: true } });
       if (!target) return; // deleted mid-embed; sweep GCs the job row
+      persisted = true;
       await tx.embedding.upsert({
         where: {
           kind_targetId_model: { kind: job.kind, targetId: job.targetId, model: cfg.model },
@@ -225,7 +227,13 @@ async function processOne(): Promise<boolean> {
       });
     });
 
-    if (vector) {
+    // Only touch the in-memory index and log a success when the DB write
+    // actually happened. If the generation-conditional update matched 0 rows
+    // (an enqueue raced us) or the target was deleted mid-embed, the DB
+    // deliberately kept the old/no vector — mirroring the fresh vector into the
+    // cache would serve a value the DB refused, diverging the two until the
+    // next full reload (§5.3's "never persist a possibly-stale vector").
+    if (vector && persisted) {
       indexCacheUpsert(
         {
           kind: job.kind as EmbeddingKind,

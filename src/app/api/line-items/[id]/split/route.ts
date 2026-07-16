@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
+import { subtotalCents } from "@/lib/money";
 
 import { enqueueClaimEmbeddingDebounced } from "@/lib/embeddings/queue";
 
@@ -15,9 +16,10 @@ const SplitSchema = z.object({
   // flow can reassign or exclude the carved-off part in one atomic step instead
   // of a split followed by a separate PATCH. Omitted fields inherit the
   // original row's values (the historical behaviour). Both halves stay
-  // unverified regardless — a human still approves each.
-  secondMinistry: z.string().optional(),
-  secondEvent: z.string().optional(),
+  // unverified regardless — a human still approves each. Capped at the same
+  // 100 chars the row PATCH enforces so an oversized value can't slip in here.
+  secondMinistry: z.string().max(100).optional(),
+  secondEvent: z.string().max(100).optional(),
   secondExcluded: z.boolean().optional(),
 });
 
@@ -101,7 +103,14 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       ordered.map((it, i) => prisma.lineItem.update({ where: { id: it.id }, data: { sortOrder: i } }))
     );
 
+    // Recompute the claim total server-side (invariant 5): excluding one half
+    // (or splitting an excluded row into an active one) changes the active
+    // sum, so the stored total would otherwise drift until the next mutation.
+    const rows = await prisma.lineItem.findMany({ where: { reimbursementId: item.reimbursementId } });
+    const totalCents = subtotalCents(rows);
+    await prisma.reimbursement.update({ where: { id: item.reimbursementId }, data: { totalCents } });
+
     enqueueClaimEmbeddingDebounced(item.reimbursement.id, userId);
-    return NextResponse.json({ original: updated, created }, { status: 201 });
+    return NextResponse.json({ original: updated, created, totalCents }, { status: 201 });
   });
 }

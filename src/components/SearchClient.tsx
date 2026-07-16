@@ -198,7 +198,7 @@ export default function SearchClient({
         });
         if (seq !== submitSeq.current) return; // stale response
         if (!res.ok) {
-          setError(await errorMessage(res, t("searchFailed")));
+          setError(errorMessage(await res.json().catch(() => null), t("searchFailed")));
           return;
         }
         const data = (await res.json()) as SearchResponse;

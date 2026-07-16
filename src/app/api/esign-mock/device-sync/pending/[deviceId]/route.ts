@@ -30,7 +30,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ deviceId: stri
 export async function PUT(req: Request, ctx: { params: Promise<{ deviceId: string }> }) {
   return handleApi(async () => {
     const { userId, deviceId } = await ctxDevice(ctx);
-    const data = (await req.json()) as { data?: unknown };
+    const data = (await req.json().catch(() => ({}))) as { data?: unknown };
     if (!data.data) throw new ApiError(400, "Missing data");
     const json = JSON.stringify(data.data);
     if (json.length > 100_000) throw new ApiError(400, "Request too large");
