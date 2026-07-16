@@ -429,7 +429,10 @@
     "reject": "✗ Reject",
     "approveAndSign": "✓ Approve & sign",
     "pausedNotice": "You've turned off new approval requests. These claims were assigned to you before that — please decide them, or their owners can reassign them.",
-    "roleLostNotice": "Your approver role has been removed. You can decline these claims so their owners can reassign them, but you can't approve them."
+    "roleLostNotice": "Your approver role has been removed. You can decline these claims so their owners can reassign them, but you can't approve them.",
+    "rejectConfirmTitle": "Reject this claim?",
+    "rejectConfirmBody": "Rejecting is final — you won't be able to undo it or approve this claim later. {name} will have to revise and resubmit the claim for a new approval.",
+    "rejectConfirmAction": "✗ Reject claim"
   },
   "Finance": {
     "title": "Finance",

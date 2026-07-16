@@ -429,7 +429,10 @@
     "reject": "✗ 拒絕",
     "approveAndSign": "✓ 批准並簽署",
     "pausedNotice": "您已關閉新的審批請求。以下報銷單是在此之前指派給您的——請儘快處理，或由提交人改選其他審批人。",
-    "roleLostNotice": "您的審批人角色已被移除。您可以拒絕這些報銷單，讓提交人改選其他審批人，但無法批准。"
+    "roleLostNotice": "您的審批人角色已被移除。您可以拒絕這些報銷單，讓提交人改選其他審批人，但無法批准。",
+    "rejectConfirmTitle": "拒絕這份報銷單？",
+    "rejectConfirmBody": "拒絕後無法復原，你之後也無法再批准這份報銷單。{name} 需要修改並重新提交，才能重新進入審批。",
+    "rejectConfirmAction": "✗ 拒絕報銷單"
   },
   "Finance": {
     "title": "財務",
