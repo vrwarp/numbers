@@ -10,13 +10,17 @@ import { LOCALES, LOCALE_COOKIE, LOCALE_LABELS, LOCALE_SHORT_LABELS } from "@/li
  * also persisted to User.locale so it follows the user to their next device
  * (sign-in copies it back into the cookie).
  *
- * Three looks: "full" (sign-in page) is a plain select showing the language's
+ * Four looks: "full" (sign-in page) is a plain select showing the language's
  * own name; "compact" (NavBar) is a small chip showing a one-glyph badge
  * (EN / 简 / 繁) with an invisible native select stretched over it, so a tap
  * still opens the platform picker with the full language names — the chip
- * stays narrow enough for a phone-width nav with CJK link labels; "prominent"
- * (empty Receipts screen) is a segmented row of tappable pills, each labelled
- * with its language's own name, sized to catch a brand-new user's eye.
+ * stays narrow enough for a phone-width nav with CJK link labels; "row"
+ * (account menu) is a full-width menu row — a "Language" label plus that same
+ * badge chip — with the invisible select stretched over the WHOLE row, so a
+ * tap anywhere on the row opens the picker like the sibling menu links do;
+ * "prominent" (empty Receipts screen) is a segmented row of tappable pills,
+ * each labelled with its language's own name, sized to catch a brand-new
+ * user's eye.
  */
 export default function LocaleSwitcher({
   signedIn = false,
@@ -24,7 +28,7 @@ export default function LocaleSwitcher({
   className = "",
 }: {
   signedIn?: boolean;
-  variant?: "full" | "compact" | "prominent";
+  variant?: "full" | "compact" | "prominent" | "row";
   className?: string;
 }) {
   const locale = useLocale();
@@ -118,6 +122,36 @@ export default function LocaleSwitcher({
           {options}
         </select>
       </span>
+    );
+  }
+
+  if (variant === "row") {
+    // The select is stretched over the whole row (not just the chip), so a tap
+    // anywhere — label included — opens the native picker, matching the plain
+    // links above and below it. The chip stays a white ring badge so it reads
+    // as the current value against the row's stone-100 hover.
+    return (
+      <div
+        className={`relative flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-sm text-stone-700 hover:bg-stone-100 ${className}`}
+      >
+        <span aria-hidden>{t("language")}</span>
+        <span
+          aria-hidden
+          className="inline-flex items-center gap-0.5 rounded-md bg-white px-2 py-0.5 text-xs font-medium text-stone-600 ring-1 ring-stone-200"
+        >
+          {LOCALE_SHORT_LABELS[locale as keyof typeof LOCALE_SHORT_LABELS] ?? locale}
+          <span className="text-[10px] text-stone-400">▾</span>
+        </span>
+        <select
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          value={locale}
+          onChange={(e) => change(e.target.value)}
+          aria-label={t("language")}
+          data-testid="locale-switcher"
+        >
+          {options}
+        </select>
+      </div>
     );
   }
 

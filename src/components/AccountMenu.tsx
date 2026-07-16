@@ -29,7 +29,6 @@ export default function AccountMenu({
   menuTabs?: Array<NavLink & { hidden?: boolean }>;
 }) {
   const t = useTranslations("NavBar");
-  const tc = useTranslations("Common");
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -127,10 +126,7 @@ export default function AccountMenu({
           <Link href="/profile" className={itemClass}>
             {t("profile")}
           </Link>
-          <div className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm text-stone-700">
-            <span>{tc("language")}</span>
-            <LocaleSwitcher signedIn variant="compact" />
-          </div>
+          <LocaleSwitcher signedIn variant="row" />
           {isAdmin ? (
             <Link href="/admin" className={itemClass}>
               {t("admin")}
