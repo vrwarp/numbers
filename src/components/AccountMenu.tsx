@@ -22,10 +22,12 @@ import { signOut } from "@/lib/sign-out";
 export default function AccountMenu({
   userName,
   isAdmin,
+  canManageMinistries,
   menuTabs = [],
 }: {
   userName: string;
   isAdmin?: boolean;
+  canManageMinistries?: boolean;
   menuTabs?: Array<NavLink & { hidden?: boolean }>;
 }) {
   const t = useTranslations("NavBar");
@@ -127,6 +129,11 @@ export default function AccountMenu({
             {t("profile")}
           </Link>
           <LocaleSwitcher signedIn variant="row" />
+          {canManageMinistries ? (
+            <Link href="/ministries" className={itemClass} data-testid="nav-budget-categories">
+              {t("budgetCategories")}
+            </Link>
+          ) : null}
           {isAdmin ? (
             <Link href="/admin" className={itemClass}>
               {t("admin")}

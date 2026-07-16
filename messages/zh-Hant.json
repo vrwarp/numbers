@@ -39,6 +39,7 @@
     "vouch": "擔保",
     "admin": "管理",
     "account": "帳戶",
+    "budgetCategories": "Budget categories",
     "pendingWork": "有待處理"
   },
   "Home": {
@@ -232,6 +233,13 @@
     "fanOutSet": "已將 {label} 套用到 {count, plural, other {# 列}}",
     "quotedValue": "「{value}」",
     "noMinistry": "無事工",
+    "browseCategories": "Not sure? Browse categories",
+    "guideTitle": "Category guide",
+    "guideSubtitle": "Search by number, name, or what you bought.",
+    "guideSearchPlaceholder": "Try “water”, “snacks”, “retreat”…",
+    "guideEmpty": "No category matches — you can still type it under “Other…”.",
+    "guideClose": "Close",
+    "accountsLabel": "Accounts",
     "undo": "復原",
     "dismissAria": "關閉",
     "switchAndSplit": "切換並拆分",
@@ -715,6 +723,11 @@
       "contextTooLong": "教會背景過長（上限 {max} 位元組）。",
       "unknownField": "該設定無法在此編輯。",
       "nothingToChange": "沒有可變更的內容。"
+    },
+    "ministry": {
+      "invalid": "Those budget categories couldn’t be saved — check the form and try again.",
+      "codeFormat": "Account code must be exactly 3 digits and not 999: “{code}”.",
+      "codeDuplicate": "Two active categories share the code {code} — codes must be unique."
     }
   },
   "AddReceipts": {
@@ -894,5 +907,33 @@
     "fields_FIREBASE_AUTH_UPSTREAM_HOST_help": "進階選項。第一方登入代理轉發到的主機。留空則由專案 id 推導（project.firebaseapp.com），普通專案使用即可——僅在特殊的 Firebase 設定下才需設定。",
     "fields_ADMIN_EMAILS_label": "管理員信箱",
     "fields_ADMIN_EMAILS_help": "取得本區域管理權限的信箱，以逗號分隔——在不使用電子簽署名冊的情況下新增管理員的方式。僅授予應用存取權限，不會變更任何人的簽署角色。立即生效；請保留你自己的信箱，以免把自己鎖在外面。"
+  },
+  "Ministries": {
+    "title": "Budget categories",
+    "subtitle": "The list requesters pick from, and the descriptions that guide them. Church-wide.",
+    "loading": "Loading…",
+    "loadFailed": "Couldn’t load the categories.",
+    "saveFailed": "Couldn’t save.",
+    "addGroup": "+ Add group",
+    "addCategory": "+ Add category",
+    "newGroup": "New group",
+    "groupNameAria": "Group name",
+    "code": "Code",
+    "name": "Name",
+    "description": "Description (optional)",
+    "descriptionPlaceholder": "Add a hint for requesters…",
+    "codeAria": "Account code",
+    "nameAria": "Category name",
+    "active": "Active",
+    "archived": "Archived",
+    "save": "Save {count} change(s)",
+    "saveNone": "Saved",
+    "saving": "Saving…",
+    "discard": "Discard",
+    "saved": "Categories saved.",
+    "renameWarning": "Renaming or recoding a category that’s already on claims won’t relabel those past rows — their printed value stays as it was. To retire one, archive it instead.",
+    "reservedNote": "Codes are 3 digits. 999 is reserved for uncategorized “Other…” entries and never prints on the form.",
+    "empty": "No categories yet — add one to get started.",
+    "countActive": "{active} of {total} active"
   }
 }

@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEFAULT_MINISTRY_ENTRIES,
   MINISTRIES,
   MINISTRY_GROUPS,
+  composeMinistry,
   formatMinistryEvent,
   isKnownMinistry,
+  isValidMinistryCode,
+  ministryGroupsFromEntries,
   mostCommonMinistryEvent,
+  parseMinistryCode,
+  type MinistryEntry,
 } from "@/lib/ministries";
 
 describe("ministry budget list", () => {
@@ -23,6 +29,53 @@ describe("ministry budget list", () => {
     expect(isKnownMinistry("General Fund")).toBe(false); // legacy pre-list value
     expect(isKnownMinistry("Pastor Appreciation")).toBe(false);
     expect(isKnownMinistry("")).toBe(false);
+  });
+});
+
+describe("split code + name", () => {
+  it("composes a code and name, and leaves free text untouched", () => {
+    expect(composeMinistry("245", "Drinking Water")).toBe("245 Drinking Water");
+    expect(composeMinistry(" 245 ", " Drinking Water ")).toBe("245 Drinking Water");
+    expect(composeMinistry("", "Pastor's book fund")).toBe("Pastor's book fund");
+  });
+
+  it("parses the 3-digit code off a composed value, null for free text", () => {
+    expect(parseMinistryCode("245 Drinking Water")).toBe("245");
+    expect(parseMinistryCode("340 Nursery / Toddler Program")).toBe("340");
+    expect(parseMinistryCode("Worship night snacks")).toBeNull();
+    expect(parseMinistryCode("")).toBeNull();
+  });
+
+  it("validates codes as 3 digits and rejects the reserved 999", () => {
+    expect(isValidMinistryCode("245")).toBe(true);
+    expect(isValidMinistryCode("999")).toBe(false); // reserved for uncategorized
+    expect(isValidMinistryCode("24")).toBe(false);
+    expect(isValidMinistryCode("2455")).toBe(false);
+    expect(isValidMinistryCode("abc")).toBe(false);
+    expect(isValidMinistryCode("")).toBe(false);
+  });
+
+  it("derives default entries that round-trip back to the built-in list", () => {
+    expect(DEFAULT_MINISTRY_ENTRIES.length).toBe(MINISTRIES.length);
+    for (const e of DEFAULT_MINISTRY_ENTRIES) {
+      expect(isValidMinistryCode(e.code)).toBe(true);
+      expect(MINISTRIES).toContain(composeMinistry(e.code, e.name));
+    }
+    // The regrouped composed options equal the original hard-coded groups.
+    const regrouped = ministryGroupsFromEntries(DEFAULT_MINISTRY_ENTRIES);
+    expect(regrouped).toEqual(MINISTRY_GROUPS.map((g) => ({ label: g.label, options: [...g.options] })));
+  });
+
+  it("ministryGroupsFromEntries drops archived rows and keeps group order", () => {
+    const entries: MinistryEntry[] = [
+      { code: "245", name: "Drinking Water", group: "Admin", description: "", active: true, sortOrder: 0 },
+      { code: "270", name: "Security", group: "Admin", description: "", active: false, sortOrder: 1 },
+      { code: "320", name: "VBS", group: "Education", description: "", active: true, sortOrder: 2 },
+    ];
+    expect(ministryGroupsFromEntries(entries)).toEqual([
+      { label: "Admin", options: ["245 Drinking Water"] },
+      { label: "Education", options: ["320 VBS"] },
+    ]);
   });
 });
 

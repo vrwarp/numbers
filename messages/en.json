@@ -39,6 +39,7 @@
     "vouch": "Vouch",
     "admin": "Admin",
     "account": "Account",
+    "budgetCategories": "Budget categories",
     "pendingWork": "pending work"
   },
   "Home": {
@@ -232,6 +233,13 @@
     "fanOutSet": "Set {label} on {count, plural, one {# row} other {# rows}}",
     "quotedValue": "“{value}”",
     "noMinistry": "no ministry",
+    "browseCategories": "Not sure? Browse categories",
+    "guideTitle": "Category guide",
+    "guideSubtitle": "Search by number, name, or what you bought.",
+    "guideSearchPlaceholder": "Try “water”, “snacks”, “retreat”…",
+    "guideEmpty": "No category matches — you can still type it under “Other…”.",
+    "guideClose": "Close",
+    "accountsLabel": "Accounts",
     "undo": "Undo",
     "dismissAria": "Dismiss",
     "switchAndSplit": "Switch & split",
@@ -715,6 +723,11 @@
       "contextTooLong": "The church context is too long (max {max} bytes).",
       "unknownField": "That setting can’t be edited here.",
       "nothingToChange": "Nothing to change."
+    },
+    "ministry": {
+      "invalid": "Those budget categories couldn’t be saved — check the form and try again.",
+      "codeFormat": "Account code must be exactly 3 digits and not 999: “{code}”.",
+      "codeDuplicate": "Two active categories share the code {code} — codes must be unique."
     }
   },
   "AddReceipts": {
@@ -894,5 +907,33 @@
     "fields_FIREBASE_AUTH_UPSTREAM_HOST_help": "Advanced. The host the first-party sign-in proxy forwards to. Blank derives it from the project id (project.firebaseapp.com), which is right for normal projects — set this only for unusual Firebase setups.",
     "fields_ADMIN_EMAILS_label": "Admin emails",
     "fields_ADMIN_EMAILS_help": "Emails that get admin access to this area, comma-separated — the way to add admins without the e-sign roster. It’s app-access only and never changes anyone’s signing role. Takes effect immediately; keep your own email here so you don’t lock yourself out."
+  },
+  "Ministries": {
+    "title": "Budget categories",
+    "subtitle": "The list requesters pick from, and the descriptions that guide them. Church-wide.",
+    "loading": "Loading…",
+    "loadFailed": "Couldn’t load the categories.",
+    "saveFailed": "Couldn’t save.",
+    "addGroup": "+ Add group",
+    "addCategory": "+ Add category",
+    "newGroup": "New group",
+    "groupNameAria": "Group name",
+    "code": "Code",
+    "name": "Name",
+    "description": "Description (optional)",
+    "descriptionPlaceholder": "Add a hint for requesters…",
+    "codeAria": "Account code",
+    "nameAria": "Category name",
+    "active": "Active",
+    "archived": "Archived",
+    "save": "Save {count} change(s)",
+    "saveNone": "Saved",
+    "saving": "Saving…",
+    "discard": "Discard",
+    "saved": "Categories saved.",
+    "renameWarning": "Renaming or recoding a category that’s already on claims won’t relabel those past rows — their printed value stays as it was. To retire one, archive it instead.",
+    "reservedNote": "Codes are 3 digits. 999 is reserved for uncategorized “Other…” entries and never prints on the form.",
+    "empty": "No categories yet — add one to get started.",
+    "countActive": "{active} of {total} active"
   }
 }
