@@ -1,6 +1,6 @@
 # Semantic search across receipts and claims — design
 
-Status: **proposed (rev 3 — post critique round 2); endpoint contract verified live**
+Status: **proposed (rev 4 — post critique round 3); endpoint contract verified live**
 (§3.1, 2026-07-16 — re-check anytime with `scripts/probe-embedding-endpoint.mjs`).
 Companion to `docs/ESIGN_DESIGN.md` (this feature amends its §6.3 read-grant list) and
 `docs/agent/DATA_MODEL.md` (three new tables + one new Receipt column).
@@ -163,6 +163,8 @@ a backfill against a production GPU from someone's laptop.
 | `EMBEDDING_MAX_PX` | default 640 — long-side cap for image inputs (§3.1: 15 s vs 90 s per embed, cos 0.982 agreement) |
 | `EMBEDDING_TIMEOUT_MS` | default 120000 — a 15 s embed with queueing ahead of it needs headroom (not in DB — plumbing, not policy) |
 | `EMBEDDING_DRAFT_IDLE_MS` | default 600000 — the 10 min draft-idle debounce (§5.2); tests shrink it |
+| `EMBEDDING_POLL_MS` | default 15000 — worker idle poll; e2e relies on the in-process wake (§5.3), not on shrinking this |
+| `EMBEDDING_MIN_SCORE` | default 0.25 — semantic score floor (§6.1; tuned via the admin test box) |
 | `EMBEDDING_DEV=1` | dev only: allow env seed + worker under `next dev` |
 | `EMBEDDING_MOCK=1` | deterministic vectors, no network |
 
@@ -187,8 +189,11 @@ of maintaining a shadow index (see Non-goals):
   enabled) and apply in place — a credential rotation or a host move serving the
   *same model* keeps every vector valid. `queryPrefix`/`enabled` → apply in place.
   **Model or dim → reset**: one transaction swaps the settings row and deletes ALL
-  `Embedding` and `EmbeddingJob` rows; the sweep (§5.4) immediately re-enqueues
-  everything at priority 1 and the index rebuilds over the next hours.
+  `Embedding` and `EmbeddingJob` rows; the admin handler then **synchronously runs
+  the sweep** (`kickSweep()`, exported by the worker module) so the rebuild starts
+  immediately — the sweep's own schedule is start-of-worker + daily (§5.4), so
+  without this kick nothing would fire until restart. The index rebuilds over the
+  next hours at priority 1.
 - **During the rebuild** search still works: the exact-match pass (§6.2) is untouched,
   semantic results grow as vectors land (newest-priority items first), and the UI
   shows the standard pending notice with the global count (§7.4). The admin card
@@ -284,14 +289,17 @@ Deletion: the receipt DELETE route and claim DELETE route also delete the matchi
 `Embedding` + `EmbeddingJob` rows (no FK cascade — do it in the route transaction).
 The sweep GCs any survivors (§5.4).
 
-**SQLite concurrency** (corrected from rev 2): `busy_timeout` is per-connection and
-Prisma pools connections, so a startup pragma alone does NOT protect request handlers.
-The deployment sets **`?connection_limit=1` on `DATABASE_URL`** — full write
-serialization, which church scale tolerates easily — plus `journal_mode=WAL` (a file
-property) and `busy_timeout=5000` via pragma at worker start as belt-and-suspenders
-for any second connection that does appear. The worker NEVER holds a transaction
-across the ~15 s provider call — claim job (short write) → embed (no txn) → finalize
-(short write).
+**SQLite concurrency** (corrected twice — final form): `busy_timeout` is
+per-connection and Prisma pools connections, so neither a startup pragma nor
+deployment-config edits are reliable (DATABASE_URL is set independently in the
+Dockerfile, `.env`, `.env.example`, and `tests/e2e/start-server.sh`, and operators can
+override it). The mechanism therefore lives in **`src/lib/prisma.ts`**, the one
+uncircumventable anchor: the client is constructed with `datasourceUrl =
+DATABASE_URL + "?connection_limit=1"` (full write serialization — church scale
+tolerates it; the streaming claim routes hold no transactions across their LLM calls,
+so nothing starves) and runs `PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000` once
+at creation. The worker NEVER holds a transaction across the ~15 s provider call —
+claim job (short write) → embed (no txn) → finalize (short write).
 
 ## 5. Ingest pipeline (the 15 s path)
 
@@ -342,8 +350,16 @@ content change like any other.
 | Any draft-claim content mutation (claim created, claim PATCH, line-item PATCH/split/merge, receipts added/removed, manual entry) | enqueue `{kind:"claim"}`, priority 0, **`nextAttemptAt = now + 10 min`** — the draft-idle debounce, see below |
 | Claim PDF generated (`POST …/pdf`) | re-enqueue `{kind:"claim"}` with `nextAttemptAt = now` (content is frozen; index immediately); regeneration likewise |
 | Claim submitted (e-sign) | re-enqueue claim (status/year may shift: `submittedAt` becomes the year key) |
-| Claim reverted to draft | re-enqueue with the draft debounce (stays searchable; refreshes if post-revert edits change content) |
+| Claim reverted to draft (`revert/route.ts` — the single revert path) | re-enqueue with the draft debounce (stays searchable; refreshes if post-revert edits change content) |
 | Receipt / claim deleted | delete `Embedding` + job rows (in the route transaction) |
+| **No trigger (deliberate)**: approve/reject (`decision/route.ts`), mark-paid (`paid/route.ts`), reconcile status repairs (`reconcile/route.ts`) | status is hydrated live at query time (§6.1 step 6), never embedded; the year key derives from `submittedAt`, which only the submit route sets. The reconcile withdraw-repair (submitted → generated with `submittedAt` left set) can leave a stale year bucket until the next content re-embed — accepted, rare and cosmetic |
+
+Route anchors for the rows above: upload = the per-file loop in
+`src/app/api/receipts/route.ts` POST; image edit = `receipts/[id]/edit/route.ts`;
+note = `receipts/[id]/route.ts` PATCH; extraction restamps = `src/lib/claims.ts`
+consumers (claim POST, `[id]/receipts` POST, manual-entry PATCH); submit =
+`reimbursements/[id]/submit/route.ts` (the only place `submittedAt` is written —
+`esign/server.ts` writes roster/record mirrors, never claim status).
 
 **The draft-idle debounce costs no new machinery** — it is the queue's own upsert
 semantics: every draft mutation re-upserts the job with `nextAttemptAt = now + 10 min`
@@ -364,8 +380,11 @@ blocks or fails the calling route — queue write errors are logged and swallowe
 
 ### 5.3 The worker
 
-A singleton loop inside the app process, started from `instrumentation.ts` (new file).
-Registration is guarded:
+A singleton loop inside the app process, started from **`src/instrumentation.ts`**
+(new file — this repo uses the `src/` layout, and Next.js silently ignores a
+root-level `instrumentation.ts` when `src/` exists; standalone output compiles it
+into `server.js`, and Prisma is already in `serverExternalPackages`). Registration is
+guarded:
 
 ```ts
 export async function register() {
@@ -387,7 +406,10 @@ loop:
   reclaim: running jobs with leaseExpiresAt < now → status=queued, nextAttemptAt=now
   job = first queued with nextAttemptAt <= now AND model == settings.model,
         ORDER BY priority, createdAt
-  if none → sleep POLL_MS (default 15 s; an enqueue also pings the loop to wake early)
+  if none → sleep EMBEDDING_POLL_MS (default 15 s). The early-wake mechanism is an
+            exported wakeEmbeddingWorker() on the worker module (globalThis-guarded),
+            called in-process by the enqueue helpers — e2e determinism rests on this
+            wake plus a shrunk EMBEDDING_DRAFT_IDLE_MS, never on the poll interval
   claim: mark running, leaseExpiresAt = now + 5 min, remember gen = job.generation
   build input (§5.1); stamp Receipt.fileSha256 if it was empty (pre-feature row)
   if rebuilt sourceSha256 already matches the stored Embedding row
@@ -434,12 +456,13 @@ line at priority 0.
 ```
 POST /api/search        { query: string (0..300),
                           types?: ("receipt"|"claim")[]   default both,
-                          scope?: "mine" | "all" | "decided"
+                          scope?: "mine" | "all" | "decided",
                                   // default: "all" for verified approver/treasurer/
                                   // admin, "mine" for members; "decided" = claims I
                                   // approved/rejected (+ their receipts) — the one
                                   // scope where an EMPTY query is allowed and
                                   // returns the set newest-first (browse mode)
+                          cursor?: string   // browse mode only: pagination (20/page)
                         }
 → 200 {
     exact:  [ …item…, cap 3 shown + exactTotal ],   // §6.2, ranked first
@@ -452,7 +475,8 @@ POST /api/search        { query: string (0..300),
         ministries: string[], ownerName?, createdAt } ] }],
     indexed: { pending: n, myPendingReceipts: n, myPendingClaims: n,
                myNextReadyAt?: iso },              // §7.4 wording per kind
-    degraded?: "semanticUnavailable"               // §6.2 fallback marker
+    degraded?: "semanticUnavailable",              // §6.2 fallback marker
+    nextCursor?: string                            // browse mode only
   }
 ```
 
@@ -560,12 +584,20 @@ search API commit**, so the authz change is reviewable in isolation:
 
 `src/lib/embeddings/index-cache.ts`: a module-level (globalThis-guarded) cache of the
 **current-model** `Embedding` rows decoded into one `Float32Array` matrix + a parallel
-metadata array `{kind, targetId, userId, year}`. Invalidation is a version counter
-bumped by the worker/delete/reset paths; the search path reloads lazily when the
-version moved. Vectors are unit-length (§3.1), so scoring one query is a dot product
-per row — 5 000 items × 2 048 dims ≈ 10 M multiply-adds, ~2–5 ms; memory ~40 MB
-(§4 sizing). (If a deployment ever outgrows this, the escape hatch is swapping this
-one module for sqlite-vec — nothing else changes.)
+metadata array `{kind, targetId, userId, year}`. Two rules keep it cheap during the
+very period it's under most load (a 4-hour backfill finalizing a job every ~15 s):
+
+- **Delta application**: the worker upserts/removes its own row in the in-process
+  cache after each finalize — a per-job version bump + full reload would otherwise
+  tax every search with a 40 MB `findMany` for the whole backfill. The version
+  counter forces a full reload only on delete/reset/rebuild.
+- **Single-flight**: concurrent searches that do find a moved version share one
+  in-flight reload promise; nobody loads the matrix twice.
+
+Vectors are unit-length (§3.1), so scoring one query is a dot product per row —
+5 000 items × 2 048 dims ≈ 10 M multiply-adds, ~2–5 ms; memory ~40 MB (§4 sizing).
+(If a deployment ever outgrows this, the escape hatch is swapping this one module for
+sqlite-vec — nothing else changes.)
 
 ### 6.5 Year grouping
 
@@ -606,62 +638,103 @@ configured and enabled (`EmbeddingSettings.enabled`).
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │  🔍 [ Search receipts and claims…               ] [Search]   │
-│                                                              │
-│  [All types ▾]   [My items | Whole church | Claims I decided]│  ← one segmented
-│   receipts/claims  (role-holders only; members see no row)      scope control
+│  (Receipts only ✕)          ← chip, only when a pill pre-set │
+│                               the type; no dropdown          │
+│  [My items | Whole church | Claims I decided]                │  ← one segmented
+│   (role-holders only; members see no control row)               scope control
 │                                                              │
 │  EXACT MATCHES ────────────────────────────────────────────  │  ← ≤3 cards +
 │  ┌─────────┐  Costco  ·  $214.80  ·  "folding chairs"        │    "Show all 7"
 │  └─────────┘                                                 │    only when found
 │                                                              │
 │  2024 ─────────────────────────────────────────────────────  │  ← year sections;
-│  ┌─────────┐  Costco  ·  05/12/2024  ·  $214.80              │    "Best match"
+│  ┌─────────┐  Costco  ·  2024年5月12日  ·  $214.80            │    "Best match"
 │  │ thumb   │  Not on a claim   [Find in Receipts]            │    pin appears
 │  └─────────┘                                                 │    ONLY when no
 │  2026 …                                                      │    exact matches
 └──────────────────────────────────────────────────────────────┘
 ```
 
+- **Control surface is minimal**: input + button, the scope segment (role-holders
+  only), and a removable type chip that exists only when an entry pill pre-set it
+  ("Receipts only ✕") — there is **no persistent type dropdown**; kind is
+  self-evident from the cards and the chip fixes the pill-promise mismatch (a
+  "Search receipts…" pill must not land on a silently-filtered generic page). The
+  API keeps `types` for the pills and the chip.
 - **At most two kinds of scaffolding are ever visible**: the exact strip (when
-  non-empty, capped at 3 + "Show all N") and the year sections. The pinned **Best
+  non-empty, capped at 3 + "Show all N") and the year sections. **"Show all N"
+  expands inline in place** — semantic sections stay below, nothing navigates — and
+  any new submit or filter change resets the strip to capped. The pinned **Best
   match** card renders only when the exact strip is empty — if exact hits exist,
   they are the best match and a second "best" header would lie. Year headers are
-  sticky, newest first, and **suppressed entirely when total results ≤ 5**.
+  sticky, newest first, and suppressed **only when all results (≤ 5) share one
+  year** — two results from different years keep their headers, because for a
+  temporally-phrased query ("上个月买的桌布") the year is the only disambiguator on
+  the page. All card dates render through the next-intl formatter (zh-Hant:
+  2024年5月12日 — never raw MM/DD). When the query contains a recognizable
+  relative-date token (last month/上个月/去年/…) and results span years, a one-line
+  hint appears: "Search matches descriptions, not dates — dates are shown on each
+  result."
 - **First-run / empty-query state** (the paradigm is taught here or never): one line —
   "Describe what you remember — what it was bought for, how much it cost, who bought
   it" — plus three tappable example queries (one descriptive, one amount-style, one
   event/person-style) that run on tap. Localized per catalog with translator context;
   the zh examples are idiomatic zh queries, not translations of the English ones.
-  For role-holders, a fourth example demonstrates the decided-claims browse.
+  For role-holders, a fourth example demonstrates the decided-claims browse. Below
+  the examples: **Recent searches** — the last 5, device-local only
+  (`localStorage`, with a clear control; never sent to or stored on the server,
+  preserving the queries-are-PII posture).
+- **Search state survives navigation**: `{query, types, scope, expanded-exact,
+  scroll}` persists to `sessionStorage`; returning to `/search` (Back from a result,
+  or reopening in the same tab) restores results without re-typing — IME users must
+  never pay the composition tax twice for one search session. No query text ever
+  enters the URL.
 - **No relevance scores in the user UI.** Scores are ordinal, tooltips don't exist on
   touch, and a visible number invites questions it can't answer. Ordering carries the
   signal; exact scores appear only in the admin test box (§10).
 - The scope control is one three-segment switch — **"My items / Whole church /
-  Claims I decided"** (the third segment only for role-holders; members see no scope
-  row at all). Selecting "Claims I decided" permits an empty query and shows the
-  decided set newest-first — the browse this filter actually exists for.
+  Claims I decided"** (the third segment only for role-holders; members see no
+  control row at all). Selecting "Claims I decided" permits an empty query and shows
+  the decided set newest-first, paginated 20 at a time ("Show more" → `cursor`) —
+  the browse this scope actually exists for.
+- Result cards reuse the app's existing visual language — `card / card-lift /
+  pressable` classes and the Claims list's `STATUS_STYLES` chips — not a
+  search-only card style.
 
 ### 7.3 Result cards are actions, not dead ends
 
-- **Receipt cards**: thumbnail (`/file`, or `/preview?page=1` for PDFs — same sources
-  ReceiptGrid uses), merchant, date, note, owner (whole-church/decided scopes only).
-  Then the state line, which is the point:
-  - **On claims** → status chips ("On claim · Submitted"), each linking to the claim
-    surface the viewer is entitled to (own claim → review screen; assigned approver →
-    inbox detail; treasurer → finance detail).
-  - **Not on any claim** → an explicit "Not on a claim" chip + a **"Find in
-    Receipts"** action deep-linking to `/?highlight=<id>`. The landing contract is
-    part of this design: the Shoebox waits for receipts to load, auto-expands the
-    processed `<details>` section if the target lives there, `scrollIntoView`s the
-    card with a ~3 s pulse ring, strips the param from the URL once handled (back/
-    refresh must not re-scroll), and shows a toast ("That receipt is no longer in
-    your Receipts") if the id is gone. E2e covers a below-the-fold receipt, not just
-    presence.
-  - Tapping the thumbnail opens ReceiptViewer (zoom/pan) as today.
-- **Claim cards**: status pill (existing `Common.status.*` labels), total
-  (`formatCents`), claimDescription, ministry chips, owner; click-through to the
-  entitled surface, else the card is informational (rare: a role-holder viewing a
-  foreign draft).
+**Receipt cards** — thumbnail (`/file`, or `/preview?page=1` for PDFs — same sources
+ReceiptGrid uses), merchant + locale-formatted date, note (one truncated line), owner
+(whole-church/decided scopes only), and the state line: status chips when on claims,
+an explicit "Not on a claim" chip when not. (`originalName` stays API/exact-match
+side; it earns no card line.) Tap behavior is fully defined — the app's lists are
+whole-card links and users tap the card, not a 24 px chip:
+
+- **Whole card (primary)**: unclaimed receipt → the "Find in Receipts" action;
+  claimed on exactly one claim → that claim's surface; on several claims →
+  ReceiptViewer (ambiguous, so show the thing itself).
+- **Thumbnail** → ReceiptViewer (zoom/pan) as everywhere else. **Status chips**
+  (secondary) → their claim's surface.
+- **"Find in Receipts"** deep-links to `/?highlight=<id>` with a landing contract:
+  the Shoebox waits for receipts to load, auto-expands the processed `<details>`
+  section if the target lives there, `scrollIntoView`s the card with a ~3 s pulse
+  ring, strips the param from the URL once handled (back/refresh must not
+  re-scroll), and shows a toast ("That receipt is no longer in your Receipts") if
+  the id is gone. E2e covers a below-the-fold receipt, not just presence.
+
+**Claim cards** — status pill (existing `Common.status.*` labels), total
+(`formatCents`), claimDescription (one truncated line), ministry chips, owner.
+Whole-card link target by viewer × claim state (this table exists because the
+"obvious" target does not always exist in the app — the approvals inbox has **no
+detail view for decided claims** and no per-claim URL today):
+
+| Viewer | Claim state | Card links to |
+| :-- | :-- | :-- |
+| owner | any | `/claims/[id]` review screen (existing) |
+| assigned approver | submitted | `/approvals?open=<id>` — landing contract mirrors the Shoebox one: scroll to the row, expand it (it is expandable today), pulse, strip param |
+| assigned approver | decided (approved/rejected/paid) | `/approvals?open=<id>` — scroll + pulse the history row; its existing certificate/packet links are the detail (no new detail view is built for this feature) |
+| treasurer/admin | approved/paid | `/finance?open=<id>` — same scroll-and-pulse contract on the finance queue |
+| role-holder, none of the above (e.g. foreign draft) | any | no link — informational card, visually distinct (no `pressable` affordance) so a non-tappable card doesn't read as broken |
 
 ### 7.4 Designing around the 500 ms query embed
 
@@ -708,9 +781,10 @@ too slow for search-as-you-type, comfortably fast for explicit search. So:
 Every string through `messages/<locale>.json` with translator `context` notes
 (the short ones especially: "Whole church", "Claims I decided", "Searching…",
 "Not on a claim", the example queries). New testids, following the existing
-convention: `search-input, search-submit, search-type-filter, search-scope-filter,
+convention: `search-input, search-submit, search-type-chip, search-scope-filter,
 search-exact-section, search-exact-show-all, search-best-match, search-group-<year>,
 search-result-<kind>-<id>, search-find-in-receipts-<id>, search-example-<n>,
+search-recent-<n>, search-recent-clear, search-show-more, search-date-hint,
 search-pending-note, search-degraded-note, search-empty, shoebox-search-pill,
 claims-search-pill, highlight-pulse` — plus the admin card's
 `embedding-settings-form, embedding-test-connection, embedding-save,
@@ -796,14 +870,17 @@ A "Search index" card on `/admin` behind the existing `isAppAdmin()` gate
   (disable never probed; skip-probe audited); IME guard via dispatched
   `KeyboardEvent({key:"Enter", isComposing:true})`.
 - **e2e** (chromium; `EMBEDDING_MOCK=1` + shrunk `EMBEDDING_DRAFT_IDLE_MS` wired into
-  `tests/e2e/start-server.sh`): upload → worker indexes → search finds it; a draft
-  claim becomes searchable after the idle window and an edit refreshes its embedding;
-  "Find in Receipts" lands highlighted on a below-the-fold receipt (incl. inside the
-  collapsed processed section); approver default scope is whole-church and can open a
-  foreign receipt image; member `scope:"all"` → 404; decided scope browses with an
-  empty query; degraded mode via the mock's `__EMBED_FAIL__` lever shows exact
-  matches + banner; admin model change → rebuild → search works on the new model;
-  security sweep updated for the ratified grant.
+  `tests/e2e/start-server.sh`; determinism via `wakeEmbeddingWorker`, §5.3): upload →
+  worker indexes → search finds it; a draft claim becomes searchable after the idle
+  window and an edit refreshes its embedding; "Find in Receipts" lands highlighted on
+  a below-the-fold receipt (incl. inside the collapsed processed section); Back from
+  a result restores query + results from sessionStorage; "Show all N" expands inline
+  and resets on the next submit; approver default scope is whole-church and can open
+  a foreign receipt image; member `scope:"all"` → 404; decided scope browses with an
+  empty query and `?open=<id>` lands on the approvals row; degraded mode via the
+  mock's `__EMBED_FAIL__` lever shows exact matches + banner; admin model change →
+  rebuild → search works on the new model; security sweep updated for the ratified
+  grant.
 - **Mock design note**: the mock must be similarity-meaningful (bag-of-tokens folded
   into the space), not random — e2e asserts *ranking*, not just presence — and must
   fold CJK bigrams so Chinese fixtures rank for Chinese queries.
