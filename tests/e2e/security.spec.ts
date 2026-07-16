@@ -33,7 +33,13 @@ test("users cannot see or fetch each other's data (multi-tenant isolation)", asy
   const bobReceipts = (await (await bob.request.get("/api/receipts")).json()).receipts;
   expect(bobReceipts).toHaveLength(0);
 
+  // Deliberate §6.3 exception (SEARCH_DESIGN): a verified approver/treasurer/
+  // admin role MAY read foreign receipt files — covered positively in
+  // search.spec.ts. Bob is a plain member, so the 404 posture holds.
   expect((await bob.request.get(`/api/receipts/${receiptId}/file`)).status()).toBe(404);
+  expect((await bob.request.get(`/api/receipts/${receiptId}/preview`)).status()).toBe(404);
+  // Search scopes beyond "mine" are role-gated with the same 404.
+  expect((await bob.request.post("/api/search", { data: { query: "x", scope: "all" } })).status()).toBe(404);
   expect((await bob.request.get(`/api/reimbursements/${claimId}`)).status()).toBe(404);
 
   // Extraction logs are tenant-scoped too.

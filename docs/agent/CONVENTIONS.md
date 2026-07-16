@@ -156,6 +156,15 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   `"Exclude item (personal / not reimbursable)"` and `"Restore item"`. Renaming these breaks
   the e2e suite.
 
+## Deep links (`?open=<id>`)
+
+`?open=<id>` is THE app-wide land-on-a-list-item contract (src/lib/use-open-param.ts,
+minted by search): wait for the list's data, expand the enclosing section if needed
+(Shoebox processed `<details>`, approvals row), `scrollIntoView` + a ~3 s
+`.highlight-pulse` ring on the element carrying `data-open-id="<id>"`, strip the param
+(back/refresh must not re-scroll), toast on a miss. New list surfaces reuse the hook —
+never mint a second param name for the same interaction.
+
 ## Gotchas that already bit (verbatim knowledge)
 
 1. **Next 15**: `ctx.params` in route handlers and `params` in pages are **Promises** — await.

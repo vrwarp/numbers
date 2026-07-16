@@ -131,6 +131,15 @@ const nBatch = await call("/embeddings", {
 const nBatchV = vecs(nBatch.json);
 expect("native batch (2 content items)", nBatch.status === 200 && nBatchV?.length === 2, `status ${nBatch.status}: ${nBatch.snippet}`, `${nBatch.ms}ms`);
 
+// ---- 2b. Bilingual retrieval (zh↔en cross-language, §3.1) ----------------------
+const zhBatch = await call("/v1/embeddings", {
+  model: MODEL,
+  input: [QUERY_PREFIX + "星巴克的咖啡", QUERY_PREFIX + "五金店买的木材和螺丝"],
+});
+const zhV = vecs(zhBatch.json);
+expect("/v1 Chinese query embed", zhBatch.status === 200 && zhV?.length === 2, `status ${zhBatch.status}: ${zhBatch.snippet}`, `${zhBatch.ms}ms`);
+const [zhCoffee, zhLumber] = zhV ?? [];
+
 // ---- 3. The properties search actually depends on ------------------------------
 if (iSb && iHd && qCoffee && qLumber) {
   const cs = dot(qCoffee, iSb), ch = dot(qCoffee, iHd);
@@ -138,6 +147,13 @@ if (iSb && iHd && qCoffee && qLumber) {
   console.log(`      coffee→sb ${cs.toFixed(3)} coffee→hd ${ch.toFixed(3)} | lumber→sb ${ls.toFixed(3)} lumber→hd ${lh.toFixed(3)}`);
   expect("cross-modal ranking: coffee query prefers coffee receipt", cs > ch + 0.05, `${cs.toFixed(3)} vs ${ch.toFixed(3)}`);
   expect("cross-modal ranking: hardware query prefers hardware receipt", lh > ls + 0.05, `${lh.toFixed(3)} vs ${ls.toFixed(3)}`);
+}
+if (zhCoffee && zhLumber && iSb && iHd) {
+  const cs = dot(zhCoffee, iSb), ch = dot(zhCoffee, iHd);
+  const ls = dot(zhLumber, iSb), lh = dot(zhLumber, iHd);
+  console.log(`      zh-coffee→sb ${cs.toFixed(3)} zh-coffee→hd ${ch.toFixed(3)} | zh-lumber→sb ${ls.toFixed(3)} zh-lumber→hd ${lh.toFixed(3)}`);
+  expect("cross-language ranking: 星巴克的咖啡 prefers the coffee receipt", cs > ch + 0.05, `${cs.toFixed(3)} vs ${ch.toFixed(3)}`);
+  expect("cross-language ranking: 五金店…木材 prefers the hardware receipt", lh > ls + 0.05, `${lh.toFixed(3)} vs ${ls.toFixed(3)}`);
 }
 if (iSb && iPng) expect("PNG and JPEG of one receipt agree", dot(iSb, iPng) > 0.95, `cos=${dot(iSb, iPng).toFixed(3)}`);
 if (tNative && qCoffee) expect("native text == /v1 text (same space)", dot(tNative, qCoffee) > 0.999, `cos=${dot(tNative, qCoffee).toFixed(4)}`);

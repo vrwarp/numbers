@@ -8,6 +8,11 @@ export DATABASE_URL="file:$PWD/.e2e-data/numbers.db"
 export AUTH_SECRET="e2e-secret-0123456789abcdef0123456789abcdef"
 export AUTH_TEST_MODE="1"
 export AI_MOCK="1"
+# Semantic search: deterministic mock embeddings; the draft-idle debounce
+# shrinks so draft-claim indexing is testable (SEARCH_DESIGN §11).
+export EMBEDDING_MOCK="1"
+export EMBEDDING_DRAFT_IDLE_MS="1500"
+export EMBEDDING_POLL_MS="500"
 export PORT=3100
 
 rm -rf .e2e-data
