@@ -9,6 +9,14 @@ const SplitSchema = z.object({
   // Amount (in cents) to keep on the original row; the remainder moves to the
   // new row. Defaults to an even split with the odd cent staying on the original.
   firstAmountCents: z.number().int().optional(),
+  // Optional attributes for the new (second) row, so a "split off a portion"
+  // flow can reassign or exclude the carved-off part in one atomic step instead
+  // of a split followed by a separate PATCH. Omitted fields inherit the
+  // original row's values (the historical behaviour). Both halves stay
+  // unverified regardless — a human still approves each.
+  secondMinistry: z.string().optional(),
+  secondEvent: z.string().optional(),
+  secondExcluded: z.boolean().optional(),
 });
 
 /**
@@ -51,10 +59,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           receiptId: item.receiptId,
           description: item.description,
           amountCents: second,
-          ministry: item.ministry,
-          event: item.event,
+          ministry: parsed.data.secondMinistry ?? item.ministry,
+          event: parsed.data.secondEvent ?? item.event,
           isVerified: false,
-          isExcluded: item.isExcluded,
+          isExcluded: parsed.data.secondExcluded ?? item.isExcluded,
           sortOrder: item.sortOrder, // renumbered below to slot in right after the original
         },
       }),
@@ -72,6 +80,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           firstAmountCents: first,
           secondAmountCents: second,
           newLineItemId: created.id,
+          secondMinistry: created.ministry,
+          secondEvent: created.event,
+          secondExcluded: created.isExcluded,
         }),
       },
     });

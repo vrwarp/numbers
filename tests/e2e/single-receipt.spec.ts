@@ -65,11 +65,12 @@ test("single receipt review page displays simplified layout, row controls, and t
   await page.getByTestId(`verify-${rowId}`).click();
   await expect(generatePdfBtn).toBeEnabled();
 
-  // 5. Split Behavior (splits immediately without switch-mode dialog)
+  // 5. Split Behavior — the editor opens inline in the row (no modal), so the
+  // receipt image stays in view.
   await page.getByTestId(`verify-${rowId}`).click(); // click verify again to unverify
   await page.getByTestId(`split-${rowId}`).click();
-  // Real split dialog opens immediately (no split-mode-dialog overlay)
-  await expect(page.getByTestId("split-mode-dialog")).toBeHidden();
-  await expect(page.getByTestId("split-first-amount")).toBeVisible();
+  await expect(page.getByTestId(`split-panel-${rowId}`)).toBeVisible();
+  await expect(page.getByTestId("split-amount")).toBeVisible();
   await page.getByTestId("split-cancel").click();
+  await expect(page.getByTestId(`split-panel-${rowId}`)).toBeHidden();
 });
