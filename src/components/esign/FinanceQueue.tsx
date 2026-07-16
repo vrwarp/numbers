@@ -82,16 +82,21 @@ export default function FinanceQueue() {
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-stone-400">{t("paidHeader")}</h2>
           <ul className="space-y-2">
             {paid.map((c) => (
-              <li key={c.id} className="card flex items-center justify-between p-3 text-sm">
-                <span>
-                  {c.ownerName} · {formatCents(c.totalCents)}
-                </span>
-                <div className="flex items-center gap-2">
-                  <a className="text-indigo-600 underline" href={`/api/reimbursements/${c.id}/certificate`}>
-                    {t("certificate")}
-                  </a>
+              <li key={c.id} className="card card-lift" data-testid={`paid-${c.id}`}>
+                {/* The whole row opens the approval certificate — the signature
+                    cover page followed by the full signed packet and the
+                    offline verification bundle, so it supersedes a bare packet
+                    link. The certificate is a download, so no new tab. */}
+                <a
+                  className="pressable flex w-full items-center justify-between gap-3 rounded-xl p-3 text-sm"
+                  href={`/api/reimbursements/${c.id}/certificate`}
+                  data-testid={`paid-open-${c.id}`}
+                >
+                  <span className="min-w-0 truncate">
+                    {c.ownerName} · {formatCents(c.totalCents)}
+                  </span>
                   <StatusChip status={c.status} />
-                </div>
+                </a>
               </li>
             ))}
           </ul>

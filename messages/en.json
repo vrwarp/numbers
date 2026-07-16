@@ -436,7 +436,6 @@
     "subtitle": "Approved claims ready to pay.",
     "empty": "Nothing to pay right now.",
     "paidHeader": "Paid",
-    "certificate": "certificate",
     "checkNumberLabel": "Check number (optional)",
     "signAndMarkPaid": "💸 Sign & mark paid"
   },

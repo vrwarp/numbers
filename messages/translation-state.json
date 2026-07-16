@@ -2363,12 +2363,6 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Finance.certificate": {
-    "source": "certificate",
-    "context": "Small lowercase link to the approval certificate in the paid list.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
   "Finance.checkNumberLabel": {
     "source": "Check number (optional)",
     "context": "Label of the optional check-number field in the mark-paid ceremony.",

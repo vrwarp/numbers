@@ -115,25 +115,33 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
             {t("decided")}
           </h2>
           <ul className="space-y-2">
-            {history.map((c) => (
-              <li key={c.id} className="card flex items-center justify-between gap-3 p-3 text-sm">
-                <span className="min-w-0 truncate">
-                  {c.ownerName} · {formatCents(c.totalCents)}
-                </span>
-                <span className="flex shrink-0 items-center gap-3">
-                  {(c.status === "approved" || c.status === "paid") && (
-                    <a
-                      className="text-indigo-600 underline"
-                      href={`/api/reimbursements/${c.id}/certificate`}
-                      data-testid={`certificate-${c.id}`}
-                    >
-                      {tEsign("certificateLink")}
-                    </a>
-                  )}
-                  <StatusChip status={c.status} />
-                </span>
-              </li>
-            ))}
+            {history.map((c) => {
+              // Approved/paid claims have a certificate (signature cover page +
+              // full signed packet + offline verification bundle); a rejected
+              // claim has none, so its row falls back to the signed submission
+              // packet. The certificate is a download; the packet is an inline
+              // PDF, so only the latter opens in its own tab.
+              const hasCertificate = c.status === "approved" || c.status === "paid";
+              return (
+                <li key={c.id} className="card card-lift" data-testid={`decided-${c.id}`}>
+                  <a
+                    className="pressable flex w-full items-center justify-between gap-3 rounded-xl p-3 text-sm"
+                    href={
+                      hasCertificate
+                        ? `/api/reimbursements/${c.id}/certificate`
+                        : `/api/reimbursements/${c.id}/packet`
+                    }
+                    {...(hasCertificate ? {} : { target: "_blank", rel: "noreferrer" })}
+                    data-testid={`decided-open-${c.id}`}
+                  >
+                    <span className="min-w-0 truncate">
+                      {c.ownerName} · {formatCents(c.totalCents)}
+                    </span>
+                    <StatusChip status={c.status} />
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
