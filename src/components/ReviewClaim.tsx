@@ -339,10 +339,11 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           ? { firstAmountCents: opts.firstAmountCents, secondExcluded: true }
           : {
               firstAmountCents: opts.firstAmountCents,
-              // Only override when set; an empty pick inherits the original
-              // row's ministry/event (a plain split, no divergence).
-              ...(opts.ministry ? { secondMinistry: opts.ministry } : {}),
-              ...(opts.event ? { secondEvent: opts.event } : {}),
+              // The editor's fields are prefilled from the row, so their current
+              // values are exactly what the split-off portion should carry —
+              // send them verbatim (an unchanged pick just re-sets the same value).
+              secondMinistry: opts.ministry,
+              secondEvent: opts.event,
             };
       await enqueue(async () => {
         try {
@@ -1928,9 +1929,12 @@ function InlineSplit({
     centsToDollarString(total - sign * Math.ceil(Math.abs(total) / 2))
   );
   const [mode, setMode] = useState<"reassign" | "personal">("reassign");
-  const [ministry, setMinistry] = useState("");
+  // Prefill the destination with the row's own ministry/event: the common case
+  // is "same ministry, just a different slice", so the user only touches these
+  // when the portion truly belongs elsewhere.
+  const [ministry, setMinistry] = useState(item.ministry);
   const [otherPicked, setOtherPicked] = useState(false);
-  const [event, setEvent] = useState("");
+  const [event, setEvent] = useState(item.event);
   const [busy, setBusy] = useState(false);
 
   const amountRef = useRef<HTMLInputElement>(null);
@@ -1961,7 +1965,11 @@ function InlineSplit({
     Math.abs(portionCents) < Math.abs(total);
 
   const showOther = otherPicked || (!!ministry && !isKnownMinistry(ministry));
-  const switchToMultiple = singleMode && mode === "reassign" && !!ministry;
+  // Only a portion that actually diverges from the row's own ministry/event
+  // needs the claim to leave single-ministry mode — keeping the prefilled
+  // values (or marking it personal) does not.
+  const diverges = ministry !== item.ministry || event !== item.event;
+  const switchToMultiple = singleMode && mode === "reassign" && diverges;
   const confirmLabel =
     mode === "personal"
       ? t("splitConfirmExclude")
