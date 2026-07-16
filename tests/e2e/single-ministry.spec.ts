@@ -246,3 +246,43 @@ test("claim settings and suggestions are tenant-scoped (404, never 403)", async 
   });
   expect(suggested.status()).toBe(404);
 });
+
+test("the Category Guide fills the per-row selector (and the claim-level one)", async ({
+  page,
+}, testInfo) => {
+  await signInAs(
+    page,
+    `guide-${testInfo.project.name}-r${testInfo.retry}@example.com`,
+    "Guy Dee"
+  );
+  await makeClaim(page, ["gd-a.jpg", "gd-b.jpg"]);
+
+  // Claim-level selector: the magnifying-glass button opens the guide; a
+  // number search narrows to one category and picking it fans out to the rows.
+  await page.getByTestId("browse-categories").first().click();
+  await expect(page.getByTestId("category-guide")).toBeVisible();
+  await page.getByTestId("guide-search").fill("245");
+  await expect(page.getByTestId("guide-item")).toHaveCount(1);
+  await page.getByTestId("guide-item").click();
+  await expect(page.getByTestId("category-guide")).toBeHidden();
+  await expect(page.getByTestId("claim-ministry")).toHaveValue("245 Drinking Water");
+  await expect(
+    page.locator('[data-testid^="row-ministry-badge-"]').filter({ hasText: "245 Drinking Water" })
+  ).toHaveCount(2);
+  await page.getByTestId("fanout-toast").getByLabel("Dismiss").click();
+
+  // Per-row selector (multiple-ministries mode): every row gets its own
+  // guide button, and a name search fills just that row's select.
+  await page.getByTestId("claim-mode-multi").click();
+  const rowSelects = page.locator('select[data-testid^="ministry-"]');
+  await expect(rowSelects).toHaveCount(2);
+  const rowGuideButtons = page.locator('[data-testid="browse-categories"]');
+  await expect(rowGuideButtons).toHaveCount(2); // one per row, none at claim level now
+  await rowGuideButtons.first().click();
+  await page.getByTestId("guide-search").fill("luncheon");
+  await page.getByTestId("guide-item").first().click();
+  await expect(rowSelects.first()).toHaveValue("250 Luncheon Catering");
+  // The other row keeps the value the earlier fan-out gave it — the guide
+  // pick touched only its own row.
+  await expect(rowSelects.nth(1)).toHaveValue("245 Drinking Water");
+});
