@@ -256,14 +256,14 @@ export async function suggestMinistryCandidates(
   description: string,
   refine?: CandidateRefine
 ): Promise<CandidatesResult> {
-  const [churchContext, ministries] = await Promise.all([
-    loadChurchContext(),
-    loadActiveMinistryValues(),
-  ]);
-  const prompt = buildCandidatesPrompt(description, churchContext, refine, ministries);
-  const started = Date.now();
+  const churchContext = await loadChurchContext();
 
+  // Mock mode is fully offline: the candidates are deterministic and the
+  // logged prompt only needs the built-in list, so we skip the catalog read
+  // (Prisma) entirely — the unit suite runs without a DATABASE_URL.
   if (isAiMock()) {
+    const prompt = buildCandidatesPrompt(description, churchContext, refine);
+    const started = Date.now();
     const candidates = mockSuggestCandidates(description, refine?.more);
     return {
       candidates,
@@ -275,6 +275,10 @@ export async function suggestMinistryCandidates(
       },
     };
   }
+
+  const ministries = await loadActiveMinistryValues();
+  const prompt = buildCandidatesPrompt(description, churchContext, refine, ministries);
+  const started = Date.now();
 
   let model = "unknown";
   const failMeta = (rawResponse: string | null): SuggestionMeta => ({
@@ -349,14 +353,14 @@ export function mockSuggest(description: string): MinistrySuggestion {
 export async function suggestMinistryEvent(
   description: string
 ): Promise<{ suggestion: MinistrySuggestion; meta: SuggestionMeta }> {
-  const [churchContext, ministries] = await Promise.all([
-    loadChurchContext(),
-    loadActiveMinistryValues(),
-  ]);
-  const prompt = buildSuggestionPrompt(description, churchContext, ministries);
-  const started = Date.now();
+  const churchContext = await loadChurchContext();
 
+  // Mock mode is fully offline: the suggestion is deterministic and the logged
+  // prompt only needs the built-in list, so we skip the catalog read (Prisma)
+  // entirely — the unit suite runs without a DATABASE_URL.
   if (isAiMock()) {
+    const prompt = buildSuggestionPrompt(description, churchContext);
+    const started = Date.now();
     const suggestion = mockSuggest(description);
     return {
       suggestion,
@@ -368,6 +372,10 @@ export async function suggestMinistryEvent(
       },
     };
   }
+
+  const ministries = await loadActiveMinistryValues();
+  const prompt = buildSuggestionPrompt(description, churchContext, ministries);
+  const started = Date.now();
 
   let model = "unknown";
   const failMeta = (rawResponse: string | null): SuggestionMeta => ({

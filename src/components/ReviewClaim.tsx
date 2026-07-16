@@ -146,6 +146,11 @@ function MinistryChip({ value }: { value: string }) {
       >
         {code ?? "•••"}
       </span>
+      {/* Keep the code and name a single readable string ("245 Drinking Water")
+          in the DOM text — the flex gap is the visual separator, but a real
+          space keeps screen readers and text-based tests from running them
+          together. */}
+      {" "}
       <span className="truncate">{name}</span>
     </span>
   );
