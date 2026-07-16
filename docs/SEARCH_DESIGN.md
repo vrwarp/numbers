@@ -1,6 +1,7 @@
 # Semantic search across receipts and claims — design
 
-Status: **proposed (rev 5 — post critique round 4); endpoint contract verified live**
+Status: **FINAL (rev 6) — signed off by 5 rounds of parallel UX + engineering
+critique; endpoint contract verified live**
 (§3.1, 2026-07-16 — re-check anytime with `scripts/probe-embedding-endpoint.mjs`).
 Companion to `docs/ESIGN_DESIGN.md` (this feature amends its §6.3 read-grant list) and
 `docs/agent/DATA_MODEL.md` (three new tables + one new Receipt column).
@@ -65,8 +66,9 @@ suite anytime (`EMBEDDING_ENDPOINT=… EMBEDDING_API_KEY=… node scripts/…`).
   vectors live in ONE space (native-route text ≡ `/v1` text, cos 1.0000), and
   cross-modal ranking is real: "coffee at Starbucks" → coffee-receipt image 0.67 vs
   hardware-receipt image 0.34 (and symmetrically for a hardware query). The probe
-  suite includes **Chinese-query → English-receipt cases** (and vice versa) so the
-  bilingual user base's retrieval quality is continuously verified, not assumed.
+  suite **will include Chinese-query → English-receipt cases** (and vice versa;
+  build-order step 1) so the bilingual user base's retrieval quality is verified,
+  not assumed.
 - **Queries — `POST /v1/embeddings`** (OpenAI-compatible): `{model, input}` where
   input is a string **or array of strings** (batch works). Text only — images cannot
   go through this route (a data-URI is tokenized as text). The `model` field is
@@ -174,8 +176,9 @@ a backfill against a production GPU from someone's laptop.
 
 **Probe policy (no admin lockout).** The live probe (embed a fixed test string;
 **10 s timeout**, independent of `EMBEDDING_TIMEOUT_MS`) runs only when a save would
-make the worker/search *do more*: enabling the feature, or changing endpoint/model
-while enabled. It never gates turning `enabled` off or editing
+make the worker/search *do more*: enabling the feature, or changing endpoint, model,
+or API key while enabled (matching §3.3's per-field classification — a bad key
+rotation should fail at save, not at the next embed). It never gates turning `enabled` off or editing
 `queryPrefix`/`minScoreMilli`. **The probe returns the detected vector dimension** —
 the admin never types "2048": the card shows "Detected: 2048" read-only and saves it
 (a manual dim field appears only under "Save without testing", the
@@ -654,9 +657,10 @@ A dedicated **`/search`** page. Entry points, in order of importance:
 
 1. **Inline search pills where the work happens**: a "Search receipts…" pill at the
    top of the Receipts (Shoebox) screen and a "Search claims…" pill on the Claims
-   list. Tapping navigates to `/search` with the type filter pre-set. This is the
-   primary mobile path — the moment of "where's that receipt?" happens *inside* those
-   screens, not in the nav.
+   list. Tapping navigates to `/search` with the type filter pre-set **and the input
+   focused** (keyboard up — the user just tapped something that looks like a search
+   box). This is the primary mobile path — the moment of "where's that receipt?"
+   happens *inside* those screens, not in the nav.
 2. **NavBar entry**: labeled "Search" alongside Receipts/Claims on desktop widths;
    a magnifier icon (with `aria-label`) on narrow widths. Declared placement — not
    left to the nav's overflow behavior.
@@ -749,8 +753,11 @@ side; it earns no card line.) Tap behavior is fully defined — the app's lists 
 whole-card links and users tap the card, not a 24 px chip:
 
 - **Whole card (primary)**: unclaimed receipt → the "Find in Receipts" action;
-  claimed on exactly one claim → that claim's surface; on several claims →
-  ReceiptViewer (ambiguous, so show the thing itself).
+  claimed on exactly one claim *that the viewer has a surface for* → that claim's
+  surface; on several claims, or when the only claim has no surface for this viewer
+  (e.g. a role-holder viewing a foreign receipt whose sole claim is a foreign
+  draft) → ReceiptViewer, with that claim's status chip rendered non-interactive
+  (same no-`pressable` treatment as the informational claim card).
 - **Thumbnail** → ReceiptViewer (zoom/pan) as everywhere else. **Status chips**
   (secondary) → their claim's surface.
 - **"Find in Receipts"** deep-links to `/?open=<id>`. **`?open=<id>` is THE app-wide
@@ -814,8 +821,11 @@ too slow for search-as-you-type, comfortably fast for explicit search. So:
   a quiet one-liner. While a backfill/rebuild runs, the note falls back to the coarse
   global figure (`rebuildPending`, §6.1): "Search is still indexing older items —
   about n to go."
-- Empty state distinguishes "no matches" (offer: fewer words, different wording —
-  exact matching already ran, §6.2) from "nothing indexed yet".
+- Empty state distinguishes two named strings: no-matches — "No matches. Try fewer
+  or different words — exact wording was searched too." — vs nothing-indexed —
+  "Nothing is searchable yet — your items are still being added." Both are message
+  keys like every string here, as are the claims pill's chip variant ("Claims only
+  ✕") and the recents clear control ("Clear").
 
 ### 7.5 i18n & testids
 
@@ -879,6 +889,9 @@ content that must not outlive the claim in a log with no retention story:
 - `model` = the model actually used (`"mock"` under mock), `durationMs`,
   `status`/`errorMessage` as usual. Provider error messages are safe (llama.cpp
   errors carry no input content).
+- `userId`: query embeds log the **caller**; background document embeds log the
+  **target's owner** (the queue has no acting human — the owner is the tenant the
+  work belongs to).
 - `kind="embedding"` rows are **excluded from the tuning UI** (`/api/extraction-logs`
   list) — operational, not extraction-quality data — and the daily sweep deletes
   embedding-kind logs older than **90 days**.
