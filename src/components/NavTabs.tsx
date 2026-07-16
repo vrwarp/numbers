@@ -30,16 +30,20 @@ function sameArray(a: string[], b: string[]): boolean {
 /**
  * The functional tab row. Renders as much as fits, escalating full → compress →
  * overflow via planNav against measured widths (two hidden measurement rows feed
- * real per-tab widths for both modes). Overflowed hrefs are reported up via
- * onOverflowChange so the parent can fold them into the account menu — there is
- * no separate "More" dropdown. See src/lib/nav-overflow.ts.
+ * real per-tab widths for both modes). Reduced tabs — compressed to icons or
+ * overflowed out — are reported up via onMenuChange so the parent can list them
+ * (with labels) in the account menu; there is no separate "More" dropdown. See
+ * src/lib/nav-overflow.ts.
  */
 export default function NavTabs({
   links,
-  onOverflowChange,
+  onMenuChange,
 }: {
   links: NavLink[];
-  onOverflowChange?: (overflow: string[]) => void;
+  /** Tabs to also surface in the account menu (compressed icons + overflowed),
+   *  in original order, plus which of those are hidden from the row (overflow)
+   *  — the hidden badged ones drive the avatar's aggregated dot. */
+  onMenuChange?: (menu: string[], overflow: string[]) => void;
 }) {
   const pathname = usePathname();
   const t = useTranslations("NavBar");
@@ -96,11 +100,19 @@ export default function NavTabs({
     return () => ro.disconnect();
   }, [recompute]);
 
-  // Report the overflow set up to the parent (account menu owner).
+  // Report the tabs to surface in the account menu (compressed icons +
+  // overflowed) up to the parent (the menu owner). A compressed tab stays in
+  // the row as an icon AND appears in the menu with its label, so there's always
+  // a labeled way to reach it.
+  const compressedKey = plan.visible.filter((v) => v.iconOnly).map((v) => v.href).join("|");
+  const overflowKey = plan.overflow.join("|");
   useEffect(() => {
-    onOverflowChange?.(plan.overflow);
+    const overflow = plan.overflow;
+    const reduced = new Set([...plan.visible.filter((v) => v.iconOnly).map((v) => v.href), ...overflow]);
+    const menu = links.filter((l) => reduced.has(l.href)).map((l) => l.href);
+    onMenuChange?.(menu, overflow);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan.overflow.join("|")]);
+  }, [compressedKey, overflowKey]);
 
   const byHref = new Map(links.map((l) => [l.href, l]));
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
