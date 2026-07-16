@@ -294,6 +294,46 @@ function CategoryGuide({
   );
 }
 
+/**
+ * Magnifying-glass button that opens the Category Guide, sized to sit beside a
+ * ministry <select>. Owns the dialog state, so every selector (claim-level,
+ * per-row, split) gets the Guide by dropping this next to its dropdown.
+ */
+function GuideButton({
+  onPick,
+  disabled,
+}: {
+  onPick: (value: string) => void;
+  disabled?: boolean;
+}) {
+  const t = useTranslations("Review");
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        className="shrink-0 self-start rounded-lg border border-stone-300 bg-white px-2.5 py-2 text-base hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-40 md:text-sm"
+        onClick={() => setOpen(true)}
+        disabled={disabled}
+        title={t("browseCategories")}
+        aria-label={t("browseCategories")}
+        data-testid="browse-categories"
+      >
+        <span aria-hidden>🔎</span>
+      </button>
+      {open && (
+        <CategoryGuide
+          onClose={() => setOpen(false)}
+          onPick={(value) => {
+            onPick(value);
+            setOpen(false);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
 export default function ReviewClaim({ claimId }: { claimId: string }) {
   const t = useTranslations("Review");
   const tStatus = useTranslations("Common.status");
@@ -1488,7 +1528,6 @@ function ClaimMinistryPanel({
   // Same "Other…" mechanics as the per-row selector: the sentinel stays
   // selected while the custom text box is still empty.
   const [otherPicked, setOtherPicked] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(false);
   const showOtherInput =
     otherPicked || (!!claim.claimMinistry && !catalog.isKnown(claim.claimMinistry));
   const single = claim.singleMinistry;
@@ -1757,9 +1796,9 @@ function ClaimMinistryPanel({
                 <span className="h-px flex-1 bg-stone-200" />
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                <div className="sm:w-72 sm:flex-none">
+                <div className="flex gap-2 sm:w-80 sm:flex-none">
                   <select
-                    className="input"
+                    className="input min-w-0 flex-1"
                     value={showOtherInput ? OTHER_MINISTRY : claim.claimMinistry}
                   onChange={(e) => {
                     if (e.target.value === OTHER_MINISTRY) {
@@ -1788,28 +1827,16 @@ function ClaimMinistryPanel({
                   ))}
                   <option value={OTHER_MINISTRY}>{t("otherOption")}</option>
                 </select>
-              </div>
-              <div className="w-full space-y-1">
-                <button
-                  type="button"
-                  className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
-                  onClick={() => setGuideOpen(true)}
-                  data-testid="browse-categories"
-                >
-                  🔎 {t("browseCategories")}
-                </button>
-                <MinistryHelp value={claim.claimMinistry} />
-              </div>
-              {guideOpen && (
-                <CategoryGuide
-                  onClose={() => setGuideOpen(false)}
+                <GuideButton
                   onPick={(value) => {
                     setOtherPicked(false);
                     onFanOut({ claimMinistry: value, claimEvent: claim.claimEvent });
-                    setGuideOpen(false);
                   }}
                 />
-              )}
+              </div>
+              <div className="w-full empty:hidden">
+                <MinistryHelp value={claim.claimMinistry} />
+              </div>
               {showOtherInput && (
                 <div className="sm:w-48 sm:flex-none">
                   <input
@@ -1960,8 +1987,11 @@ function LineItemRow({
             </span>
           ) : (
             <>
+              {/* One flex group so the guide button never wraps away from its
+                  select on narrow rows; min-w-0 lets the select shrink instead. */}
+              <div className="flex max-w-full items-center gap-2">
               <select
-                className="input w-auto max-w-full"
+                className="input w-auto min-w-0"
                 value={showOtherInput ? OTHER_MINISTRY : item.ministry}
                 disabled={excluded || readOnly}
                 onChange={(e) => {
@@ -1990,6 +2020,14 @@ function LineItemRow({
                 ))}
                 <option value={OTHER_MINISTRY}>{t("otherOption")}</option>
               </select>
+              <GuideButton
+                disabled={excluded || readOnly}
+                onPick={(value) => {
+                  setOtherPicked(false);
+                  onPatch(item.id, { ministry: value });
+                }}
+              />
+              </div>
               {showOtherInput && (
                 <input
                   key={`other-${item.id}-${item.ministry}`}
@@ -2331,8 +2369,11 @@ function InlineSplit({
       {mode === "reassign" && (
         <div className="flex flex-col gap-2 border-t border-indigo-100 pt-3">
           <div className="flex flex-wrap gap-2">
+            {/* Same grouping as the per-row selector: select + guide button
+                stay on one line and shrink together. */}
+            <div className="flex min-w-0 flex-1 items-center gap-2">
             <select
-              className="input w-auto max-w-full flex-1"
+              className="input w-auto min-w-0 flex-1"
               value={showOther ? OTHER_MINISTRY : ministry}
               onChange={(e) => {
                 if (e.target.value === OTHER_MINISTRY) {
@@ -2358,6 +2399,13 @@ function InlineSplit({
               ))}
               <option value={OTHER_MINISTRY}>{t("otherOption")}</option>
             </select>
+            <GuideButton
+              onPick={(value) => {
+                setOtherPicked(false);
+                setMinistry(value);
+              }}
+            />
+            </div>
             {showOther && (
               <input
                 className="input w-40"
