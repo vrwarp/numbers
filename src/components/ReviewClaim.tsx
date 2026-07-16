@@ -137,6 +137,9 @@ const useMinistryCatalog = () => useContext(MinistryCatalogContext);
 function MinistryChip({ value }: { value: string }) {
   const code = parseMinistryCode(value);
   const name = code ? value.slice(code.length).trim() : value;
+  // The explicit space text node keeps the badge's textContent identical to the
+  // plain composed value ("245 Drinking Water") for tests and screen readers;
+  // flex layout never renders whitespace-only nodes, so the gap stays CSS-sized.
   return (
     <span className="inline-flex items-center gap-1.5">
       <span
@@ -145,7 +148,7 @@ function MinistryChip({ value }: { value: string }) {
         }`}
       >
         {code ?? "•••"}
-      </span>
+      </span>{" "}
       <span className="truncate">{name}</span>
     </span>
   );

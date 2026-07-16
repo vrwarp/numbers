@@ -45,9 +45,18 @@ export async function loadAllMinistryRows(): Promise<MinistryRow[]> {
 }
 
 /** Active entries in display order — the dropdown + AI-suggest source. A
- *  non-empty but all-archived table returns [] (no default resurrection). */
+ *  non-empty but all-archived table returns [] (no default resurrection).
+ *  Degrades to the defaults when the table can't be read at all — the same
+ *  contract as loadChurchContext(): the picker/suggest paths must work with
+ *  no database (the unit suite runs db-less), and a briefly unreadable
+ *  catalog should behave like the built-in list, not break review. */
 export async function loadActiveMinistryEntries(): Promise<MinistryEntry[]> {
-  const rows = await prisma.ministry.findMany({ orderBy: { sortOrder: "asc" } });
+  let rows;
+  try {
+    rows = await prisma.ministry.findMany({ orderBy: { sortOrder: "asc" } });
+  } catch {
+    return DEFAULT_MINISTRY_ENTRIES.filter((e) => e.active);
+  }
   if (rows.length === 0) return DEFAULT_MINISTRY_ENTRIES.filter((e) => e.active);
   return rows.filter((r) => r.active).map(toEntry);
 }
