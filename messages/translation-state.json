@@ -184,6 +184,11 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "NavBar.budgetCategories": {
+    "source": "Budget categories",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "NavBar.pendingWork": {
     "source": "pending work",
     "context": "Screen-reader-only text on the red dot badge marking a nav tab (Approvals/Finance) that has items waiting. Announced after the tab name.",
@@ -1287,6 +1292,41 @@
     "context": "Slots into fanOutSet's {label} when the ministry was cleared. Lowercase fragment, not a sentence.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Review.browseCategories": {
+    "source": "Not sure? Browse categories",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Review.guideTitle": {
+    "source": "Category guide",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Review.guideSubtitle": {
+    "source": "Search by number, name, or what you bought.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Review.guideSearchPlaceholder": {
+    "source": "Try “water”, “snacks”, “retreat”…",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Review.guideEmpty": {
+    "source": "No category matches — you can still type it under “Other…”.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Review.guideClose": {
+    "source": "Close",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Review.accountsLabel": {
+    "source": "Accounts",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
   },
   "Review.undo": {
     "source": "Undo",
@@ -4019,6 +4059,21 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Errors.ministry.invalid": {
+    "source": "Those budget categories couldn’t be saved — check the form and try again.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.ministry.codeFormat": {
+    "source": "Account code must be exactly 3 digits and not 999: “{code}”.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.ministry.codeDuplicate": {
+    "source": "Two active categories share the code {code} — codes must be unique.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "AddReceipts.title": {
     "source": "Add receipts to this claim",
     "context": "Dialog heading: add receipts to an existing draft claim.",
@@ -4906,5 +4961,135 @@
     "source": "Emails that get admin access to this area, comma-separated — the way to add admins without the e-sign roster. It’s app-access only and never changes anyone’s signing role. Takes effect immediately; keep your own email here so you don’t lock yourself out.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Ministries.title": {
+    "source": "Budget categories",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.subtitle": {
+    "source": "The list requesters pick from, and the descriptions that guide them. Church-wide.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.loading": {
+    "source": "Loading…",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.loadFailed": {
+    "source": "Couldn’t load the categories.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.saveFailed": {
+    "source": "Couldn’t save.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.addGroup": {
+    "source": "+ Add group",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.addCategory": {
+    "source": "+ Add category",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.newGroup": {
+    "source": "New group",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.groupNameAria": {
+    "source": "Group name",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.code": {
+    "source": "Code",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.name": {
+    "source": "Name",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.description": {
+    "source": "Description (optional)",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.descriptionPlaceholder": {
+    "source": "Add a hint for requesters…",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.codeAria": {
+    "source": "Account code",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.nameAria": {
+    "source": "Category name",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.active": {
+    "source": "Active",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.archived": {
+    "source": "Archived",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.save": {
+    "source": "Save {count} change(s)",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.saveNone": {
+    "source": "Saved",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.saving": {
+    "source": "Saving…",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.discard": {
+    "source": "Discard",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.saved": {
+    "source": "Categories saved.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.renameWarning": {
+    "source": "Renaming or recoding a category that’s already on claims won’t relabel those past rows — their printed value stays as it was. To retire one, archive it instead.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.reservedNote": {
+    "source": "Codes are 3 digits. 999 is reserved for uncategorized “Other…” entries and never prints on the form.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.empty": {
+    "source": "No categories yet — add one to get started.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.countActive": {
+    "source": "{active} of {total} active",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
   }
 }

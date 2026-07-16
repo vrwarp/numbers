@@ -21,7 +21,15 @@ function sameArray(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
 }
 
-export default function NavBar({ userName, isAdmin }: { userName: string; isAdmin?: boolean }) {
+export default function NavBar({
+  userName,
+  isAdmin,
+  canManageMinistries,
+}: {
+  userName: string;
+  isAdmin?: boolean;
+  canManageMinistries?: boolean;
+}) {
   const pathname = usePathname();
   const t = useTranslations("NavBar");
   // E-sign work badges (no notification infra — the nav surfaces state).
@@ -90,7 +98,12 @@ export default function NavBar({ userName, isAdmin }: { userName: string; isAdmi
         <nav className="flex min-w-0 flex-1 items-center" aria-label="Main">
           <NavTabs links={links} onMenuChange={onMenuChange} />
         </nav>
-        <AccountMenu userName={userName} isAdmin={isAdmin} menuTabs={menuTabs} />
+        <AccountMenu
+          userName={userName}
+          isAdmin={isAdmin}
+          canManageMinistries={canManageMinistries}
+          menuTabs={menuTabs}
+        />
       </div>
     </header>
   );

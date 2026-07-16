@@ -347,6 +347,33 @@ model AuditEvent {
   @@index([userId, createdAt])
 }
 
+// Church-wide budget-category catalog — the source for the "Ministry / Fund"
+// dropdown, the AI-suggestion validation set, and the treasurer's Budget
+// Categories screen. GLOBAL (no userId): one deployment = one church, one
+// chart of accounts — the same church-wide scope as church-context.md, not
+// per-user tenant data. When the table is EMPTY the app falls back to the
+// built-in DEFAULT list in src/lib/ministries.ts, so a fresh deployment works
+// with no seed and the stored LineItem.ministry value (the composed
+// "<code> <name>" string) is never migrated. `code` is a 3-digit account
+// number (999 is reserved for uncategorized free text and never stored here);
+// `name` is the editable label; their composed "<code> <name>" is exactly the
+// value a pick writes to LineItem.ministry. `description` is optional
+// treasurer-authored guidance — shown in the picker, never printed on the
+// form and never translated (church data, like the ministry values themselves).
+model Ministry {
+  id          String   @id @default(cuid())
+  code        String // 3-digit account code, e.g. "245"
+  name        String // editable label, e.g. "Drinking Water"
+  group       String   @default("") // chart-of-accounts section label
+  description String   @default("") // optional guidance (never printed / translated)
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active, sortOrder])
+}
+
 // Join table: a claim bundles many receipts; a receipt may (rarely) appear in
 // several draft claims until one of them is generated.
 model ReimbursementReceipt {

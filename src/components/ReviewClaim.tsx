@@ -1,14 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   MINISTRY_GROUPS,
+  composeMinistry,
   formatMinistryEvent,
   isKnownMinistry,
   mostCommonMinistryEvent,
+  parseMinistryCode,
+  type MinistryEntry,
 } from "@/lib/ministries";
 import { centsToDollarString, formatCents, parseDollarsToCents, subtotalCents } from "@/lib/money";
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
@@ -114,6 +117,183 @@ function receiptLabel(receipt: ReceiptInfo): string {
   return m ? `${receipt.merchant} — ${m[2]}/${m[3]}/${m[1]}` : receipt.merchant;
 }
 
+// --- Budget-category catalog (treasurer-configurable) -----------------------
+// The dropdown list, code chips, and description helpers all read from the
+// church-wide catalog fetched once by ReviewClaim and shared by context, so the
+// three ministry pickers don't each re-fetch. Until it loads (or if the fetch
+// fails) the built-in list keeps everything working.
+interface MinistryCatalog {
+  groups: { label: string; options: string[] }[];
+  entries: MinistryEntry[];
+  isKnown: (value: string) => boolean;
+  describe: (value: string) => string | null;
+}
+const DEFAULT_MINISTRY_CATALOG: MinistryCatalog = {
+  groups: MINISTRY_GROUPS.map((g) => ({ label: g.label, options: [...g.options] })),
+  entries: [],
+  isKnown: isKnownMinistry,
+  describe: () => null,
+};
+const MinistryCatalogContext = createContext<MinistryCatalog>(DEFAULT_MINISTRY_CATALOG);
+const useMinistryCatalog = () => useContext(MinistryCatalogContext);
+
+/** The account-code chip + name for a composed ministry value; a neutral chip
+ *  for free-text ("Other…") values that carry no code. */
+function MinistryChip({ value }: { value: string }) {
+  const code = parseMinistryCode(value);
+  const name = code ? value.slice(code.length).trim() : value;
+  // The explicit space text node keeps the badge's textContent identical to the
+  // plain composed value ("245 Drinking Water") for tests and screen readers;
+  // flex layout never renders whitespace-only nodes, so the gap stays CSS-sized.
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span
+        className={`rounded px-1.5 py-0.5 font-mono text-[11px] font-bold ${
+          code ? "bg-indigo-600 text-white" : "bg-stone-300 text-stone-600"
+        }`}
+      >
+        {code ?? "•••"}
+      </span>{" "}
+      <span className="truncate">{name}</span>
+    </span>
+  );
+}
+
+/** The treasurer-authored description for the selected category, when there is
+ *  one — the "help me pick" guidance shown beneath a selector. */
+function MinistryHelp({ value }: { value: string }) {
+  const catalog = useMinistryCatalog();
+  const desc = value ? catalog.describe(value) : null;
+  if (!desc) return null;
+  return (
+    <p className="mt-1 flex items-start gap-1.5 text-xs text-stone-500" data-testid="ministry-help">
+      <span aria-hidden className="text-indigo-500">
+        ℹ
+      </span>
+      <span>{desc}</span>
+    </p>
+  );
+}
+
+/** Searchable "which category is this?" sheet — number · name · description,
+ *  grouped. Picking a row sets the ministry and closes. Useful even before any
+ *  descriptions are written (search + numbers alone beat scrolling the list). */
+function CategoryGuide({
+  onPick,
+  onClose,
+}: {
+  onPick: (value: string) => void;
+  onClose: () => void;
+}) {
+  const t = useTranslations("Review");
+  const catalog = useMinistryCatalog();
+  const [q, setQ] = useState("");
+  const items = useMemo(() => {
+    if (catalog.entries.length) {
+      return catalog.entries.map((e) => ({
+        group: e.group,
+        value: composeMinistry(e.code, e.name),
+        code: e.code,
+        name: e.name,
+        description: e.description,
+      }));
+    }
+    return catalog.groups.flatMap((g) =>
+      g.options.map((v) => {
+        const code = parseMinistryCode(v);
+        return {
+          group: g.label,
+          value: v,
+          code: code ?? "",
+          name: code ? v.slice(code.length).trim() : v,
+          description: "",
+        };
+      })
+    );
+  }, [catalog]);
+  const needle = q.trim().toLowerCase();
+  const filtered = needle
+    ? items.filter((i) => `${i.code} ${i.name} ${i.description}`.toLowerCase().includes(needle))
+    : items;
+  const groupOrder: string[] = [];
+  for (const i of filtered) if (!groupOrder.includes(i.group)) groupOrder.push(i.group);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div
+        className="card flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden p-0"
+        onClick={(e) => e.stopPropagation()}
+        data-testid="category-guide"
+      >
+        <div className="border-b border-stone-200 p-3">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold">{t("guideTitle")}</span>
+            <button
+              className="text-stone-400 hover:text-stone-600"
+              onClick={onClose}
+              aria-label={t("guideClose")}
+            >
+              ✕
+            </button>
+          </div>
+          <p className="mt-0.5 text-xs text-stone-500">{t("guideSubtitle")}</p>
+          <input
+            autoFocus
+            className="input mt-2"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={t("guideSearchPlaceholder")}
+            aria-label={t("guideSearchPlaceholder")}
+            data-testid="guide-search"
+          />
+        </div>
+        <div className="overflow-y-auto">
+          {groupOrder.length === 0 ? (
+            <p className="p-4 text-center text-sm text-stone-400">{t("guideEmpty")}</p>
+          ) : (
+            groupOrder.map((group) => (
+              <div key={group}>
+                <p className="sticky top-0 bg-white px-3 pb-1 pt-2 font-mono text-[11px] uppercase tracking-wide text-stone-400">
+                  {group}
+                </p>
+                {filtered
+                  .filter((i) => i.group === group)
+                  .map((i) => (
+                    <button
+                      key={i.value}
+                      className="flex w-full items-start gap-2 border-t border-stone-100 px-3 py-2 text-left hover:bg-indigo-50"
+                      onClick={() => onPick(i.value)}
+                      data-testid="guide-item"
+                    >
+                      <span
+                        className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 font-mono text-[11px] font-bold ${
+                          i.code ? "bg-indigo-600 text-white" : "bg-stone-300 text-stone-600"
+                        }`}
+                      >
+                        {i.code || "•••"}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="text-sm font-medium">{i.name}</span>
+                        {i.description && (
+                          <span className="mt-0.5 block text-xs text-stone-500">{i.description}</span>
+                        )}
+                      </span>
+                    </button>
+                  ))}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ReviewClaim({ claimId }: { claimId: string }) {
   const t = useTranslations("Review");
   const tStatus = useTranslations("Common.status");
@@ -121,6 +301,31 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const tCommon = useTranslations("Common");
   const router = useRouter();
   const [claim, setClaim] = useState<Claim | null>(null);
+  // Church-wide budget-category catalog (treasurer-configurable). Fetched once;
+  // shared to the pickers by context. Falls back to the built-in list until it
+  // loads, so the review UI never blocks on it.
+  const [ministryCatalog, setMinistryCatalog] = useState<MinistryCatalog>(DEFAULT_MINISTRY_CATALOG);
+  useEffect(() => {
+    void fetch("/api/ministries")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { groups?: { label: string; options: string[] }[]; entries?: MinistryEntry[] } | null) => {
+        if (!data?.entries) return;
+        const values = new Set<string>();
+        const desc = new Map<string, string>();
+        for (const e of data.entries) {
+          const v = composeMinistry(e.code, e.name);
+          values.add(v);
+          if (e.description) desc.set(v, e.description);
+        }
+        setMinistryCatalog({
+          groups: data.groups ?? DEFAULT_MINISTRY_CATALOG.groups,
+          entries: data.entries,
+          isKnown: (v) => values.has(v),
+          describe: (v) => desc.get(v) ?? null,
+        });
+      })
+      .catch(() => {});
+  }, []);
   const [error, setError] = useState<string | null>(null);
   // The row whose inline "split off a portion" editor is open (only one at a
   // time). The editor lives in the row so the receipt image stays in view.
@@ -709,6 +914,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   }
 
   return (
+    <MinistryCatalogContext.Provider value={ministryCatalog}>
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold">
@@ -1225,6 +1431,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         </div>
       )}
     </div>
+    </MinistryCatalogContext.Provider>
   );
 }
 
@@ -1269,6 +1476,7 @@ function ClaimMinistryPanel({
   onUndo: () => void;
 }) {
   const t = useTranslations("Review");
+  const catalog = useMinistryCatalog();
   const descRef = useRef<HTMLTextAreaElement | null>(null);
   const followupRef = useRef<HTMLTextAreaElement | null>(null);
   // "Something else…" reveals a second prompt for the one terminal follow-up.
@@ -1280,8 +1488,9 @@ function ClaimMinistryPanel({
   // Same "Other…" mechanics as the per-row selector: the sentinel stays
   // selected while the custom text box is still empty.
   const [otherPicked, setOtherPicked] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const showOtherInput =
-    otherPicked || (!!claim.claimMinistry && !isKnownMinistry(claim.claimMinistry));
+    otherPicked || (!!claim.claimMinistry && !catalog.isKnown(claim.claimMinistry));
   const single = claim.singleMinistry;
   const sendMore = () => {
     const more = followupRef.current?.value.trim();
@@ -1568,7 +1777,7 @@ function ClaimMinistryPanel({
                   data-testid="claim-ministry"
                 >
                   <option value="">{t("pickMinistry")}</option>
-                  {MINISTRY_GROUPS.map((group) => (
+                  {catalog.groups.map((group) => (
                     <optgroup key={group.label} label={group.label}>
                       {group.options.map((m) => (
                         <option key={m} value={m}>
@@ -1580,12 +1789,33 @@ function ClaimMinistryPanel({
                   <option value={OTHER_MINISTRY}>{t("otherOption")}</option>
                 </select>
               </div>
+              <div className="w-full space-y-1">
+                <button
+                  type="button"
+                  className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                  onClick={() => setGuideOpen(true)}
+                  data-testid="browse-categories"
+                >
+                  🔎 {t("browseCategories")}
+                </button>
+                <MinistryHelp value={claim.claimMinistry} />
+              </div>
+              {guideOpen && (
+                <CategoryGuide
+                  onClose={() => setGuideOpen(false)}
+                  onPick={(value) => {
+                    setOtherPicked(false);
+                    onFanOut({ claimMinistry: value, claimEvent: claim.claimEvent });
+                    setGuideOpen(false);
+                  }}
+                />
+              )}
               {showOtherInput && (
                 <div className="sm:w-48 sm:flex-none">
                   <input
                     key={`claim-other-${claim.claimMinistry}`}
                     className="input"
-                    defaultValue={isKnownMinistry(claim.claimMinistry) ? "" : claim.claimMinistry}
+                    defaultValue={catalog.isKnown(claim.claimMinistry) ? "" : claim.claimMinistry}
                     placeholder={t("customMinistryPlaceholder")}
                     onBlur={(e) => {
                       const v = e.target.value.trim();
@@ -1658,12 +1888,13 @@ function LineItemRow({
   onMergeUp: () => void;
 }) {
   const t = useTranslations("Review");
+  const catalog = useMinistryCatalog();
   const negative = item.amountCents < 0;
   const excluded = item.isExcluded;
   // "Other…" stays selected while the custom text box is still empty; a saved
   // value that isn't in the budget list (custom or legacy) also renders as Other.
   const [otherPicked, setOtherPicked] = useState(false);
-  const showOtherInput = otherPicked || (!!item.ministry && !isKnownMinistry(item.ministry));
+  const showOtherInput = otherPicked || (!!item.ministry && !catalog.isKnown(item.ministry));
 
   return (
     <li
@@ -1718,9 +1949,14 @@ function LineItemRow({
               title={t("badgeTitle")}
               data-testid={`row-ministry-badge-${item.id}`}
             >
-              {item.ministry
-                ? formatMinistryEvent(item.ministry, item.event)
-                : t("ministrySetAbove")}
+              {item.ministry ? (
+                <>
+                  <MinistryChip value={item.ministry} />
+                  {item.event ? ` — ${item.event}` : ""}
+                </>
+              ) : (
+                t("ministrySetAbove")
+              )}
             </span>
           ) : (
             <>
@@ -1743,7 +1979,7 @@ function LineItemRow({
                 data-testid={`ministry-${item.id}`}
               >
                 <option value="">{t("pickMinistry")}</option>
-                {MINISTRY_GROUPS.map((group) => (
+                {catalog.groups.map((group) => (
                   <optgroup key={group.label} label={group.label}>
                     {group.options.map((m) => (
                       <option key={m} value={m}>
@@ -1758,7 +1994,7 @@ function LineItemRow({
                 <input
                   key={`other-${item.id}-${item.ministry}`}
                   className="input w-44"
-                  defaultValue={isKnownMinistry(item.ministry) ? "" : item.ministry}
+                  defaultValue={catalog.isKnown(item.ministry) ? "" : item.ministry}
                   placeholder={t("customMinistryPlaceholder")}
                   disabled={excluded || readOnly}
                   onBlur={(e) => {
@@ -1928,6 +2164,7 @@ function InlineSplit({
 }) {
   const t = useTranslations("Review");
   const tCommon = useTranslations("Common");
+  const catalog = useMinistryCatalog();
   const total = item.amountCents;
   const sign = total < 0 ? -1 : 1;
   // Default: split off roughly half; the odd cent stays on the original row.
@@ -1970,7 +2207,7 @@ function InlineSplit({
     Math.sign(portionCents) === Math.sign(total) &&
     Math.abs(portionCents) < Math.abs(total);
 
-  const showOther = otherPicked || (!!ministry && !isKnownMinistry(ministry));
+  const showOther = otherPicked || (!!ministry && !catalog.isKnown(ministry));
   // Only a portion that actually diverges from the row's own ministry/event
   // needs the claim to leave single-ministry mode — keeping the prefilled
   // values (or marking it personal) does not.
@@ -2110,7 +2347,7 @@ function InlineSplit({
               data-testid="split-ministry"
             >
               <option value="">{t("pickMinistry")}</option>
-              {MINISTRY_GROUPS.map((group) => (
+              {catalog.groups.map((group) => (
                 <optgroup key={group.label} label={group.label}>
                   {group.options.map((m) => (
                     <option key={m} value={m}>

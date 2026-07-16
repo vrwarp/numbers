@@ -89,6 +89,85 @@ export function isKnownMinistry(value: string): boolean {
   return MINISTRIES.includes(value);
 }
 
+// --- Split code + name (the configurable catalog) ---------------------------
+// A budget category is an account `code` (3 digits) + an editable `name`. The
+// value stored on a line item and printed on the form is the two composed:
+// "245 Drinking Water". The catalog (the `Ministry` table) is the source for
+// the dropdown, descriptions, and AI-suggestion validation; this module holds
+// the pure, dependency-free helpers both client and server share, plus the
+// built-in defaults used to seed the catalog and as the fallback while it is
+// empty.
+
+/** A catalog entry: the account code, its label, its group, and optional
+ *  treasurer-authored guidance. Composed as `${code} ${name}` when stored. */
+export interface MinistryEntry {
+  code: string;
+  name: string;
+  group: string;
+  description: string;
+  active: boolean;
+  sortOrder: number;
+}
+
+/** The reserved code for uncategorized ("Other…") free text. It is never
+ *  stored in the catalog or on a composed value — free text prints as its own
+ *  text alone — so 999 never reaches the official form. */
+export const RESERVED_UNCATEGORIZED_CODE = "999";
+
+/** Catalog codes are exactly three digits and never the reserved 999. */
+export function isValidMinistryCode(code: string): boolean {
+  return /^\d{3}$/.test(code) && code !== RESERVED_UNCATEGORIZED_CODE;
+}
+
+/** The single value stored on a line item and printed on the form: the account
+ *  code followed by the name ("245 Drinking Water"). Free text (no code) is
+ *  returned unchanged, so nothing extra is ever printed. */
+export function composeMinistry(code: string, name: string): string {
+  const c = code.trim();
+  const n = name.trim();
+  return c ? `${c} ${n}` : n;
+}
+
+/** The leading 3-digit account code of a composed value, or null for free text. */
+export function parseMinistryCode(value: string): string | null {
+  return value.match(/^(\d{3})\s+/)?.[1] ?? null;
+}
+
+/** Group active entries into the {label, options} shape the dropdown renders,
+ *  preserving each group's first-appearance order and the entries' order. */
+export function ministryGroupsFromEntries(
+  entries: readonly MinistryEntry[]
+): { label: string; options: string[] }[] {
+  const order: string[] = [];
+  const byGroup = new Map<string, string[]>();
+  for (const e of entries) {
+    if (!e.active) continue;
+    if (!byGroup.has(e.group)) {
+      byGroup.set(e.group, []);
+      order.push(e.group);
+    }
+    byGroup.get(e.group)!.push(composeMinistry(e.code, e.name));
+  }
+  return order.map((label) => ({ label, options: byGroup.get(label)! }));
+}
+
+/** The built-in list as catalog entries — the seed the treasurer's editor
+ *  starts from and the fallback the loader serves while the table is empty.
+ *  Every default option carries a 3-digit code, so the parse always succeeds. */
+export const DEFAULT_MINISTRY_ENTRIES: MinistryEntry[] = MINISTRY_GROUPS.flatMap((g, gi) =>
+  g.options.map((opt, oi) => {
+    const m = opt.match(/^(\d{3})\s+(.*)$/);
+    return {
+      code: m ? m[1] : "",
+      name: m ? m[2] : opt,
+      group: g.label,
+      description: "",
+      active: true,
+      sortOrder: gi * 100 + oi,
+    };
+  })
+);
+
 /**
  * The single string printed in the PDF's "For Ministry / Event" column.
  * Em dash rather than "/" because category names already contain slashes
