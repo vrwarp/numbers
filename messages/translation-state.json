@@ -2339,6 +2339,24 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Approvals.rejectConfirmTitle": {
+    "source": "Reject this claim?",
+    "context": "Title of the confirmation dialog shown when an approver taps Reject. Ends with a question mark.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Approvals.rejectConfirmBody": {
+    "source": "Rejecting is final — you won't be able to undo it or approve this claim later. {name} will have to revise and resubmit the claim for a new approval.",
+    "context": "Body of the reject-confirmation dialog, warning the approver that rejection cannot be undone or re-approved by them. {name} is the claim owner's name; only the owner can revise and resubmit.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Approvals.rejectConfirmAction": {
+    "source": "✗ Reject claim",
+    "context": "Confirm button inside the reject-confirmation dialog — the committing, irreversible action. Keep the ✗.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Finance.title": {
     "source": "Finance",
     "context": "Page title of the treasurer's queue; also the nav link.",

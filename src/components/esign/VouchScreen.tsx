@@ -12,7 +12,7 @@
  * front of them matches the identity on screen.
  */
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
@@ -31,57 +31,8 @@ import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
 import { decodeSubject } from "@/lib/esign/vouch-scan";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import VouchQrScanner from "./VouchQrScanner";
+import ConfirmDialog from "./ConfirmDialog";
 import { SigningConnectCard, useSigningSession } from "./SigningConnect";
-
-/** Bottom-sheet-on-mobile / centered-on-desktop confirm modal (matches the
- *  submit ceremony's chrome), used for both role changes and key revocation. */
-function ConfirmDialog({
-  title,
-  confirmLabel,
-  danger = false,
-  busy = false,
-  error,
-  onConfirm,
-  onCancel,
-  children,
-}: {
-  title: string;
-  confirmLabel: string;
-  danger?: boolean;
-  busy?: boolean;
-  error?: string | null;
-  onConfirm: () => void;
-  onCancel: () => void;
-  children: ReactNode;
-}) {
-  const tCommon = useTranslations("Common");
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="max-h-[92vh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-2xl bg-white p-6 sm:rounded-2xl">
-        <h3 className="text-lg font-bold">{title}</h3>
-        <div className="space-y-2 text-sm text-stone-600">{children}</div>
-        {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-        <div className="flex justify-end gap-2">
-          <button className="btn-secondary" onClick={onCancel} disabled={busy}>
-            {tCommon("cancel")}
-          </button>
-          <button
-            className={danger ? "btn-danger" : "btn-primary"}
-            onClick={onConfirm}
-            disabled={busy}
-            data-testid="confirm-dialog-submit"
-          >
-            {busy ? "…" : confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /**
  * Admin controls for one attested member, split along the two axes they live

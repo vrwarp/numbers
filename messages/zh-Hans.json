@@ -429,7 +429,10 @@
     "reject": "✗ 拒绝",
     "approveAndSign": "✓ 批准并签署",
     "pausedNotice": "您已关闭新的审批请求。以下报销单是在此之前指派给您的——请尽快处理，或由提交人改选其他审批人。",
-    "roleLostNotice": "您的审批人角色已被移除。您可以拒绝这些报销单，让提交人改选其他审批人，但无法批准。"
+    "roleLostNotice": "您的审批人角色已被移除。您可以拒绝这些报销单，让提交人改选其他审批人，但无法批准。",
+    "rejectConfirmTitle": "拒绝这份报销单？",
+    "rejectConfirmBody": "拒绝后无法撤销，你之后也无法再批准这份报销单。{name} 需要修改并重新提交，才能重新进入审批。",
+    "rejectConfirmAction": "✗ 拒绝报销单"
   },
   "Finance": {
     "title": "财务",

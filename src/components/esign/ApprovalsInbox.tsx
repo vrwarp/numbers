@@ -15,6 +15,7 @@ import { runDecisionCeremony } from "@/lib/esign/client";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
 import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain } from "./chain";
+import ConfirmDialog from "./ConfirmDialog";
 import { SigningConnectCard } from "./SigningConnect";
 import DocumentSignField, { type TextStamp } from "./DocumentSignField";
 import type { FieldAnchor, SignaturePlacement } from "@/lib/esign/placement";
@@ -221,6 +222,7 @@ function DecisionCeremony({
   const [typedName, setTypedName] = useState("");
   const [comment, setComment] = useState("");
   const [affirmed, setAffirmed] = useState(false);
+  const [confirmReject, setConfirmReject] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<SignaturePlacement | null>(null);
@@ -382,7 +384,7 @@ function DecisionCeremony({
             <button
               className="btn-secondary disabled:opacity-50"
               disabled={!verified || busy || !comment.trim()}
-              onClick={() => decide("reject")}
+              onClick={() => setConfirmReject(true)}
               data-testid="reject-button"
               title={!comment.trim() ? t("rejectNeedsComment") : undefined}
             >
@@ -407,6 +409,24 @@ function DecisionCeremony({
               {busy ? tEsign("signing") : t("approveAndSign")}
             </button>
           </div>
+          {/* Reject is a one-way door for the approver: the decision route only
+              acts while status is `submitted`, so once rejected they can never
+              re-open or re-approve — only the owner can revise and resubmit.
+              Spell that out before committing (the backend gate is the real
+              guard; this is the humane warning the quiet button lacked). */}
+          {confirmReject && (
+            <ConfirmDialog
+              title={t("rejectConfirmTitle")}
+              confirmLabel={t("rejectConfirmAction")}
+              danger
+              busy={busy}
+              error={actionError}
+              onConfirm={() => decide("reject")}
+              onCancel={() => setConfirmReject(false)}
+            >
+              <p>{t("rejectConfirmBody", { name: claim.ownerName })}</p>
+            </ConfirmDialog>
+          )}
         </>
       )}
     </div>
