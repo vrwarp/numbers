@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import AccountMenu from "./AccountMenu";
 import NavTabs, { type NavLink } from "./NavTabs";
@@ -13,6 +13,10 @@ interface Badges {
   role?: string;
   approvals?: number;
   finance?: number | null;
+}
+
+function sameArray(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
 }
 
 export default function NavBar({ userName, isAdmin }: { userName: string; isAdmin?: boolean }) {
@@ -27,11 +31,18 @@ export default function NavBar({ userName, isAdmin }: { userName: string; isAdmi
       .catch(() => {});
   }, [pathname]);
 
-  // Priority sets the collapse order when room runs out (lower collapses first);
-  // a badge outranks all of it, and the home tab is pinned (see NavTabs).
+  // hrefs the tab row couldn't fit; they fold into the account menu instead.
+  const [overflow, setOverflowState] = useState<string[]>([]);
+  const onOverflowChange = useCallback((next: string[]) => {
+    setOverflowState((prev) => (sameArray(prev, next) ? prev : next));
+  }, []);
+
+  // Receipts + Claims keep their labels and never collapse (pinned + keepLabel).
+  // The role tabs compress to icons, then collapse into the account menu, lowest
+  // priority first; a work badge outranks all of it (see nav-overflow.ts).
   const links: NavLink[] = [
-    { href: "/", label: t("shoebox"), icon: <ReceiptsIcon />, priority: 100, pinned: true },
-    { href: "/claims", label: t("claims"), icon: <ClaimsIcon />, priority: 90 },
+    { href: "/", label: t("shoebox"), icon: <ReceiptsIcon />, priority: 100, pinned: true, keepLabel: true },
+    { href: "/claims", label: t("claims"), icon: <ClaimsIcon />, priority: 90, pinned: true, keepLabel: true },
   ];
   if (badges.enabled && (badges.approvals ?? 0) > 0) {
     links.push({ href: "/approvals", label: t("approvals"), icon: <ApprovalsIcon />, badge: badges.approvals, priority: 80 });
@@ -41,9 +52,8 @@ export default function NavBar({ userName, isAdmin }: { userName: string; isAdmi
   if (badges.enabled && badges.finance !== null && badges.finance !== undefined) {
     links.push({ href: "/finance", label: t("finance"), icon: <FinanceIcon />, badge: badges.finance || undefined, priority: 70 });
   }
-  // Profile, language, Admin and sign out live in the AccountMenu, so the tab
-  // row stays functional-only. Admin's page + API still 404 for anyone
-  // unauthorized regardless.
+
+  const overflowTabs = links.filter((l) => overflow.includes(l.href));
 
   return (
     <header className="sticky top-0 z-40 border-b border-stone-200 bg-white/90 backdrop-blur">
@@ -56,9 +66,9 @@ export default function NavBar({ userName, isAdmin }: { userName: string; isAdmi
           <span aria-hidden>⛪</span> <span className="hidden sm:inline">Numbers</span>
         </Link>
         <nav className="flex min-w-0 flex-1 items-center" aria-label="Main">
-          <NavTabs links={links} />
+          <NavTabs links={links} onOverflowChange={onOverflowChange} />
         </nav>
-        <AccountMenu userName={userName} isAdmin={isAdmin} />
+        <AccountMenu userName={userName} isAdmin={isAdmin} overflowTabs={overflowTabs} />
       </div>
     </header>
   );

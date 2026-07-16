@@ -5,17 +5,27 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import LocaleSwitcher from "./LocaleSwitcher";
+import { navBadgeId, navTestId, type NavLink } from "./NavTabs";
 import { signOut } from "@/lib/sign-out";
 
 /**
- * The account cluster, lifted out of the tab row so the role-gated tabs
- * (Approvals, Finance) fit a phone width without horizontal scroll. Holds the
- * low-frequency items — Profile, language, Admin, sign out — behind one
- * top-right control. Lives OUTSIDE the nav's overflow-x container so its
- * dropdown isn't clipped, and is the only place a phone can sign out (the old
- * inline button was sm:block, i.e. desktop-only).
+ * The account cluster — Profile, language, Admin, sign out — behind one
+ * top-right control, so the tab row stays functional-only and fits a phone even
+ * for a treasurer or admin. It is ALSO where nav tabs land when the row runs out
+ * of room (overflowTabs): there is one dropdown, not two. Any overflowed tab
+ * that carries a work badge lights an aggregated dot on the avatar so a
+ * pending-work signal is never lost. Lives outside the nav's overflow container
+ * so its panel isn't clipped, and is the only place a phone can sign out.
  */
-export default function AccountMenu({ userName, isAdmin }: { userName: string; isAdmin?: boolean }) {
+export default function AccountMenu({
+  userName,
+  isAdmin,
+  overflowTabs = [],
+}: {
+  userName: string;
+  isAdmin?: boolean;
+  overflowTabs?: NavLink[];
+}) {
   const t = useTranslations("NavBar");
   const tc = useTranslations("Common");
   const pathname = usePathname();
@@ -40,8 +50,10 @@ export default function AccountMenu({ userName, isAdmin }: { userName: string; i
   }, [open]);
 
   const initial = (userName.trim()[0] ?? "?").toUpperCase();
+  const overflowBadge = overflowTabs.some((l) => l.badge);
   const itemClass =
     "block w-full rounded-lg px-2.5 py-2 text-left text-sm text-stone-700 hover:bg-stone-100";
+  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
     <div ref={ref} className="relative shrink-0">
@@ -52,7 +64,7 @@ export default function AccountMenu({ userName, isAdmin }: { userName: string; i
         aria-expanded={open}
         aria-label={t("account")}
         data-testid="account-menu"
-        className="flex items-center gap-1 rounded-full border border-stone-200 bg-white py-1 pl-1 pr-2 text-stone-600 hover:bg-stone-100"
+        className="relative flex items-center gap-1 rounded-full border border-stone-200 bg-white py-1 pl-1 pr-2 text-stone-600 hover:bg-stone-100"
       >
         <span
           aria-hidden
@@ -63,6 +75,14 @@ export default function AccountMenu({ userName, isAdmin }: { userName: string; i
         <span aria-hidden className="text-[10px] text-stone-400">
           ▾
         </span>
+        {overflowBadge ? (
+          <span
+            className="absolute right-1 top-0.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"
+            data-testid="badge-account"
+          >
+            <span className="sr-only">{t("pendingWork")}</span>
+          </span>
+        ) : null}
       </button>
       {open ? (
         // A disclosure dropdown of plain links, not an ARIA menu — no arrow-key
@@ -74,6 +94,31 @@ export default function AccountMenu({ userName, isAdmin }: { userName: string; i
           <p className="truncate px-2.5 py-1.5 text-xs text-stone-400">
             {t("signedInAs", { name: userName })}
           </p>
+          {overflowTabs.length > 0 ? (
+            <>
+              {overflowTabs.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  data-testid={navTestId(l.href)}
+                  className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-sm ${
+                    isActive(l.href) ? "bg-indigo-50 text-indigo-700" : "text-stone-700 hover:bg-stone-100"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span aria-hidden>{l.icon}</span>
+                    {l.label}
+                  </span>
+                  {l.badge ? (
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" data-testid={navBadgeId(l.href)}>
+                      <span className="sr-only">{t("pendingWork")}</span>
+                    </span>
+                  ) : null}
+                </Link>
+              ))}
+              <div className="my-1 h-px bg-stone-100" />
+            </>
+          ) : null}
           <Link href="/profile" className={itemClass}>
             {t("profile")}
           </Link>

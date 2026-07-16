@@ -62,20 +62,3 @@ export function FinanceIcon(props: SVGProps<SVGSVGElement>) {
     </Base>
   );
 }
-
-/** More — overflowed tabs live behind this. Filled dots read at small sizes. */
-export function MoreIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="h-[1.15rem] w-[1.15rem] shrink-0"
-      aria-hidden
-      {...props}
-    >
-      <circle cx="5" cy="12" r="1.7" />
-      <circle cx="12" cy="12" r="1.7" />
-      <circle cx="19" cy="12" r="1.7" />
-    </svg>
-  );
-}

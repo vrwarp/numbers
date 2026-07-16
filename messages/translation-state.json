@@ -184,12 +184,6 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "NavBar.more": {
-    "source": "More",
-    "context": "Label/aria-label for the nav overflow menu button that reveals tabs which did not fit. Keep very short.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
   "Home.profileNudge": {
     "source": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
     "context": "Warning banner on the home page; <link> wraps the word that opens the profile page.",
