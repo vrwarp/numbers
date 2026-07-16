@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { computeLineItemChanges } from "@/lib/audit";
 
+import { enqueueClaimEmbeddingDebounced } from "@/lib/embeddings/queue";
+
 export const runtime = "nodejs";
 
 const PatchSchema = z
@@ -84,6 +86,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     const totalCents = items.reduce((s, it) => (it.isExcluded ? s : s + it.amountCents), 0);
     await prisma.reimbursement.update({ where: { id: item.reimbursement.id }, data: { totalCents } });
 
+    enqueueClaimEmbeddingDebounced(item.reimbursement.id, userId);
     return NextResponse.json({ lineItem: updated, totalCents });
   });
 }

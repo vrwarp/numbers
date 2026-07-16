@@ -6,6 +6,8 @@ import { composeDescription } from "@/lib/ai/compose";
 import { computeLineItemChanges } from "@/lib/audit";
 import { parseDollarsToCents } from "@/lib/money";
 
+import { enqueueClaimEmbeddingDebounced, enqueueReceiptEmbedding } from "@/lib/embeddings/queue";
+
 export const runtime = "nodejs";
 
 // Same five fields the LLM is asked to transcribe (see src/lib/ai/schema.ts),
@@ -98,6 +100,9 @@ export async function PATCH(
     const totalClaimCents = items.reduce((s, it) => (it.isExcluded ? s : s + it.amountCents), 0);
     await prisma.reimbursement.update({ where: { id }, data: { totalCents: totalClaimCents } });
 
+    // Manual entry restamps the receipt + changes draft content (§5.2).
+    enqueueReceiptEmbedding(receiptId, userId);
+    enqueueClaimEmbeddingDebounced(id, userId);
     return NextResponse.json({ lineItem: updated, totalCents: totalClaimCents });
   });
 }
@@ -158,6 +163,7 @@ export async function DELETE(
     const totalCents = items.reduce((s, it) => (it.isExcluded ? s : s + it.amountCents), 0);
     await prisma.reimbursement.update({ where: { id }, data: { totalCents } });
 
+    enqueueClaimEmbeddingDebounced(id, userId);
     return NextResponse.json({ ok: true, totalCents });
   });
 }

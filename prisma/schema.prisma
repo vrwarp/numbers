@@ -68,6 +68,11 @@ model Receipt {
   purchaseDate         String  @default("")
   extractedTotalCents  Int?
   extractedRefundCents Int?
+  // sha256 (hex) of the stored file bytes, stamped wherever the file is
+  // (re)written — upload, image edit, restore — and lazily at first embed for
+  // pre-feature rows. Lets the search reconcile sweep detect staleness without
+  // re-reading files off disk (docs/SEARCH_DESIGN.md §4).
+  fileSha256           String  @default("")
   createdAt      DateTime               @default(now())
   lineItems      LineItem[]
   reimbursements ReimbursementReceipt[]
@@ -372,6 +377,84 @@ model Ministry {
   updatedAt   DateTime @updatedAt
 
   @@index([active, sortOrder])
+}
+
+// --- Semantic search (docs/SEARCH_DESIGN.md) ---------------------------------
+
+// Single row (app-enforced): the admin-editable embedding backend config.
+// Seeded once from EMBEDDING_* config values; thereafter the DB row is
+// authoritative and the admin card is the way to change it.
+model EmbeddingSettings {
+  id          String   @id @default(cuid())
+  enabled     Boolean  @default(false)
+  endpoint    String   @default("")
+  apiKey      String   @default("") // never returned by the admin GET (fingerprint only)
+  model       String   @default("") // index identity: changing it wipes + rebuilds
+  dim         Int      @default(0)  // detected by the probe, not typed by admins
+  // Query-side instruction prefix; queries-only, so editing never re-indexes.
+  queryPrefix String   @default("")
+  // Semantic score floor ×1000 (integer for SQLite hygiene). Same edit class
+  // as queryPrefix: apply in place.
+  minScoreMilli Int    @default(250)
+  updatedAt   DateTime @updatedAt
+}
+
+// One vector per indexed document per model. targetId is a Receipt.id or
+// Reimbursement.id — plain string, no FK: rows are deleted by the ingest code
+// alongside their target, and the sweep GCs any survivors.
+model Embedding {
+  id           String   @id @default(cuid())
+  kind         String // "receipt" | "claim"
+  targetId     String
+  // Denormalized owner + year so the search path scans ONE table with no
+  // joins and applies tenant scoping before any vector math.
+  userId       String
+  year         Int
+  model        String // which backend produced the vector — part of row identity
+  dim          Int
+  vector       Bytes // Float32Array little-endian, L2-normalized, length == dim
+  // Fingerprint of the FULL embedding input, rebuilt from DB columns to detect
+  // staleness: receipt = sha256(fileSha256‖note‖merchant‖purchaseDate);
+  // claim = sha256(composite text).
+  sourceSha256 String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([kind, targetId, model])
+  @@index([model, userId])
+}
+
+// Durable embed work queue. One live row per (kind, targetId, model);
+// re-triggering upserts in place (generation++) rather than growing the queue.
+model EmbeddingJob {
+  id             String    @id @default(cuid())
+  kind           String // "receipt" | "claim"
+  targetId       String
+  // Denormalized owner so per-search "your items still indexing" counts are
+  // one indexed query.
+  userId         String
+  model          String
+  status         String    @default("queued") // queued | running | done | failed
+  // Bumped by every enqueue-upsert; the worker's terminal write is conditional
+  // on it, so an enqueue racing a running embed can never be lost.
+  generation     Int       @default(0)
+  // 0 = live event, 1 = backfill/rebuild (drained after priority 0).
+  priority       Int       @default(0)
+  attempts       Int       @default(0)
+  nextAttemptAt  DateTime  @default(now())
+  // Crash-safety lease: a "running" row whose lease expired is reclaimable.
+  leaseExpiresAt DateTime?
+  lastError      String    @default("")
+  // Fingerprint at terminal failure: the sweep re-enqueues a failed job ONLY
+  // when the rebuilt fingerprint differs (content changed) — permanently
+  // unreadable items must not re-burn retries daily.
+  failedSourceSha256 String @default("")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([kind, targetId, model])
+  @@index([status, priority, nextAttemptAt])
+  @@index([userId, status])
 }
 
 // Join table: a claim bundles many receipts; a receipt may (rarely) appear in

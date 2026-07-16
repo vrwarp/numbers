@@ -5,6 +5,8 @@ import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { computeLineItemChanges, type ChangeSet } from "@/lib/audit";
 import { mostCommonMinistryEvent } from "@/lib/ministries";
 
+import { enqueueClaimEmbeddingDebounced, deleteEmbeddingsFor } from "@/lib/embeddings/queue";
+
 export const runtime = "nodejs";
 
 // Review-screen shape: line items grouped client-side by receipt. The PATCH
@@ -196,6 +198,9 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         : []),
     ]);
 
+    // Draft content changed → debounced re-index (docs/SEARCH_DESIGN.md §5.2).
+    enqueueClaimEmbeddingDebounced(id, userId);
+
     const reimbursement = await prisma.reimbursement.findFirst({
       where: { id, userId },
       include: REVIEW_INCLUDE,
@@ -213,6 +218,7 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
     if (!reimbursement) throw new ApiError(404, "Claim not found", "claimNotFound");
     if (reimbursement.status !== "draft") throw new ApiError(409, "Only draft claims can be deleted", "onlyDraftDeletable");
     await prisma.reimbursement.delete({ where: { id } });
+    await deleteEmbeddingsFor("claim", id);
     return NextResponse.json({ ok: true });
   });
 }

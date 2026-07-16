@@ -4,6 +4,8 @@ import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { compressReceiptImage, isSupportedUpload } from "@/lib/image";
 import { saveReceiptFile } from "@/lib/storage";
 import { createId } from "@paralleldrive/cuid2";
+import { createHash } from "crypto";
+import { enqueueReceiptEmbedding } from "@/lib/embeddings/queue";
 
 export const runtime = "nodejs";
 
@@ -70,10 +72,13 @@ export async function POST(req: NextRequest) {
 
       const id = createId();
       const filePath = await saveReceiptFile(userId, `${id}.${ext}`, data);
+      const fileSha256 = createHash("sha256").update(data).digest("hex");
       const receipt = await prisma.receipt.create({
-        data: { id, userId, filePath, mimeType, originalName: file.name, sizeBytes: data.length, note },
+        data: { id, userId, filePath, mimeType, originalName: file.name, sizeBytes: data.length, note, fileSha256 },
         select: { id: true, originalName: true, mimeType: true, sizeBytes: true, status: true, note: true, createdAt: true },
       });
+      // Search trigger (docs/SEARCH_DESIGN.md §5.2): index as soon as available.
+      enqueueReceiptEmbedding(id, userId);
       created.push(receipt);
     }
     return NextResponse.json({ receipts: created }, { status: 201 });

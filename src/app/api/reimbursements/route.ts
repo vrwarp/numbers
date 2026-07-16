@@ -12,6 +12,8 @@ import {
   manualClaimRows,
 } from "@/lib/claims";
 
+import { enqueueReceiptEmbedding, enqueueClaimEmbeddingDebounced } from "@/lib/embeddings/queue";
+
 export const runtime = "nodejs";
 // Per-receipt AI extraction on a large claim can take a while — especially
 // when quota errors trigger ~60s cooldown-and-retry cycles (AI_QUOTA_*).
@@ -99,6 +101,13 @@ async function generateClaim(
     await prisma.extractionLog.createMany({
       data: outcomes.map((o) => extractionLogRow(userId, o, reimbursement.id)),
     });
+  }
+
+  // Search triggers (docs/SEARCH_DESIGN.md §5.2): the new draft debounces;
+  // extraction restamped merchant/purchaseDate on the receipts → re-embed them.
+  enqueueClaimEmbeddingDebounced(reimbursement.id, userId);
+  for (const e of extractions) {
+    if (e.receiptUpdate) enqueueReceiptEmbedding(e.receiptUpdate.id, userId);
   }
 
   return reimbursement;

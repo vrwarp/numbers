@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { deleteStoredFile, deletePreviewCache } from "@/lib/storage";
+import { enqueueReceiptEmbedding, deleteEmbeddingsFor } from "@/lib/embeddings/queue";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,8 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       data: { note: parsed.data.note.trim() },
       select: { id: true, note: true },
     });
+    // The note is embedded text (docs/SEARCH_DESIGN.md §5.1) → re-index.
+    enqueueReceiptEmbedding(id, userId);
     return NextResponse.json({ receipt: updated });
   });
 }
@@ -37,6 +40,7 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
     const inUse = await prisma.reimbursementReceipt.count({ where: { receiptId: id } });
     if (inUse > 0) throw new ApiError(409, "Receipt is part of a claim and cannot be deleted", "receiptOnClaim");
     await prisma.receipt.delete({ where: { id } });
+    await deleteEmbeddingsFor("receipt", id);
     await deleteStoredFile(receipt.filePath);
     if (receipt.originalFilePath) await deleteStoredFile(receipt.originalFilePath);
     // Best-effort: drop the cached raster preview if this was a PDF (no-op otherwise).

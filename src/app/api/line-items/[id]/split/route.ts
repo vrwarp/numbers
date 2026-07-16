@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 
+import { enqueueClaimEmbeddingDebounced } from "@/lib/embeddings/queue";
+
 export const runtime = "nodejs";
 
 const SplitSchema = z.object({
@@ -99,6 +101,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       ordered.map((it, i) => prisma.lineItem.update({ where: { id: it.id }, data: { sortOrder: i } }))
     );
 
+    enqueueClaimEmbeddingDebounced(item.reimbursement.id, userId);
     return NextResponse.json({ original: updated, created }, { status: 201 });
   });
 }

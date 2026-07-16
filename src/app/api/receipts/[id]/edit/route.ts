@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { readStoredFile, saveReceiptFile } from "@/lib/storage";
 import { ImageTransformError, transformReceiptImage } from "@/lib/image";
+import { createHash } from "crypto";
+import { enqueueReceiptEmbedding } from "@/lib/embeddings/queue";
 
 export const runtime = "nodejs";
 
@@ -143,9 +145,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         sizeBytes: output.length,
         originalFilePath,
         mimeType: detectImageMime(output, receipt.mimeType),
+        // File bytes changed → new hash → the search sweep/worker see it stale.
+        fileSha256: createHash("sha256").update(output).digest("hex"),
       },
       select: { id: true, sizeBytes: true },
     });
+    enqueueReceiptEmbedding(id, userId);
 
     const pureRestore = restore && !hasTransform;
     await prisma.auditEvent.create({

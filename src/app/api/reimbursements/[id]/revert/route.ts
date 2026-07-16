@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 
+import { enqueueClaimEmbeddingDebounced } from "@/lib/embeddings/queue";
+
 export const runtime = "nodejs";
 
 /**
@@ -65,6 +67,8 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
       }),
     ]);
 
+    // Reverted claims stay searchable; refresh if post-revert edits land (§5.2).
+    enqueueClaimEmbeddingDebounced(id, userId);
     return NextResponse.json({ ok: true });
   });
 }
