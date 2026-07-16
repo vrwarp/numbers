@@ -61,7 +61,11 @@ function DutyRow({
       </div>
       <button
         type="button"
-        className={paused ? "btn-primary" : "btn-secondary"}
+        // shrink-0 + whitespace-nowrap: the neighbouring description varies in
+        // length per row, and without these the flex row squeezes the button
+        // until "Turn off" wraps unevenly. min-w keeps all rows' buttons the
+        // same width even when some read "Turn on" and others "Turn off".
+        className={`min-w-24 shrink-0 whitespace-nowrap ${paused ? "btn-primary" : "btn-secondary"}`}
         disabled={busy}
         onClick={() => void onToggle(flag, !paused)}
         data-testid={`duty-${flag}-toggle`}
