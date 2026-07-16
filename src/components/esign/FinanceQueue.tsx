@@ -82,11 +82,25 @@ export default function FinanceQueue() {
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-stone-400">{t("paidHeader")}</h2>
           <ul className="space-y-2">
             {paid.map((c) => (
-              <li key={c.id} className="card flex items-center justify-between p-3 text-sm">
-                <span>
+              <li
+                key={c.id}
+                className="card card-lift flex items-center justify-between gap-3 text-sm"
+                data-testid={`paid-${c.id}`}
+              >
+                {/* The row opens the latest packet (the approved copy, with the
+                    approver's signature stamped on). The certificate download
+                    stays a separate control on the right — hence a stretched
+                    link across the left, not a nested anchor. */}
+                <a
+                  className="pressable min-w-0 flex-1 truncate rounded-l-xl py-3 pl-3"
+                  href={`/api/reimbursements/${c.id}/packet`}
+                  target="_blank"
+                  rel="noreferrer"
+                  data-testid={`paid-packet-${c.id}`}
+                >
                   {c.ownerName} · {formatCents(c.totalCents)}
-                </span>
-                <div className="flex items-center gap-2">
+                </a>
+                <div className="flex shrink-0 items-center gap-2 py-3 pr-3">
                   <a className="text-indigo-600 underline" href={`/api/reimbursements/${c.id}/certificate`}>
                     {t("certificate")}
                   </a>

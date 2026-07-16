@@ -116,11 +116,26 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
           </h2>
           <ul className="space-y-2">
             {history.map((c) => (
-              <li key={c.id} className="card flex items-center justify-between gap-3 p-3 text-sm">
-                <span className="min-w-0 truncate">
+              <li
+                key={c.id}
+                className="card card-lift flex items-center justify-between gap-3 text-sm"
+                data-testid={`decided-${c.id}`}
+              >
+                {/* The row opens the latest packet — the approved copy for an
+                    approved/paid claim, the signed submission for a rejected
+                    one. The certificate download (approved/paid only) stays a
+                    separate control on the right, so this is a stretched link
+                    across the left rather than a nested anchor. */}
+                <a
+                  className="pressable min-w-0 flex-1 truncate rounded-l-xl py-3 pl-3"
+                  href={`/api/reimbursements/${c.id}/packet`}
+                  target="_blank"
+                  rel="noreferrer"
+                  data-testid={`decided-packet-${c.id}`}
+                >
                   {c.ownerName} · {formatCents(c.totalCents)}
-                </span>
-                <span className="flex shrink-0 items-center gap-3">
+                </a>
+                <span className="flex shrink-0 items-center gap-3 py-3 pr-3">
                   {(c.status === "approved" || c.status === "paid") && (
                     <a
                       className="text-indigo-600 underline"
