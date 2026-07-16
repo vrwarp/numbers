@@ -4,6 +4,7 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import { currentUserId } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { formatCents } from "@/lib/money";
+import { embeddingEnabled } from "@/lib/embeddings/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ export default async function ClaimsPage() {
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { lineItems: true, receipts: true } } },
   });
+  const searchEnabled = await embeddingEnabled().catch(() => false);
   const t = await getTranslations("Claims");
   const tStatus = await getTranslations("Common.status");
   const format = await getFormatter();
@@ -38,6 +40,16 @@ export default async function ClaimsPage() {
         <h1 className="text-2xl font-bold">{t("title")}</h1>
         <p className="text-sm text-stone-500">{t("subtitle")}</p>
       </div>
+
+      {searchEnabled && (
+        <Link
+          href="/search?type=claim"
+          data-testid="claims-search-pill"
+          className="card pressable flex items-center gap-2 px-4 py-2.5 text-sm text-stone-500"
+        >
+          <span aria-hidden>🔍</span> {t("searchPill")}
+        </Link>
+      )}
 
       {claims.length === 0 ? (
         <div className="card p-10 text-center text-stone-500">

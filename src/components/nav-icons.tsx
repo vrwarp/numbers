@@ -73,3 +73,13 @@ export function VouchIcon(props: SVGProps<SVGSVGElement>) {
     </Base>
   );
 }
+
+/** Search — magnifier. */
+export function SearchIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Base {...props}>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="m20 20-4.9-4.9" />
+    </Base>
+  );
+}

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import AccountMenu from "./AccountMenu";
 import NavTabs, { type NavLink } from "./NavTabs";
-import { ApprovalsIcon, ClaimsIcon, FinanceIcon, ReceiptsIcon, VouchIcon } from "./nav-icons";
+import { ApprovalsIcon, ClaimsIcon, FinanceIcon, ReceiptsIcon, SearchIcon, VouchIcon } from "./nav-icons";
 
 interface Badges {
   enabled: boolean;
@@ -25,10 +25,12 @@ export default function NavBar({
   userName,
   isAdmin,
   canManageMinistries,
+  searchEnabled,
 }: {
   userName: string;
   isAdmin?: boolean;
   canManageMinistries?: boolean;
+  searchEnabled?: boolean;
 }) {
   const pathname = usePathname();
   const t = useTranslations("NavBar");
@@ -58,6 +60,12 @@ export default function NavBar({
     { href: "/", label: t("shoebox"), icon: <ReceiptsIcon />, priority: 100, pinned: true, keepLabel: true },
     { href: "/claims", label: t("claims"), icon: <ClaimsIcon />, priority: 90, pinned: true, keepLabel: true },
   ];
+  // Declared placement (SEARCH_DESIGN §7.1): labeled on desktop, compresses to
+  // an icon on narrow widths, pinned so it never vanishes into the overflow —
+  // the inline pills on Receipts/Claims are the primary mobile path anyway.
+  if (searchEnabled) {
+    links.push({ href: "/search", label: t("search"), icon: <SearchIcon />, priority: 85, pinned: true });
+  }
   // Claims already assigned keep the tab (with its badge) even while the
   // member has paused approvals (A10) — pausing stops new submissions, not
   // the ones waiting on them. Paused + nothing pending ⇒ no tab.

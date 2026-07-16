@@ -40,7 +40,8 @@
     "admin": "管理",
     "account": "账户",
     "budgetCategories": "Budget categories",
-    "pendingWork": "有待处理"
+    "pendingWork": "有待处理",
+    "search": "搜索"
   },
   "Home": {
     "profileNudge": "您的<link>个人资料</link>需要填写姓名和邮寄地址——两者都会打印在报销表上。"
@@ -64,7 +65,8 @@
     "subtitle": "草稿需要核对；已生成的报销单可以打印签字。",
     "emptyTitle": "还没有报销单",
     "emptyBody": "在<link>收据</link>页面选择收据，然后点“新建报销单”。",
-    "counts": "{items} 个项目 · {receipts, plural, other {# 张收据}}"
+    "counts": "{items} 个项目 · {receipts, plural, other {# 张收据}}",
+    "searchPill": "搜索报销单…"
   },
   "Profile": {
     "title": "个人资料",
@@ -150,7 +152,9 @@
     "prepareHintLocal": "保存时上传。之后也可以在卡片上修改说明。",
     "prepareHintUploaded": "之后也可以在卡片上修改说明。",
     "skipAll": "全部跳过",
-    "quotaRingAria": "约 {seconds, plural, other {# 秒}}后重试"
+    "quotaRingAria": "约 {seconds, plural, other {# 秒}}后重试",
+    "searchPill": "搜索收据…",
+    "openGoneToast": "这张收据已不在你的收据页。"
   },
   "Viewer": {
     "ariaTitle": "收据：{name}",
@@ -751,7 +755,8 @@
       "invalid": "Those budget categories couldn’t be saved — check the form and try again.",
       "codeFormat": "Account code must be exactly 3 digits and not 999: “{code}”.",
       "codeDuplicate": "Two active categories share the code {code} — codes must be unique."
-    }
+    },
+    "embeddingProbeFailed": "无法连接嵌入服务器。请检查地址和密钥，或使用“不测试直接保存”。"
   },
   "AddReceipts": {
     "title": "向这张报销单添加收据",
@@ -929,7 +934,65 @@
     "fields_FIREBASE_AUTH_UPSTREAM_HOST_label": "登录代理上游",
     "fields_FIREBASE_AUTH_UPSTREAM_HOST_help": "高级选项。第一方登录代理转发到的主机。留空则由项目 id 推导（project.firebaseapp.com），普通项目使用即可——仅在特殊的 Firebase 配置下才需设置。",
     "fields_ADMIN_EMAILS_label": "管理员邮箱",
-    "fields_ADMIN_EMAILS_help": "获得本区域管理权限的邮箱，用逗号分隔——在不使用电子签署名册的情况下添加管理员的方式。仅授予应用访问权限，不会更改任何人的签署角色。立即生效；请保留你自己的邮箱，以免把自己锁在外面。"
+    "fields_ADMIN_EMAILS_help": "获得本区域管理权限的邮箱，用逗号分隔——在不使用电子签署名册的情况下添加管理员的方式。仅授予应用访问权限，不会更改任何人的签署角色。立即生效；请保留你自己的邮箱，以免把自己锁在外面。",
+    "tab_search": "搜索",
+    "search": {
+      "loading": "加载中…",
+      "loadFailed": "无法加载搜索设置。",
+      "actionFailed": "操作没有成功，请重试。",
+      "statusUpToDate": "搜索已是最新——已索引 {indexed} 个项目。",
+      "statusIndexing": "{count} 个项目排队中——约需 {minutes} 分钟。",
+      "rebuildProgress": "重建中：{done}/{total}",
+      "memberPreview": "成员目前看到的提示：“搜索仍在为旧项目建立索引——还剩约 {count} 项。”",
+      "queueDetails": "详情",
+      "queueDetailLine": "{queued} 排队 · {running} 处理中 · {failed} 失败 · 每项约 {avgSeconds} 秒",
+      "settingsTitle": "搜索服务器",
+      "connectTitle": "连接搜索",
+      "connectIntro": "搜索让成员用描述来查找收据和报销单。请向管理教会 AI 服务器的人索取以下两项并填入。",
+      "envHint": "服务器环境变量里的端点与此处不同——首次配置后，以本页设置为准。",
+      "endpointLabel": "服务器地址",
+      "apiKeyLabel": "API 密钥",
+      "apiKeyKept": "已保存（{fingerprint}）——留空则保持不变",
+      "modelLabel": "模型名称",
+      "modelWarning": "它标识当前搜索索引——更改会从头重建搜索（需数小时）。",
+      "dimLabel": "向量维度：",
+      "dimDetected": "已检测：{dim}",
+      "dimUnknown": "首次连接测试时自动检测",
+      "queryPrefixLabel": "查询指令前缀",
+      "minScoreLabel": "匹配阈值（0–1）",
+      "enabledLabel": "搜索已开启",
+      "skipProbeLabel": "不测试直接保存（我知道服务器暂时不可用）",
+      "manualDimLabel": "向量维度（手动）",
+      "testConnection": "测试连接",
+      "probing": "处理中…",
+      "probeOk": "连接成功——维度 {dim}，{ms} 毫秒。",
+      "save": "保存",
+      "saving": "保存中…",
+      "saved": "已保存。",
+      "savedRebuilding": "已保存——搜索索引正在后台重建。",
+      "failedTitle": "搜索无法索引的项目（{count}）",
+      "retry": "重试",
+      "retryAll": "全部重试",
+      "rawError": "技术细节",
+      "failedClass": {
+        "unreadableImage": "搜索服务器无法读取这张{kind}的图片。仍可按文字精确查找，只是无法按描述搜索。",
+        "tooLong": "这个{kind}内容过长，搜索服务器无法完整读取。仍可按文字查找。",
+        "endpointDown": "处理这个{kind}时无法连接搜索服务器。恢复后可重试。",
+        "generic": "搜索无法索引这个{kind}。仍可按文字精确查找。"
+      },
+      "kind": {
+        "receipt": "收据",
+        "claim": "报销单"
+      },
+      "testQueryTitle": "试搜一下（显示分数）",
+      "testQueryPlaceholder": "例如：退修会买的折叠桌",
+      "run": "运行",
+      "testNoResults": "没有超过阈值的结果。",
+      "scoreExact": "精确",
+      "rebuildTitle": "重建索引",
+      "rebuildHint": "在当前模型上重新读取全部内容——当搜索服务器被悄悄更换时使用。",
+      "rebuild": "重建"
+    }
   },
   "Ministries": {
     "title": "Budget categories",
@@ -958,5 +1021,45 @@
     "reservedNote": "Codes are 3 digits. 999 is reserved for uncategorized “Other…” entries and never prints on the form.",
     "empty": "No categories yet — add one to get started.",
     "countActive": "{active} of {total} active"
+  },
+  "Search": {
+    "title": "搜索",
+    "placeholder": "搜索收据和报销单…",
+    "searchButton": "搜索",
+    "searching": "搜索中…",
+    "stillSearching": "仍在搜索…",
+    "searchFailed": "搜索没有成功，请重试。",
+    "scopeLabel": "搜索范围",
+    "scopeMine": "我的",
+    "scopeAll": "全教会",
+    "scopeDecided": "我审批过的",
+    "scopeDecidedHint": "我批准或拒绝过的——不含仍在等待审批的",
+    "typeChipReceipts": "只搜收据",
+    "typeChipClaims": "只搜报销单",
+    "typeChipRemove": "改为搜索全部",
+    "exactMatches": "完全匹配",
+    "showAllExact": "显示全部 {count} 条完全匹配",
+    "bestMatch": "最佳结果",
+    "notOnClaim": "未加入报销单",
+    "findInReceipts": "在收据页查找",
+    "onClaim": "已在报销单 · {status}",
+    "receiptFallbackTitle": "收据",
+    "teachLine": "描述你记得的内容——买了什么、花了多少钱、或者是为哪个活动买的。",
+    "example1": "青年退修会买的折叠桌",
+    "example2": "$102.10",
+    "example3": "王姐妹的退修会零食",
+    "exampleDecided": "浏览我审批过的报销单",
+    "recentSearches": "最近搜索",
+    "recentClear": "清除",
+    "emptyTitle": "没有找到匹配结果",
+    "emptyBody": "试试更少或不同的词——精确文字也已搜索过。",
+    "emptyPendingTitle": "还没有结果——仍在建立索引",
+    "pendingReceipts": "{count, plural, other {你有 # 张收据正在加入搜索——通常约一分钟后就绪。}}",
+    "pendingClaims": "{count, plural, other {你最近编辑的 # 份报销单会在停止编辑几分钟后出现在搜索中。}}",
+    "pendingRebuild": "搜索仍在为旧项目建立索引——还剩约 {count} 项。",
+    "resultsAnnounce": "{count, plural, =0 {没有结果} other {# 个结果}}",
+    "degraded": "目前搜索只能找到包含你输入的确切文字的结果，按描述搜索很快恢复。",
+    "dateHint": "搜索匹配的是描述而不是日期——每条结果上都标有日期。",
+    "showMore": "显示更多"
   }
 }

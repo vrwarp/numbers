@@ -8,6 +8,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { useOpenParam } from "@/lib/use-open-param";
 import { useTranslations } from "next-intl";
 import { formatCents } from "@/lib/money";
 import { runPaidCeremony } from "@/lib/esign/client";
@@ -22,6 +23,14 @@ export default function FinanceQueue() {
   const apiError = useApiErrorMessage();
   const [claims, setClaims] = useState<InboxClaim[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
+  // ?open=<id> deep link from search results (shared contract).
+  useOpenParam({
+    ready: claims.length > 0,
+    exists: (id) => claims.some((c) => c.id === id),
+    beforeScroll: (id) => {
+      if (claims.find((c) => c.id === id)?.status === "approved") setOpenId(id);
+    },
+  });
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -55,7 +64,7 @@ export default function FinanceQueue() {
       ) : (
         <ul className="space-y-3">
           {queue.map((c) => (
-            <li key={c.id} className="card card-lift" data-testid={`finance-${c.id}`}>
+            <li key={c.id} className="card card-lift" data-testid={`finance-${c.id}`} data-open-id={c.id}>
               <button className="pressable flex w-full items-center justify-between gap-3 p-4 text-left" onClick={() => setOpenId(openId === c.id ? null : c.id)}>
                 {/* min-w-0 + truncate so a long claim description shrinks
                     instead of pushing the amount off the card. */}
@@ -82,7 +91,7 @@ export default function FinanceQueue() {
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-stone-400">{t("paidHeader")}</h2>
           <ul className="space-y-2">
             {paid.map((c) => (
-              <li key={c.id} className="card card-lift" data-testid={`paid-${c.id}`}>
+              <li key={c.id} className="card card-lift" data-testid={`paid-${c.id}`} data-open-id={c.id}>
                 {/* The whole row opens the approval certificate — the signature
                     cover page followed by the full signed packet and the
                     offline verification bundle, so it supersedes a bare packet

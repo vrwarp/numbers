@@ -22,6 +22,7 @@ export type ReceiptItem = {
   note: string;
   mimeType: string;
   ownerName?: string;
+  ownerId: string;
   year: number;
   claims: { id: string; status: string }[];
 };
@@ -95,6 +96,7 @@ async function hydrate(
         purchaseDate: r.purchaseDate,
         note: r.note,
         mimeType: r.mimeType,
+        ownerId: r.userId,
         year: /^(\d{4})-/.test(r.purchaseDate)
           ? Number(r.purchaseDate.slice(0, 4))
           : r.createdAt.getUTCFullYear(),

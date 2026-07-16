@@ -126,3 +126,14 @@ body {
 .shake-x {
   animation: shake-x 0.4s ease-in-out;
 }
+
+/* The ?open=<id> deep-link landing pulse (src/lib/use-open-param.ts): a brief
+   ring so the scrolled-to card is unmistakable, fading out on its own. */
+.highlight-pulse {
+  animation: highlight-pulse 1s ease-in-out 3;
+  border-radius: 1rem;
+}
+@keyframes highlight-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.45); }
+}
