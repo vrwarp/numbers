@@ -66,7 +66,14 @@ export async function loadActiveMinistryGroups(): Promise<{ label: string; optio
   return ministryGroupsFromEntries(await loadActiveMinistryEntries());
 }
 
-/** Flat composed values of every active category — the AI validation set. */
-export async function loadActiveMinistryValues(): Promise<string[]> {
-  return (await loadActiveMinistryEntries()).map((e) => composeMinistry(e.code, e.name));
+/** Active categories as the AI-suggestion prompt needs them: the composed
+ *  value the model must copy verbatim (also the validation set — an answer is
+ *  only accepted if it matches one), plus the treasurer's optional guidance
+ *  description (the configurable per-category note, which helps the model
+ *  disambiguate look-alike categories). */
+export async function loadActiveMinistryOptions(): Promise<{ value: string; description: string }[]> {
+  return (await loadActiveMinistryEntries()).map((e) => ({
+    value: composeMinistry(e.code, e.name),
+    description: e.description,
+  }));
 }

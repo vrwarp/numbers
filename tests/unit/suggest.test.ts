@@ -25,6 +25,17 @@ describe("buildSuggestionPrompt", () => {
     expect(prompt).toContain("Church-specific context");
     expect(prompt).toContain("Ember is a small group");
   });
+
+  it("appends each category's configurable description to its line", () => {
+    const prompt = buildSuggestionPrompt("gas for the retreat", null, [
+      { value: "470 Summer Retreat", description: "Adult all-church summer camp" },
+      { value: "471 Youth Retreat" },
+    ]);
+    expect(prompt).toContain("- 470 Summer Retreat — Adult all-church summer camp");
+    // A category with no description keeps its bare bullet.
+    expect(prompt).toContain("- 471 Youth Retreat\n");
+    expect(prompt).not.toContain("471 Youth Retreat —");
+  });
 });
 
 describe("resolveSuggestedMinistry", () => {
@@ -144,6 +155,16 @@ describe("buildCandidatesPrompt", () => {
     expect(prompt).toContain("rejected all of them");
     expect(prompt).toContain("470 Summer Retreat");
     expect(prompt).toContain("it was VBS, not a retreat");
+  });
+
+  it("appends each category's configurable description to its line", () => {
+    const prompt = buildCandidatesPrompt("supplies for the retreat", null, undefined, [
+      { value: "320 VBS", description: "Vacation Bible School — summer kids week" },
+      { value: "237 Office Supplies" },
+    ]);
+    expect(prompt).toContain("- 320 VBS — Vacation Bible School — summer kids week");
+    expect(prompt).toContain("- 237 Office Supplies\n");
+    expect(prompt).not.toContain("237 Office Supplies —");
   });
 });
 
