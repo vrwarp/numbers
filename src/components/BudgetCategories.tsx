@@ -172,7 +172,7 @@ export default function BudgetCategories() {
         />
       ))}
 
-      <div className="sticky bottom-0 flex items-center gap-3 border-t border-stone-200 bg-white/90 py-3 backdrop-blur">
+      <div className="sticky bottom-0 -mx-4 -mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-stone-200 bg-white/90 px-4 py-3 backdrop-blur">
         <button className="btn-primary" disabled={!canSave} onClick={save} data-testid="ministries-save">
           {busy ? t("saving") : changed > 0 ? t("save", { count: changed }) : t("saveNone")}
         </button>
