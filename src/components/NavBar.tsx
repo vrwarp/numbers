@@ -6,13 +6,14 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import AccountMenu from "./AccountMenu";
 import NavTabs, { type NavLink } from "./NavTabs";
-import { ApprovalsIcon, ClaimsIcon, FinanceIcon, ReceiptsIcon } from "./nav-icons";
+import { ApprovalsIcon, ClaimsIcon, FinanceIcon, ReceiptsIcon, VouchIcon } from "./nav-icons";
 
 interface Badges {
   enabled: boolean;
   role?: string;
   approvals?: number;
   finance?: number | null;
+  vouch?: boolean;
 }
 
 function sameArray(a: string[], b: string[]): boolean {
@@ -55,6 +56,11 @@ export default function NavBar({ userName, isAdmin }: { userName: string; isAdmi
   }
   if (badges.enabled && badges.finance !== null && badges.finance !== undefined) {
     links.push({ href: "/finance", label: t("finance"), icon: <FinanceIcon />, badge: badges.finance || undefined, priority: 70 });
+  }
+  // Attested members vouch for candidates in person — a full tab, but the
+  // least urgent one, so it compresses/overflows first.
+  if (badges.enabled && badges.vouch) {
+    links.push({ href: "/vouch", label: t("vouch"), icon: <VouchIcon />, priority: 60 });
   }
 
   const overflowSet = new Set(nav.overflow);

@@ -15,7 +15,7 @@ export async function GET() {
     if (!registry?.enabled) return NextResponse.json({ enabled: false });
     const me = await prisma.user.findUnique({
       where: { id: userId },
-      select: { role: true, esignAllowed: true },
+      select: { role: true, esignAllowed: true, signerIdentity: { select: { status: true } } },
     });
     // Outside the rollout allowlist (A8) ⇒ same nothing-to-see as switched off.
     if (me && !esignAccessAllowed(registry, me)) return NextResponse.json({ enabled: false });
@@ -31,6 +31,8 @@ export async function GET() {
       role: me?.role ?? "member",
       approvals,
       finance,
+      // Only attested members can vouch (§4.3) — gates the nav's Vouch tab.
+      vouch: me?.signerIdentity?.status === "attested",
     });
   });
 }

@@ -36,6 +36,7 @@
     "signedInAs": "目前登入：{name}",
     "approvals": "審批",
     "finance": "財務",
+    "vouch": "擔保",
     "admin": "管理",
     "account": "帳戶",
     "pendingWork": "有待處理"
@@ -438,8 +439,7 @@
     "yourSignature": "你的簽名",
     "redraw": "重新畫",
     "addSignature": "✍️ 新增你的簽名",
-    "pendingVouch": "最後一步：<b>當面</b>把這個 QR 碼出示給兩位會友（或一位審批人）。他們開啟<b>為會友擔保</b>，掃描後確認是你本人。",
-    "vouchForMember": "🤝 為會友擔保",
+    "pendingVouch": "最後一步：<b>當面</b>把這個 QR 碼出示給兩位會友（或一位審批人）。他們開啟<b>擔保</b>分頁，掃描後確認是你本人。",
     "roleLabel": "角色:",
     "yourFingerprint": "你的金鑰指紋：",
     "fullFingerprint": "（完整：{fp}）",

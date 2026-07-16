@@ -36,6 +36,7 @@
     "signedInAs": "当前登录：{name}",
     "approvals": "审批",
     "finance": "财务",
+    "vouch": "担保",
     "admin": "管理",
     "account": "账户",
     "pendingWork": "有待处理"
@@ -438,8 +439,7 @@
     "yourSignature": "你的签名",
     "redraw": "重新画",
     "addSignature": "✍️ 添加你的签名",
-    "pendingVouch": "最后一步：<b>当面</b>把这个二维码出示给两位会友（或一位审批人）。他们打开<b>为会友担保</b>，扫码后确认是你本人。",
-    "vouchForMember": "🤝 为会友担保",
+    "pendingVouch": "最后一步：<b>当面</b>把这个二维码出示给两位会友（或一位审批人）。他们打开<b>担保</b>标签页，扫码后确认是你本人。",
     "roleLabel": "角色:",
     "yourFingerprint": "你的密钥指纹：",
     "fullFingerprint": "（完整：{fp}）",

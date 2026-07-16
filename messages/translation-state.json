@@ -167,6 +167,12 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "NavBar.vouch": {
+    "source": "Vouch",
+    "context": "Top-nav link to the vouching page, shown to attested members. One word, verb — keep short (phone-width nav). Glossary: vouch.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "NavBar.admin": {
     "source": "Admin",
     "zh-Hans": "machine",
@@ -2372,14 +2378,8 @@
     "zh-Hant": "machine"
   },
   "Identity.pendingVouch": {
-    "source": "One last step: show this to two members (or one approver) <b>in person</b>. They open <b>Vouch for a member</b>, scan it, and confirm it's really you.",
-    "context": "Amber instructions above the QR while awaiting vouches. <b> wraps 'in person'. Two members or one approver must scan.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.vouchForMember": {
-    "source": "🤝 Vouch for a member",
-    "context": "Link/button to the vouching page (shown to attested members). Keep the 🤝.",
+    "source": "One last step: show this to two members (or one approver) <b>in person</b>. They open their <b>Vouch</b> tab, scan it, and confirm it's really you.",
+    "context": "Amber instructions above the QR while awaiting vouches. <b> wraps 'in person' and the Vouch nav-tab name (must match NavBar.vouch verbatim). Two members or one approver must scan.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

@@ -285,6 +285,8 @@ test("rollout is allowlist-scoped by default; the admin allows the pilot group",
 test("members enroll; vouches + roles attest them", async () => {
   test.setTimeout(240_000);
   bobVouchUrl = await enroll(bob);
+  // Pending members can't vouch, so the nav's Vouch tab isn't offered yet.
+  await expect(bob.page.getByTestId("nav-tab-vouch")).toHaveCount(0);
   carolVouchUrl = await enroll(carol);
   aliceVouchUrl = await enroll(alice);
 
@@ -303,6 +305,8 @@ test("members enroll; vouches + roles attest them", async () => {
 
   // Bob (now approver) vouches Alice — one vouch tips it.
   await bob.page.goto(aliceVouchUrl);
+  // Attested since the root's vouch, so this navigation grew a Vouch nav tab.
+  await expect(bob.page.getByTestId("nav-tab-vouch")).toBeVisible({ timeout: 30_000 });
   await bob.page.check('[data-testid="vouch-confirm"]');
   await bob.page.click('[data-testid="vouch-submit"]');
   await bob.page.waitForSelector('[data-testid="vouch-done"]', { timeout: 30_000 });
@@ -313,9 +317,11 @@ test("members enroll; vouches + roles attest them", async () => {
 });
 
 test("in-page QR scanner appears for vouchers and degrades without a camera", async () => {
-  // An attested member opening "Vouch for a member" with no identity in the
+  // An attested member opening the nav's Vouch tab with no identity in the
   // URL gets the in-page camera scanner — the multi-browser-friendly path
   // that keeps vouching inside the browser holding their key and session.
+  // (goto, not a tab click: bob sits on /vouch?c=… whose done-state would
+  // survive a same-route client-side navigation)
   await bob.page.goto(`${BASE}/vouch`);
   const scanOpen = bob.page.locator('[data-testid="scan-open"]');
   await expect(scanOpen).toBeVisible({ timeout: 30_000 });
