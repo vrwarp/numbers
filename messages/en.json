@@ -36,6 +36,7 @@
     "signedInAs": "Signed in as {name}",
     "approvals": "Approvals",
     "finance": "Finance",
+    "vouch": "Vouch",
     "admin": "Admin",
     "account": "Account",
     "pendingWork": "pending work"
@@ -438,8 +439,7 @@
     "yourSignature": "Your signature",
     "redraw": "Redraw",
     "addSignature": "✍️ Add your signature",
-    "pendingVouch": "One last step: show this to two members (or one approver) <b>in person</b>. They open <b>Vouch for a member</b>, scan it, and confirm it's really you.",
-    "vouchForMember": "🤝 Vouch for a member",
+    "pendingVouch": "One last step: show this to two members (or one approver) <b>in person</b>. They open their <b>Vouch</b> tab, scan it, and confirm it's really you.",
     "roleLabel": "Role:",
     "yourFingerprint": "Your key fingerprint:",
     "fullFingerprint": "(full: {fp})",

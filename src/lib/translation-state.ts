@@ -73,7 +73,8 @@ export const QUOTED_IN: readonly { message: string; quotes: string; strip?: stri
   // E-sign: dialog/page titles restate the button that opened them (minus
   // the button's emoji prefix).
   { message: "Esign.submitDialogTitle", quotes: "Esign.submitForApproval", strip: "✍️ " },
-  { message: "Vouch.title", quotes: "Identity.vouchForMember", strip: "🤝 " },
+  // The pending-QR instructions name the nav tab the voucher must open.
+  { message: "Identity.pendingVouch", quotes: "NavBar.vouch" },
 ];
 
 export function flatten(obj: Messages, prefix = ""): Map<string, string> {

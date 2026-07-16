@@ -188,7 +188,8 @@ The Submit/Approve/Mark-paid buttons prompt un-enrolled users into this wizard.
 - The candidate opens **My signing identity** → a QR encoding
   `{uid, email, name, publicKey}` plus the key fingerprint and a 6-digit code
   (`getVerificationCodeForPublicKey`).
-- The voucher opens **Vouch for a member** and **scans the QR from the candidate's
+- The voucher opens the nav's **Vouch** tab (shown to attested members; the
+  page is `/vouch`) and **scans the QR from the candidate's
   screen — the scan is the binding channel.** Scanning runs in-page
   (`VouchQrScanner` → nimiq `qr-scanner`, loaded on demand; it uses the native
   `BarcodeDetector` where present and a bundled worker on iOS Safari, which has none).
@@ -549,7 +550,8 @@ draft ⇄ generated → submitted → approved → paid            (paid is term
   `claims/page.tsx` and `ReceiptGrid.tsx` status chips.
 - **No notifications (decision 9), so the UI must surface state**: NavBar badge counts
   for approvers (pending decisions) and the treasurer (approved awaiting payment);
-  status chips on claim cards for requestors.
+  status chips on claim cards for requestors. The same badges endpoint tells the nav
+  whether the member is attested, which gates its low-priority **Vouch** tab (§4.3).
 
 ### 6.2 New/changed API routes (all `handleApi` + `requireUserId` unless noted)
 

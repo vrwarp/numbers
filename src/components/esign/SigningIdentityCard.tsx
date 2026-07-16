@@ -10,7 +10,6 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {
   backendNeedsPopup,
@@ -360,16 +359,6 @@ export default function SigningIdentityCard() {
               </p>
               <IdentityQr url={vouchUrl} />
               {fingerprint && <ManualCodeFallback fingerprint={fingerprint} />}
-            </div>
-          )}
-
-          {status === "attested" && (
-            <div className="flex flex-wrap gap-2">
-              {/* Client-side nav keeps the in-memory Firebase session alive —
-                  a full reload would re-prompt if persistence restore fails. */}
-              <Link href="/vouch" className="btn-secondary inline-block" data-testid="vouch-link">
-                {t("vouchForMember")}
-              </Link>
             </div>
           )}
 

@@ -67,8 +67,10 @@ Add a security assertion (foreign-user 404) to `tests/e2e/security.spec.ts`.
 1. `src/app/<name>/page.tsx` as a thin server component:
    `currentUserId()` → `redirect("/signin")` → render a client component from
    `src/components/`.
-2. Add the link to `LINKS` in `src/components/NavBar.tsx` (it must fit the mobile nav —
-   check `screenshots/09-mobile-shoebox.png` after the e2e run).
+2. Add the link to the `links` array in `src/components/NavBar.tsx` — pick a `priority`
+   (lower collapses into the account menu first; see `src/lib/nav-overflow.ts`) and gate
+   it on `/api/esign/badges` data if it's role/status-dependent. Keep the label short
+   (phone-width nav — check `screenshots/09-mobile-shoebox.png` after the e2e run).
 3. `export const dynamic = "force-dynamic"` if it reads per-user data.
 
 ## Debug a failing PDF

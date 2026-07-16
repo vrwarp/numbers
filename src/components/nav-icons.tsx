@@ -62,3 +62,14 @@ export function FinanceIcon(props: SVGProps<SVGSVGElement>) {
     </Base>
   );
 }
+
+/** Vouch — a person confirmed with a check. */
+export function VouchIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Base {...props}>
+      <circle cx="9" cy="7.5" r="3.2" />
+      <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
+      <path d="m15 11.5 2.2 2.2 4.3-5" />
+    </Base>
+  );
+}
