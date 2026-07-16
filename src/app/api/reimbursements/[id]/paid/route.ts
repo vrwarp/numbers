@@ -57,7 +57,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     };
 
     if (preflight) {
-      const body = (await req.json()) as { checkNumber?: string; typedName?: string };
+      const body = (await req.json().catch(() => ({}))) as { checkNumber?: string; typedName?: string };
       if (!body.typedName?.trim()) throw new ApiError(400, "Type your name to sign", "esign.typeName");
       const { evaluation } = await claimEvaluation(registry, ledgerCtx);
       const thread = evaluation.threads.find((t) => t.seq === claim.submitSeq);
@@ -93,7 +93,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       return NextResponse.json({ payload });
     }
 
-    const body = (await req.json()) as Partial<RawLedgerEventDoc>;
+    const body = (await req.json().catch(() => ({}))) as Partial<RawLedgerEventDoc>;
     const pending = getPendingAction(claim, userId) as MarkPaidAction | null;
     if (!pending || pending.t !== "MARK_PAID") {
       throw new ApiError(409, "No pending payment ceremony — preflight first");

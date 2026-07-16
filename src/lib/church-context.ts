@@ -34,9 +34,30 @@ export async function loadChurchContext(): Promise<string | null> {
   }
   const trimmed = raw.trim();
   if (!trimmed) return null;
-  return trimmed.length > CHURCH_CONTEXT_MAX_BYTES
-    ? trimmed.slice(0, CHURCH_CONTEXT_MAX_BYTES)
-    : trimmed;
+  return truncateToBytes(trimmed, CHURCH_CONTEXT_MAX_BYTES);
+}
+
+/**
+ * Truncate to at most `maxBytes` UTF-8 bytes without splitting a multi-byte
+ * character. The cap is a BYTE budget (a CJK document is ~3 bytes/char, so a
+ * code-unit `.slice` would let ~3× the intended prompt size through and could
+ * cut a surrogate pair, emitting a lone surrogate into the prompt). The
+ * document is operator-supplied via CHURCH_CONTEXT_PATH, so it is not
+ * guaranteed to have gone through the byte-checked writer.
+ */
+export function truncateToBytes(text: string, maxBytes: number): string {
+  if (Buffer.byteLength(text, "utf8") <= maxBytes) return text;
+  // Walk whole code points, accumulating byte cost until the next one would
+  // overflow. Array spread iterates by code point, so surrogate pairs stay whole.
+  let bytes = 0;
+  let out = "";
+  for (const ch of text) {
+    const chBytes = Buffer.byteLength(ch, "utf8");
+    if (bytes + chBytes > maxBytes) break;
+    bytes += chBytes;
+    out += ch;
+  }
+  return out;
 }
 
 /**

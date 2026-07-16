@@ -124,7 +124,7 @@ export async function POST(req: Request) {
     }
     if (await getRegistry()) throw new ApiError(409, "E-sign registry already bootstrapped");
 
-    const body = (await req.json()) as {
+    const body = (await req.json().catch(() => ({}))) as {
       rosterLedgerId?: string;
       rosterLedgerKey?: string;
       rootPublicKey?: string;

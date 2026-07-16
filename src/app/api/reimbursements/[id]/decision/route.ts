@@ -61,7 +61,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     };
 
     if (preflight) {
-      const body = (await req.json()) as {
+      const body = (await req.json().catch(() => ({}))) as {
         decision?: "approve" | "reject";
         comment?: string;
         typedName?: string;
@@ -164,7 +164,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       return NextResponse.json({ payload });
     }
 
-    const body = (await req.json()) as Partial<RawLedgerEventDoc>;
+    const body = (await req.json().catch(() => ({}))) as Partial<RawLedgerEventDoc>;
     const pending = getPendingAction(claim, userId) as ApproveAction | RejectAction | null;
     if (!pending || (pending.t !== "APPROVE" && pending.t !== "REJECT")) {
       throw new ApiError(409, "No pending decision ceremony — preflight first");

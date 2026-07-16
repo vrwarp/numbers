@@ -14,7 +14,9 @@ export async function GET(req: NextRequest) {
     const userId = await requireUserId();
     const reimbursementId = req.nextUrl.searchParams.get("reimbursementId") ?? undefined;
     const logs = await prisma.extractionLog.findMany({
-      where: { userId, ...(reimbursementId ? { reimbursementId } : {}) },
+      // Embedding-kind rows are operational search telemetry (SEARCH_DESIGN §9),
+      // not extraction-quality data — keep them out of the tuning UI.
+      where: { userId, kind: { not: "embedding" }, ...(reimbursementId ? { reimbursementId } : {}) },
       orderBy: { createdAt: "desc" },
       take: 100,
       select: {

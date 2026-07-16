@@ -17,7 +17,10 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || undefined;
     const extractionAll = url.searchParams.get("extraction") === "all";
-    const limit = Math.min(Number(url.searchParams.get("limit")) || 50, 200);
+    // Clamp into [1, 200]: a negative ?limit reaches Prisma `take` and quietly
+    // returns rows from the opposite end of the ordering.
+    const rawLimit = Number(url.searchParams.get("limit")) || 50;
+    const limit = Math.min(Math.max(Math.floor(rawLimit), 1), 200);
 
     const [audit, extraction] = await Promise.all([
       prisma.auditEvent.findMany({

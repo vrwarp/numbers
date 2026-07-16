@@ -48,7 +48,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ ledgerId: stri
     await requireUserId();
     const { ledgerId } = await ctx.params;
     if (!LEDGER_ID.test(ledgerId)) throw new ApiError(400, "Bad ledger id");
-    const body = (await req.json()) as { eventId?: string; encryptedData?: string; iv?: string };
+    const body = (await req.json().catch(() => ({}))) as { eventId?: string; encryptedData?: string; iv?: string };
     if (
       !body.eventId ||
       !EVENT_ID.test(body.eventId) ||

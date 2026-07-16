@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { suggestMinistryCandidates, SuggestionError, type SuggestionMeta } from "@/lib/ai/suggest";
+import { enqueueClaimEmbeddingDebounced } from "@/lib/embeddings/queue";
 
 export const runtime = "nodejs";
 
@@ -55,6 +56,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           },
         }),
       ]);
+      // claimDescription is part of the embedding composite (§5.2 / invariant
+      // 11) — re-embed so semantic search reflects a description set only here.
+      enqueueClaimEmbeddingDebounced(id, userId);
     }
 
     const logSuggestion = (meta: SuggestionMeta, parsedJson: string | null, error: string | null) =>

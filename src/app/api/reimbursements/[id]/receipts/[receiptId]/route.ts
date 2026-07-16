@@ -13,12 +13,15 @@ export const runtime = "nodejs";
 // Same five fields the LLM is asked to transcribe (see src/lib/ai/schema.ts),
 // as the user types them in the manual-entry dialog: amounts in dollars, an
 // empty purchaseDate when it can't be read.
+// $1B ceiling keeps derived cents inside the safe-integer / Prisma-Int range
+// so a fat-fingered amount degrades to a 400, not a 500 on the column write.
+const MAX_MANUAL_DOLLARS = 1_000_000_000;
 const ManualEntrySchema = z.object({
-  merchant: z.string().min(1).max(200),
+  merchant: z.string().trim().min(1).max(200),
   purchaseDate: z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]),
-  totalAmount: z.number().finite(),
-  refundAmount: z.number().finite().min(0),
-  summary: z.string().min(1).max(200),
+  totalAmount: z.number().finite().gt(-MAX_MANUAL_DOLLARS).lt(MAX_MANUAL_DOLLARS),
+  refundAmount: z.number().finite().min(0).lt(MAX_MANUAL_DOLLARS),
+  summary: z.string().trim().min(1).max(200),
 });
 
 /**
@@ -71,7 +74,10 @@ export async function PATCH(
       refundAmount,
       summary,
     });
-    const patch = { description, amountCents: totalCents - refundCents };
+    // Content change ⇒ re-verification required (invariant 4). Refilling a row
+    // the user had already verified must knock it back to unverified so the
+    // human re-approves the new amount before it can reach the PDF.
+    const patch = { description, amountCents: totalCents - refundCents, isVerified: false };
     const changes = computeLineItemChanges(row, patch);
 
     const [, updated] = await prisma.$transaction([

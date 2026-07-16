@@ -6,6 +6,7 @@ import {
   CHURCH_CONTEXT_MAX_BYTES,
   loadChurchContext,
   readChurchContextRaw,
+  truncateToBytes,
   writeChurchContext,
 } from "@/lib/church-context";
 
@@ -55,5 +56,36 @@ describe("church context editor", () => {
     const atCap = "a".repeat(CHURCH_CONTEXT_MAX_BYTES);
     await writeChurchContext(atCap);
     expect((await readChurchContextRaw())?.length).toBe(CHURCH_CONTEXT_MAX_BYTES);
+  });
+
+  it("caps the loaded prompt document by BYTES, not code units", async () => {
+    // A CJK document: each char is 3 UTF-8 bytes. Writing straight to the
+    // path (bypassing the byte-checked writer, as an operator would with
+    // CHURCH_CONTEXT_PATH) with more than the byte cap of code units must be
+    // truncated to the byte budget when loaded, not passed through at ~3×.
+    const cjk = "水".repeat(CHURCH_CONTEXT_MAX_BYTES); // way over the byte cap
+    fs.writeFileSync(path.join(dir, "church-context.md"), cjk, "utf8");
+    const loaded = await loadChurchContext();
+    expect(Buffer.byteLength(loaded!, "utf8")).toBeLessThanOrEqual(CHURCH_CONTEXT_MAX_BYTES);
+  });
+});
+
+describe("truncateToBytes", () => {
+  it("leaves strings within budget untouched", () => {
+    expect(truncateToBytes("hello", 10)).toBe("hello");
+    expect(truncateToBytes("", 4)).toBe("");
+  });
+
+  it("never splits a multi-byte character", () => {
+    // "水" is 3 bytes; a budget of 4 fits exactly one, not one-and-a-third.
+    expect(truncateToBytes("水水水", 4)).toBe("水");
+    expect(Buffer.byteLength(truncateToBytes("水水水", 5), "utf8")).toBeLessThanOrEqual(5);
+  });
+
+  it("never leaves a lone surrogate from an emoji", () => {
+    const out = truncateToBytes("🧾🧾🧾", 5); // each emoji is 4 bytes
+    expect(Buffer.byteLength(out, "utf8")).toBeLessThanOrEqual(5);
+    expect(out).not.toMatch(/[\ud800-\udbff](?![\udc00-\udfff])/);
+    expect(out).toBe("🧾");
   });
 });

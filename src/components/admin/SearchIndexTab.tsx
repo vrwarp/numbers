@@ -89,7 +89,7 @@ export default function SearchIndexTab() {
   const load = useCallback(async () => {
     const res = await fetch("/api/admin/embeddings");
     if (!res.ok) {
-      setError(await errorMessage(res, t("loadFailed")));
+      setError(errorMessage(await res.json().catch(() => null), t("loadFailed")));
       return;
     }
     const data = (await res.json()) as Status;
@@ -125,7 +125,7 @@ export default function SearchIndexTab() {
           ...(body ? { body: JSON.stringify(body) } : {}),
         });
         if (!res.ok) {
-          setError(await errorMessage(res, t("actionFailed")));
+          setError(errorMessage(await res.json().catch(() => null), t("actionFailed")));
           return null;
         }
         return await res.json();
@@ -155,7 +155,7 @@ export default function SearchIndexTab() {
         }),
       });
       if (!res.ok) {
-        setError(await errorMessage(res, t("actionFailed")));
+        setError(errorMessage(await res.json().catch(() => null), t("actionFailed")));
         return;
       }
       const data = await res.json();

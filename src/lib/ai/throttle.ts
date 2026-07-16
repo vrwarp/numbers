@@ -63,11 +63,19 @@ export class RateLimiter {
 }
 
 // Process-wide limiter so the RPM cap holds across concurrent claim
-// generations, not just within one request. Built lazily from AI_RPM_TARGET.
+// generations, not just within one request. Built lazily from AI_RPM_TARGET
+// and rebuilt when that target changes, so an admin editing config.json at
+// runtime (the documented hot-reload) actually re-paces — the previous cached
+// limiter kept the old rate until process restart.
 let sharedLimiter: RateLimiter | null = null;
+let sharedLimiterRpm: number | null = null;
 
 function getRateLimiter(): RateLimiter {
-  if (!sharedLimiter) sharedLimiter = new RateLimiter(rpmTarget());
+  const rpm = rpmTarget();
+  if (!sharedLimiter || sharedLimiterRpm !== rpm) {
+    sharedLimiter = new RateLimiter(rpm);
+    sharedLimiterRpm = rpm;
+  }
   return sharedLimiter;
 }
 
@@ -79,6 +87,7 @@ export function acquireRateSlot(): Promise<void> {
 /** Test hook: drop the shared limiter so the next acquire re-reads AI_RPM_TARGET. */
 export function resetRateLimiterForTests(): void {
   sharedLimiter = null;
+  sharedLimiterRpm = null;
 }
 
 const QUOTA_RE = /\b429\b|quota|rate[ -]?limit|resource_exhausted|too many requests/i;

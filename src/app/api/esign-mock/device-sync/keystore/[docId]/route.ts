@@ -35,7 +35,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ docId: string 
 export async function PUT(req: Request, ctx: { params: Promise<{ docId: string }> }) {
   return handleApi(async () => {
     const { userId, docId } = await ctxEntry(ctx);
-    const body = (await req.json()) as { entry?: unknown };
+    const body = (await req.json().catch(() => ({}))) as { entry?: unknown };
     if (!body.entry) throw new ApiError(400, "Missing entry");
     const json = JSON.stringify(body.entry);
     if (json.length > 100_000) throw new ApiError(400, "Entry too large");
@@ -52,7 +52,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ docId: string }
 export async function PATCH(req: Request, ctx: { params: Promise<{ docId: string }> }) {
   return handleApi(async () => {
     const { userId, docId } = await ctxEntry(ctx);
-    const body = (await req.json()) as { isArchived?: unknown };
+    const body = (await req.json().catch(() => ({}))) as { isArchived?: unknown };
     if (typeof body.isArchived !== "boolean") throw new ApiError(400, "Missing isArchived");
     const row = await prisma.esignKeystoreEntry.findUnique({
       where: { userId_docId: { userId, docId } },

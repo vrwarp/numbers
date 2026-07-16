@@ -45,7 +45,7 @@ export async function PUT(req: Request) {
   return handleApi(async () => {
     requireMock();
     const userId = await requireUserId();
-    const body = (await req.json()) as { create?: boolean };
+    const body = (await req.json().catch(() => ({}))) as { create?: boolean };
     const doc = parseDoc(body);
     if (body.create) {
       try {
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
   return handleApi(async () => {
     requireMock();
     const userId = await requireUserId();
-    const body = (await req.json()) as {
+    const body = (await req.json().catch(() => ({}))) as {
       baseVersion?: number;
       pending?: { deviceId?: string; patch?: Record<string, unknown> };
     };
