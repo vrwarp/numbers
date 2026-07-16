@@ -2,17 +2,22 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { readStoredFile } from "@/lib/storage";
+import { hasRoleReadGrant } from "@/lib/roles";
 
 export const runtime = "nodejs";
 
-/** Serve the stored receipt file (auth: owner only). `?original=1` serves the
- *  pristine upload from its sidecar (for the editor's staged reset preview),
- *  falling back to the current file when no original was preserved. */
+/** Serve the stored receipt file. Auth: owner, or a verified
+ *  approver/treasurer/admin role — the ratified role-read grant
+ *  (docs/SEARCH_DESIGN.md §6.3): a role-holder clicking a foreign search
+ *  result must see the image. Everyone else gets the standard 404. */
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   return handleApi(async () => {
     const userId = await requireUserId();
     const { id } = await ctx.params;
-    const receipt = await prisma.receipt.findFirst({ where: { id, userId } });
+    let receipt = await prisma.receipt.findFirst({ where: { id, userId } });
+    if (!receipt && (await hasRoleReadGrant(userId))) {
+      receipt = await prisma.receipt.findUnique({ where: { id } });
+    }
     if (!receipt) throw new ApiError(404, "Receipt not found", "receiptNotFound");
     const wantOriginal = new URL(req.url).searchParams.get("original") === "1";
     const relPath =

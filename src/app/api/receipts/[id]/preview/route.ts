@@ -9,6 +9,7 @@ import {
   previewPagePath,
 } from "@/lib/storage";
 import { renderPdfPreviewPages } from "@/lib/pdf/preview";
+import { hasRoleReadGrant } from "@/lib/roles";
 
 export const runtime = "nodejs";
 
@@ -28,7 +29,12 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   return handleApi(async () => {
     const userId = await requireUserId();
     const { id } = await ctx.params;
-    const receipt = await prisma.receipt.findFirst({ where: { id, userId } });
+    // Owner, or the ratified role-read grant (docs/SEARCH_DESIGN.md §6.3) —
+    // search results must render foreign PDF thumbnails for role-holders.
+    let receipt = await prisma.receipt.findFirst({ where: { id, userId } });
+    if (!receipt && (await hasRoleReadGrant(userId))) {
+      receipt = await prisma.receipt.findUnique({ where: { id } });
+    }
     if (!receipt) throw new ApiError(404, "Receipt not found", "receiptNotFound");
     if (receipt.mimeType !== "application/pdf") {
       throw new ApiError(400, "Preview is only available for PDF receipts", "previewPdfOnly");
@@ -42,8 +48,10 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       const pdf = await readStoredFile(receipt.filePath);
       const preview = await renderPdfPreviewPages(pdf);
       for (let i = 0; i < preview.pages.length; i++) {
+        // Cache lives beside the ORIGINAL (owner's dir) — a role-holder
+        // viewer must not fork a cache into their own uploads folder.
         await saveReceiptFile(
-          userId,
+          receipt.userId,
           path.basename(previewPagePath(receipt.filePath, i + 1)),
           preview.pages[i]
         );
@@ -51,7 +59,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       manifest = { pages: preview.pages.length, omitted: preview.omitted };
       // Manifest last: its presence marks the cache complete.
       await saveReceiptFile(
-        userId,
+        receipt.userId,
         path.basename(previewManifestPath(receipt.filePath)),
         Buffer.from(JSON.stringify(manifest))
       );
