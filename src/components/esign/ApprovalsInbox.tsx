@@ -176,8 +176,8 @@ function ClaimRow({
   const tEsign2 = useTranslations("Esign");
   const format = useFormatter();
   return (
-    <li className="card card-lift p-4" data-testid={`approval-${claim.id}`}>
-      <button className="pressable flex w-full items-center justify-between gap-3 text-left" onClick={onToggle}>
+    <li className="card card-lift" data-testid={`approval-${claim.id}`}>
+      <button className="pressable flex w-full items-center justify-between gap-3 p-4 text-left" onClick={onToggle}>
         {/* min-w-0 + truncate so a long claim description shrinks instead of
             pushing the amount off the card (flex min-width:auto). */}
         <div className="min-w-0">
@@ -291,7 +291,7 @@ function DecisionCeremony({
   }
 
   return (
-    <div className="mt-4 space-y-3 border-t border-stone-100 pt-4">
+    <div className="space-y-3 border-t border-stone-100 px-4 pb-4 pt-4">
       {needsConnect && (
         <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
       )}
