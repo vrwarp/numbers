@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useDateLabel } from "@/lib/use-date-label";
 import { formatCents } from "@/lib/money";
@@ -108,11 +108,16 @@ export default function SearchClient({
   const [error, setError] = useState<string | null>(null);
   const [showAllExact, setShowAllExact] = useState(false);
   const [recents, setRecents] = useState<string[]>([]);
+  // Recent searches now live in a dropdown under the input (their natural home)
+  // rather than the filter row: open on focus, but only with an empty query so
+  // typing/composition and result-viewing are never covered. activeRecent is
+  // the keyboard-highlighted row (-1 = none).
+  const [recentsOpen, setRecentsOpen] = useState(false);
+  const [activeRecent, setActiveRecent] = useState(-1);
   const [announce, setAnnounce] = useState("");
   const submitSeq = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const lastSearched = useRef<{ query: string; scope: Scope } | null>(null);
 
   // The URL is the single source of restore state (§7.4): ?q / ?scope / ?type
   // encode the view so a refresh or Back reproduces it without retyping — IME
@@ -202,7 +207,6 @@ export default function SearchClient({
         }
         const data = (await res.json()) as SearchResponse;
         if (seq !== submitSeq.current) return;
-        lastSearched.current = { query: q, scope: useScope };
         const merged = opts.append && result
           ? { ...data, groups: mergeGroups(result.groups, data.groups) }
           : data;
@@ -231,15 +235,46 @@ export default function SearchClient({
 
   const onSubmit = useCallback(() => void runSearch(query), [runSearch, query]);
 
+  const recentsVisible = recentsOpen && !query.trim() && recents.length > 0;
+
+  const pickRecent = useCallback(
+    (q: string) => {
+      setQuery(q);
+      setRecentsOpen(false);
+      setActiveRecent(-1);
+      void runSearch(q);
+    },
+    [runSearch]
+  );
+
   // IME safety (§7.4): Enter while composing commits the composition buffer,
   // never fires a search — pinyin users typing 王姐妹 must not search "wang".
+  // The recents dropdown adds a combobox layer on top: arrows move the
+  // highlight, Enter on a highlighted row runs it, Escape closes.
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (recentsVisible && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+        e.preventDefault();
+        setActiveRecent((i) =>
+          e.key === "ArrowDown" ? Math.min(recents.length - 1, i + 1) : Math.max(-1, i - 1)
+        );
+        return;
+      }
+      if (e.key === "Escape" && recentsVisible) {
+        setRecentsOpen(false);
+        setActiveRecent(-1);
+        return;
+      }
       if (e.key !== "Enter") return;
       if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+      if (recentsVisible && activeRecent >= 0) {
+        e.preventDefault();
+        pickRecent(recents[activeRecent]);
+        return;
+      }
       onSubmit();
     },
-    [onSubmit]
+    [recentsVisible, recents, activeRecent, onSubmit, pickRecent]
   );
 
   const changeScope = useCallback(
@@ -252,11 +287,16 @@ export default function SearchClient({
     [query, runSearch, syncUrl, typeFilter]
   );
 
-  const clearType = useCallback(() => {
-    setTypeFilter(null);
-    if (lastSearched.current) void runSearch(query, { type: null });
-    else syncUrl(query, scope, null);
-  }, [runSearch, query, syncUrl, scope]);
+  // Three-way type filter (Both / Receipts / Claims), always available — unlike
+  // the old removable chip it can be turned back on after clearing.
+  const changeType = useCallback(
+    (next: TypeFilter) => {
+      setTypeFilter(next);
+      if (query.trim() || scope === "decided") void runSearch(query, { type: next });
+      else syncUrl(query, scope, next);
+    },
+    [query, scope, runSearch, syncUrl]
+  );
 
   const hasResults =
     !!result &&
@@ -293,6 +333,15 @@ export default function SearchClient({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
+            onFocus={() => setRecentsOpen(true)}
+            onBlur={() => {
+              setRecentsOpen(false);
+              setActiveRecent(-1);
+            }}
+            role="combobox"
+            aria-expanded={recentsVisible}
+            aria-controls="search-recents-list"
+            aria-autocomplete="list"
             maxLength={300}
             enterKeyHint="search"
           />
@@ -301,6 +350,39 @@ export default function SearchClient({
               className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-stone-300 border-t-indigo-600"
               aria-hidden
             />
+          )}
+          {recentsVisible && (
+            <ul
+              id="search-recents-list"
+              data-testid="search-recents"
+              role="listbox"
+              aria-label={t("recentSearches")}
+              className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-stone-200 bg-white py-1 shadow-lg"
+            >
+              <li
+                aria-hidden
+                className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-stone-400"
+              >
+                {t("recentSearches")}
+              </li>
+              {recents.map((q, i) => (
+                <li key={i} role="option" aria-selected={i === activeRecent}>
+                  <button
+                    type="button"
+                    data-testid={`search-recent-${i + 1}`}
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-stone-700 ${i === activeRecent ? "bg-stone-100" : "hover:bg-stone-50"}`}
+                    // Keep input focus so blur doesn't close the list before the click lands.
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => pickRecent(q)}
+                  >
+                    <span aria-hidden className="text-stone-400">
+                      🕘
+                    </span>
+                    <span className="truncate">{q}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
         <button
@@ -313,20 +395,41 @@ export default function SearchClient({
         </button>
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
-          {typeFilter && (
+      <div className="flex flex-wrap items-center gap-2">
+        {/* "Show" — the type filter is available to everyone (not role-gated). */}
+        <span
+          aria-hidden
+          className="text-xs font-semibold uppercase tracking-wide text-stone-400"
+        >
+          {t("typeFilterLabel")}
+        </span>
+        <div
+          data-testid="search-type-filter"
+          role="radiogroup"
+          aria-label={t("typeFilterLabel")}
+          className="inline-flex overflow-hidden rounded-full border border-stone-300 text-xs font-semibold"
+        >
+          {([null, "receipt", "claim"] as const).map((ty) => (
             <button
-              data-testid="search-type-chip"
-              className="pressable inline-flex items-center gap-1 rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800"
-              onClick={clearType}
-              title={t("typeChipRemove")}
+              key={ty ?? "all"}
+              role="radio"
+              aria-checked={typeFilter === ty}
+              className={`px-3 py-1.5 ${typeFilter === ty ? "bg-indigo-600 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
+              onClick={() => changeType(ty)}
             >
-              {typeFilter === "receipt" ? t("typeChipReceipts") : t("typeChipClaims")}
-              <span aria-hidden>✕</span>
+              {ty === null ? t("typeAll") : ty === "receipt" ? t("typeReceipts") : t("typeClaims")}
             </button>
-          )}
-          {canAll && (
+          ))}
+        </div>
+        {canAll && (
+          <>
+            {/* "Where" — the cross-tenant scope control (§6.3), role-holders only. */}
+            <span
+              aria-hidden
+              className="ml-1 text-xs font-semibold uppercase tracking-wide text-stone-400"
+            >
+              {t("scopeFilterLabel")}
+            </span>
             <div
               data-testid="search-scope-filter"
               role="radiogroup"
@@ -348,22 +451,11 @@ export default function SearchClient({
                 </button>
               ))}
             </div>
-          )}
-          {scope === "decided" && (
-            <span className="text-xs text-stone-500">{t("scopeDecidedHint")}</span>
-          )}
-        </div>
-        {/* Past searches, inlined to the right on desktop (as many as fit, no
-            wrap/overflow) and a row of their own on mobile (§7.1). */}
-        <RecentChips
-          recents={recents}
-          ariaLabel={t("recentSearches")}
-          className="min-w-0 sm:flex-1"
-          onRun={(q) => {
-            setQuery(q);
-            void runSearch(q);
-          }}
-        />
+          </>
+        )}
+        {scope === "decided" && (
+          <span className="text-xs text-stone-500">{t("scopeDecidedHint")}</span>
+        )}
       </div>
 
       <p aria-live="polite" className="sr-only">
@@ -487,87 +579,6 @@ function SectionHeader({ label }: { label: string }) {
     <h2 className="mb-2 border-b border-stone-200 pb-1 text-xs font-bold uppercase tracking-wide text-stone-500">
       {label}
     </h2>
-  );
-}
-
-const RECENT_CHIP_CLASS =
-  "pressable shrink-0 whitespace-nowrap rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600 hover:bg-stone-200";
-
-/** Past searches inlined in the filter row (§7.1). Renders as many chips as fit
- *  the container on one line — no wrap, no overflow, no partial chip. A hidden
- *  off-screen copy measures true chip widths; a ResizeObserver recomputes the
- *  fitting count as the row grows or shrinks (desktop resize, mobile rotate). */
-function RecentChips({
-  recents,
-  onRun,
-  ariaLabel,
-  className,
-}: {
-  recents: string[];
-  onRun: (q: string) => void;
-  ariaLabel: string;
-  className?: string;
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const measureRef = useRef<HTMLDivElement>(null);
-  const [count, setCount] = useState(0);
-
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    const measure = measureRef.current;
-    if (!container || !measure) return;
-    const GAP = 8; // gap-2
-    const recompute = () => {
-      const avail = container.clientWidth;
-      const chips = Array.from(measure.children) as HTMLElement[];
-      let used = 0;
-      let fit = 0;
-      for (let i = 0; i < chips.length; i++) {
-        const w = chips[i].offsetWidth;
-        const next = i === 0 ? w : used + GAP + w;
-        if (next <= avail) {
-          used = next;
-          fit = i + 1;
-        } else break;
-      }
-      setCount(fit);
-    };
-    recompute();
-    const ro = new ResizeObserver(recompute);
-    ro.observe(container);
-    return () => ro.disconnect();
-  }, [recents]);
-
-  if (recents.length === 0) return null;
-  return (
-    <div ref={containerRef} className={className} role="group" aria-label={ariaLabel}>
-      {/* Off-screen measurement copy — sized like the real chips, never shown. */}
-      <div
-        ref={measureRef}
-        aria-hidden
-        className="pointer-events-none absolute flex gap-2 opacity-0"
-        style={{ left: -9999, top: 0 }}
-      >
-        {recents.map((q, i) => (
-          <span key={i} className={RECENT_CHIP_CLASS}>
-            {q}
-          </span>
-        ))}
-      </div>
-      <div className="flex flex-nowrap gap-2 overflow-hidden">
-        {recents.slice(0, count).map((q, i) => (
-          <button
-            key={i}
-            data-testid={`search-recent-${i + 1}`}
-            className={RECENT_CHIP_CLASS}
-            onClick={() => onRun(q)}
-            title={q}
-          >
-            {q}
-          </button>
-        ))}
-      </div>
-    </div>
   );
 }
 
