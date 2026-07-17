@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useFormatter, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
+import { useDateLabel } from "@/lib/use-date-label";
 
 /** Thumbnail for a PDF receipt: the top slice of the server-rasterized preview
  *  (browsers can't thumbnail a PDF), falling back to a plain chip if it fails. */
@@ -74,7 +75,7 @@ export default function ReceiptGrid({
 }) {
   const t = useTranslations("ReceiptGrid");
   const tStatus = useTranslations("Common.status");
-  const format = useFormatter();
+  const dateLabel = useDateLabel();
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
       {receipts.map((r) => {
@@ -179,7 +180,7 @@ export default function ReceiptGrid({
               )}
               <div className="text-[11px] text-stone-400">
                 {t("meta", {
-                  date: format.dateTime(new Date(r.createdAt)),
+                  date: dateLabel(r.createdAt),
                   kb: (r.sizeBytes / 1024).toFixed(0),
                 })}
                 {r.status !== "unassigned" && t("processedSuffix")}
@@ -195,7 +196,7 @@ export default function ReceiptGrid({
                       data-testid={`claim-link-${r.id}-${c.id}`}
                     >
                       {c.status === "draft" ? tStatus("draft") : t("claimChip")}{" "}
-                      {format.dateTime(new Date(c.createdAt))}
+                      {dateLabel(c.createdAt)}
                     </Link>
                   ))}
                 </div>

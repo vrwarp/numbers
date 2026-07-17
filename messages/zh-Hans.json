@@ -21,6 +21,10 @@
     "saving": "保存中…",
     "loading": "加载中…",
     "language": "语言",
+    "date": {
+      "today": "今天",
+      "yesterday": "昨天"
+    },
     "role": {
       "member": "会友",
       "approver": "审批人",
@@ -385,6 +389,10 @@
     "connectFailed": "无法连接签名",
     "connectBlocked": "浏览器拦截了登录窗口。请再次点按“连接签名”以允许弹出。",
     "itemsCount": "{count} 个项目",
+    "metaSubmitted": "提交于 {date}",
+    "metaApproved": "批准于 {date}",
+    "metaRejected": "驳回于 {date}",
+    "metaPaid": "付款于 {date}",
     "bannerOk": "✓ 全部验证通过——这份文件未被改动，真实有效。",
     "bannerBad": "✗ 有地方验证不通过。请勿签署——先询问把这份文件发给你的人（下方的详细信息可供协助者查看）。",
     "auditDetails": "审计详情",
@@ -427,7 +435,6 @@
     "subtitle": "点开报销单，核查后签署。",
     "empty": "没有等待你处理的事项。",
     "decided": "已处理",
-    "submittedOn": "提交于 {date}",
     "commentLabel": "留言（拒绝时必填）",
     "rejectNeedsComment": "请填写拒绝原因",
     "reject": "✗ 拒绝",
@@ -444,7 +451,15 @@
     "empty": "目前没有需要付款的报销单。",
     "paidHeader": "已支付",
     "checkNumberLabel": "支票号码（可选）",
-    "signAndMarkPaid": "💸 签署并登记付款"
+    "signAndMarkPaid": "💸 签署并登记付款",
+    "selectPacket": "选择 {name} 的单据包",
+    "selectedCount": "{count, plural, other {已选择 # 份单据包}}",
+    "includeReceipts": "包含收据",
+    "includeCertificate": "包含证书",
+    "clearSelection": "清除",
+    "printAll": "全部打印",
+    "printing": "正在准备…",
+    "printFailed": "无法生成单据包，请重试。"
   },
   "Identity": {
     "title": "电子签名",

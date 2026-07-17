@@ -16,7 +16,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
+import { useDateLabel } from "@/lib/use-date-label";
 import {
   approveDevice,
   currentDeviceId,
@@ -272,7 +273,7 @@ export function PendingRequestPrompt({
 
 export function DevicesPanel({ env }: { env: DeviceEnv }) {
   const t = useTranslations("Devices");
-  const format = useFormatter();
+  const dateLabel = useDateLabel();
   const thrown = useThrownErrorMessage();
   const [devices, setDevices] = useState<AuthorizedDevice[]>([]);
   const [selfId, setSelfId] = useState<string>("");
@@ -327,11 +328,7 @@ export function DevicesPanel({ env }: { env: DeviceEnv }) {
               )}
               <span className="ml-2 text-xs text-stone-400">
                 {t("addedOn", {
-                  date: format.dateTime(new Date(d.createdAt), {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  }),
+                  date: dateLabel(d.createdAt),
                 })}
               </span>
             </span>

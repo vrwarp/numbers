@@ -1,19 +1,15 @@
 import { NextResponse } from "next/server";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import qrcode from "qrcode-generator";
+import { PDFDocument } from "pdf-lib";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
-import { publicBaseUrl } from "@/lib/config";
-import { esignRootFingerprint } from "@/lib/config";
+import { publicBaseUrl, esignRootFingerprint, FORM_ROWS_PER_PAGE } from "@/lib/config";
 import { readStoredFile } from "@/lib/storage";
 import { claimAccessRole, signedPacketPath } from "@/lib/esign/claim-server";
 import { getRegistry, mirroredRawDocs } from "@/lib/esign/server";
-import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
-import { embedCjkFont } from "@/lib/pdf/fonts";
-import { signatureAnchor, toEncodableText } from "@/lib/pdf/generate";
+import { drawCertificateCover } from "@/lib/esign/certificate";
+import { signatureAnchor } from "@/lib/pdf/generate";
 import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
-import { FORM_ROWS_PER_PAGE } from "@/lib/config";
 import {
   formatApprovalDate,
   pngFromDataUrl,
@@ -90,120 +86,19 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     );
 
     const doc = await PDFDocument.create();
-    const helv = await doc.embedFont(StandardFonts.Helvetica);
-    const helvBold = await doc.embedFont(StandardFonts.HelveticaBold);
-    // Names, typed signatures, and comments are user data — Chinese values
-    // outgrow WinAnsi, so each string picks Helvetica or the CJK face
-    // (invariant #8; same per-string strategy as the form fill).
-    let cjk: import("pdf-lib").PDFFont | null = null;
-    const cjkFont = async () => (cjk ??= await embedCjkFont(doc));
-    const page = doc.addPage([612, 792]);
-    let y = 740;
-    const text = async (s: string, opts: { size?: number; bold?: boolean; x?: number; color?: [number, number, number] } = {}) => {
-      let font = opts.bold ? helvBold : helv;
-      if (toEncodableText(s, font) !== s) font = await cjkFont();
-      page.drawText(toEncodableText(s, font), {
-        x: opts.x ?? 56,
-        y,
-        size: opts.size ?? 10,
-        font,
-        color: opts.color ? rgb(...opts.color) : rgb(0.1, 0.09, 0.08),
-      });
-      y -= (opts.size ?? 10) + 6;
-    };
-
-    await text("Reimbursement Approval Certificate", { size: 18, bold: true });
-    await text("Chinese For Christ Church of Hayward — electronic signature record", {
-      size: 9,
-      color: [0.4, 0.38, 0.35],
+    await drawCertificateCover(doc, {
+      claimId: id,
+      ownerName: claim.user.fullName || claim.user.email,
+      status: claim.status,
+      checkNumber: claim.checkNumber,
+      records,
+      signerNames,
+      packetSha256: claim.packetSha256,
+      rootPublicKey: registry.rootPublicKey,
+      rootPin: esignRootFingerprint(),
+      publicToken: claim.publicToken,
+      baseUrl: publicBaseUrl(),
     });
-    y -= 8;
-    await text(`Requested by: ${claim.user.fullName || claim.user.email}`, { size: 11 });
-    await text(`Claim: ${id}`, { size: 9, color: [0.4, 0.38, 0.35] });
-    await text(
-      `Status: ${claim.status.toUpperCase()}${claim.checkNumber ? `  ·  Check #${claim.checkNumber}` : ""}`,
-      { size: 11, bold: true }
-    );
-    y -= 6;
-
-    for (const record of records) {
-      const payload = JSON.parse(record.payloadJson) as { ts?: number; consentVersion?: string; comment?: string };
-      const fp = fingerprintDisplay(await keyFingerprint(record.signerPublicKey));
-      const when = payload.ts ? new Date(payload.ts).toISOString() : record.createdAt.toISOString();
-      await text(
-        `${record.kind.toUpperCase()} — ${signerNames.get(record.signerUserId) ?? "unknown"}`,
-        { size: 12, bold: true }
-      );
-      if (record.typedName) await text(`Signed name: "${record.typedName}"`, { size: 10 });
-      await text(`Time (signer clock): ${when}    Consent: ${payload.consentVersion ?? "—"}`, {
-        size: 9,
-        color: [0.35, 0.33, 0.3],
-      });
-      await text(`Key fingerprint: ${fp}    Event: ${record.ledgerEventId}`, {
-        size: 9,
-        color: [0.35, 0.33, 0.3],
-      });
-      if (payload.comment) await text(`Comment: "${payload.comment}"`, { size: 9 });
-      y -= 4;
-    }
-
-    y -= 4;
-    await text(`Packet SHA-256: ${claim.packetSha256}`, { size: 8, color: [0.35, 0.33, 0.3] });
-    const rootFp = await keyFingerprint(registry.rootPublicKey);
-    await text(`Church root fingerprint: ${rootFp}`, { size: 8, color: [0.35, 0.33, 0.3] });
-    await text("Compare the root fingerprint against the value your church published.", {
-      size: 8,
-      color: [0.5, 0.35, 0.1],
-    });
-    const pin = esignRootFingerprint();
-    if (pin) await text(`Deployment pin (prefix): ${pin}`, { size: 8, color: [0.35, 0.33, 0.3] });
-    y -= 6;
-    await text(
-      "The pages after this cover are the signed packet, with the approval signature stamped on",
-      { size: 8, color: [0.4, 0.38, 0.35] }
-    );
-    await text(
-      "for filing. The untouched original is archived and one QR scan away; this PDF also embeds",
-      { size: 8, color: [0.4, 0.38, 0.35] }
-    );
-    await text(
-      "verification-bundle.json — verify offline with scripts/verify-bundle.mjs and the root fingerprint.",
-      { size: 8, color: [0.4, 0.38, 0.35] }
-    );
-
-    // QR to the live verification page, when the deployment knows its origin.
-    const base = publicBaseUrl();
-    if (base && claim.publicToken) {
-      const qr = qrcode(0, "M");
-      qr.addData(`${base}/v/${claim.publicToken}`);
-      qr.make();
-      const n = qr.getModuleCount();
-      const size = 110;
-      const cell = size / n;
-      const x0 = 612 - 56 - size;
-      const y0 = 792 - 56 - size;
-      page.drawRectangle({ x: x0 - 4, y: y0 - 4, width: size + 8, height: size + 8, color: rgb(1, 1, 1) });
-      for (let r = 0; r < n; r++) {
-        for (let c = 0; c < n; c++) {
-          if (qr.isDark(r, c)) {
-            page.drawRectangle({
-              x: x0 + c * cell,
-              y: y0 + (n - 1 - r) * cell,
-              width: cell,
-              height: cell,
-              color: rgb(0.1, 0.09, 0.08),
-            });
-          }
-        }
-      }
-      page.drawText("scan to verify", {
-        x: x0 + 22,
-        y: y0 - 14,
-        size: 8,
-        font: helv,
-        color: rgb(0.4, 0.38, 0.35),
-      });
-    }
 
     await doc.attach(
       new TextEncoder().encode(JSON.stringify(bundle, null, 2)),

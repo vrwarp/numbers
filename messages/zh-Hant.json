@@ -21,6 +21,10 @@
     "saving": "儲存中…",
     "loading": "載入中…",
     "language": "語言",
+    "date": {
+      "today": "今天",
+      "yesterday": "昨天"
+    },
     "role": {
       "member": "會友",
       "approver": "審批人",
@@ -385,6 +389,10 @@
     "connectFailed": "無法連接簽署",
     "connectBlocked": "瀏覽器封鎖了登入視窗。請再次點按「連接簽署」以允許彈出。",
     "itemsCount": "{count} 個項目",
+    "metaSubmitted": "提交於 {date}",
+    "metaApproved": "核准於 {date}",
+    "metaRejected": "駁回於 {date}",
+    "metaPaid": "付款於 {date}",
     "bannerOk": "✓ 全部驗證通過——這份文件未被改動，真實有效。",
     "bannerBad": "✗ 有地方驗證不通過。請勿簽署——先詢問把這份文件發給你的人（下方的詳細資訊可供協助者查看）。",
     "auditDetails": "稽核詳情",
@@ -427,7 +435,6 @@
     "subtitle": "點開報銷單，核查後簽署。",
     "empty": "沒有等待你處理的事項。",
     "decided": "已處理",
-    "submittedOn": "提交於 {date}",
     "commentLabel": "留言（拒絕時必填）",
     "rejectNeedsComment": "請填寫拒絕原因",
     "reject": "✗ 拒絕",
@@ -444,7 +451,15 @@
     "empty": "目前沒有需要付款的報銷單。",
     "paidHeader": "已支付",
     "checkNumberLabel": "支票號碼（選填）",
-    "signAndMarkPaid": "💸 簽署並登記付款"
+    "signAndMarkPaid": "💸 簽署並登記付款",
+    "selectPacket": "選擇 {name} 的單據包",
+    "selectedCount": "{count, plural, other {已選擇 # 份單據包}}",
+    "includeReceipts": "包含收據",
+    "includeCertificate": "包含證書",
+    "clearSelection": "清除",
+    "printAll": "全部列印",
+    "printing": "正在準備…",
+    "printFailed": "無法產生單據包，請重試。"
   },
   "Identity": {
     "title": "電子簽名",

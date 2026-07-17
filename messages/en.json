@@ -21,6 +21,10 @@
     "saving": "Saving…",
     "loading": "Loading…",
     "language": "Language",
+    "date": {
+      "today": "Today",
+      "yesterday": "Yesterday"
+    },
     "role": {
       "member": "Member",
       "approver": "Approver",
@@ -385,6 +389,10 @@
     "connectFailed": "Could not connect signing",
     "connectBlocked": "Your browser blocked the sign-in window. Tap “Connect signing” again to allow it.",
     "itemsCount": "{count, plural, one {# item} other {# items}}",
+    "metaSubmitted": "Submitted {date}",
+    "metaApproved": "Approved {date}",
+    "metaRejected": "Rejected {date}",
+    "metaPaid": "Paid {date}",
     "bannerOk": "✓ Everything checks out — this is the genuine paperwork, unchanged.",
     "bannerBad": "✗ Something doesn't check out. Don't sign — ask the person who sent this (details below for whoever helps you).",
     "auditDetails": "Audit details",
@@ -427,7 +435,6 @@
     "subtitle": "Open a claim to check it and sign.",
     "empty": "Nothing waiting on you.",
     "decided": "Decided",
-    "submittedOn": "submitted {date}",
     "commentLabel": "Comment (required to reject)",
     "rejectNeedsComment": "Add a comment explaining the rejection",
     "reject": "✗ Reject",
@@ -444,7 +451,15 @@
     "empty": "Nothing to pay right now.",
     "paidHeader": "Paid",
     "checkNumberLabel": "Check number (optional)",
-    "signAndMarkPaid": "💸 Sign & mark paid"
+    "signAndMarkPaid": "💸 Sign & mark paid",
+    "selectPacket": "Select {name}'s packet",
+    "selectedCount": "{count, plural, one {# packet selected} other {# packets selected}}",
+    "includeReceipts": "Include receipts",
+    "includeCertificate": "Include certificate",
+    "clearSelection": "Clear",
+    "printAll": "Print all",
+    "printing": "Preparing…",
+    "printFailed": "Couldn't build the packets. Please try again."
   },
   "Identity": {
     "title": "Electronic signing",

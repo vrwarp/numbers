@@ -10,8 +10,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useOpenParam } from "@/lib/use-open-param";
-import { useFormatter, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { formatCents } from "@/lib/money";
+import ClaimSummaryRow from "./ClaimSummaryRow";
 import { runDecisionCeremony } from "@/lib/esign/client";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
@@ -34,6 +35,9 @@ export interface InboxClaim {
   signatureLedgerKey: string | null;
   submitSeq: number;
   submittedAt: string | null;
+  decidedAt: string | null;
+  paidAt: string | null;
+  checkNumber: string | null;
   rows: { description: string; amountCents: number; ministry: string; event: string }[];
 }
 
@@ -125,7 +129,7 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-stone-400">
             {t("decided")}
           </h2>
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {history.map((c) => {
               // Approved/paid claims have a certificate (signature cover page +
               // full signed packet + offline verification bundle); a rejected
@@ -136,7 +140,7 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
               return (
                 <li key={c.id} className="card card-lift" data-testid={`decided-${c.id}`} data-open-id={c.id}>
                   <a
-                    className="pressable flex w-full items-center justify-between gap-3 rounded-xl p-3 text-sm"
+                    className="pressable block rounded-xl p-4"
                     href={
                       hasCertificate
                         ? `/api/reimbursements/${c.id}/certificate`
@@ -145,10 +149,7 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
                     {...(hasCertificate ? {} : { target: "_blank", rel: "noreferrer" })}
                     data-testid={`decided-open-${c.id}`}
                   >
-                    <span className="min-w-0 truncate">
-                      {c.ownerName} · {formatCents(c.totalCents)}
-                    </span>
-                    <StatusChip status={c.status} />
+                    <ClaimSummaryRow claim={c} trailing={<StatusChip status={c.status} />} />
                   </a>
                 </li>
               );
@@ -191,32 +192,13 @@ function ClaimRow({
   onToggle: () => void;
   onChanged: () => Promise<void>;
 }) {
-  const t = useTranslations("Approvals");
-  const tEsign2 = useTranslations("Esign");
-  const format = useFormatter();
   return (
     <li className="card card-lift" data-testid={`approval-${claim.id}`} data-open-id={claim.id}>
-      <button className="pressable flex w-full items-center justify-between gap-3 p-4 text-left" onClick={onToggle}>
-        {/* min-w-0 + truncate so a long claim description shrinks instead of
-            pushing the amount off the card (flex min-width:auto). */}
-        <div className="min-w-0">
-          <div className="truncate font-semibold">{claim.ownerName}</div>
-          <div className="truncate text-sm text-stone-500">
-            {claim.claimDescription || tEsign2("itemsCount", { count: claim.rows.length })}
-            {claim.submittedAt &&
-              ` · ${t("submittedOn", {
-                date: format.dateTime(new Date(claim.submittedAt), {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                }),
-              })}`}
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-3">
-          <span className="text-lg font-bold">{formatCents(claim.totalCents)}</span>
-          <span className="text-stone-400">{open ? "▾" : "▸"}</span>
-        </div>
+      <button className="pressable block w-full p-4 text-left" onClick={onToggle}>
+        <ClaimSummaryRow
+          claim={claim}
+          trailing={<span className="text-stone-400">{open ? "▾" : "▸"}</span>}
+        />
       </button>
       {open && <DecisionCeremony claim={claim} canApprove={canApprove} onChanged={onChanged} />}
     </li>

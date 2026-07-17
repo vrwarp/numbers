@@ -101,6 +101,18 @@
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },
+ "Common.date.today": {
+  "source": "Today",
+  "context": "Standalone relative date label shown in place of a formatted date when something happened today (claim/receipt lists, approval & finance rows). One word.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Common.date.yesterday": {
+  "source": "Yesterday",
+  "context": "Standalone relative date label shown in place of a formatted date when something happened the previous calendar day. One word.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
  "Common.role.member": {
   "source": "Member",
   "context": "Church role shown in pickers/chips: ordinary member with no special powers.",
@@ -2081,6 +2093,30 @@
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },
+ "Esign.metaSubmitted": {
+  "source": "Submitted {date}",
+  "context": "Dates line under a claim row in the approver inbox and finance queue. {date} is a formatted date or the word Today/Yesterday. Reads e.g. “Submitted Jul 3”.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Esign.metaApproved": {
+  "source": "Approved {date}",
+  "context": "Dates line under a claim row; pairs with metaSubmitted. {date} is a date or Today/Yesterday. “Approved” = the approval was recorded.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Esign.metaRejected": {
+  "source": "Rejected {date}",
+  "context": "Dates line under a decided claim row. {date} is a date or Today/Yesterday. “Rejected” = the approval was declined.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Esign.metaPaid": {
+  "source": "Paid {date}",
+  "context": "Dates line under a paid claim row in the finance queue. {date} is a date or Today/Yesterday. “Paid” = payment recorded, not a fee.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
  "Esign.bannerOk": {
   "source": "✓ Everything checks out — this is the genuine paperwork, unchanged.",
   "context": "Reassurance line at the top of the Audit details disclosure (not shown on the main path — a clean chain stays quiet). Written for non-technical members. Keep the leading ✓.",
@@ -2321,12 +2357,6 @@
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },
- "Approvals.submittedOn": {
-  "source": "submitted {date}",
-  "context": "List-row suffix; {date} is a formatted date. Lowercase inline fragment after a ·.",
-  "zh-Hans": "machine",
-  "zh-Hant": "machine"
- },
  "Approvals.commentLabel": {
   "source": "Comment (required to reject)",
   "context": "Label of the comment field; a comment is mandatory only for rejection.",
@@ -2414,6 +2444,54 @@
  "Finance.signAndMarkPaid": {
   "source": "💸 Sign & mark paid",
   "context": "Confirm button of the payment ceremony. Keep the 💸.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Finance.selectPacket": {
+  "source": "Select {name}'s packet",
+  "context": "Accessible label for the checkbox that selects a paid claim’s packet for batch printing. {name} is the claimant.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Finance.selectedCount": {
+  "source": "{count, plural, one {# packet selected} other {# packets selected}}",
+  "context": "Count in the floating batch-print toolbar (finance queue) showing how many paid packets the treasurer has selected.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Finance.includeReceipts": {
+  "source": "Include receipts",
+  "context": "Toggle in the batch-print toolbar: append each packet’s receipt pages to the printout. Checkbox label.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Finance.includeCertificate": {
+  "source": "Include certificate",
+  "context": "Toggle in the batch-print toolbar: prepend the signature certificate cover to each packet. Checkbox label.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Finance.clearSelection": {
+  "source": "Clear",
+  "context": "Button in the batch-print toolbar that deselects all packets. One word.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Finance.printAll": {
+  "source": "Print all",
+  "context": "Primary button in the batch-print toolbar that builds one combined PDF of all selected packets to print. Short button label.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Finance.printing": {
+  "source": "Preparing…",
+  "context": "Busy label on the Print all button while the combined PDF is being built.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Finance.printFailed": {
+  "source": "Couldn't build the packets. Please try again.",
+  "context": "Error shown in the batch-print toolbar when building the combined PDF failed.",
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },
@@ -5005,315 +5083,315 @@
  },
  "Admin.tab_search": {
   "source": "Search",
+  "context": "Admin dashboard tab label. Same word as the user-facing Search title (搜索/搜尋).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard tab label. Same word as the user-facing Search title (搜索/搜尋)."
+  "zh-Hant": "machine"
  },
  "Admin.search.loading": {
   "source": "Loading…",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.loadFailed": {
   "source": "Could not load search settings.",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.actionFailed": {
   "source": "That didn't work. Please try again.",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.statusUpToDate": {
   "source": "Search is up to date — {indexed} items indexed.",
+  "context": "Admin status line: the search index has nothing waiting.",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin status line: the search index has nothing waiting."
+  "zh-Hant": "machine"
  },
  "Admin.search.statusIndexing": {
   "source": "{count} items waiting — about {minutes} min.",
+  "context": "Admin status line with an ETA computed from queue depth × measured per-item time.",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin status line with an ETA computed from queue depth × measured per-item time."
+  "zh-Hant": "machine"
  },
  "Admin.search.rebuildProgress": {
   "source": "Rebuilding: {done} of {total}",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.memberPreview": {
   "source": "Members currently see: “Search is still indexing older items — about {count} to go.”",
+  "context": "Literal preview quoting what MEMBERS currently see during a rebuild — the inner quoted sentence must match Search.pendingRebuild's wording.",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Literal preview quoting what MEMBERS currently see during a rebuild — the inner quoted sentence must match Search.pendingRebuild's wording."
+  "zh-Hant": "machine"
  },
  "Admin.search.queueDetails": {
   "source": "Details",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.queueDetailLine": {
   "source": "{queued} queued · {running} running · {failed} failed · ~{avgSeconds}s per item",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.settingsTitle": {
   "source": "Search server",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.connectTitle": {
   "source": "Connect search",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.connectIntro": {
   "source": "Search lets members find receipts and claims by describing them. Enter the two values from whoever runs your church's AI server.",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.envHint": {
   "source": "The server's environment sets a different endpoint — since first setup, this page is what counts.",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.endpointLabel": {
   "source": "Server address",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.apiKeyLabel": {
   "source": "API key",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.apiKeyKept": {
   "source": "saved ({fingerprint}) — leave blank to keep",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.modelLabel": {
   "source": "Model name",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.modelWarning": {
   "source": "Identifies this search index — changing it rebuilds search from scratch (several hours).",
+  "context": "Helper under the model-name field: renaming the model wipes and rebuilds the whole index. The consequence lives in this label.",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Helper under the model-name field: renaming the model wipes and rebuilds the whole index. The consequence lives in this label."
+  "zh-Hant": "machine"
  },
  "Admin.search.dimLabel": {
   "source": "Vector dimension:",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.dimDetected": {
   "source": "detected: {dim}",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.dimUnknown": {
   "source": "detected on first connection test",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.queryPrefixLabel": {
   "source": "Query instruction prefix",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.minScoreLabel": {
   "source": "Match threshold (0–1)",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.enabledLabel": {
   "source": "Search is on",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.skipProbeLabel": {
   "source": "Save without testing (server is down and I know it)",
+  "context": "Audited escape hatch checkbox: save settings without the connection test.",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Audited escape hatch checkbox: save settings without the connection test."
+  "zh-Hant": "machine"
  },
  "Admin.search.manualDimLabel": {
   "source": "Vector dimension (manual)",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.testConnection": {
   "source": "Test connection",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.probing": {
   "source": "Working…",
+  "context": "Generic busy label for admin buttons. One word + ellipsis.",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Generic busy label for admin buttons. One word + ellipsis."
+  "zh-Hant": "machine"
  },
  "Admin.search.probeOk": {
   "source": "Connected — dimension {dim}, {ms} ms.",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.save": {
   "source": "Save",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.saving": {
   "source": "Saving…",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.saved": {
   "source": "Saved.",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.savedRebuilding": {
   "source": "Saved — the search index is rebuilding in the background.",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.failedTitle": {
   "source": "Items search couldn't index ({count})",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.retry": {
   "source": "Retry",
+  "context": "Button re-queuing one failed index item. One word.",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Button re-queuing one failed index item. One word."
+  "zh-Hant": "machine"
  },
  "Admin.search.retryAll": {
   "source": "Retry all",
+  "context": "Button re-queuing every failed index item.",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Button re-queuing every failed index item."
+  "zh-Hant": "machine"
  },
  "Admin.search.rawError": {
   "source": "Technical details",
+  "context": "Expando summary hiding the raw server error string.",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Expando summary hiding the raw server error string."
+  "zh-Hant": "machine"
  },
  "Admin.search.failedClass.unreadableImage": {
   "source": "The search server couldn't read this {kind}'s image. It can still be found by its text (exact match), just not by description.",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.failedClass.tooLong": {
   "source": "This {kind} is too large for the search server to read in full. It can still be found by its text.",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.failedClass.endpointDown": {
   "source": "The search server couldn't be reached when this {kind} was processed. Retry once it's back.",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.failedClass.generic": {
   "source": "Search couldn't index this {kind}. It can still be found by its text (exact match).",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.kind.receipt": {
   "source": "receipt",
+  "context": "Inserted into failedClass.* sentences as {kind}. Lowercase, mid-sentence.",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Inserted into failedClass.* sentences as {kind}. Lowercase, mid-sentence."
+  "zh-Hant": "machine"
  },
  "Admin.search.kind.claim": {
   "source": "claim",
+  "context": "Inserted into failedClass.* sentences as {kind}. Lowercase, mid-sentence.",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Inserted into failedClass.* sentences as {kind}. Lowercase, mid-sentence."
+  "zh-Hant": "machine"
  },
  "Admin.search.testQueryTitle": {
   "source": "Try a search (with scores)",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.testQueryPlaceholder": {
   "source": "e.g. folding tables for the retreat",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.run": {
   "source": "Run",
+  "context": "Button that runs the admin test query. One word.",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Button that runs the admin test query. One word."
+  "zh-Hant": "machine"
  },
  "Admin.search.testNoResults": {
   "source": "No results above the threshold.",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.scoreExact": {
   "source": "exact",
+  "context": "Score column value for exact-text matches (no similarity score). One word, lowercase.",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Score column value for exact-text matches (no similarity score). One word, lowercase."
+  "zh-Hant": "machine"
  },
  "Admin.search.rebuildTitle": {
   "source": "Rebuild index",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.rebuildHint": {
   "source": "Re-reads everything on the current model — use if the search server was changed out from under this app.",
+  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin).",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Admin dashboard 'Search' tab (search-index management for a volunteer church admin)."
+  "zh-Hant": "machine"
  },
  "Admin.search.rebuild": {
   "source": "Rebuild",
+  "context": "Button label. One word.",
   "zh-Hans": "machine",
-  "zh-Hant": "machine",
-  "context": "Button label. One word."
+  "zh-Hant": "machine"
  },
  "Ministries.title": {
   "source": "Budget categories",
