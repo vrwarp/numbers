@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -218,7 +219,12 @@ function CategoryGuide({
   const groupOrder: string[] = [];
   for (const i of filtered) if (!groupOrder.includes(i.group)) groupOrder.push(i.group);
 
-  return (
+  // Portaled to <body>: GuideButton drops this next to any ministry selector,
+  // including ones inside the receipt cards' `lg:sticky` column — and sticky
+  // creates a stacking context, so rendered inline this fixed overlay would
+  // paint beneath later receipt cards, the action bar, and the navbar no
+  // matter its z-index.
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="dialog"
@@ -290,7 +296,8 @@ function CategoryGuide({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
