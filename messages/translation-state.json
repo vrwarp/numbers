@@ -2459,6 +2459,12 @@
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },
+ "Finance.viewCertificate": {
+  "source": "View",
+  "context": "Button on each paid-claim row; opens that claim's approval certificate PDF in a new tab. One word, verb (\"view/open\"), not \"a view\".",
+  "zh-Hans": "human",
+  "zh-Hant": "human"
+ },
  "Finance.checkNumberLabel": {
   "source": "Check number (optional)",
   "context": "Label of the optional check-number field in the mark-paid ceremony.",

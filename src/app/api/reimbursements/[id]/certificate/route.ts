@@ -149,7 +149,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     return new NextResponse(new Uint8Array(bytes), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="approval-certificate-${id}.pdf"`,
+        // `inline` so the browser opens the certificate in the viewer (like the
+        // batch-print route) instead of downloading it; callers open it in a new
+        // tab so the app stays put.
+        "Content-Disposition": `inline; filename="approval-certificate-${id}.pdf"`,
       },
     });
   });

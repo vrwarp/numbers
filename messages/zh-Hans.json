@@ -454,6 +454,7 @@
     "subtitle": "已批准、待付款的报销单。",
     "empty": "目前没有需要付款的报销单。",
     "paidHeader": "已支付",
+    "viewCertificate": "查看",
     "checkNumberLabel": "支票号码（可选）",
     "signAndMarkPaid": "💸 签署并登记付款",
     "selectPacket": "选择 {name} 的单据包",
