@@ -108,10 +108,11 @@ export default function SearchClient({
   const [error, setError] = useState<string | null>(null);
   const [showAllExact, setShowAllExact] = useState(false);
   const [recents, setRecents] = useState<string[]>([]);
-  // Recent searches now live in a dropdown under the input (their natural home)
-  // rather than the filter row: open on focus, but only with an empty query so
-  // typing/composition and result-viewing are never covered. activeRecent is
-  // the keyboard-highlighted row (-1 = none).
+  // Recent searches live in a dropdown under the input (their natural home).
+  // The Show/Where filter row sits above the input so the dropdown never
+  // overlaps it; open on focus, but only with an empty query so typing/
+  // composition and result-viewing are never covered. activeRecent is the
+  // keyboard-highlighted row (-1 = none).
   const [recentsOpen, setRecentsOpen] = useState(false);
   const [activeRecent, setActiveRecent] = useState(-1);
   const [announce, setAnnounce] = useState("");
@@ -323,6 +324,69 @@ export default function SearchClient({
     <div className="mx-auto max-w-3xl space-y-4">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
 
+      <div className="flex flex-wrap items-center gap-2">
+        {/* "Show" — the type filter is available to everyone (not role-gated). */}
+        <span
+          aria-hidden
+          className="text-xs font-semibold uppercase tracking-wide text-stone-400"
+        >
+          {t("typeFilterLabel")}
+        </span>
+        <div
+          data-testid="search-type-filter"
+          role="radiogroup"
+          aria-label={t("typeFilterLabel")}
+          className="inline-flex overflow-hidden rounded-full border border-stone-300 text-xs font-semibold"
+        >
+          {([null, "receipt", "claim"] as const).map((ty) => (
+            <button
+              key={ty ?? "all"}
+              role="radio"
+              aria-checked={typeFilter === ty}
+              className={`px-3 py-1.5 ${typeFilter === ty ? "bg-indigo-600 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
+              onClick={() => changeType(ty)}
+            >
+              {ty === null ? t("typeAll") : ty === "receipt" ? t("typeReceipts") : t("typeClaims")}
+            </button>
+          ))}
+        </div>
+        {canAll && (
+          <>
+            {/* "Where" — the cross-tenant scope control (§6.3), role-holders only. */}
+            <span
+              aria-hidden
+              className="ml-1 text-xs font-semibold uppercase tracking-wide text-stone-400"
+            >
+              {t("scopeFilterLabel")}
+            </span>
+            <div
+              data-testid="search-scope-filter"
+              role="radiogroup"
+              aria-label={t("scopeLabel")}
+              className="inline-flex overflow-hidden rounded-full border border-stone-300 text-xs font-semibold"
+            >
+              {/* "Claims I decided" only when the Approvals duty is active (§6.3). */}
+              {(["mine", "all", "decided"] as const)
+                .filter((s) => s !== "decided" || canDecided)
+                .map((s) => (
+                <button
+                  key={s}
+                  role="radio"
+                  aria-checked={scope === s}
+                  className={`px-3 py-1.5 ${scope === s ? "bg-indigo-600 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
+                  onClick={() => changeScope(s)}
+                >
+                  {s === "mine" ? t("scopeMine") : s === "all" ? t("scopeAll") : t("scopeDecided")}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        {scope === "decided" && (
+          <span className="text-xs text-stone-500">{t("scopeDecidedHint")}</span>
+        )}
+      </div>
+
       <div className="flex gap-2">
         <div className="relative flex-1">
           <input
@@ -393,69 +457,6 @@ export default function SearchClient({
         >
           {searching ? t("searching") : t("searchButton")}
         </button>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        {/* "Show" — the type filter is available to everyone (not role-gated). */}
-        <span
-          aria-hidden
-          className="text-xs font-semibold uppercase tracking-wide text-stone-400"
-        >
-          {t("typeFilterLabel")}
-        </span>
-        <div
-          data-testid="search-type-filter"
-          role="radiogroup"
-          aria-label={t("typeFilterLabel")}
-          className="inline-flex overflow-hidden rounded-full border border-stone-300 text-xs font-semibold"
-        >
-          {([null, "receipt", "claim"] as const).map((ty) => (
-            <button
-              key={ty ?? "all"}
-              role="radio"
-              aria-checked={typeFilter === ty}
-              className={`px-3 py-1.5 ${typeFilter === ty ? "bg-indigo-600 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
-              onClick={() => changeType(ty)}
-            >
-              {ty === null ? t("typeAll") : ty === "receipt" ? t("typeReceipts") : t("typeClaims")}
-            </button>
-          ))}
-        </div>
-        {canAll && (
-          <>
-            {/* "Where" — the cross-tenant scope control (§6.3), role-holders only. */}
-            <span
-              aria-hidden
-              className="ml-1 text-xs font-semibold uppercase tracking-wide text-stone-400"
-            >
-              {t("scopeFilterLabel")}
-            </span>
-            <div
-              data-testid="search-scope-filter"
-              role="radiogroup"
-              aria-label={t("scopeLabel")}
-              className="inline-flex overflow-hidden rounded-full border border-stone-300 text-xs font-semibold"
-            >
-              {/* "Claims I decided" only when the Approvals duty is active (§6.3). */}
-              {(["mine", "all", "decided"] as const)
-                .filter((s) => s !== "decided" || canDecided)
-                .map((s) => (
-                <button
-                  key={s}
-                  role="radio"
-                  aria-checked={scope === s}
-                  className={`px-3 py-1.5 ${scope === s ? "bg-indigo-600 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
-                  onClick={() => changeScope(s)}
-                >
-                  {s === "mine" ? t("scopeMine") : s === "all" ? t("scopeAll") : t("scopeDecided")}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-        {scope === "decided" && (
-          <span className="text-xs text-stone-500">{t("scopeDecidedHint")}</span>
-        )}
       </div>
 
       <p aria-live="polite" className="sr-only">
