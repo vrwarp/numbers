@@ -134,8 +134,8 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
               // Approved/paid claims have a certificate (signature cover page +
               // full signed packet + offline verification bundle); a rejected
               // claim has none, so its row falls back to the signed submission
-              // packet. The certificate is a download; the packet is an inline
-              // PDF, so only the latter opens in its own tab.
+              // packet. Both are served inline, so the row opens the PDF in its
+              // own tab and leaves the inbox put.
               const hasCertificate = c.status === "approved" || c.status === "paid";
               return (
                 <li key={c.id} className="card card-lift" data-testid={`decided-${c.id}`} data-open-id={c.id}>
@@ -146,7 +146,8 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
                         ? `/api/reimbursements/${c.id}/certificate`
                         : `/api/reimbursements/${c.id}/packet`
                     }
-                    {...(hasCertificate ? {} : { target: "_blank", rel: "noreferrer" })}
+                    target="_blank"
+                    rel="noreferrer"
                     data-testid={`decided-open-${c.id}`}
                   >
                     <ClaimSummaryRow claim={c} trailing={<StatusChip status={c.status} />} />

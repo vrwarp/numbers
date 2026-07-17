@@ -4,7 +4,7 @@
  * Owner-side e-sign panel on the claim review screen
  * (docs/ESIGN_DESIGN.md §6.1): submit-for-approval ceremony from
  * `generated`, live chain verification + reassignment while `submitted`,
- * the rejection comment + resubmit path, and certificate download once
+ * the rejection comment + resubmit path, and opening the certificate once
  * approved/paid.
  */
 
@@ -128,6 +128,8 @@ export default function EsignPanel({
           <a
             className="btn-secondary"
             href={`/api/reimbursements/${claim.id}/certificate`}
+            target="_blank"
+            rel="noreferrer"
             data-testid="certificate-link"
           >
             {t("certificateLink")}

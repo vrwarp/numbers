@@ -14,7 +14,7 @@ import { runPaidCeremony } from "@/lib/esign/client";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
 import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain } from "./chain";
 import { SigningConnectCard } from "./SigningConnect";
-import { StatusChip, type InboxClaim } from "./ApprovalsInbox";
+import { type InboxClaim } from "./ApprovalsInbox";
 import ClaimSummaryRow from "./ClaimSummaryRow";
 
 export default function FinanceQueue() {
@@ -152,8 +152,11 @@ export default function FinanceQueue() {
                   data-testid={`paid-${c.id}`}
                   data-open-id={c.id}
                 >
-                  {/* Select for batch printing — a sibling of the link so a tap
-                      here never opens the certificate. */}
+                  {/* The primary action is batch-print selection: the whole row
+                      toggles the checkbox (the main use case is selecting a few
+                      and printing them together). "Paid" is the only state these
+                      rows can be in, so there's no status chip — a View button
+                      opens the certificate instead. */}
                   <button
                     type="button"
                     role="checkbox"
@@ -161,23 +164,31 @@ export default function FinanceQueue() {
                     aria-label={t("selectPacket", { name: c.ownerName })}
                     onClick={() => toggle(c.id)}
                     data-testid={`paid-select-${c.id}`}
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 text-xs font-bold transition ${
-                      isSel
-                        ? "border-indigo-600 bg-indigo-600 text-white"
-                        : "border-stone-300 text-transparent"
-                    }`}
+                    className="pressable flex min-w-0 flex-1 items-center gap-3"
                   >
-                    ✓
+                    <span
+                      aria-hidden="true"
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 text-xs font-bold transition ${
+                        isSel
+                          ? "border-indigo-600 bg-indigo-600 text-white"
+                          : "border-stone-300 text-transparent"
+                      }`}
+                    >
+                      ✓
+                    </span>
+                    <ClaimSummaryRow claim={c} />
                   </button>
-                  {/* The row opens the approval certificate — the signature
-                      cover page, the full signed packet, and the offline
-                      verification bundle. It's a download, so no new tab. */}
+                  {/* Opens the approval certificate — the signature cover page,
+                      the full signed packet, and the offline verification bundle.
+                      Served inline, so a new tab keeps the finance page put. */}
                   <a
-                    className="pressable block min-w-0 flex-1"
+                    className="btn-secondary shrink-0"
                     href={`/api/reimbursements/${c.id}/certificate`}
+                    target="_blank"
+                    rel="noreferrer"
                     data-testid={`paid-open-${c.id}`}
                   >
-                    <ClaimSummaryRow claim={c} trailing={<StatusChip status={c.status} />} />
+                    {t("viewCertificate")}
                   </a>
                 </li>
               );
