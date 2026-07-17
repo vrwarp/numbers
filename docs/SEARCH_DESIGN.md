@@ -729,20 +729,25 @@ configured and enabled (`EmbeddingSettings.enabled`).
   relative-date token (last month/上个月/去年/…) and results span years, a one-line
   hint appears: "Search matches descriptions, not dates — dates are shown on each
   result."
-- **First-run / empty-query state** (the paradigm is taught here or never): one line —
-  "Describe what you remember — what it was bought for, how much it cost, who bought
-  it" — plus three tappable example queries (one descriptive, one amount-style, one
-  event/person-style) that run on tap. Localized per catalog with translator context;
-  the zh examples are idiomatic zh queries, not translations of the English ones.
-  For role-holders, a fourth example demonstrates the decided-claims browse. Below
-  the examples: **Recent searches** — the last 5, device-local only
-  (`localStorage`, with a clear control; never sent to or stored on the server,
-  preserving the queries-are-PII posture).
-- **Search state survives navigation**: `{query, types, scope, expanded-exact,
-  scroll}` persists to `sessionStorage`; returning to `/search` (Back from a result,
-  or reopening in the same tab) restores results without re-typing — IME users must
-  never pay the composition tax twice for one search session. No query text ever
-  enters the URL.
+- **First-run / empty-query state**: no teaching card — the search bar carries the
+  affordance, and a box of example queries tested worse than it looked (it pushed the
+  results down and read as chrome). The only empty-state UI is **Recent searches** —
+  the last 5, device-local only (`localStorage`; never sent to or stored on the
+  server, preserving the queries-are-PII posture). They render as tappable chips
+  **inlined in the filter row**, to the right of the scope switch on desktop (as many
+  as fit on one line — measured, never wrapped or clipped mid-chip) and as their own
+  row beneath the switch on mobile.
+- **Search state lives in the URL** (`?q=&scope=&type=`, written with
+  `history.replaceState` so it never triggers a soft navigation): refresh and Back
+  reproduce the view without re-typing — IME users never pay the composition tax
+  twice for one search — and a search is now a shareable/bookmarkable link. This
+  reverses the earlier "no query text in the URL" posture: the query is deliberately
+  in the address bar (and thus browser history) now, which is the accepted cost of
+  refresh-survives-correctly. It is still never sent anywhere the server logs it as a
+  URL — `/api/search` takes the query in the POST body (§7.4), not the querystring.
+  Only `mine`/`receipt`/`claim` defaults are omitted from the URL to keep it clean;
+  an out-of-scope `?scope=` (e.g. a paused role-holder's stale link) falls back to
+  `mine` on load.
 - **Shared devices are a normal church pattern** (family iPad, the office computer):
   both storages are **namespaced by userId and cleared on sign-out** — one member's
   recent queries must never surface for the next person who signs in.
@@ -979,9 +984,9 @@ with the outcome and keeps machinery in expandos:
   `tests/e2e/start-server.sh`; determinism via `wakeEmbeddingWorker`, §5.3): upload →
   worker indexes → search finds it; a draft claim becomes searchable after the idle
   window and an edit refreshes its embedding; "Find in Receipts" lands highlighted on
-  a below-the-fold receipt (incl. inside the collapsed processed section); Back from
-  a result restores query + results from sessionStorage; "Show all N" expands inline
-  and resets on the next submit; approver default scope is whole-church and can open
+  a below-the-fold receipt (incl. inside the collapsed processed section); a refresh
+  with `?q=&scope=` in the URL re-runs the search and restores the view; "Show all N"
+  expands inline and resets on the next submit; approver default scope is whole-church and can open
   a foreign receipt image; member `scope:"all"` → 404; decided scope browses with an
   empty query and `?open=<id>` lands on the approvals row; degraded mode via the
   mock's `__EMBED_FAIL__` lever shows exact matches + banner; admin model change →

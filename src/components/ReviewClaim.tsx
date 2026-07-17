@@ -1988,8 +1988,10 @@ function LineItemRow({
           ) : (
             <>
               {/* One flex group so the guide button never wraps away from its
-                  select on narrow rows; min-w-0 lets the select shrink instead. */}
-              <div className="flex max-w-full items-center gap-2">
+                  select on narrow rows; min-w-0 lets the select shrink instead.
+                  items-stretch (not center) so the select matches the guide
+                  button's height instead of sitting shorter beside it. */}
+              <div className="flex max-w-full items-stretch gap-2">
               <select
                 className="input w-auto min-w-0"
                 value={showOtherInput ? OTHER_MINISTRY : item.ministry}
@@ -2370,8 +2372,9 @@ function InlineSplit({
         <div className="flex flex-col gap-2 border-t border-indigo-100 pt-3">
           <div className="flex flex-wrap gap-2">
             {/* Same grouping as the per-row selector: select + guide button
-                stay on one line and shrink together. */}
-            <div className="flex min-w-0 flex-1 items-center gap-2">
+                stay on one line and shrink together. items-stretch so the
+                select matches the guide button's height. */}
+            <div className="flex min-w-0 flex-1 items-stretch gap-2">
             <select
               className="input w-auto min-w-0 flex-1"
               value={showOther ? OTHER_MINISTRY : ministry}

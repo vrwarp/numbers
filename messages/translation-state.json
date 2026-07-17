@@ -5649,45 +5649,9 @@
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },
- "Search.teachLine": {
-  "source": "Describe what you remember — what it was bought for, how much it cost, or who bought it.",
-  "context": "First-run instruction on the empty search page — teaches that descriptive queries work, not just keywords.",
-  "zh-Hans": "machine",
-  "zh-Hant": "machine"
- },
- "Search.example1": {
-  "source": "folding tables for the youth retreat",
-  "context": "Tappable example query, descriptive style. Write an idiomatic Chinese search query a church member would actually type — do NOT translate the English example.",
-  "zh-Hans": "reviewed",
-  "zh-Hant": "reviewed"
- },
- "Search.example2": {
-  "source": "$102.10",
-  "context": "Tappable example query, amount style. Keep a $ amount (US church).",
-  "zh-Hans": "machine",
-  "zh-Hant": "machine"
- },
- "Search.example3": {
-  "source": "paper towels from Costco",
-  "context": "Tappable example query, person/event style. Write an idiomatic Chinese search query a church member would actually type — do NOT translate the English example.",
-  "zh-Hans": "reviewed",
-  "zh-Hant": "reviewed"
- },
- "Search.exampleDecided": {
-  "source": "Browse claims I decided",
-  "context": "Fourth example chip, role-holders only: runs the decided-claims browse with an empty query.",
-  "zh-Hans": "reviewed",
-  "zh-Hant": "reviewed"
- },
  "Search.recentSearches": {
   "source": "Recent searches",
-  "context": "Heading over the device-local recent-queries list on the empty search page.",
-  "zh-Hans": "machine",
-  "zh-Hant": "machine"
- },
- "Search.recentClear": {
-  "source": "Clear",
-  "context": "Control that clears the recent-searches list. One word.",
+  "context": "Accessible label for the row of tappable device-local recent-query chips in the search filter row.",
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },

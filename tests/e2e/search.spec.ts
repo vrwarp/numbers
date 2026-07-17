@@ -95,6 +95,66 @@ test("member: upload → indexed → exact + semantic → Find in Receipts lands
   await expect.poll(() => page.url().includes("open=")).toBe(false);
 });
 
+test("search state lives in the URL: a deep link re-runs the query and a chip is inlined", async ({ page }, testInfo) => {
+  await signInAs(page, `urlstate-${testInfo.project.name}-r${testInfo.retry}@example.com`, "Url State");
+  await page.goto("/");
+  await uploadReceipts(page, [await makeReceiptFixture("banner.jpg")], "vinyl banner for the fall festival");
+  await searchUntil(page, { query: "fall festival banner" }, anyHit);
+
+  // Run a search, then confirm the querystring captured it (replaceState).
+  await page.goto("/search");
+  await page.getByTestId("search-input").fill("fall festival banner");
+  await page.getByTestId("search-submit").click();
+  await expect(page.getByTestId("search-exact-section")).toBeVisible();
+  await expect.poll(() => new URL(page.url()).searchParams.get("q")).toBe("fall festival banner");
+
+  // A cold deep link with ?q= auto-runs the search and refills the input —
+  // refresh/Back must not force a re-type (the IME composition-tax guarantee).
+  const fresh = await (await page.context().browser()!.newContext()).newPage();
+  await signInAs(fresh, `urlstate-${testInfo.project.name}-r${testInfo.retry}@example.com`, "Url State");
+  await fresh.goto("/search?q=fall%20festival%20banner");
+  await expect(fresh.getByTestId("search-input")).toHaveValue("fall festival banner");
+  await expect(fresh.getByTestId("search-exact-section")).toBeVisible();
+
+  // The just-run query is now a device-local recent chip in the filter row.
+  await expect(fresh.getByTestId("search-recent-1")).toContainText("fall festival banner");
+
+  // Item-5 invariant: with more recents than fit, the inlined chips stay on a
+  // single line (no wrap) and never spill past their container (no overflow) —
+  // the row shows as many as fit and simply drops the rest.
+  await fresh.evaluate(() => {
+    const key = Object.keys(localStorage).find((k) => k.startsWith("numbers.search.recents."));
+    if (!key) throw new Error("no recents key");
+    localStorage.setItem(
+      key,
+      JSON.stringify([
+        "fall festival vinyl banner and stakes",
+        "youth retreat folding tables and chairs",
+        "Costco paper towels and napkins bulk",
+        "projector bulb for the sanctuary AV",
+        "communion cups and wafers reorder",
+      ])
+    );
+  });
+  await fresh.reload();
+  await fresh.getByTestId("search-recent-1").waitFor();
+  const layout = await fresh.evaluate(() => {
+    const chips = Array.from(
+      document.querySelectorAll('[data-testid^="search-recent-"]')
+    ) as HTMLElement[];
+    const row = chips[0]?.parentElement as HTMLElement;
+    const rowRect = row.getBoundingClientRect();
+    const tops = new Set(chips.map((c) => Math.round(c.getBoundingClientRect().top)));
+    const overflow = chips.some(
+      (c) => c.getBoundingClientRect().right > Math.ceil(rowRect.right) + 1
+    );
+    return { count: chips.length, distinctTops: tops.size, overflow };
+  });
+  expect(layout.count).toBeGreaterThan(0);
+  expect(layout.distinctTops).toBe(1); // single line, no wrapping
+  expect(layout.overflow).toBe(false); // nothing clipped past the row edge
+});
+
 test("draft claims index after the idle window and re-index on edit", async ({ page }, testInfo) => {
   await signInAs(page, `drafts-${testInfo.project.name}-r${testInfo.retry}@example.com`, "Drafter");
   await page.goto("/");
