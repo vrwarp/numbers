@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { formatCents } from "@/lib/money";
 import { useApiErrorMessage } from "@/lib/use-api-error";
@@ -11,7 +11,8 @@ import { useApiErrorMessage } from "@/lib/use-api-error";
  * The /search screen (docs/SEARCH_DESIGN.md §7): explicit-submit search with
  * an IME-safe Enter guard, an exact-match strip (≤3 + show all), a Best-match
  * pin only when no exact hits, year-grouped semantic results, per-kind pending
- * notes, degraded mode, device-local recents, and sessionStorage restore.
+ * notes, degraded mode, device-local recents, and URL-encoded state (q/scope/
+ * type) so refresh and Back restore the view without retyping.
  */
 
 type ReceiptItem = {
@@ -92,15 +93,13 @@ export default function SearchClient({
   const t = useTranslations("Search");
   const tStatus = useTranslations("Common.status");
   const format = useFormatter();
-  const router = useRouter();
   const params = useSearchParams();
   const errorMessage = useApiErrorMessage();
 
-  const storageKey = `numbers.search.${userId}`;
   const recentsKey = `numbers.search.recents.${userId}`;
 
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<Scope>(canAll ? "all" : "mine");
+  const [scope, setScope] = useState<Scope>("mine");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(null);
   const [result, setResult] = useState<SearchResponse | null>(null);
   const [searching, setSearching] = useState(false);
@@ -114,57 +113,42 @@ export default function SearchClient({
   const inputRef = useRef<HTMLInputElement>(null);
   const lastSearched = useRef<{ query: string; scope: Scope } | null>(null);
 
-  // Entry pills pre-set the type (?type=receipt|claim) and focus the input —
-  // the user just tapped something that looks like a search box (§7.1).
+  // The URL is the single source of restore state (§7.4): ?q / ?scope / ?type
+  // encode the view so a refresh or Back reproduces it without retyping — IME
+  // users pay the composition tax only once. Written with replaceState so it
+  // never triggers a soft navigation / server round-trip.
+  const syncUrl = useCallback((q: string, sc: Scope, ty: TypeFilter) => {
+    const sp = new URLSearchParams();
+    if (q.trim()) sp.set("q", q.trim());
+    if (sc !== "mine") sp.set("scope", sc);
+    if (ty) sp.set("type", ty);
+    const qs = sp.toString();
+    window.history.replaceState(null, "", qs ? `/search?${qs}` : "/search");
+  }, []);
+
+  // Rehydrate from the URL on mount, then auto-run if there's anything to show.
   useEffect(() => {
-    const type = params.get("type");
-    if (type === "receipt" || type === "claim") setTypeFilter(type);
+    const urlQ = params.get("q") ?? "";
+    const urlType = params.get("type");
+    const urlScope = params.get("scope");
+    let initScope: Scope = "mine";
+    if (urlScope === "all" && canAll) initScope = "all";
+    else if (urlScope === "decided" && canDecided) initScope = "decided";
+    const initType: TypeFilter =
+      urlType === "receipt" || urlType === "claim" ? urlType : null;
+    setQuery(urlQ);
+    setScope(initScope);
+    setTypeFilter(initType);
     inputRef.current?.focus();
-    // Restore the session's last search (Back from a result must not retype —
-    // IME users pay the composition tax only once, §7.2).
     try {
-      const saved = sessionStorage.getItem(storageKey);
-      if (saved) {
-        const s = JSON.parse(saved);
-        setQuery(s.query ?? "");
-        // Only restore a scope this user is still allowed (pauses may have
-        // changed since); otherwise fall back to the default already set.
-        if (
-          s.scope === "mine" ||
-          (s.scope === "all" && canAll) ||
-          (s.scope === "decided" && canDecided)
-        ) {
-          setScope(s.scope);
-        }
-        if (s.typeFilter === "receipt" || s.typeFilter === "claim") setTypeFilter(s.typeFilter);
-        if (s.result) setResult(s.result);
-        setShowAllExact(!!s.showAllExact);
-        lastSearched.current = s.lastSearched ?? null;
-      }
       const r = localStorage.getItem(recentsKey);
       if (r) setRecents(JSON.parse(r));
     } catch {}
+    if (urlQ.trim() || initScope === "decided") {
+      void runSearch(urlQ, { scope: initScope, type: initType });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const persistSession = useCallback(
-    (next: Partial<{ result: SearchResponse | null; showAllExact: boolean }>) => {
-      try {
-        sessionStorage.setItem(
-          storageKey,
-          JSON.stringify({
-            query,
-            scope,
-            typeFilter,
-            result: next.result !== undefined ? next.result : result,
-            showAllExact: next.showAllExact ?? showAllExact,
-            lastSearched: lastSearched.current,
-          })
-        );
-      } catch {}
-    },
-    [query, scope, typeFilter, result, showAllExact, storageKey]
-  );
 
   const rememberRecent = useCallback(
     (q: string) => {
@@ -188,6 +172,7 @@ export default function SearchClient({
       const useScope = opts.scope ?? scope;
       const useType = opts.type !== undefined ? opts.type : typeFilter;
       if (!q.trim() && useScope !== "decided") return;
+      if (!opts.append && !opts.cursor) syncUrl(q, useScope, useType);
       const seq = ++submitSeq.current;
       abortRef.current?.abort();
       const controller = new AbortController();
@@ -223,7 +208,6 @@ export default function SearchClient({
         setResult(merged);
         setShowAllExact(false);
         rememberRecent(q);
-        persistSession({ result: merged, showAllExact: false });
         const count =
           merged.exact.length +
           (merged.best ? 1 : 0) +
@@ -241,7 +225,7 @@ export default function SearchClient({
         }
       }
     },
-    [scope, typeFilter, result, t, errorMessage, rememberRecent, persistSession]
+    [scope, typeFilter, result, t, errorMessage, rememberRecent, syncUrl]
   );
 
   const onSubmit = useCallback(() => void runSearch(query), [runSearch, query]);
@@ -262,15 +246,16 @@ export default function SearchClient({
       setScope(next);
       const q = query;
       if (q.trim() || next === "decided") void runSearch(q, { scope: next });
+      else syncUrl(q, next, typeFilter);
     },
-    [query, runSearch]
+    [query, runSearch, syncUrl, typeFilter]
   );
 
   const clearType = useCallback(() => {
     setTypeFilter(null);
-    router.replace("/search");
     if (lastSearched.current) void runSearch(query, { type: null });
-  }, [router, runSearch, query]);
+    else syncUrl(query, scope, null);
+  }, [runSearch, query, syncUrl, scope]);
 
   const hasResults =
     !!result &&
@@ -302,7 +287,7 @@ export default function SearchClient({
           <input
             ref={inputRef}
             data-testid="search-input"
-            className="input w-full pr-9"
+            className="input h-11 w-full pr-9"
             placeholder={t("placeholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -327,44 +312,57 @@ export default function SearchClient({
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {typeFilter && (
-          <button
-            data-testid="search-type-chip"
-            className="pressable inline-flex items-center gap-1 rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800"
-            onClick={clearType}
-            title={t("typeChipRemove")}
-          >
-            {typeFilter === "receipt" ? t("typeChipReceipts") : t("typeChipClaims")}
-            <span aria-hidden>✕</span>
-          </button>
-        )}
-        {canAll && (
-          <div
-            data-testid="search-scope-filter"
-            role="radiogroup"
-            aria-label={t("scopeLabel")}
-            className="inline-flex overflow-hidden rounded-full border border-stone-300 text-xs font-semibold"
-          >
-            {/* "Claims I decided" only when the Approvals duty is active (§6.3). */}
-            {(["mine", "all", "decided"] as const)
-              .filter((s) => s !== "decided" || canDecided)
-              .map((s) => (
-              <button
-                key={s}
-                role="radio"
-                aria-checked={scope === s}
-                className={`px-3 py-1.5 ${scope === s ? "bg-indigo-600 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
-                onClick={() => changeScope(s)}
-              >
-                {s === "mine" ? t("scopeMine") : s === "all" ? t("scopeAll") : t("scopeDecided")}
-              </button>
-            ))}
-          </div>
-        )}
-        {scope === "decided" && (
-          <span className="text-xs text-stone-500">{t("scopeDecidedHint")}</span>
-        )}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+          {typeFilter && (
+            <button
+              data-testid="search-type-chip"
+              className="pressable inline-flex items-center gap-1 rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800"
+              onClick={clearType}
+              title={t("typeChipRemove")}
+            >
+              {typeFilter === "receipt" ? t("typeChipReceipts") : t("typeChipClaims")}
+              <span aria-hidden>✕</span>
+            </button>
+          )}
+          {canAll && (
+            <div
+              data-testid="search-scope-filter"
+              role="radiogroup"
+              aria-label={t("scopeLabel")}
+              className="inline-flex overflow-hidden rounded-full border border-stone-300 text-xs font-semibold"
+            >
+              {/* "Claims I decided" only when the Approvals duty is active (§6.3). */}
+              {(["mine", "all", "decided"] as const)
+                .filter((s) => s !== "decided" || canDecided)
+                .map((s) => (
+                <button
+                  key={s}
+                  role="radio"
+                  aria-checked={scope === s}
+                  className={`px-3 py-1.5 ${scope === s ? "bg-indigo-600 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
+                  onClick={() => changeScope(s)}
+                >
+                  {s === "mine" ? t("scopeMine") : s === "all" ? t("scopeAll") : t("scopeDecided")}
+                </button>
+              ))}
+            </div>
+          )}
+          {scope === "decided" && (
+            <span className="text-xs text-stone-500">{t("scopeDecidedHint")}</span>
+          )}
+        </div>
+        {/* Past searches, inlined to the right on desktop (as many as fit, no
+            wrap/overflow) and a row of their own on mobile (§7.1). */}
+        <RecentChips
+          recents={recents}
+          ariaLabel={t("recentSearches")}
+          className="min-w-0 sm:flex-1"
+          onRun={(q) => {
+            setQuery(q);
+            void runSearch(q);
+          }}
+        />
       </div>
 
       <p aria-live="polite" className="sr-only">
@@ -383,25 +381,6 @@ export default function SearchClient({
         >
           {t("degraded")}
         </div>
-      )}
-
-      {!result && !searching && (
-        <EmptyQueryState
-          t={t}
-          canDecided={canDecided}
-          recents={recents}
-          onRun={(q, opts) => {
-            setQuery(q);
-            if (opts?.scope) setScope(opts.scope);
-            void runSearch(q, opts);
-          }}
-          onClearRecents={() => {
-            setRecents([]);
-            try {
-              localStorage.removeItem(recentsKey);
-            } catch {}
-          }}
-        />
       )}
 
       <div className={searching && result ? "pointer-events-none opacity-50" : ""}>
@@ -442,10 +421,7 @@ export default function SearchClient({
                   <button
                     data-testid="search-exact-show-all"
                     className="mt-2 text-sm font-medium text-indigo-600 hover:underline"
-                    onClick={() => {
-                      setShowAllExact(true);
-                      persistSession({ showAllExact: true });
-                    }}
+                    onClick={() => setShowAllExact(true)}
                   >
                     {t("showAllExact", { count: result.exact.length })}
                   </button>
@@ -513,72 +489,83 @@ function SectionHeader({ label }: { label: string }) {
   );
 }
 
-function EmptyQueryState({
-  t,
-  canDecided,
+const RECENT_CHIP_CLASS =
+  "pressable shrink-0 whitespace-nowrap rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600 hover:bg-stone-200";
+
+/** Past searches inlined in the filter row (§7.1). Renders as many chips as fit
+ *  the container on one line — no wrap, no overflow, no partial chip. A hidden
+ *  off-screen copy measures true chip widths; a ResizeObserver recomputes the
+ *  fitting count as the row grows or shrinks (desktop resize, mobile rotate). */
+function RecentChips({
   recents,
   onRun,
-  onClearRecents,
+  ariaLabel,
+  className,
 }: {
-  t: ReturnType<typeof useTranslations<"Search">>;
-  canDecided: boolean;
   recents: string[];
-  onRun: (q: string, opts?: { scope?: Scope }) => void;
-  onClearRecents: () => void;
+  onRun: (q: string) => void;
+  ariaLabel: string;
+  className?: string;
 }) {
-  const examples = [t("example1"), t("example2"), t("example3")];
+  const containerRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
+  const [count, setCount] = useState(0);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const measure = measureRef.current;
+    if (!container || !measure) return;
+    const GAP = 8; // gap-2
+    const recompute = () => {
+      const avail = container.clientWidth;
+      const chips = Array.from(measure.children) as HTMLElement[];
+      let used = 0;
+      let fit = 0;
+      for (let i = 0; i < chips.length; i++) {
+        const w = chips[i].offsetWidth;
+        const next = i === 0 ? w : used + GAP + w;
+        if (next <= avail) {
+          used = next;
+          fit = i + 1;
+        } else break;
+      }
+      setCount(fit);
+    };
+    recompute();
+    const ro = new ResizeObserver(recompute);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [recents]);
+
+  if (recents.length === 0) return null;
   return (
-    <div className="card space-y-4 p-6">
-      <p className="text-sm text-stone-600">{t("teachLine")}</p>
-      <div className="flex flex-wrap gap-2">
-        {examples.map((ex, i) => (
+    <div ref={containerRef} className={className} role="group" aria-label={ariaLabel}>
+      {/* Off-screen measurement copy — sized like the real chips, never shown. */}
+      <div
+        ref={measureRef}
+        aria-hidden
+        className="pointer-events-none absolute flex gap-2 opacity-0"
+        style={{ left: -9999, top: 0 }}
+      >
+        {recents.map((q, i) => (
+          <span key={i} className={RECENT_CHIP_CLASS}>
+            {q}
+          </span>
+        ))}
+      </div>
+      <div className="flex flex-nowrap gap-2 overflow-hidden">
+        {recents.slice(0, count).map((q, i) => (
           <button
             key={i}
-            data-testid={`search-example-${i + 1}`}
-            className="pressable rounded-full border border-stone-300 px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
-            onClick={() => onRun(ex)}
+            data-testid={`search-recent-${i + 1}`}
+            className={RECENT_CHIP_CLASS}
+            onClick={() => onRun(q)}
+            title={q}
           >
-            {ex}
+            {q}
           </button>
         ))}
-        {canDecided && (
-          <button
-            data-testid="search-example-4"
-            className="pressable rounded-full border border-stone-300 px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
-            onClick={() => onRun("", { scope: "decided" })}
-          >
-            {t("exampleDecided")}
-          </button>
-        )}
       </div>
-      {recents.length > 0 && (
-        <div>
-          <div className="mb-1 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wide text-stone-400">
-              {t("recentSearches")}
-            </span>
-            <button
-              data-testid="search-recent-clear"
-              className="text-xs text-stone-400 hover:text-stone-600 hover:underline"
-              onClick={onClearRecents}
-            >
-              {t("recentClear")}
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {recents.map((q, i) => (
-              <button
-                key={i}
-                data-testid={`search-recent-${i + 1}`}
-                className="pressable rounded-full bg-stone-100 px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-200"
-                onClick={() => onRun(q)}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
