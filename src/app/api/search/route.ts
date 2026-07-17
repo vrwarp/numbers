@@ -4,6 +4,7 @@ import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { searchCapabilitiesFor } from "@/lib/roles";
 import { embeddingEnabled } from "@/lib/embeddings/settings";
 import { runSearch } from "@/lib/embeddings/search";
+import { recordSearchHistory } from "@/lib/embeddings/history";
 
 export const runtime = "nodejs";
 
@@ -44,6 +45,10 @@ export async function POST(req: NextRequest) {
       scope,
       cursor: parsed.data.cursor,
     });
+    // Remember the query for the cross-device "Recent searches" dropdown. Only
+    // first-page runs (no cursor) so "Show more" pagination doesn't re-record;
+    // best-effort and never blocks the response.
+    if (!parsed.data.cursor) await recordSearchHistory(userId, parsed.data.query);
     return NextResponse.json(result);
   });
 }

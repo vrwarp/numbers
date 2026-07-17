@@ -734,13 +734,21 @@ configured and enabled (`EmbeddingSettings.enabled`).
 - **First-run / empty-query state**: no teaching card — the search bar carries the
   affordance, and a box of example queries tested worse than it looked (it pushed the
   results down and read as chrome). The only empty-state UI is **Recent searches** —
-  the last 5, device-local only (`localStorage`; never sent to or stored on the
-  server, preserving the queries-are-PII posture). They live where searches happen:
-  a **dropdown under the search input**, opened on focus and shown only while the
-  query is empty — so typing/composition and the results below are never covered. It
-  is a listbox: ArrowUp/Down move a highlight, Enter runs the highlighted query,
-  Escape closes; picking one keeps input focus (the options `preventDefault` their
-  mousedown so blur can't close the list before the click lands).
+  the last 5, now **server-backed and synced across the member's devices** (the
+  `SearchHistory` table, one row per distinct query, pruned to a 90-day window;
+  written best-effort by `POST /api/search`, read/cleared via `GET`/`DELETE
+  /api/search/history`). This **reverses the earlier "recents are device-local
+  localStorage, never stored server-side" posture**: a member's own past queries,
+  shown back only to them, are worth persisting across the phone/office-computer
+  split the way the URL already persists the active query. It is still owner-scoped
+  data, never telemetry — the queries-are-PII rule that keeps query text out of
+  `ExtractionLog`s (§9) is untouched. The dropdown lives where searches happen:
+  under the search input, opened on focus and shown only while the query is empty —
+  so typing/composition and the results below are never covered. It is a listbox:
+  ArrowUp/Down move a highlight, Enter runs the highlighted query, Escape closes;
+  picking one keeps input focus (the options `preventDefault` their mousedown so
+  blur can't close the list before the click lands). A **Clear** button in the box
+  header wipes the whole history (`DELETE /api/search/history`).
 - **Search state lives in the URL** (`?q=&scope=&type=`, written with
   `history.replaceState` so it never triggers a soft navigation): refresh and Back
   reproduce the view without re-typing — IME users never pay the composition tax
@@ -753,8 +761,9 @@ configured and enabled (`EmbeddingSettings.enabled`).
   an out-of-scope `?scope=` (e.g. a paused role-holder's stale link) falls back to
   `mine` on load.
 - **Shared devices are a normal church pattern** (family iPad, the office computer):
-  both storages are **namespaced by userId and cleared on sign-out** — one member's
-  recent queries must never surface for the next person who signs in.
+  recents are keyed to the signed-in user server-side and loaded fresh per session,
+  and the URL query state lives only in that tab — one member's recent queries are
+  fetched for their account alone and never surface for the next person who signs in.
 - **No relevance scores in the user UI.** Scores are ordinal, tooltips don't exist on
   touch, and a visible number invites questions it can't answer. Ordering carries the
   signal; exact scores appear only in the admin test box (§10).
@@ -875,7 +884,7 @@ the strings, not after:
 convention: `search-input, search-submit, search-type-filter, search-scope-filter,
 search-exact-section, search-exact-show-all, search-best-match, search-group-<year>,
 search-result-<kind>-<id>, search-find-in-receipts-<id>, search-example-<n>,
-search-recents, search-recent-<n>, search-show-more, search-date-hint,
+search-recents, search-recent-<n>, search-recents-clear, search-show-more, search-date-hint,
 search-pending-note, search-degraded-note, search-empty, shoebox-search-pill,
 claims-search-pill, highlight-pulse` — plus the admin card's
 `embedding-settings-form, embedding-test-connection, embedding-save,

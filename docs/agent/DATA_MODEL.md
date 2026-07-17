@@ -26,7 +26,7 @@ Reimbursement.status:  "draft"      ──(PDF generated)───────�
 ### User
 `id, firebaseUid?, email(unique), fullName?, mailingAddress?, role("member"),
 esignAllowed(false), approvalsPaused(false), financePaused(false), adminPaused(false),
-locale("en"), createdAt`
+locale("en"), printIncludeReceipts(false), printIncludeCertificate(false), createdAt`
 - Upserted by email at login (`/api/auth/session` after Firebase ID-token verification;
   the test-login route creates rows with `firebaseUid` NULL).
 - `role` = `member | approver | treasurer | admin` — the VERIFIED roster mirror
@@ -42,6 +42,11 @@ locale("en"), createdAt`
   independent of the role — the flags survive role churn.
 - `fullName`/`mailingAddress` are stamped onto the PDF; empty is allowed (PDF prints email /
   blank), dashboard nudges the user.
+- `printIncludeReceipts` / `printIncludeCertificate` — the treasurer batch-print toolbar's
+  two content toggles (docs/ESIGN_DESIGN.md §6.1), persisted so the choice follows the
+  account across devices. Both default OFF (lean CFCC-forms-only output). Plain UI
+  preference: read/written via `GET`/`PATCH /api/profile`, not audited, and never trusted
+  by the print route (which re-derives ids/content per request).
 
 ### Receipt
 `id, userId, filePath, originalFilePath?, mimeType, originalName, sizeBytes, status, note,
@@ -186,6 +191,16 @@ rawResponse?, parsedJson?, status("success"|"error"), errorMessage?, durationMs,
   draft debounce = `nextAttemptAt = now + EMBEDDING_DRAFT_IDLE_MS`; `failedSourceSha256`
   keeps failed jobs stable until content changes. Receipt gains `fileSha256` (stamped at
   upload/edit/restore + lazily at first embed).
+
+### SearchHistory (recent searches — docs/SEARCH_DESIGN.md §7)
+`id, userId, query, createdAt, updatedAt` — unique `(userId, query)`, indexed
+`(userId, updatedAt)`. Per-user recent-search history backing the "Recent searches"
+dropdown, synced across the member's devices. One row per distinct query; a re-search
+upserts and bumps `updatedAt` (float-to-top). Written best-effort by `POST /api/search`
+(never gates the search); read/cleared via `GET`/`DELETE /api/search/history`. Pruned to
+a 90-day window on write and re-filtered on read. Strictly owner-scoped (invariant 2) —
+the user's own history shown back to them, NOT telemetry, so it never lands in
+`ExtractionLog` (the queries-are-PII rule for logs is unchanged).
 
 ## Corrections diff (derived, not stored)
 

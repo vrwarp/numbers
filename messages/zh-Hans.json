@@ -1067,6 +1067,7 @@
     "onClaim": "已在报销单 · {status}",
     "receiptFallbackTitle": "收据",
     "recentSearches": "最近搜索",
+    "clearRecents": "清除历史",
     "emptyTitle": "没有找到匹配结果",
     "emptyBody": "试试更少或不同的词——精确文字也已搜索过。",
     "emptyPendingTitle": "还没有结果——仍在建立索引",

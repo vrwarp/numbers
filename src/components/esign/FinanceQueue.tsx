@@ -25,12 +25,39 @@ export default function FinanceQueue() {
   const [openId, setOpenId] = useState<string | null>(null);
   // Batch-print selection over the paid section (docs: treasurer prints many
   // filed packets at once). Both toggles default OFF — the lean output is just
-  // the CFCC forms; receipts and the signature certificate are opt-in.
+  // the CFCC forms; receipts and the signature certificate are opt-in. The two
+  // toggles are persisted per-user (profile row) so the choice follows the
+  // account across devices; we seed them from /api/profile on mount.
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [includeReceipts, setIncludeReceipts] = useState(false);
   const [includeCertificate, setIncludeCertificate] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [printError, setPrintError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/profile")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.user) return;
+        setIncludeReceipts(!!data.user.printIncludeReceipts);
+        setIncludeCertificate(!!data.user.printIncludeCertificate);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Persist a toggle change (fire-and-forget: a failed save just means the
+  // preference doesn't stick, never a blocked print).
+  const savePrintPref = useCallback((patch: Record<string, boolean>) => {
+    void fetch("/api/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    }).catch(() => {});
+  }, []);
   // ?open=<id> deep link from search results (shared contract).
   useOpenParam({
     ready: claims.length > 0,
@@ -208,7 +235,10 @@ export default function FinanceQueue() {
               <input
                 type="checkbox"
                 checked={includeReceipts}
-                onChange={(e) => setIncludeReceipts(e.target.checked)}
+                onChange={(e) => {
+                  setIncludeReceipts(e.target.checked);
+                  savePrintPref({ printIncludeReceipts: e.target.checked });
+                }}
                 data-testid="print-include-receipts"
               />
               {t("includeReceipts")}
@@ -217,7 +247,10 @@ export default function FinanceQueue() {
               <input
                 type="checkbox"
                 checked={includeCertificate}
-                onChange={(e) => setIncludeCertificate(e.target.checked)}
+                onChange={(e) => {
+                  setIncludeCertificate(e.target.checked);
+                  savePrintPref({ printIncludeCertificate: e.target.checked });
+                }}
                 data-testid="print-include-certificate"
               />
               {t("includeCertificate")}
