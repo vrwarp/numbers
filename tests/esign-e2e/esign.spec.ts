@@ -377,6 +377,30 @@ test("submit → approve → pay, fail-closed ceremonies throughout", async () =
     timeout: 30_000,
   });
 
+  // Treasurer batch-print (Finance › Paid): the paid row carries a select
+  // checkbox and its full date history in the meta line; selecting reveals the
+  // floating toolbar with Print all.
+  await expect(carol.page.getByTestId(`paid-select-${claimId}`)).toBeVisible({ timeout: 30_000 });
+  await expect(carol.page.getByTestId(`paid-${claimId}`)).toContainText("Submitted");
+  await carol.page.click(`[data-testid="paid-select-${claimId}"]`);
+  await expect(carol.page.getByTestId("print-all")).toBeVisible();
+  // The button opens the combined PDF in a new tab via a blob URL; assert the
+  // POST /api/finance/print endpoint directly — forms-only, then the full
+  // variant with receipts + the signature certificate cover.
+  for (const opts of [
+    { includeReceipts: false, includeCertificate: false },
+    { includeReceipts: true, includeCertificate: true },
+  ]) {
+    const res = await carol.context.request.post(`${BASE}/api/finance/print`, {
+      data: { ids: [claimId], ...opts },
+    });
+    expect(res.ok(), JSON.stringify(opts)).toBe(true);
+    expect(res.headers()["content-type"]).toContain("application/pdf");
+    const body = await res.body();
+    expect(body.length).toBeGreaterThan(1000);
+    expect(body.subarray(0, 5).toString("latin1")).toBe("%PDF-");
+  }
+
   // Owner sees the full signed thread; the public link verifies in-browser.
   await alice.page.goto(`${BASE}/claims/${claimId}`);
   // A clean chain is silent on the main path; the reassurance lives inside the

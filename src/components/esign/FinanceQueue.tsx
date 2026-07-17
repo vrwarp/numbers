@@ -10,12 +10,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useOpenParam } from "@/lib/use-open-param";
 import { useTranslations } from "next-intl";
-import { formatCents } from "@/lib/money";
 import { runPaidCeremony } from "@/lib/esign/client";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
 import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain } from "./chain";
 import { SigningConnectCard } from "./SigningConnect";
 import { StatusChip, type InboxClaim } from "./ApprovalsInbox";
+import ClaimSummaryRow from "./ClaimSummaryRow";
 
 export default function FinanceQueue() {
   const t = useTranslations("Finance");
@@ -23,6 +23,14 @@ export default function FinanceQueue() {
   const apiError = useApiErrorMessage();
   const [claims, setClaims] = useState<InboxClaim[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
+  // Batch-print selection over the paid section (docs: treasurer prints many
+  // filed packets at once). Both toggles default OFF — the lean output is just
+  // the CFCC forms; receipts and the signature certificate are opt-in.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [includeReceipts, setIncludeReceipts] = useState(false);
+  const [includeCertificate, setIncludeCertificate] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const [printError, setPrintError] = useState<string | null>(null);
   // ?open=<id> deep link from search results (shared contract).
   useOpenParam({
     ready: claims.length > 0,
@@ -39,7 +47,14 @@ export default function FinanceQueue() {
       setError(apiError(await res.json().catch(() => null), tEsign("loadFailed")));
       return;
     }
-    setClaims((await res.json()).claims ?? []);
+    const next: InboxClaim[] = (await res.json()).claims ?? [];
+    setClaims(next);
+    // Drop any selection whose row no longer exists after a reload.
+    setSelected((prev) => {
+      const paidIds = new Set(next.filter((c) => c.status === "paid").map((c) => c.id));
+      const kept = new Set([...prev].filter((id) => paidIds.has(id)));
+      return kept.size === prev.size ? prev : kept;
+    });
   }, [apiError, tEsign]);
   useEffect(() => {
     void load();
@@ -48,8 +63,52 @@ export default function FinanceQueue() {
   const queue = claims.filter((c) => c.status === "approved");
   const paid = claims.filter((c) => c.status === "paid");
 
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  async function printSelected() {
+    const ids = paid.filter((c) => selected.has(c.id)).map((c) => c.id);
+    if (ids.length === 0) return;
+    setPrinting(true);
+    setPrintError(null);
+    // Open the tab inside the click gesture so the pop-up isn't blocked; point
+    // it at the built PDF, or close it (and fall back to a download) on failure.
+    const win = window.open("", "_blank");
+    try {
+      const res = await fetch("/api/finance/print", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, includeReceipts, includeCertificate }),
+      });
+      if (!res.ok) {
+        throw new Error(apiError(await res.json().catch(() => null), t("printFailed")));
+      }
+      const url = URL.createObjectURL(await res.blob());
+      if (win) win.location.href = url;
+      else {
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "cfcc-packets.pdf";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e) {
+      win?.close();
+      setPrintError(e instanceof Error ? e.message : t("printFailed"));
+    } finally {
+      setPrinting(false);
+    }
+  }
+
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${selected.size > 0 ? "pb-24" : ""}`}>
       <div>
         <h1 className="text-2xl font-bold">{t("title")}</h1>
         <p className="text-sm text-stone-500">{t("subtitle")}</p>
@@ -65,20 +124,14 @@ export default function FinanceQueue() {
         <ul className="space-y-3">
           {queue.map((c) => (
             <li key={c.id} className="card card-lift" data-testid={`finance-${c.id}`} data-open-id={c.id}>
-              <button className="pressable flex w-full items-center justify-between gap-3 p-4 text-left" onClick={() => setOpenId(openId === c.id ? null : c.id)}>
-                {/* min-w-0 + truncate so a long claim description shrinks
-                    instead of pushing the amount off the card. */}
-                <div className="min-w-0">
-                  <div className="truncate font-semibold">{c.ownerName}</div>
-                  <div className="truncate text-sm text-stone-500">
-                    {c.claimDescription ||
-                      tEsign("itemsCount", { count: c.rows.length })}
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-3">
-                  <span className="text-lg font-bold">{formatCents(c.totalCents)}</span>
-                  <span className="text-stone-400">{openId === c.id ? "▾" : "▸"}</span>
-                </div>
+              <button
+                className="pressable block w-full p-4 text-left"
+                onClick={() => setOpenId(openId === c.id ? null : c.id)}
+              >
+                <ClaimSummaryRow
+                  claim={c}
+                  trailing={<span className="text-stone-400">{openId === c.id ? "▾" : "▸"}</span>}
+                />
               </button>
               {openId === c.id && <PaidCeremony claim={c} onChanged={load} />}
             </li>
@@ -89,26 +142,90 @@ export default function FinanceQueue() {
       {paid.length > 0 && (
         <div>
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-stone-400">{t("paidHeader")}</h2>
-          <ul className="space-y-2">
-            {paid.map((c) => (
-              <li key={c.id} className="card card-lift" data-testid={`paid-${c.id}`} data-open-id={c.id}>
-                {/* The whole row opens the approval certificate — the signature
-                    cover page followed by the full signed packet and the
-                    offline verification bundle, so it supersedes a bare packet
-                    link. The certificate is a download, so no new tab. */}
-                <a
-                  className="pressable flex w-full items-center justify-between gap-3 rounded-xl p-3 text-sm"
-                  href={`/api/reimbursements/${c.id}/certificate`}
-                  data-testid={`paid-open-${c.id}`}
+          <ul className="space-y-3">
+            {paid.map((c) => {
+              const isSel = selected.has(c.id);
+              return (
+                <li
+                  key={c.id}
+                  className="card card-lift flex items-center gap-3 p-4"
+                  data-testid={`paid-${c.id}`}
+                  data-open-id={c.id}
                 >
-                  <span className="min-w-0 truncate">
-                    {c.ownerName} · {formatCents(c.totalCents)}
-                  </span>
-                  <StatusChip status={c.status} />
-                </a>
-              </li>
-            ))}
+                  {/* Select for batch printing — a sibling of the link so a tap
+                      here never opens the certificate. */}
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={isSel}
+                    aria-label={t("selectPacket", { name: c.ownerName })}
+                    onClick={() => toggle(c.id)}
+                    data-testid={`paid-select-${c.id}`}
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 text-xs font-bold transition ${
+                      isSel
+                        ? "border-indigo-600 bg-indigo-600 text-white"
+                        : "border-stone-300 text-transparent"
+                    }`}
+                  >
+                    ✓
+                  </button>
+                  {/* The row opens the approval certificate — the signature
+                      cover page, the full signed packet, and the offline
+                      verification bundle. It's a download, so no new tab. */}
+                  <a
+                    className="pressable block min-w-0 flex-1"
+                    href={`/api/reimbursements/${c.id}/certificate`}
+                    data-testid={`paid-open-${c.id}`}
+                  >
+                    <ClaimSummaryRow claim={c} trailing={<StatusChip status={c.status} />} />
+                  </a>
+                </li>
+              );
+            })}
           </ul>
+        </div>
+      )}
+
+      {selected.size > 0 && (
+        // Floating batch-print toolbar (mirrors the claim page's action bar):
+        // count, the two content toggles, and Print all — building one PDF with
+        // every selected packet for a single trip to the printer.
+        <div className="fixed inset-x-0 bottom-4 z-30 flex justify-center px-4">
+          <div className="card flex flex-wrap items-center gap-x-4 gap-y-2 bg-white/95 p-3 shadow-lg backdrop-blur">
+            <span className="text-sm font-medium">{t("selectedCount", { count: selected.size })}</span>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={includeReceipts}
+                onChange={(e) => setIncludeReceipts(e.target.checked)}
+                data-testid="print-include-receipts"
+              />
+              {t("includeReceipts")}
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={includeCertificate}
+                onChange={(e) => setIncludeCertificate(e.target.checked)}
+                data-testid="print-include-certificate"
+              />
+              {t("includeCertificate")}
+            </label>
+            {printError && <span className="w-full text-sm text-red-700 sm:w-auto">{printError}</span>}
+            <div className="flex items-center gap-2 sm:ml-auto sm:border-l sm:border-stone-200 sm:pl-4">
+              <button className="btn-secondary !px-3" onClick={() => setSelected(new Set())}>
+                {t("clearSelection")}
+              </button>
+              <button
+                className="btn-primary !px-4 disabled:opacity-50"
+                onClick={printSelected}
+                disabled={printing}
+                data-testid="print-all"
+              >
+                {printing ? t("printing") : t("printAll")}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

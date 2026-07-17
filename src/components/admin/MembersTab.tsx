@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useDateLabel } from "@/lib/use-date-label";
 import { loadEnv, loadRoster, type EsignEnv } from "@/lib/esign/client";
 import type { RosterTimeline } from "@/lib/esign/roster";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
@@ -253,6 +254,7 @@ export default function MembersTab() {
 function VouchChain({ env }: { env: EsignEnv }) {
   const t = useTranslations("Admin");
   const tRole = useTranslations("Common.role");
+  const dateLabel = useDateLabel();
   const thrown = useThrownErrorMessage();
   const [roster, setRoster] = useState<RosterTimeline | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -299,7 +301,7 @@ function VouchChain({ env }: { env: EsignEnv }) {
                     <div className="flex flex-wrap items-center justify-between gap-1">
                       <span className="font-medium">{m.name}</span>
                       <span className="text-xs text-stone-400">
-                        {revoked ? t("chainRevoked") : t("chainAttestedOn", { date: new Date(m.attestedAtMs).toLocaleDateString() })}
+                        {revoked ? t("chainRevoked") : t("chainAttestedOn", { date: dateLabel(m.attestedAtMs) })}
                       </span>
                     </div>
                     <div className="mt-0.5 flex flex-wrap gap-1">

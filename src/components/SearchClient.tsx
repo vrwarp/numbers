@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
+import { useDateLabel } from "@/lib/use-date-label";
 import { formatCents } from "@/lib/money";
 import { useApiErrorMessage } from "@/lib/use-api-error";
 
@@ -91,7 +92,7 @@ export default function SearchClient({
 }) {
   const t = useTranslations("Search");
   const tStatus = useTranslations("Common.status");
-  const format = useFormatter();
+  const formatDate = useDateLabel();
   const router = useRouter();
   const params = useSearchParams();
   const errorMessage = useApiErrorMessage();
@@ -435,7 +436,7 @@ export default function SearchClient({
                 <SectionHeader label={t("exactMatches")} />
                 <ul className="space-y-2">
                   {(showAllExact ? result.exact : result.exact.slice(0, 3)).map((item) => (
-                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} format={format} />
+                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} formatDate={formatDate} />
                   ))}
                 </ul>
                 {result.exact.length > 3 && !showAllExact && (
@@ -457,7 +458,7 @@ export default function SearchClient({
               <section data-testid="search-best-match">
                 <SectionHeader label={t("bestMatch")} />
                 <ul>
-                  <ResultCard item={result.best} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} format={format} />
+                  <ResultCard item={result.best} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} formatDate={formatDate} />
                 </ul>
               </section>
             )}
@@ -471,7 +472,7 @@ export default function SearchClient({
                 )}
                 <ul className="space-y-2">
                   {group.items.map((item) => (
-                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} format={format} />
+                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} formatDate={formatDate} />
                   ))}
                 </ul>
               </section>
@@ -605,14 +606,14 @@ function ResultCard({
   scope,
   t,
   tStatus,
-  format,
+  formatDate,
 }: {
   item: Item;
   viewer: { userId: string; isRoleHolder: boolean };
   scope: Scope;
   t: ReturnType<typeof useTranslations<"Search">>;
   tStatus: ReturnType<typeof useTranslations<"Common.status">>;
-  format: ReturnType<typeof useFormatter>;
+  formatDate: ReturnType<typeof useDateLabel>;
 }) {
   if (item.kind === "receipt") {
     const single = item.claims.length === 1 ? item.claims[0] : null;
@@ -625,8 +626,8 @@ function ResultCard({
         ? `/?open=${item.id}`
         : (singleHref ?? `/api/receipts/${item.id}/file`);
     const external = item.claims.length > 0 && !singleHref;
-    const dateLabel = /^\d{4}-\d{2}-\d{2}/.test(item.purchaseDate)
-      ? format.dateTime(new Date(item.purchaseDate + "T00:00:00"), {
+    const purchaseLabel = /^\d{4}-\d{2}-\d{2}/.test(item.purchaseDate)
+      ? formatDate(item.purchaseDate + "T00:00:00", {
           year: "numeric",
           month: "long",
           day: "numeric",
@@ -647,7 +648,7 @@ function ResultCard({
         <div className="min-w-0 flex-1">
           <div className="truncate font-semibold">
             {item.merchant || t("receiptFallbackTitle")}
-            {dateLabel && <span className="ml-2 font-normal text-stone-500">{dateLabel}</span>}
+            {purchaseLabel && <span className="ml-2 font-normal text-stone-500">{purchaseLabel}</span>}
           </div>
           {item.note && <div className="truncate text-sm text-stone-500">{item.note}</div>}
           {item.ownerName && scope !== "mine" && (
@@ -707,7 +708,7 @@ function ResultCard({
           </span>
           <span className="font-semibold">{formatCents(item.totalCents)}</span>
           <span className="text-xs text-stone-400">
-            {format.dateTime(new Date(item.createdAt), { year: "numeric", month: "long", day: "numeric" })}
+            {formatDate(item.createdAt, { year: "numeric", month: "long", day: "numeric" })}
           </span>
         </div>
         {item.claimDescription && (

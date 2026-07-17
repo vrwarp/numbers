@@ -4,6 +4,7 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import { currentUserId } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { formatCents } from "@/lib/money";
+import { relativeDateLabel } from "@/lib/date-label";
 import { embeddingEnabled } from "@/lib/embeddings/settings";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,10 @@ export default async function ClaimsPage() {
   const searchEnabled = await embeddingEnabled().catch(() => false);
   const t = await getTranslations("Claims");
   const tStatus = await getTranslations("Common.status");
+  const tDate = await getTranslations("Common.date");
   const format = await getFormatter();
+  const now = new Date();
+  const dateLabels = { today: tDate("today"), yesterday: tDate("yesterday") };
 
   return (
     <div className="space-y-6">
@@ -72,7 +76,9 @@ export default async function ClaimsPage() {
               <Link href={`/claims/${c.id}`} className="card card-lift pressable flex items-center justify-between p-4" data-testid={`claim-${c.id}`}>
                 <div>
                   <div className="font-semibold">
-                    {format.dateTime(new Date(c.createdAt), { year: "numeric", month: "long", day: "numeric" })}
+                    {relativeDateLabel(new Date(c.createdAt), now, dateLabels, (d) =>
+                      format.dateTime(d, { year: "numeric", month: "long", day: "numeric" })
+                    )}
                   </div>
                   <div className="text-sm text-stone-500">
                     {t("counts", { items: c._count.lineItems, receipts: c._count.receipts })}
