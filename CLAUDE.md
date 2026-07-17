@@ -99,7 +99,10 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    retention), and the admin settings GET never returns the API key. The
    role-read grant (verified approver/treasurer/admin may READ all receipts +
    claims incl. drafts and never-claimed receipts) is a deliberate §6.3-style
-   exception beside invariant 2 — writes stay owner-only.
+   exception beside invariant 2 — writes stay owner-only. The grant is narrowed
+   per-duty by the A10 pauses (`src/lib/roles.ts` `searchCapabilities`): a
+   fully-paused role-holder reads like a member (scope/file 404); never from
+   `ADMIN_EMAILS`.
 
 ## Docs map
 

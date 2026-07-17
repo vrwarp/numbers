@@ -26,6 +26,18 @@ async function grantRole(email: string, role: string): Promise<void> {
   }
 }
 
+async function setPauses(
+  email: string,
+  pauses: { approvalsPaused?: boolean; financePaused?: boolean; adminPaused?: boolean }
+): Promise<void> {
+  const prisma = e2ePrisma();
+  try {
+    await prisma.user.update({ where: { email: email.toLowerCase() }, data: pauses });
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 /** Poll the search API until a predicate holds (worker indexing is async). */
 async function searchUntil(
   page: Page,
@@ -158,6 +170,50 @@ test("scopes: member cannot ask for whole-church; an approver defaults to it and
   await expect(carol.getByTestId("search-scope-filter")).toBeVisible();
   await bob.goto("/search");
   await expect(bob.getByTestId("search-scope-filter")).toHaveCount(0);
+});
+
+test("duty pauses narrow the grant per-duty (real access, not just UI)", async ({ browser }, testInfo) => {
+  const suffix = `${testInfo.project.name}-r${testInfo.retry}`;
+  // A member uploads a foreign receipt the role-holders will (or won't) reach.
+  const member = await (await browser.newContext()).newPage();
+  const memberEmail = `dp-member-${suffix}@example.com`;
+  await signInAs(member, memberEmail, "Duty Member");
+  await member.goto("/");
+  await uploadReceipts(member, [await makeReceiptFixture("dp.jpg")], "projector for VBS");
+  await searchUntil(member, { query: "projector VBS" }, anyHit);
+  const receiptId = (await (await member.request.get("/api/receipts")).json()).receipts[0].id;
+
+  // An approver who pauses Approvals reads like a member: scope-all AND decided
+  // 404, the foreign file 404, and the scope control disappears.
+  const approverEmail = `dp-approver-${suffix}@example.com`;
+  const approver = await (await browser.newContext()).newPage();
+  await signInAs(approver, approverEmail, "Duty Approver");
+  await grantRole(approverEmail, "approver");
+  expect((await approver.request.post("/api/search", { data: { query: "x", scope: "all" } })).status()).toBe(200);
+  expect((await approver.request.get(`/api/receipts/${receiptId}/file`)).status()).toBe(200);
+
+  await setPauses(approverEmail, { approvalsPaused: true });
+  expect((await approver.request.post("/api/search", { data: { query: "x", scope: "all" } })).status()).toBe(404);
+  expect((await approver.request.post("/api/search", { data: { query: "", scope: "decided" } })).status()).toBe(404);
+  expect((await approver.request.get(`/api/receipts/${receiptId}/file`)).status()).toBe(404);
+  await approver.goto("/search");
+  await expect(approver.getByTestId("search-scope-filter")).toHaveCount(0);
+
+  // A treasurer who pauses ONLY Approvals keeps whole-church (Finance active)
+  // but loses "Claims I decided": scope-all 200, decided 404, and the scope
+  // control shows without the third segment.
+  const treasurerEmail = `dp-treasurer-${suffix}@example.com`;
+  const treasurer = await (await browser.newContext()).newPage();
+  await signInAs(treasurer, treasurerEmail, "Duty Treasurer");
+  await grantRole(treasurerEmail, "treasurer");
+  await setPauses(treasurerEmail, { approvalsPaused: true });
+  expect((await treasurer.request.post("/api/search", { data: { query: "x", scope: "all" } })).status()).toBe(200);
+  expect((await treasurer.request.post("/api/search", { data: { query: "", scope: "decided" } })).status()).toBe(404);
+  expect((await treasurer.request.get(`/api/receipts/${receiptId}/file`)).status()).toBe(200);
+  await treasurer.goto("/search");
+  const scope = treasurer.getByTestId("search-scope-filter");
+  await expect(scope).toBeVisible();
+  await expect(scope.getByRole("radio")).toHaveCount(2); // My items / Whole church, no Decided
 });
 
 test("degraded mode: embed failure still returns exact matches + the banner", async ({ page }, testInfo) => {
