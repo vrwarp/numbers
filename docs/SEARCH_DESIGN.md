@@ -692,10 +692,11 @@ configured and enabled (`EmbeddingSettings.enabled`).
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │  🔍 [ Search receipts and claims…               ] [Search]   │
-│  (Receipts only ✕)          ← chip, only when a pill pre-set │
-│                               the type; no dropdown          │
-│  [My items | Whole church | Claims I decided]                │  ← one segmented
-│   (role-holders only; members see no control row)               scope control
+│      ⌄ Recent searches       ← dropdown under the input, on  │
+│                                focus while the query is empty│
+│  Show  [Both | Receipts | Claims]           ← persistent    │
+│  Where [My items | Whole church | Claims I decided]   type + │
+│   (Where row: role-holders only)              scope switches
 │                                                              │
 │  EXACT MATCHES ────────────────────────────────────────────  │  ← ≤3 cards +
 │  ┌─────────┐  Costco  ·  $214.80  ·  "folding chairs"        │    "Show all 7"
@@ -709,12 +710,13 @@ configured and enabled (`EmbeddingSettings.enabled`).
 └──────────────────────────────────────────────────────────────┘
 ```
 
-- **Control surface is minimal**: input + button, the scope segment (role-holders
-  only), and a removable type chip that exists only when an entry pill pre-set it
-  ("Receipts only ✕") — there is **no persistent type dropdown**; kind is
-  self-evident from the cards and the chip fixes the pill-promise mismatch (a
-  "Search receipts…" pill must not land on a silently-filtered generic page). The
-  API keeps `types` for the pills and the chip.
+- **Control surface is minimal**: input + button, a persistent three-way type
+  switch captioned **"Show"** (Both / Receipts / Claims), and the scope segment
+  captioned **"Where"** (role-holders only). The type switch replaced an earlier
+  removable chip that could only be *cleared* and never re-enabled: a "Search
+  receipts…" entry pill still pre-selects "Receipts" (the pill-promise a generic
+  page would break), but the user can now toggle back to Both or over to Claims in
+  place. The API keeps `types` for both the entry pills and the switch.
 - **At most two kinds of scaffolding are ever visible**: the exact strip (when
   non-empty, capped at 3 + "Show all N") and the year sections. **"Show all N"
   expands inline in place** — semantic sections stay below, nothing navigates — and
@@ -733,10 +735,12 @@ configured and enabled (`EmbeddingSettings.enabled`).
   affordance, and a box of example queries tested worse than it looked (it pushed the
   results down and read as chrome). The only empty-state UI is **Recent searches** —
   the last 5, device-local only (`localStorage`; never sent to or stored on the
-  server, preserving the queries-are-PII posture). They render as tappable chips
-  **inlined in the filter row**, to the right of the scope switch on desktop (as many
-  as fit on one line — measured, never wrapped or clipped mid-chip) and as their own
-  row beneath the switch on mobile.
+  server, preserving the queries-are-PII posture). They live where searches happen:
+  a **dropdown under the search input**, opened on focus and shown only while the
+  query is empty — so typing/composition and the results below are never covered. It
+  is a listbox: ArrowUp/Down move a highlight, Enter runs the highlighted query,
+  Escape closes; picking one keeps input focus (the options `preventDefault` their
+  mousedown so blur can't close the list before the click lands).
 - **Search state lives in the URL** (`?q=&scope=&type=`, written with
   `history.replaceState` so it never triggers a soft navigation): refresh and Back
   reproduce the view without re-typing — IME users never pay the composition tax
@@ -844,8 +848,8 @@ too slow for search-as-you-type, comfortably fast for explicit search. So:
 - Empty state distinguishes two named strings: no-matches — "No matches. Try fewer
   or different words — exact wording was searched too." — vs nothing-indexed —
   "Nothing is searchable yet — your items are still being added." Both are message
-  keys like every string here, as are the claims pill's chip variant ("Claims only
-  ✕") and the recents clear control ("Clear").
+  keys like every string here, as are the type switch's segment labels ("Both",
+  "Receipts", "Claims") and its "Show" / "Where" captions.
 
 ### 7.5 i18n & testids
 
@@ -868,10 +872,10 @@ the strings, not after:
   intent.
 - The relative-date hint's **token detector is per-locale code**, not translated
   copy: the zh token list (上个月/上個月/去年/昨天/…) ships beside the English one. New testids, following the existing
-convention: `search-input, search-submit, search-type-chip, search-scope-filter,
+convention: `search-input, search-submit, search-type-filter, search-scope-filter,
 search-exact-section, search-exact-show-all, search-best-match, search-group-<year>,
 search-result-<kind>-<id>, search-find-in-receipts-<id>, search-example-<n>,
-search-recent-<n>, search-recent-clear, search-show-more, search-date-hint,
+search-recents, search-recent-<n>, search-show-more, search-date-hint,
 search-pending-note, search-degraded-note, search-empty, shoebox-search-pill,
 claims-search-pill, highlight-pulse` — plus the admin card's
 `embedding-settings-form, embedding-test-connection, embedding-save,

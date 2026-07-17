@@ -80,7 +80,10 @@ test("member: upload → indexed → exact + semantic → Find in Receipts lands
   await page.getByTestId("shoebox-search-pill").click();
   await page.waitForURL(/\/search\?type=receipt/);
   await expect(page.getByTestId("search-input")).toBeFocused();
-  await expect(page.getByTestId("search-type-chip")).toBeVisible();
+  // The type filter arrives pre-set to Receipts (the "Show" segmented control).
+  await expect(
+    page.getByTestId("search-type-filter").getByRole("radio", { name: "Receipts" })
+  ).toHaveAttribute("aria-checked", "true");
   await page.getByTestId("search-input").fill("folding tables youth");
   await page.getByTestId("search-submit").click();
   const exact = page.getByTestId("search-exact-section");
@@ -95,7 +98,7 @@ test("member: upload → indexed → exact + semantic → Find in Receipts lands
   await expect.poll(() => page.url().includes("open=")).toBe(false);
 });
 
-test("search state lives in the URL: a deep link re-runs the query and a chip is inlined", async ({ page }, testInfo) => {
+test("search state lives in the URL: a deep link re-runs the query and recents appear under the input", async ({ page }, testInfo) => {
   await signInAs(page, `urlstate-${testInfo.project.name}-r${testInfo.retry}@example.com`, "Url State");
   await page.goto("/");
   await uploadReceipts(page, [await makeReceiptFixture("banner.jpg")], "vinyl banner for the fall festival");
@@ -116,12 +119,15 @@ test("search state lives in the URL: a deep link re-runs the query and a chip is
   await expect(fresh.getByTestId("search-input")).toHaveValue("fall festival banner");
   await expect(fresh.getByTestId("search-exact-section")).toBeVisible();
 
-  // The just-run query is now a device-local recent chip in the filter row.
+  // The just-run query is now a device-local recent search. Recents live in a
+  // dropdown under the input — clearing the query and focusing reveals them.
+  await fresh.getByTestId("search-input").click();
+  await fresh.getByTestId("search-input").fill("");
+  await expect(fresh.getByTestId("search-recents")).toBeVisible();
   await expect(fresh.getByTestId("search-recent-1")).toContainText("fall festival banner");
 
-  // Item-5 invariant: with more recents than fit, the inlined chips stay on a
-  // single line (no wrap) and never spill past their container (no overflow) —
-  // the row shows as many as fit and simply drops the rest.
+  // With a full history the dropdown lists every past search (a vertical menu,
+  // not a single fitted row) — none are dropped.
   await fresh.evaluate(() => {
     const key = Object.keys(localStorage).find((k) => k.startsWith("numbers.search.recents."));
     if (!key) throw new Error("no recents key");
@@ -137,22 +143,10 @@ test("search state lives in the URL: a deep link re-runs the query and a chip is
     );
   });
   await fresh.reload();
-  await fresh.getByTestId("search-recent-1").waitFor();
-  const layout = await fresh.evaluate(() => {
-    const chips = Array.from(
-      document.querySelectorAll('[data-testid^="search-recent-"]')
-    ) as HTMLElement[];
-    const row = chips[0]?.parentElement as HTMLElement;
-    const rowRect = row.getBoundingClientRect();
-    const tops = new Set(chips.map((c) => Math.round(c.getBoundingClientRect().top)));
-    const overflow = chips.some(
-      (c) => c.getBoundingClientRect().right > Math.ceil(rowRect.right) + 1
-    );
-    return { count: chips.length, distinctTops: tops.size, overflow };
-  });
-  expect(layout.count).toBeGreaterThan(0);
-  expect(layout.distinctTops).toBe(1); // single line, no wrapping
-  expect(layout.overflow).toBe(false); // nothing clipped past the row edge
+  await fresh.getByTestId("search-input").click();
+  await fresh.getByTestId("search-input").fill("");
+  await expect(fresh.getByTestId("search-recents")).toBeVisible();
+  await expect(fresh.locator('[data-testid^="search-recent-"]')).toHaveCount(5);
 });
 
 test("draft claims index after the idle window and re-index on edit", async ({ page }, testInfo) => {

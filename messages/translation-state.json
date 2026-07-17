@@ -5589,21 +5589,33 @@
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },
- "Search.typeChipReceipts": {
-  "source": "Receipts only",
-  "context": "Removable filter chip shown when the Receipts-page pill pre-set the type. Pairs with a ✕.",
+ "Search.typeFilterLabel": {
+  "source": "Show",
+  "context": "Caption before the 3-way result-type filter (Both / Receipts / Claims); also its aria-label. Reads 'Show: Receipts'. Very short — pairs with 'Where'. Verb 'show/display', not the noun 'performance'.",
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },
- "Search.typeChipClaims": {
-  "source": "Claims only",
-  "context": "Removable filter chip shown when the Claims-page pill pre-set the type. Pairs with a ✕.",
+ "Search.scopeFilterLabel": {
+  "source": "Where",
+  "context": "Caption before the scope control (My items / Whole church / Claims I decided). Reads 'Where: Whole church' — i.e. which pool to search. Very short — pairs with 'Show'. Use 范围/範圍 (scope), not a location word.",
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },
- "Search.typeChipRemove": {
-  "source": "Search everything instead",
-  "context": "Tooltip/title of the type chip — clicking removes the filter.",
+ "Search.typeAll": {
+  "source": "Both",
+  "context": "Type filter segment 1 of 3: show both receipts and claims (no type restriction). Very short — segment control chip. 全部 = 'all/both'.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Search.typeReceipts": {
+  "source": "Receipts",
+  "context": "Type filter segment 2 of 3: show only receipts. Very short — segment control chip. Glossary 收据/收據.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Search.typeClaims": {
+  "source": "Claims",
+  "context": "Type filter segment 3 of 3: show only reimbursement claims. Very short — segment control chip. Glossary 报销单/報銷單.",
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },
@@ -5651,7 +5663,7 @@
  },
  "Search.recentSearches": {
   "source": "Recent searches",
-  "context": "Accessible label for the row of tappable device-local recent-query chips in the search filter row.",
+  "context": "Label/heading of the recent-searches dropdown that opens under the search box on focus (device-local past queries).",
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },
