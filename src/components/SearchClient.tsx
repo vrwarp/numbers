@@ -79,10 +79,15 @@ function statusKey(status: string): string {
 
 export default function SearchClient({
   userId,
-  isRoleHolder,
+  canAll,
+  canDecided,
 }: {
   userId: string;
-  isRoleHolder: boolean;
+  // Cross-tenant search capabilities (docs/SEARCH_DESIGN.md §6.3): the verified
+  // role narrowed by the A10 duty pauses. canAll → whole-church scope; canDecided
+  // → the "Claims I decided" browse (implies canAll).
+  canAll: boolean;
+  canDecided: boolean;
 }) {
   const t = useTranslations("Search");
   const tStatus = useTranslations("Common.status");
@@ -95,7 +100,7 @@ export default function SearchClient({
   const recentsKey = `numbers.search.recents.${userId}`;
 
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<Scope>(isRoleHolder ? "all" : "mine");
+  const [scope, setScope] = useState<Scope>(canAll ? "all" : "mine");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(null);
   const [result, setResult] = useState<SearchResponse | null>(null);
   const [searching, setSearching] = useState(false);
@@ -122,7 +127,15 @@ export default function SearchClient({
       if (saved) {
         const s = JSON.parse(saved);
         setQuery(s.query ?? "");
-        if (s.scope && (isRoleHolder || s.scope === "mine")) setScope(s.scope);
+        // Only restore a scope this user is still allowed (pauses may have
+        // changed since); otherwise fall back to the default already set.
+        if (
+          s.scope === "mine" ||
+          (s.scope === "all" && canAll) ||
+          (s.scope === "decided" && canDecided)
+        ) {
+          setScope(s.scope);
+        }
         if (s.typeFilter === "receipt" || s.typeFilter === "claim") setTypeFilter(s.typeFilter);
         if (s.result) setResult(s.result);
         setShowAllExact(!!s.showAllExact);
@@ -326,14 +339,17 @@ export default function SearchClient({
             <span aria-hidden>✕</span>
           </button>
         )}
-        {isRoleHolder && (
+        {canAll && (
           <div
             data-testid="search-scope-filter"
             role="radiogroup"
             aria-label={t("scopeLabel")}
             className="inline-flex overflow-hidden rounded-full border border-stone-300 text-xs font-semibold"
           >
-            {(["mine", "all", "decided"] as const).map((s) => (
+            {/* "Claims I decided" only when the Approvals duty is active (§6.3). */}
+            {(["mine", "all", "decided"] as const)
+              .filter((s) => s !== "decided" || canDecided)
+              .map((s) => (
               <button
                 key={s}
                 role="radio"
@@ -372,7 +388,7 @@ export default function SearchClient({
       {!result && !searching && (
         <EmptyQueryState
           t={t}
-          isRoleHolder={isRoleHolder}
+          canDecided={canDecided}
           recents={recents}
           onRun={(q, opts) => {
             setQuery(q);
@@ -419,7 +435,7 @@ export default function SearchClient({
                 <SectionHeader label={t("exactMatches")} />
                 <ul className="space-y-2">
                   {(showAllExact ? result.exact : result.exact.slice(0, 3)).map((item) => (
-                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder }} scope={scope} t={t} tStatus={tStatus} format={format} />
+                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} format={format} />
                   ))}
                 </ul>
                 {result.exact.length > 3 && !showAllExact && (
@@ -441,7 +457,7 @@ export default function SearchClient({
               <section data-testid="search-best-match">
                 <SectionHeader label={t("bestMatch")} />
                 <ul>
-                  <ResultCard item={result.best} viewer={{ userId, isRoleHolder }} scope={scope} t={t} tStatus={tStatus} format={format} />
+                  <ResultCard item={result.best} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} format={format} />
                 </ul>
               </section>
             )}
@@ -455,7 +471,7 @@ export default function SearchClient({
                 )}
                 <ul className="space-y-2">
                   {group.items.map((item) => (
-                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder }} scope={scope} t={t} tStatus={tStatus} format={format} />
+                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} format={format} />
                   ))}
                 </ul>
               </section>
@@ -499,13 +515,13 @@ function SectionHeader({ label }: { label: string }) {
 
 function EmptyQueryState({
   t,
-  isRoleHolder,
+  canDecided,
   recents,
   onRun,
   onClearRecents,
 }: {
   t: ReturnType<typeof useTranslations<"Search">>;
-  isRoleHolder: boolean;
+  canDecided: boolean;
   recents: string[];
   onRun: (q: string, opts?: { scope?: Scope }) => void;
   onClearRecents: () => void;
@@ -525,7 +541,7 @@ function EmptyQueryState({
             {ex}
           </button>
         ))}
-        {isRoleHolder && (
+        {canDecided && (
           <button
             data-testid="search-example-4"
             className="pressable rounded-full border border-stone-300 px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"

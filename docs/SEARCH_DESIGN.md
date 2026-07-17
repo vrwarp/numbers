@@ -586,9 +586,24 @@ pre-filter. Cheap at this scale; the index stays join-free.
 result card shows the `draft` status pill so a searcher knows they are looking at work
 in progress.
 
-Duty pauses (`approvalsPaused`/`financePaused`) do **not** narrow search: pauses are
-workflow routing, not access revocation (same posture as keeping already-assigned
-claims decidable). Role loss does narrow it — the mirror is re-read on every request.
+**Duty pauses (A10) narrow the grant, per-duty** (`src/lib/roles.ts`
+`searchCapabilities`). The verified role sets the ceiling; the self-service pause
+toggles lower it, computed fresh on every request alongside the role:
+
+- **`scope="all"` / foreign receipt file reads** require **at least one active
+  (un-paused) duty** the role grants — the holder is still serving in some
+  cross-tenant capacity. An approver who pauses Approvals loses it (no fallback
+  duty); a treasurer who pauses only Approvals keeps it (Finance still active); it
+  goes once every relevant duty is paused. An admin keeps it via the admin duty even
+  with Approvals+Finance paused.
+- **`scope="decided"`** requires the **Approvals duty active** — it IS the approver's
+  decision set — so a treasurer who pauses Approvals loses "Claims I decided" while
+  keeping whole-church. (Active Approvals implies whole-church, so decided ⟹ all.)
+
+A fully-paused role-holder reads exactly like a member: `scope=all`/`decided` → 404,
+foreign files → 404, and the UI renders no scope control (the capability genuinely
+went away — not a cosmetic hide). Role loss narrows it the same way. The grant NEVER
+derives from `ADMIN_EMAILS` — only the verified role mirror.
 
 **This is a new cross-tenant read grant — ratified.** The operator's position:
 approvers and treasurers should have read access across all reimbursements anyway;
