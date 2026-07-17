@@ -34,12 +34,19 @@ model User {
   financePaused   Boolean        @default(false)
   adminPaused     Boolean        @default(false)
   locale         String          @default("en") // UI language: en | zh-Hans | zh-Hant
+  // Treasurer batch-print toolbar toggles (docs/ESIGN_DESIGN.md §6.1). Persisted
+  // per-user so the choice follows the account across devices. Both default OFF:
+  // the lean output is just the CFCC forms; receipts and the signature
+  // certificate are opt-in. Plain UI preference, never audited.
+  printIncludeReceipts    Boolean @default(false)
+  printIncludeCertificate Boolean @default(false)
   createdAt      DateTime        @default(now())
   receipts       Receipt[]
   reimbursements Reimbursement[]
   extractionLogs ExtractionLog[]
   auditEvents    AuditEvent[]
   signerIdentity SignerIdentity?
+  searchHistory  SearchHistory[]
 }
 
 model Receipt {
@@ -455,6 +462,25 @@ model EmbeddingJob {
   @@unique([kind, targetId, model])
   @@index([status, priority, nextAttemptAt])
   @@index([userId, status])
+}
+
+// Per-user recent search queries, synced across the member's devices so the
+// dropdown under the search box shows the same history everywhere (replaces the
+// old localStorage-only recents — docs/SEARCH_DESIGN.md §7). Owner-scoped like
+// all tenant data (hard invariant 2); one row per distinct query (re-searching
+// bumps updatedAt to the top), pruned to a 90-day window on write. This is the
+// user's own history shown back to them, not telemetry — invariant 11's
+// "queries never in ExtractionLogs" posture is unchanged.
+model SearchHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  query     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, query])
+  @@index([userId, updatedAt])
 }
 
 // Join table: a claim bundles many receipts; a receipt may (rarely) appear in

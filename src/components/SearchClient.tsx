@@ -12,8 +12,9 @@ import { useApiErrorMessage } from "@/lib/use-api-error";
  * The /search screen (docs/SEARCH_DESIGN.md §7): explicit-submit search with
  * an IME-safe Enter guard, an exact-match strip (≤3 + show all), a Best-match
  * pin only when no exact hits, year-grouped semantic results, per-kind pending
- * notes, degraded mode, device-local recents, and URL-encoded state (q/scope/
- * type) so refresh and Back restore the view without retyping.
+ * notes, degraded mode, cross-device recents (server-backed, 90-day window,
+ * clearable), and URL-encoded state (q/scope/type) so refresh and Back restore
+ * the view without retyping.
  */
 
 type ReceiptItem = {
@@ -97,8 +98,6 @@ export default function SearchClient({
   const params = useSearchParams();
   const errorMessage = useApiErrorMessage();
 
-  const recentsKey = `numbers.search.recents.${userId}`;
-
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<Scope>("mine");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(null);
@@ -147,29 +146,36 @@ export default function SearchClient({
     setScope(initScope);
     setTypeFilter(initType);
     inputRef.current?.focus();
-    try {
-      const r = localStorage.getItem(recentsKey);
-      if (r) setRecents(JSON.parse(r));
-    } catch {}
+    // Recents live server-side now (cross-device); seed from the user's history.
+    // Merge rather than replace: a query auto-run from ?q= on this same mount
+    // records itself optimistically, and must not be clobbered if the history
+    // GET resolves after it.
+    fetch("/api/search/history")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!Array.isArray(d?.recents)) return;
+        setRecents((prev) => [...prev, ...d.recents.filter((q: string) => !prev.includes(q))].slice(0, 5));
+      })
+      .catch(() => {});
     if (urlQ.trim() || initScope === "decided") {
       void runSearch(urlQ, { scope: initScope, type: initType });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const rememberRecent = useCallback(
-    (q: string) => {
-      if (!q.trim()) return;
-      setRecents((prev) => {
-        const next = [q, ...prev.filter((x) => x !== q)].slice(0, 5);
-        try {
-          localStorage.setItem(recentsKey, JSON.stringify(next));
-        } catch {}
-        return next;
-      });
-    },
-    [recentsKey]
-  );
+  // The server records the query (POST /api/search) and owns the durable
+  // history; this only mirrors it optimistically into the open dropdown.
+  const rememberRecent = useCallback((q: string) => {
+    if (!q.trim()) return;
+    setRecents((prev) => [q, ...prev.filter((x) => x !== q)].slice(0, 5));
+  }, []);
+
+  const clearRecents = useCallback(() => {
+    setRecents([]);
+    setRecentsOpen(false);
+    setActiveRecent(-1);
+    void fetch("/api/search/history", { method: "DELETE" }).catch(() => {});
+  }, []);
 
   const runSearch = useCallback(
     async (
@@ -416,37 +422,45 @@ export default function SearchClient({
             />
           )}
           {recentsVisible && (
-            <ul
-              id="search-recents-list"
+            <div
               data-testid="search-recents"
-              role="listbox"
-              aria-label={t("recentSearches")}
               className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-stone-200 bg-white py-1 shadow-lg"
             >
-              <li
-                aria-hidden
-                className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-stone-400"
+              <div className="flex items-center justify-between gap-2 px-3 py-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-stone-400">
+                  {t("recentSearches")}
+                </span>
+                <button
+                  type="button"
+                  data-testid="search-recents-clear"
+                  className="text-xs font-medium text-indigo-600 hover:underline"
+                  // Keep input focus so blur doesn't close the list before the click lands.
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={clearRecents}
+                >
+                  {t("clearRecents")}
+                </button>
+              </div>
+              <ul
+                id="search-recents-list"
+                role="listbox"
+                aria-label={t("recentSearches")}
               >
-                {t("recentSearches")}
-              </li>
-              {recents.map((q, i) => (
-                <li key={i} role="option" aria-selected={i === activeRecent}>
-                  <button
-                    type="button"
-                    data-testid={`search-recent-${i + 1}`}
-                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-stone-700 ${i === activeRecent ? "bg-stone-100" : "hover:bg-stone-50"}`}
-                    // Keep input focus so blur doesn't close the list before the click lands.
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => pickRecent(q)}
-                  >
-                    <span aria-hidden className="text-stone-400">
-                      🕘
-                    </span>
-                    <span className="truncate">{q}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+                {recents.map((q, i) => (
+                  <li key={i} role="option" aria-selected={i === activeRecent}>
+                    <button
+                      type="button"
+                      data-testid={`search-recent-${i + 1}`}
+                      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-stone-700 ${i === activeRecent ? "bg-stone-100" : "hover:bg-stone-50"}`}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => pickRecent(q)}
+                    >
+                      <span className="truncate">{q}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
         <button

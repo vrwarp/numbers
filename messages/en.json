@@ -1067,6 +1067,7 @@
     "onClaim": "On claim · {status}",
     "receiptFallbackTitle": "Receipt",
     "recentSearches": "Recent searches",
+    "clearRecents": "Clear history",
     "emptyTitle": "No matches",
     "emptyBody": "Try fewer or different words — exact wording was searched too.",
     "emptyPendingTitle": "Nothing yet — still indexing",

@@ -18,6 +18,8 @@ const userSelect = {
   approvalsPaused: true,
   financePaused: true,
   adminPaused: true,
+  printIncludeReceipts: true,
+  printIncludeCertificate: true,
 } as const;
 
 /** The GET/PATCH response: the row plus which duty toggles the user's grants
@@ -59,6 +61,11 @@ const PatchSchema = z
     approvalsPaused: z.boolean(),
     financePaused: z.boolean(),
     adminPaused: z.boolean(),
+    // Treasurer batch-print toolbar toggles, remembered across devices. Plain
+    // preferences (no role precondition, not audited) — the print route
+    // re-reads the ids/content per request, so these only seed the UI.
+    printIncludeReceipts: z.boolean(),
+    printIncludeCertificate: z.boolean(),
   })
   .partial();
 

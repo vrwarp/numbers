@@ -38,6 +38,24 @@ async function setPauses(
   }
 }
 
+// Recents are server-backed now; seed them straight into the DB (newest last).
+async function seedSearchHistory(email: string, queries: string[]): Promise<void> {
+  const prisma = e2ePrisma();
+  try {
+    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    if (!user) throw new Error(`no user for ${email}`);
+    let ts = Date.now();
+    for (const query of queries) {
+      await prisma.searchHistory.create({
+        data: { userId: user.id, query, updatedAt: new Date(ts) },
+      });
+      ts += 1000; // strictly increasing so ordering is deterministic
+    }
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 /** Poll the search API until a predicate holds (worker indexing is async). */
 async function searchUntil(
   page: Page,
@@ -119,8 +137,10 @@ test("search state lives in the URL: a deep link re-runs the query and recents a
   await expect(fresh.getByTestId("search-input")).toHaveValue("fall festival banner");
   await expect(fresh.getByTestId("search-exact-section")).toBeVisible();
 
-  // The just-run query is now a device-local recent search. Recents live in a
-  // dropdown under the input — clearing the query and focusing reveals them.
+  // The just-run query is now a recent search — and because recents are stored
+  // server-side, it appears in this brand-new browser context (no shared
+  // localStorage), proving the cross-device sync. Clearing the query and
+  // focusing reveals the dropdown.
   await fresh.getByTestId("search-input").click();
   await fresh.getByTestId("search-input").fill("");
   await expect(fresh.getByTestId("search-recents")).toBeVisible();
@@ -128,25 +148,28 @@ test("search state lives in the URL: a deep link re-runs the query and recents a
 
   // With a full history the dropdown lists every past search (a vertical menu,
   // not a single fitted row) — none are dropped.
-  await fresh.evaluate(() => {
-    const key = Object.keys(localStorage).find((k) => k.startsWith("numbers.search.recents."));
-    if (!key) throw new Error("no recents key");
-    localStorage.setItem(
-      key,
-      JSON.stringify([
-        "fall festival vinyl banner and stakes",
-        "youth retreat folding tables and chairs",
-        "Costco paper towels and napkins bulk",
-        "projector bulb for the sanctuary AV",
-        "communion cups and wafers reorder",
-      ])
-    );
-  });
+  await seedSearchHistory(`urlstate-${testInfo.project.name}-r${testInfo.retry}@example.com`, [
+    "fall festival vinyl banner and stakes",
+    "youth retreat folding tables and chairs",
+    "Costco paper towels and napkins bulk",
+    "projector bulb for the sanctuary AV",
+    "communion cups and wafers reorder",
+  ]);
   await fresh.reload();
   await fresh.getByTestId("search-input").click();
   await fresh.getByTestId("search-input").fill("");
   await expect(fresh.getByTestId("search-recents")).toBeVisible();
   await expect(fresh.locator('[data-testid^="search-recent-"]')).toHaveCount(5);
+
+  // The Clear button wipes the history: the dropdown empties immediately, and
+  // because it's server-side the emptiness survives a fresh load. Land on a
+  // bare /search (no ?q=) so nothing auto-runs and re-records a query.
+  await fresh.getByTestId("search-recents-clear").click();
+  await expect(fresh.getByTestId("search-recents")).toBeHidden();
+  await fresh.goto("/search");
+  await fresh.getByTestId("search-input").click();
+  await fresh.getByTestId("search-input").fill("");
+  await expect(fresh.getByTestId("search-recents")).toBeHidden();
 });
 
 test("draft claims index after the idle window and re-index on edit", async ({ page }, testInfo) => {
