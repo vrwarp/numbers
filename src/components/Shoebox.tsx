@@ -496,7 +496,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
           the screen — one element so data-testid="generate-claim" stays
           unique — and the search pill has the row to itself. */}
       {(searchEnabled || hasClaimBar) && (
-        <div className="z-30 flex items-start gap-3 sm:sticky sm:top-16">
+        <div className="z-30 flex items-start gap-3 sm:sticky sm:top-16 sm:items-stretch">
           {searchEnabled && (
             <Link
               href="/search?type=receipt"
@@ -508,8 +508,8 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
           )}
           {hasClaimBar && (
             <div
-              className={`min-w-0 flex-1 ${
-                barEmpty && !generating ? "sm:flex sm:justify-center" : ""
+              className={`min-w-0 flex-none sm:flex-1 ${
+                barEmpty && !generating ? "sm:flex sm:items-stretch sm:justify-end" : ""
               }`}
             >
               <div
