@@ -621,15 +621,33 @@
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },
+ "Shoebox.selectedCountShort": {
+  "source": "{count} selected",
+  "context": "Short variant of selectedCount for narrow screens; sits in the claim bar next to the Clear and New Claim buttons — keep it very short.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
  "Shoebox.selectPrompt": {
   "source": "Select receipts below to start a claim",
   "context": "Sticky-bar label when nothing is selected yet.",
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },
+ "Shoebox.selectPromptShort": {
+  "source": "Select receipts to start",
+  "context": "Short variant of selectPrompt for narrow screens (claim bar docked at the bottom on phones) — no 'below', the receipts may sit above the bar; keep it compact, it shares a row with the New Claim button.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
  "Shoebox.newClaim": {
   "source": "✨ New Claim",
   "context": "THE primary call-to-action; keep the ✨. Claims.emptyBody and Shoebox.step2 quote this wording (minus ✨) — changing it re-drafts them (test-enforced).",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Shoebox.clearSelection": {
+  "source": "Clear",
+  "context": "Small link-style button in the claim bar that empties the current receipt selection; one short word, 'clear' as in deselect-all — not delete.",
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },
@@ -646,8 +664,14 @@
   "zh-Hant": "machine"
  },
  "Shoebox.selectHint": {
-  "source": "Select a receipt first ↑",
-  "context": "Appears under the button after clicking with nothing selected; ↑ points at the receipt cards above — keep it.",
+  "source": "Select a receipt first — click a ✓ below",
+  "context": "Claim-bar guidance after clicking New Claim with nothing selected (wide screens, bar above the grid); '✓' is the literal checkmark circle on each receipt card — keep the character.",
+  "zh-Hans": "machine",
+  "zh-Hant": "machine"
+ },
+ "Shoebox.selectHintShort": {
+  "source": "Tap a ✓ above to select",
+  "context": "Same guidance as selectHint but on phones, where the claim bar is docked at the BOTTOM of the screen so the receipts sit above it; '✓' is the literal checkmark circle on each receipt card — keep the character.",
   "zh-Hans": "machine",
   "zh-Hant": "machine"
  },

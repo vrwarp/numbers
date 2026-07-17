@@ -63,6 +63,7 @@ export default function ReceiptGrid({
   onSaveNote,
   fileUrl,
   onView,
+  nudgeSelect = false,
 }: {
   receipts: ReceiptSummary[];
   selectable?: boolean;
@@ -72,13 +73,15 @@ export default function ReceiptGrid({
   onSaveNote?: (id: string, note: string) => void;
   fileUrl?: (id: string) => string;
   onView?: (r: ReceiptSummary) => void;
+  /** Pulse the first cards' ✓ circles — the claim bar's "select first" nudge. */
+  nudgeSelect?: boolean;
 }) {
   const t = useTranslations("ReceiptGrid");
   const tStatus = useTranslations("Common.status");
   const dateLabel = useDateLabel();
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-      {receipts.map((r) => {
+      {receipts.map((r, index) => {
         const isSelected = selected?.has(r.id) ?? false;
         return (
           <div
@@ -97,7 +100,7 @@ export default function ReceiptGrid({
                   isSelected
                     ? "border-indigo-600 bg-indigo-600/80 text-white"
                     : "border-stone-300 bg-white/80 text-stone-500"
-                }`}
+                } ${nudgeSelect && index < 2 && !isSelected ? "nudge-ring-select border-indigo-600 text-indigo-600" : ""}`}
                 aria-checked={isSelected}
                 role="checkbox"
               >

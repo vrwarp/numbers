@@ -335,7 +335,8 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
     if (selected.size === 0) {
       setShowSelectHint(true);
       if (selectHintTimeout.current) clearTimeout(selectHintTimeout.current);
-      selectHintTimeout.current = setTimeout(() => setShowSelectHint(false), 2000);
+      // Long enough for the ✓ nudge rings (3 × 1s) to finish.
+      selectHintTimeout.current = setTimeout(() => setShowSelectHint(false), 3000);
       return;
     }
     generateClaim();
@@ -410,6 +411,8 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
 
   const unassigned = (receipts ?? []).filter((r) => r.status === "unassigned");
   const processed = (receipts ?? []).filter((r) => r.status !== "unassigned");
+  const hasClaimBar = receipts !== null && (unassigned.length > 0 || processed.length > 0);
+  const barEmpty = selected.size === 0;
 
   // ?open=<id> deep-link landing (search results → "Find in Receipts"):
   // auto-expand the processed section when the target lives there, scroll +
@@ -429,7 +432,8 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
 
   return (
     <div
-      className="relative space-y-6"
+      // pb clears the fixed bottom dock (the claim bar) on phones.
+      className={`relative space-y-6 ${hasClaimBar ? "pb-24 sm:pb-0" : ""}`}
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
@@ -486,85 +490,120 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
         </div>
       )}
 
-      {searchEnabled && (
-        <Link
-          href="/search?type=receipt"
-          data-testid="shoebox-search-pill"
-          className="card pressable flex items-center gap-2 px-4 py-2.5 text-sm text-stone-500"
-        >
-          <span aria-hidden>🔍</span> {t("searchPill")}
-        </Link>
-      )}
-
-      {receipts !== null && (unassigned.length > 0 || processed.length > 0) && (
-        <div
-          className={`card sticky top-16 z-30 flex min-h-16 flex-col justify-center gap-2 p-3 transition-all duration-200 ${
-            selected.size > 0 ? "" : "border-indigo-200 bg-indigo-50/80 shadow-md"
-          }`}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 flex-1 items-start gap-2.5">
-              <span className="text-xl select-none" role="img" aria-hidden="true">
-                🧾
-              </span>
-              <span
-                className={`text-sm transition-colors duration-200 ${
-                  selected.size > 0 ? "font-medium text-stone-700" : "font-semibold text-indigo-900"
+      {/* Search pill and claim bar share one row from `sm` up (search keeps a
+          fixed width, the claim bar owns the rest). Below `sm` the claim bar
+          is the SAME element repositioned into a fixed dock at the bottom of
+          the screen — one element so data-testid="generate-claim" stays
+          unique — and the search pill has the row to itself. */}
+      {(searchEnabled || hasClaimBar) && (
+        <div className="z-30 flex items-start gap-3 sm:sticky sm:top-16 sm:items-stretch">
+          {searchEnabled && (
+            <Link
+              href="/search?type=receipt"
+              data-testid="shoebox-search-pill"
+              className="card pressable flex min-w-0 flex-1 items-center gap-2 px-4 py-2.5 text-sm text-stone-500 sm:w-56 sm:flex-none md:w-72"
+            >
+              <span aria-hidden>🔍</span> {t("searchPill")}
+            </Link>
+          )}
+          {hasClaimBar && (
+            <div
+              className={`min-w-0 flex-none sm:flex-1 ${
+                barEmpty && !generating ? "sm:flex sm:items-stretch sm:justify-end" : ""
+              }`}
+            >
+              <div
+                className={`fixed inset-x-0 bottom-0 z-30 flex flex-col justify-center gap-2 border-t bg-white px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] transition-all duration-200 sm:static sm:inset-x-auto sm:min-h-11 sm:rounded-xl sm:border sm:p-2 sm:pl-3.5 ${
+                  showSelectHint
+                    ? "border-indigo-400 shadow-[0_-8px_24px_rgba(79,70,229,0.18)] sm:shadow-none sm:ring-4 sm:ring-indigo-600/15"
+                    : "border-stone-200 shadow-[0_-8px_24px_rgba(0,0,0,0.12)] sm:shadow-sm"
+                } ${
+                  barEmpty && !generating
+                    ? `sm:w-max sm:max-w-full sm:bg-indigo-50/80 sm:backdrop-blur-sm ${showSelectHint ? "" : "sm:border-indigo-200"}`
+                    : "sm:w-auto"
                 }`}
               >
-                {selected.size > 0
-                  ? t("selectedCount", { count: selected.size })
-                  : t("selectPrompt")}
-              </span>
-            </div>
-            <div className="flex shrink-0 flex-col items-end gap-1">
-              <button
-                className={`btn-primary whitespace-nowrap ${
-                  selected.size === 0 ? "cursor-not-allowed opacity-40" : ""
-                } ${showSelectHint ? "shake-x" : ""}`}
-                onClick={handleGenerateClaimClick}
-                disabled={generating}
-                aria-disabled={selected.size === 0}
-                data-testid="generate-claim"
-              >
-                {generating
-                  ? waiting
-                    ? t("waitingRateLimit")
-                    : t("readingShort")
-                  : t("newClaim")}
-              </button>
-              {showSelectHint && (
-                <span
-                  className="text-xs font-medium text-indigo-700"
-                  data-testid="select-receipt-hint"
-                >
-                  {t("selectHint")}
-                </span>
-              )}
-            </div>
-          </div>
-          {generating && status && (
-            <div
-              className="flex items-center gap-2"
-              role="status"
-              aria-live="polite"
-              data-testid="generate-status"
-            >
-              {waiting && waitCooldownMs > 0 && (
-                <QuotaWaitRing key={waitKey} durationMs={waitCooldownMs} />
-              )}
-              <span className={`text-xs ${waiting ? "font-medium text-amber-700" : "text-indigo-700"}`}>
-                {status}
-              </span>
-              {waiting && (
-                <button
-                  className="ml-1 rounded px-2 py-1 text-xs font-semibold text-amber-800 underline underline-offset-2 hover:bg-amber-100"
-                  onClick={generateManualClaim}
-                  data-testid="generate-claim-manual"
-                >
-                  {t("manualInstead")}
-                </button>
-              )}
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`min-w-0 text-sm transition-colors duration-200 ${
+                      barEmpty
+                        ? `text-[13px] font-semibold ${showSelectHint ? "text-indigo-700" : "text-indigo-900"}`
+                        : "font-semibold text-stone-900"
+                    }`}
+                    data-testid={showSelectHint ? "select-receipt-hint" : undefined}
+                  >
+                    {barEmpty ? (
+                      showSelectHint ? (
+                        <>
+                          <span className="sm:hidden">{t("selectHintShort")}</span>
+                          <span className="hidden sm:inline">{t("selectHint")}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="md:hidden">{t("selectPromptShort")}</span>
+                          <span className="hidden md:inline">{t("selectPrompt")}</span>
+                        </>
+                      )
+                    ) : (
+                      <>
+                        <span className="md:hidden">{t("selectedCountShort", { count: selected.size })}</span>
+                        <span className="hidden md:inline">{t("selectedCount", { count: selected.size })}</span>
+                      </>
+                    )}
+                  </span>
+                  {!barEmpty && !generating && (
+                    <button
+                      className="text-[13px] text-stone-500 underline underline-offset-2 hover:text-stone-700"
+                      onClick={() => setSelected(new Set())}
+                      data-testid="clear-selection"
+                    >
+                      {t("clearSelection")}
+                    </button>
+                  )}
+                  <span className="flex-1" />
+                  <button
+                    className={`whitespace-nowrap ${
+                      barEmpty && !generating
+                        ? "inline-flex items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-3.5 py-1.5 text-sm font-semibold text-indigo-600 transition duration-150 ease-out hover:border-indigo-300 hover:text-indigo-700 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                        : "btn-primary"
+                    } ${showSelectHint ? "shake-x" : ""}`}
+                    onClick={handleGenerateClaimClick}
+                    disabled={generating}
+                    aria-disabled={selected.size === 0}
+                    data-testid="generate-claim"
+                  >
+                    {generating
+                      ? waiting
+                        ? t("waitingRateLimit")
+                        : t("readingShort")
+                      : t("newClaim")}
+                  </button>
+                </div>
+                {generating && status && (
+                  <div
+                    className="flex items-center gap-2"
+                    role="status"
+                    aria-live="polite"
+                    data-testid="generate-status"
+                  >
+                    {waiting && waitCooldownMs > 0 && (
+                      <QuotaWaitRing key={waitKey} durationMs={waitCooldownMs} />
+                    )}
+                    <span className={`text-xs ${waiting ? "font-medium text-amber-700" : "text-indigo-700"}`}>
+                      {status}
+                    </span>
+                    {waiting && (
+                      <button
+                        className="ml-1 rounded px-2 py-1 text-xs font-semibold text-amber-800 underline underline-offset-2 hover:bg-amber-100"
+                        onClick={generateManualClaim}
+                        data-testid="generate-claim-manual"
+                      >
+                        {t("manualInstead")}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -601,6 +640,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
             onSaveNote={saveNote}
             fileUrl={fileUrl}
             onView={setViewing}
+            nudgeSelect={showSelectHint}
           />
           {processed.length > 0 && (
             <details className="pt-2" ref={processedDetails}>
