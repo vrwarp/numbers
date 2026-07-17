@@ -108,7 +108,7 @@ export default function FinanceQueue() {
   }
 
   return (
-    <div className={`space-y-6 ${selected.size > 0 ? "pb-24" : ""}`}>
+    <div className="space-y-6 pb-24">
       <div>
         <h1 className="text-2xl font-bold">{t("title")}</h1>
         <p className="text-sm text-stone-500">{t("subtitle")}</p>
