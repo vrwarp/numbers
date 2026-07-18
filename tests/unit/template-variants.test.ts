@@ -4,6 +4,9 @@ import path from "path";
 import zlib from "zlib";
 import { PDFDocument } from "pdf-lib";
 import { generateClaimPdf, type PdfLineItem } from "@/lib/pdf/generate";
+import { paginateItems } from "@/lib/pdf/paginate";
+import { variantRowsFor } from "@/lib/pdf/loadTemplate";
+import { FORM_ROWS_PER_PAGE } from "@/lib/config";
 
 /**
  * Large-row template variants (scripts/make-row-variants.mjs): the official
@@ -104,6 +107,31 @@ describe.each(VARIANTS)("%i-row template variant", (rows) => {
     // 8-row cells grow 8pt → 13pt; 4- and 2-row cells hit the 14pt cap.
     const grownSize = rows === 8 ? 13 : 14;
     expect(inflatedPdf(pdf)).toMatch(new RegExp(` ${grownSize} Tf`));
+  });
+});
+
+describe("variantRowsFor (packet auto-pick)", () => {
+  it("picks the smallest variant the whole claim fits on, else the official form", () => {
+    expect(variantRowsFor(1)).toBe(2);
+    expect(variantRowsFor(2)).toBe(2);
+    expect(variantRowsFor(3)).toBe(4);
+    expect(variantRowsFor(4)).toBe(4);
+    expect(variantRowsFor(5)).toBe(8);
+    expect(variantRowsFor(8)).toBe(8);
+    expect(variantRowsFor(9)).toBe(13);
+    expect(variantRowsFor(14)).toBe(13);
+    expect(variantRowsFor(0)).toBe(13);
+  });
+
+  it("never changes the packet's form-page count", () => {
+    // The print, certificate, and approved-packet paths locate the form pages
+    // of an ALREADY-STORED packet as ceil(activeRows / FORM_ROWS_PER_PAGE).
+    // Auto-picking must keep the real page count equal to that derivation:
+    // variants only apply to claims that fit one page either way.
+    for (let n = 1; n <= 40; n++) {
+      const actual = paginateItems(Array.from({ length: n }), variantRowsFor(n)).length;
+      expect(actual).toBe(Math.max(1, Math.ceil(n / FORM_ROWS_PER_PAGE)));
+    }
   });
 });
 

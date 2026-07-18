@@ -8,7 +8,7 @@
 import type { LineItem, Receipt, ReimbursementReceipt } from "@prisma/client";
 import { readStoredFile } from "@/lib/storage";
 import { generateClaimPdf } from "@/lib/pdf/generate";
-import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
+import { loadTemplateForRows } from "@/lib/pdf/loadTemplate";
 import { formatMinistryEvent } from "@/lib/ministries";
 import { publicBaseUrl } from "@/lib/config";
 import type { SignaturePlacement } from "@/lib/esign/placement";
@@ -43,6 +43,9 @@ export async function buildClaimPdfBytes(
     now.getDate()
   ).padStart(2, "0")}/${now.getFullYear()}`;
   const base = publicBaseUrl();
+  // Small claims fill the large-row legibility variant they fit on; the
+  // choice never changes the packet's form-page count (see variantRowsFor).
+  const template = await loadTemplateForRows(active.length);
 
   return generateClaimPdf({
     requesterName: claim.user.fullName || claim.user.email,
@@ -56,7 +59,8 @@ export async function buildClaimPdfBytes(
         ministry: formatMinistryEvent(it.ministry, it.event),
       })),
     receipts: receiptFiles,
-    templateBytes: await loadTemplateBytes(),
+    templateBytes: template.bytes,
+    rowsPerPage: template.rowsPerPage,
     selfLinkUrl: base ? `${base}/c/${publicToken}` : undefined,
     requestorSignature: opts.requestorSignature,
   });

@@ -50,6 +50,11 @@ export interface ClaimPdfInput {
   /** The blank CFCC AcroForm template. */
   templateBytes: Uint8Array;
   /**
+   * Row capacity of `templateBytes` — pass when filling a large-row variant
+   * (loadTemplateForRows pairs the two). Defaults to the official form's 13.
+   */
+  rowsPerPage?: number;
+  /**
    * Capability URL of this claim's own packet (/c/<publicToken>). When set,
    * every form page gets a QR stamp beside the (narrowed) note box linking
    * back to the latest generated version; omitted (e.g. PUBLIC_BASE_URL not
@@ -244,7 +249,7 @@ export async function generateClaimPdf(input: ClaimPdfInput): Promise<Uint8Array
   let cjk: PDFFont | null = null;
   const cjkFont = async () => (cjk ??= await embedCjkFont(doc));
 
-  const pages = paginateItems(input.items);
+  const pages = paginateItems(input.items, input.rowsPerPage);
   const grandTotal = input.items.reduce((s, it) => s + it.amountCents, 0);
 
   for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {

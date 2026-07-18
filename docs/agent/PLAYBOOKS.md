@@ -54,10 +54,11 @@ Add a security assertion (foreign-user 404) to `tests/e2e/security.spec.ts`.
 
 Large-row variants: `assets/cfcc-form-template-{2,4,8}row.pdf` are prebuilt from the
 official form by `node scripts/make-row-variants.mjs` (same field names, taller rows,
-bigger filled text — see `tests/unit/template-variants.test.ts`). Point `TEMPLATE_PDF`
-at one and set `FORM_ROWS_PER_PAGE` to its row count; after any edit to the official
-template (e.g. another column rework), re-run the script and commit the regenerated
-variants.
+bigger filled text — see `tests/unit/template-variants.test.ts`). Packet generation
+auto-picks the smallest variant the claim fits on (`variantRowsFor` in
+`src/lib/pdf/loadTemplate.ts`); configuring `TEMPLATE_PDF` disables auto-picking, since
+a custom form has no variants. After any edit to the official template (e.g. another
+column rework), re-run the script and commit the regenerated variants.
 
 ## Add an e2e scenario
 
