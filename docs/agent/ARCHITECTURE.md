@@ -34,6 +34,12 @@ src/lib/positions.ts            Positions (custom approval roles): approverEligi
                                 — dependency-free, unit-tested, client-safe
 src/lib/positions-catalog.ts    Position table reads + resolveSuggestedApprover(claim) (SERVER);
 src/lib/positions-guard.ts      requirePositionEditor (treasurer/admin, same gate as ministries)
+src/lib/members-guard.ts        canViewMembers/requireMemberDirectoryViewer (treasurer/admin,
+                                same gate) — the /members page + /api/members directory
+src/components/MembersDirectory.tsx  the Members page: full directory (roles, Positions,
+                                e-sign status), root-only RoleControls (role grant / key
+                                revocation, moved off the vouch screen), admin allowlist
+                                grant/cancel; links Vouch/Positions/Budget Categories
 src/lib/locales.ts              LOCALES en/zh-Hans/zh-Hant, labels, numbers_locale cookie
                                 name, Accept-Language negotiator — dependency-free, client-safe
 src/i18n/request.ts             next-intl request config: cookie → Accept-Language → en
@@ -240,6 +246,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/line-items/[id]/split` | POST | `{firstAmountCents?}` default even split; both halves unverified; new row original*=NULL; AuditEvent(split); renumbers sortOrder so new half follows original |
 | `/api/line-items/[id]/merge` | POST | no body; undo-split: folds row into the same-receipt row directly above (400 if none, or if either row excluded); draft only (409); survivor keeps its description/ministry/event/original*, sums amounts, isVerified=false; merged row deleted; AuditEvent(merge); renumbers sortOrder; recomputes totalCents |
 | `/api/profile` | GET PATCH | fullName, mailingAddress (printed on the form), locale, and the A10 duty pauses (`approvalsPaused`/`financePaused`/`adminPaused` — self-service; changes audited `update-availability`). Returns `{user, duties}` where `duties` says which toggles the member's grants make relevant |
+| `/api/members` | GET | the Members page directory: EVERY user with mirror role, Position, e-sign enrollment status, allowlist state, key fingerprint — treasurer/admin gated (`requireMemberDirectoryViewer`, 404 otherwise). Read-only; the page's mutations go through their own guards (roster events, `PATCH /api/esign/allowlist`) |
 | `/api/search` | POST | semantic + exact search (docs/SEARCH_DESIGN.md §6): scope mine/all/decided (role-gated by the verified mirror; member asking beyond mine → 404), exact-match SQL pass + cosine over the in-memory index, degraded exact-only mode when the embed call fails, decided browse with cursor. 404 while unconfigured |
 | `/api/admin/embeddings` (+ `/probe`, `/jobs`, `/rebuild`, `/test-query`) | GET PUT POST | admin search backend config (probe detects dim; GET returns key fingerprint only), queue health/failed retries, forced rebuild, scored test query — behind `requireAdmin()` |
 | `/api/extraction-logs` | GET | own logs, `?reimbursementId=`, newest first, summaries (kind="embedding" rows excluded — operational, §9) |
