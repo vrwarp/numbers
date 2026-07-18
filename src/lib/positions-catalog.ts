@@ -99,6 +99,23 @@ export async function loadPositionsWithHolders(): Promise<PositionRow[]> {
   }));
 }
 
+/** userId → the name of the first active Position they hold (by catalog
+ *  sortOrder). Used to label a member by their custom approval role (Position)
+ *  in the approver picker, falling back to the system role when absent. Members
+ *  with no active position are simply not in the map. */
+export async function loadMemberPositionNames(): Promise<Map<string, string>> {
+  const positions = await prisma.position.findMany({
+    where: { active: true },
+    orderBy: { sortOrder: "asc" },
+    include: { holders: { select: { userId: true } } },
+  });
+  const byUser = new Map<string, string>();
+  for (const p of positions) {
+    for (const h of p.holders) if (!byUser.has(h.userId)) byUser.set(h.userId, p.name);
+  }
+  return byUser;
+}
+
 /** The member directory the holder picker offers, name-sorted. */
 export async function loadPositionMembers(): Promise<PositionMember[]> {
   const users = await prisma.user.findMany({
