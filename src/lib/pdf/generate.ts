@@ -76,6 +76,18 @@ interface FieldBounds {
 const MIN_FONT_SIZE = 4;
 
 /**
+ * Item-row field height on the official 13-row table. The large-row template
+ * variants (scripts/make-row-variants.mjs) keep the same field names but
+ * stretch each row over 13/N of the table — row values scale their design
+ * font size by that same factor (capped: a 2-row cell is ~7× taller, but
+ * >14pt reads as shouting on a payment form), so the taller rows are what
+ * they exist for: more legible. On the official template the factor is 1 and
+ * output is unchanged.
+ */
+const OFFICIAL_ROW_FIELD_HEIGHT = 17.76;
+const VARIANT_ROW_MAX_FONT_SIZE = 14;
+
+/**
  * Largest font size ≤ maxSize at which `text` stays inside `bounds`.
  * Mirrors pdf-lib's field appearance layout — multiline fields wrap greedily
  * by measured word width with 1.2 × font height per line; single-line fields
@@ -267,7 +279,12 @@ async function fillFormPage(
   // outgrow WinAnsi (Chinese merchant names, ministries, requester names)
   // switch to the bundled CJK face — each field's appearance is generated
   // with its own font, which flatten() then bakes in.
-  const setText = async (fieldName: string, rawValue: string, maxFontSize: number) => {
+  const setText = async (
+    fieldName: string,
+    rawValue: string,
+    maxFontSize: number,
+    growWithRowHeight = false
+  ) => {
     try {
       let font = helv;
       let value = toEncodableText(rawValue, helv);
@@ -282,6 +299,12 @@ async function fillFormPage(
         const rect = widget.getRectangle();
         const inset = ((widget.getBorderStyle()?.getWidth() ?? 0) + 1) * 2;
         const bounds = { width: rect.width - inset, height: rect.height - inset };
+        if (growWithRowHeight && rect.height > OFFICIAL_ROW_FIELD_HEIGHT) {
+          maxFontSize = Math.min(
+            VARIANT_ROW_MAX_FONT_SIZE,
+            Math.round(maxFontSize * (rect.height / OFFICIAL_ROW_FIELD_HEIGHT))
+          );
+        }
         if (font !== helv && field.isMultiline()) {
           // pdf-lib only wraps at whitespace — pre-wrap unspaced CJK runs at
           // measured widths so the sized text is exactly what gets rendered.
@@ -306,9 +329,9 @@ async function fillFormPage(
 
   for (const [i, item] of items.entries()) {
     const row = i + 1;
-    await setText(`Description QuantityRow${row}`, item.description, 8);
-    await setText(`AmountRow${row}`, centsToDollarString(item.amountCents), 9);
-    await setText(`For Ministry  EventRow${row}`, item.ministry, 8);
+    await setText(`Description QuantityRow${row}`, item.description, 8, true);
+    await setText(`AmountRow${row}`, centsToDollarString(item.amountCents), 9, true);
+    await setText(`For Ministry  EventRow${row}`, item.ministry, 8, true);
   }
 
   const isLastPage = pageIndex === pageCount - 1;

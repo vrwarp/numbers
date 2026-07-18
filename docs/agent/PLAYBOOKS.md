@@ -52,6 +52,13 @@ Add a security assertion (foreign-user 404) to `tests/e2e/security.spec.ts`.
 4. Re-run `tests/unit/pdf.test.ts`; regenerate a packet and eyeball it:
    run the journey e2e, then `node scripts/render-pdf.mjs screenshots/claim-packet.pdf /tmp/p`.
 
+Large-row variants: `assets/cfcc-form-template-{2,4,8}row.pdf` are prebuilt from the
+official form by `node scripts/make-row-variants.mjs` (same field names, taller rows,
+bigger filled text — see `tests/unit/template-variants.test.ts`). Point `TEMPLATE_PDF`
+at one and set `FORM_ROWS_PER_PAGE` to its row count; after any edit to the official
+template (e.g. another column rework), re-run the script and commit the regenerated
+variants.
+
 ## Add an e2e scenario
 
 1. New spec in `tests/e2e/` (desktop projects pick it up automatically; name it
