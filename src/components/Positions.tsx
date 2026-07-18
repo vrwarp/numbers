@@ -171,7 +171,16 @@ export default function Positions() {
         <p className="mt-0.5 text-sm text-stone-500">{t("subtitle")}</p>
       </div>
 
-      <p className="rounded-lg bg-stone-50 p-2.5 text-xs text-stone-600">ℹ {t("authorityNote")}</p>
+      <p className="rounded-lg bg-stone-50 p-2.5 text-xs text-stone-600">
+        ℹ{" "}
+        {t.rich("authorityNote", {
+          link: (chunks) => (
+            <Link href="/members" className="text-indigo-600 underline" data-testid="positions-members-link">
+              {chunks}
+            </Link>
+          ),
+        })}
+      </p>
 
       {error && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
       {ok && (
@@ -183,6 +192,9 @@ export default function Positions() {
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Link className="btn-secondary" href="/ministries">
           {t("backToCategories")}
+        </Link>
+        <Link className="btn-secondary" href="/members">
+          {t("membersPage")}
         </Link>
         <button className="btn-primary" onClick={addPosition} data-testid="add-position">
           {t("addPosition")}
@@ -353,7 +365,14 @@ function PositionCard({
                     ⚠{" "}
                     {eligibility === "paused"
                       ? t("holderPausedWarn", { name: m?.name ?? "" })
-                      : t("holderCannotWarn", { name: m?.name ?? "" })}
+                      : t.rich("holderCannotWarn", {
+                          name: m?.name ?? "",
+                          link: (chunks) => (
+                            <Link href="/members" className="underline">
+                              {chunks}
+                            </Link>
+                          ),
+                        })}
                   </p>
                 )}
               </div>

@@ -10,6 +10,9 @@
  * the candidate's FULL 64-hex key fingerprint — never the 6-digit spoken
  * code, which is grindable. The voucher's one job is confirming the human in
  * front of them matches the identity on screen.
+ *
+ * Roster administration (roles, key revocation, the attested-members list)
+ * lives on the Members page (/members) — this screen is the ceremony only.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -19,10 +22,8 @@ import { Suspense } from "react";
 import { useTranslations } from "next-intl";
 import {
   backendNeedsPopup,
-  grantRole,
   loadEnv,
   loadRoster,
-  revokeMemberKey,
   vouchFor,
   type EsignEnv,
   type VouchSubject,
@@ -31,188 +32,18 @@ import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
 import { decodeSubject } from "@/lib/esign/vouch-scan";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import VouchQrScanner from "./VouchQrScanner";
-import ConfirmDialog from "./ConfirmDialog";
 import { SigningConnectCard, useSigningSession } from "./SigningConnect";
-
-/**
- * Admin controls for one attested member, split along the two axes they live
- * on: their ROLE (a select — one of member/approver/treasurer) and their
- * SIGNING KEY (a separate, quieter destructive action). Both changes route
- * through a ConfirmDialog that spells out what will happen — the select never
- * commits on its own, and the key revocation replaces the old confirm().
- */
-function RoleControls({
-  env,
-  member,
-  onDone,
-}: {
-  env: EsignEnv;
-  member: { userId: string; name: string; role: string; publicKey: string };
-  onDone: () => Promise<void>;
-}) {
-  const t = useTranslations("Vouch");
-  const tRole = useTranslations("Common.role");
-  const thrown = useThrownErrorMessage();
-  type Role = "member" | "approver" | "treasurer";
-  const currentRole: Role =
-    member.role === "approver" || member.role === "treasurer" ? member.role : "member";
-  const [selectValue, setSelectValue] = useState<Role>(currentRole);
-  const [dialog, setDialog] = useState<null | "role" | "key">(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Re-sync the select when a roster refresh moves the mirror role under us.
-  useEffect(() => {
-    setSelectValue(currentRole);
-  }, [currentRole]);
-
-  const roleBlurb = (r: Role) =>
-    t(
-      r === "approver"
-        ? "roleExplainApprover"
-        : r === "treasurer"
-          ? "roleExplainTreasurer"
-          : "roleExplainMember"
-    );
-
-  function pickRole(next: Role) {
-    if (next === currentRole) return;
-    setSelectValue(next);
-    setError(null);
-    setDialog("role");
-  }
-  function cancelRole() {
-    setSelectValue(currentRole);
-    setError(null);
-    setDialog(null);
-  }
-
-  // Role change is one or two root-signed roster events (§4.3): switching
-  // between two roles revokes the old before granting the new; to/from member
-  // is a single revoke or grant.
-  async function applyRole() {
-    setBusy(true);
-    setError(null);
-    try {
-      if (currentRole !== "member") await grantRole(env, member.userId, currentRole, true);
-      if (selectValue !== "member") await grantRole(env, member.userId, selectValue, false);
-      setDialog(null);
-      await onDone();
-    } catch (err) {
-      setError(thrown(err, t("vouchFailed")));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // §4.5 compromised-device path: the member reports the loss in person and the
-  // root retires the KEY itself. Their history stays valid; they enroll a fresh
-  // key and get re-vouched.
-  async function applyRevokeKey() {
-    setBusy(true);
-    setError(null);
-    try {
-      await revokeMemberKey(env, member.publicKey);
-      setDialog(null);
-      await onDone();
-    } catch (err) {
-      setError(thrown(err, t("vouchFailed")));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-2.5 sm:items-end">
-      <label className="flex items-center gap-2">
-        <span className="text-xs font-medium text-stone-500">{t("roleLabel")}</span>
-        <select
-          className="min-h-[42px] rounded-lg border border-stone-300 bg-white py-2 pl-3 pr-8 text-sm text-stone-800 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
-          value={selectValue}
-          disabled={busy}
-          onChange={(e) => pickRole(e.target.value as Role)}
-          data-testid={`role-select-${member.userId}`}
-        >
-          <option value="member">{tRole("member")}</option>
-          <option value="approver">{tRole("approver")}</option>
-          <option value="treasurer">{tRole("treasurer")}</option>
-        </select>
-      </label>
-      <div className="w-full border-t border-dashed border-stone-200 pt-1.5 sm:flex sm:justify-end">
-        <button
-          className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-          disabled={busy}
-          onClick={() => {
-            setError(null);
-            setDialog("key");
-          }}
-          data-testid={`revoke-key-${member.userId}`}
-        >
-          <span aria-hidden>🔑</span>
-          {t("revokeKey")}
-        </button>
-      </div>
-
-      {dialog === "role" && (
-        <ConfirmDialog
-          title={t("roleDialogTitle", { name: member.name })}
-          confirmLabel={t("roleDialogConfirm")}
-          busy={busy}
-          error={error}
-          onConfirm={applyRole}
-          onCancel={cancelRole}
-        >
-          <p>
-            {t.rich("roleDialogFromTo", {
-              from: tRole(currentRole),
-              to: tRole(selectValue),
-              b: (chunks) => <strong className="font-semibold text-stone-800">{chunks}</strong>,
-            })}
-          </p>
-          <p className="text-stone-500">{roleBlurb(selectValue)}</p>
-        </ConfirmDialog>
-      )}
-      {dialog === "key" && (
-        <ConfirmDialog
-          title={t("keyDialogTitle", { name: member.name })}
-          confirmLabel={t("revokeKey")}
-          danger
-          busy={busy}
-          error={error}
-          onConfirm={applyRevokeKey}
-          onCancel={() => {
-            setError(null);
-            setDialog(null);
-          }}
-        >
-          <p>{t("keyDialogBody")}</p>
-        </ConfirmDialog>
-      )}
-    </div>
-  );
-}
 
 function VouchInner() {
   const t = useTranslations("Vouch");
   const tEsign = useTranslations("Esign");
   const tCommon = useTranslations("Common");
-  const tRole = useTranslations("Common.role");
   const thrown = useThrownErrorMessage();
   const params = useSearchParams();
   const [env, setEnv] = useState<EsignEnv | null>(null);
   const [subject, setSubject] = useState<VouchSubject | null>(null);
   const [fingerprint, setFingerprint] = useState<string | null>(null);
   const [manualFp, setManualFp] = useState("");
-  const [members, setMembers] = useState<
-    {
-      userId: string;
-      name: string;
-      email: string;
-      role: string;
-      publicKey: string;
-      fingerprint: string | null;
-    }[]
-  >([]);
   const [pending, setPending] = useState<VouchSubject[]>([]);
   // Active roster keys per uid — the source of truth for spotting a RE-KEY
   // vouch (the mirror's members list can't see it: a re-enrolling member's
@@ -247,8 +78,6 @@ function VouchInner() {
           const res = await fetch("/api/esign/pending");
           if (res.ok) setPending(((await res.json()).pending ?? []) as VouchSubject[]);
         }
-        const membersRes = await fetch("/api/esign/members");
-        if (membersRes.ok) setMembers((await membersRes.json()).members ?? []);
       } catch (err) {
         setError(thrown(err, tEsign("loadFailed")));
       }
@@ -288,11 +117,6 @@ function VouchInner() {
     return typed.length >= 32 && fingerprint?.startsWith(typed);
   }, [manualFp, fingerprint]);
 
-  async function refreshMembers() {
-    const res = await fetch("/api/esign/members");
-    if (res.ok) setMembers((await res.json()).members ?? []);
-  }
-
   async function handleScanned(s: VouchSubject) {
     setSubject(s);
     setScannedBinding(true);
@@ -306,9 +130,6 @@ function VouchInner() {
     try {
       await vouchFor(env, subject);
       setDone(true);
-      // The vouch may have just attested them — show the fresh roster state
-      // (and, for the root, the role buttons for the new member).
-      await refreshMembers();
     } catch (err) {
       setError(thrown(err, t("vouchFailed")));
     } finally {
@@ -317,9 +138,6 @@ function VouchInner() {
   }
 
   if (!env) return <p className="text-sm text-stone-500">{tCommon("loading")}</p>;
-
-  const roleName = (role: string) =>
-    (["member", "approver", "treasurer", "admin"] as const).find((r) => r === role);
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
@@ -446,39 +264,18 @@ function VouchInner() {
         </div>
       )}
 
-      {members.length > 0 && (
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-stone-500">{t("attestedMembers")}</h2>
-          <ul className="mt-3 space-y-3 text-sm">
-            {members.map((m) => (
-              <li
-                key={m.userId}
-                className="flex flex-col gap-3 rounded-xl border border-stone-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-              >
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-stone-800">{m.name}</span>
-                    {m.role !== "member" && (
-                      <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
-                        {roleName(m.role) ? tRole(roleName(m.role)!) : m.role}
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-0.5 text-xs text-stone-400">{m.email}</div>
-                </div>
-                {/* Role grants are root-signed roster events (§4.3) — only the
-                    root's browser can produce them, and only once its signing
-                    session is connected (they sign a roster event). */}
-                {env.me.role === "admin" &&
-                  !env.me.adminPaused &&
-                  phase === "ready" &&
-                  m.userId !== env.me.userId && (
-                    <RoleControls env={env} member={m} onDone={refreshMembers} />
-                  )}
-              </li>
-            ))}
-          </ul>
-        </div>
+      {/* The attested-members roster (roles, keys, e-sign access) moved to the
+          Members page — point the people who can manage it there. */}
+      {(env.me.role === "admin" || env.me.role === "treasurer") && (
+        <p className="text-sm text-stone-500">
+          {t.rich("membersPageHint", {
+            link: (chunks) => (
+              <Link href="/members" className="text-indigo-600 underline" data-testid="vouch-members-link">
+                {chunks}
+              </Link>
+            ),
+          })}
+        </p>
       )}
     </div>
   );
