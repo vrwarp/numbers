@@ -19,6 +19,10 @@ model User {
   // Verified mirror of roster-granted roles (see docs/ESIGN_DESIGN.md §5.5):
   // written only from signature-verified GRANT_ROLE/REVOKE_ROLE events.
   role           String          @default("member") // member | approver | treasurer | admin
+  // Custom approval-role assignments (Positions). A pure app-layer routing
+  // label — being a Position holder grants NO authority; the holder still needs
+  // a real Approver+ roster grant to actually sign an approval.
+  positionHolders PositionHolder[]
   // E-sign allowlist (A8): admin-managed app-surface gate under the master
   // switch. Gates ONLY who can see/enroll/run ceremonies in this app — never
   // roster validity (signatures collected while allowed stay valid forever).
@@ -382,8 +386,57 @@ model Ministry {
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  // Optional default approver for this category, modelled as a Position
+  // (custom approval role). Purely a routing hint: at submit time the claim's
+  // categories resolve to a Position → its first approval-eligible holder,
+  // which pre-fills (never assigns) the approver picker. SetNull on delete so a
+  // removed position simply clears the default. Archived positions don't route.
+  defaultPositionId String?
+  defaultPosition   Position? @relation(fields: [defaultPositionId], references: [id], onDelete: SetNull)
 
   @@index([active, sortOrder])
+}
+
+// A custom approval role — "Deacon of Missions", "Office Staff" — that the
+// treasurer assigns to one or more people and sets as the default approver for
+// budget categories (docs/agent/ARCHITECTURE.md). GLOBAL (no userId): one
+// deployment = one church, the same church-wide scope as the Ministry catalog.
+//
+// A Position is an APP-LAYER ROUTING LABEL ONLY — exactly the posture of the
+// A10 duty pauses and A8 allowlist (schema User comment): it never touches
+// User.role, the roster ledger, or ledger validity. Naming someone a holder
+// grants NO approval authority; they still need a signature-verified Approver+
+// grant to sign an approval. The only thing a Position does is PRE-FILL the
+// approver picker on a claim (the submitter still signs the approver into the
+// SUBMIT payload themselves), and the decision route + offline verifier
+// re-check the real role at signing time regardless.
+model Position {
+  id          String   @id @default(cuid())
+  name        String // "Deacon of Missions" — church data, never translated
+  description String   @default("") // optional guidance (never printed / translated)
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  holders     PositionHolder[]
+  ministries  Ministry[]
+
+  @@index([active, sortOrder])
+}
+
+// A person assigned to a Position. `order` is the assignment order: the
+// lowest-ordered approval-eligible holder is the one pre-filled (the "primary";
+// the rest are backups picked up only if earlier holders can't approve).
+model PositionHolder {
+  id         String   @id @default(cuid())
+  positionId String
+  position   Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order      Int      @default(0)
+
+  @@unique([positionId, userId])
+  @@index([userId])
 }
 
 // --- Semantic search (docs/SEARCH_DESIGN.md) ---------------------------------

@@ -14,8 +14,9 @@ import {
  * single row exists the table is authoritative. SERVER ONLY (prisma).
  */
 
-/** A catalog entry with its DB id (null for a built-in default entry). */
-export type MinistryRow = MinistryEntry & { id: string | null };
+/** A catalog entry with its DB id (null for a built-in default entry) and its
+ *  optional default-approver Position (null for a built-in default entry). */
+export type MinistryRow = MinistryEntry & { id: string | null; defaultPositionId: string | null };
 
 type DbRow = {
   code: string;
@@ -40,8 +41,9 @@ function toEntry(r: DbRow): MinistryEntry {
 /** Every catalog row (active + archived), for the treasurer's editor. */
 export async function loadAllMinistryRows(): Promise<MinistryRow[]> {
   const rows = await prisma.ministry.findMany({ orderBy: { sortOrder: "asc" } });
-  if (rows.length === 0) return DEFAULT_MINISTRY_ENTRIES.map((e) => ({ id: null, ...e }));
-  return rows.map((r) => ({ id: r.id, ...toEntry(r) }));
+  if (rows.length === 0)
+    return DEFAULT_MINISTRY_ENTRIES.map((e) => ({ id: null, defaultPositionId: null, ...e }));
+  return rows.map((r) => ({ id: r.id, defaultPositionId: r.defaultPositionId, ...toEntry(r) }));
 }
 
 /** Active entries in display order — the dropdown + AI-suggest source. A

@@ -11,8 +11,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
+import type { ApproverEligibility } from "@/lib/positions";
 
 interface ApiRow {
   id: string | null;
@@ -21,17 +23,30 @@ interface ApiRow {
   group: string;
   description: string;
   active: boolean;
+  // Default-approver Position (custom approval role), or null for none.
+  defaultPositionId: string | null;
 }
 interface Row extends ApiRow {
   key: string; // stable client key (id, or a fresh id for a new row)
 }
 
-const serialize = (r: Row) => JSON.stringify([r.code, r.name, r.group, r.description, r.active]);
+/** A position as this editor needs it: to fill the dropdown and show which
+ *  holder a category currently routes to. */
+interface PositionOption {
+  id: string;
+  name: string;
+  active: boolean;
+  holders: { name: string; eligibility: ApproverEligibility }[];
+}
+
+const serialize = (r: Row) =>
+  JSON.stringify([r.code, r.name, r.group, r.description, r.active, r.defaultPositionId]);
 
 export default function BudgetCategories() {
   const t = useTranslations("Ministries");
   const thrown = useThrownErrorMessage();
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [positions, setPositions] = useState<PositionOption[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
@@ -55,6 +70,23 @@ export default function BudgetCategories() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // The Positions catalog fills the per-category default-approver dropdown and
+  // the "routes to" preview. Non-fatal: on failure the picker just stays empty.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/positions");
+        if (res.ok) setPositions(((await res.json()) as { positions: PositionOption[] }).positions);
+      } catch {
+        /* leave positions empty */
+      }
+    })();
+  }, []);
+  const positionsById = useMemo(
+    () => new Map(positions.map((p) => [p.id, p])),
+    [positions]
+  );
 
   const groupOrder = useMemo(() => {
     const seen: string[] = [];
@@ -95,7 +127,10 @@ export default function BudgetCategories() {
   };
   const addCategory = (group: string) => {
     const key = `add-${newKey.current++}`;
-    setRows((rs) => [...(rs ?? []), { id: null, key, code: "", name: "", group, description: "", active: true }]);
+    setRows((rs) => [
+      ...(rs ?? []),
+      { id: null, key, code: "", name: "", group, description: "", active: true, defaultPositionId: null },
+    ]);
     setOk(false);
   };
   const addGroup = () => {
@@ -123,6 +158,7 @@ export default function BudgetCategories() {
             group: r.group,
             description: r.description,
             active: r.active,
+            defaultPositionId: r.defaultPositionId,
           })),
         }),
       });
@@ -154,7 +190,10 @@ export default function BudgetCategories() {
         </p>
       )}
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Link className="btn-secondary" href="/positions" data-testid="nav-manage-positions">
+          {t("managePositions")}
+        </Link>
         <button className="btn-secondary" onClick={addGroup} data-testid="add-group">
           {t("addGroup")}
         </button>
@@ -166,6 +205,8 @@ export default function BudgetCategories() {
           group={group}
           rows={(rows ?? []).filter((r) => r.group === group)}
           invalid={invalid}
+          positions={positions}
+          positionsById={positionsById}
           onRenameGroup={renameGroup}
           onPatch={patch}
           onAddCategory={addCategory}
@@ -191,6 +232,8 @@ function GroupCard({
   group,
   rows,
   invalid,
+  positions,
+  positionsById,
   onRenameGroup,
   onPatch,
   onAddCategory,
@@ -198,6 +241,8 @@ function GroupCard({
   group: string;
   rows: Row[];
   invalid: Set<string>;
+  positions: PositionOption[];
+  positionsById: Map<string, PositionOption>;
   onRenameGroup: (from: string, to: string) => void;
   onPatch: (key: string, next: Partial<ApiRow>) => void;
   onAddCategory: (group: string) => void;
@@ -239,9 +284,9 @@ function GroupCard({
       {rows.map((r) => {
         const bad = invalid.has(r.key);
         return (
+          <div key={r.key} className="border-t border-stone-100">
           <div
-            key={r.key}
-            className={`grid grid-cols-[4.5rem_1fr_auto] items-center gap-2 border-t border-stone-100 py-2 sm:grid-cols-[4.5rem_12rem_1fr_auto] ${
+            className={`grid grid-cols-[4.5rem_1fr_auto] items-center gap-2 pt-2 sm:grid-cols-[4.5rem_12rem_1fr_auto] ${
               r.active ? "" : "opacity-60"
             }`}
             data-testid="ministry-row"
@@ -281,8 +326,68 @@ function GroupCard({
               {r.active ? t("active") : t("archived")}
             </button>
           </div>
+          <DefaultApproverRow
+            row={r}
+            positions={positions}
+            positionsById={positionsById}
+            onPatch={onPatch}
+          />
+          </div>
         );
       })}
+    </div>
+  );
+}
+
+/** The per-category "Default approver" sub-line: a Position picker plus a live
+ *  "routes to" preview of the holder who would be pre-filled (the first
+ *  approval-eligible holder). Ineligible holders are hidden from routing, so an
+ *  all-ineligible position warns that nothing will pre-fill. */
+function DefaultApproverRow({
+  row,
+  positions,
+  positionsById,
+  onPatch,
+}: {
+  row: Row;
+  positions: PositionOption[];
+  positionsById: Map<string, PositionOption>;
+  onPatch: (key: string, next: Partial<ApiRow>) => void;
+}) {
+  const t = useTranslations("Ministries");
+  const selected = row.defaultPositionId ? positionsById.get(row.defaultPositionId) : undefined;
+  const primary = selected?.holders.find((h) => h.eligibility === "ok");
+  // Keep a now-archived (or unknown) selected position visible so its default
+  // isn't silently dropped from the dropdown.
+  const options = positions.filter((p) => p.active || p.id === row.defaultPositionId);
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 py-2 pl-1 text-xs">
+      <span className="text-stone-500">{t("defaultApprover")}</span>
+      <select
+        className="input h-auto w-auto py-1 text-xs"
+        value={row.defaultPositionId ?? ""}
+        onChange={(e) => onPatch(row.key, { defaultPositionId: e.target.value || null })}
+        data-testid="ministry-default-position"
+        aria-label={t("defaultApprover")}
+      >
+        <option value="">{t("defaultApproverNone")}</option>
+        {options.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.active ? p.name : t("positionArchivedOption", { name: p.name })}
+          </option>
+        ))}
+      </select>
+      {selected &&
+        (primary ? (
+          <span className="text-emerald-700" data-testid="routes-to">
+            {t("routesTo", { name: primary.name })}
+          </span>
+        ) : selected.holders.length ? (
+          <span className="text-amber-700">⚠ {t("routesNobody")}</span>
+        ) : (
+          <span className="text-stone-400">{t("routesNoHolder")}</span>
+        ))}
     </div>
   );
 }

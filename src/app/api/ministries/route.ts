@@ -31,6 +31,8 @@ const RowSchema = z.object({
   group: z.string().trim().max(100).default(""),
   description: z.string().trim().max(500).default(""),
   active: z.boolean().default(true),
+  // Optional default-approver Position (custom approval role). "" / null = none.
+  defaultPositionId: z.string().nullish(),
 });
 const PutSchema = z.object({ ministries: z.array(RowSchema).max(500) });
 
@@ -101,6 +103,7 @@ export async function PUT(req: Request) {
         description: r.description,
         active: r.active,
         sortOrder: i,
+        defaultPositionId: r.defaultPositionId || null,
       };
       return r.id && existingIds.has(r.id)
         ? prisma.ministry.update({ where: { id: r.id }, data })
