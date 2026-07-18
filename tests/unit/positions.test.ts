@@ -19,6 +19,12 @@ describe("approverEligibility", () => {
     expect(approverEligibility({ role: "member", attested: true, approvalsPaused: false })).toBe("cannotApprove");
     expect(approverEligibility({ role: "approver", attested: false, approvalsPaused: false })).toBe("cannotApprove");
   });
+  it("chairman/secretary are approver-plus (A11): ok when attested and active", () => {
+    expect(approverEligibility({ role: "chairman", attested: true, approvalsPaused: false })).toBe("ok");
+    expect(approverEligibility({ role: "secretary", attested: true, approvalsPaused: false })).toBe("ok");
+    expect(approverEligibility({ role: "chairman", attested: true, approvalsPaused: true })).toBe("paused");
+    expect(approverEligibility({ role: "secretary", attested: false, approvalsPaused: false })).toBe("cannotApprove");
+  });
 });
 
 // Helper builders keep the selection cases readable.

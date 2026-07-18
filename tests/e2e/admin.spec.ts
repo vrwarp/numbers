@@ -48,7 +48,7 @@ test("a paused admin loses the admin area until they turn the duty back on", asy
   await expect(page.getByTestId("duty-financePaused")).toBeVisible();
   await expect(page.getByTestId("duty-adminPaused")).toBeVisible();
   await page.getByTestId("duty-adminPaused-toggle").click();
-  await expect(page.getByText("Admin pages and controls are hidden")).toBeVisible();
+  await expect(page.getByText("Role controls and admin pages are hidden")).toBeVisible();
 
   // Nav entry gone, page bounces home, API 404s — same posture as a member.
   await page.reload();
@@ -63,7 +63,7 @@ test("a paused admin loses the admin area until they turn the duty back on", asy
   // The toggle itself is never admin-gated — unpausing restores everything.
   await page.goto("/profile");
   await page.getByTestId("duty-adminPaused-toggle").click();
-  await expect(page.getByText("You can manage members, settings")).toBeVisible();
+  await expect(page.getByText("You can change members' roles")).toBeVisible();
   await page.goto("/admin");
   await expect(page.getByTestId("admin-dashboard")).toBeVisible();
 });

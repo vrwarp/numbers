@@ -42,7 +42,11 @@ function build(rng: Rng): VerifiedEvent<RosterAction>[] {
         uidOfKey[key] = uid;
       }
     } else if (choice === 3) {
-      events.push(mk({ t: "GRANT_ROLE", v: 1, ledger: ROSTER, ts: 0, uid: `u${rng.int(0, 6)}`, role: "approver" }, "K_root"));
+      // Random signer (root or any possibly-seated key) exercises the
+      // role-management rule; random role exercises the admin-stays-root-only
+      // branch.
+      const role = rng.pick(["approver", "secretary", "chairman", "treasurer", "admin"] as const);
+      events.push(mk({ t: "GRANT_ROLE", v: 1, ledger: ROSTER, ts: 0, uid: `u${rng.int(0, 6)}`, role }, rng.pick(seatedKeys)));
     } else {
       const key = rng.pick(seatedKeys);
       events.push(mk({ t: "REVOKE_KEY", v: 1, ledger: ROSTER, ts: 0, publicKey: key }, "K_root"));

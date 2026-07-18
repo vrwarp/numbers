@@ -21,6 +21,8 @@ import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { formatCents } from "@/lib/money";
 import type { SignaturePlacement } from "@/lib/esign/placement";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
+import { roleLabelKey } from "@/lib/role-label";
+import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain, type ClaimRef } from "./chain";
 import { SigningConnectCard, useSigningSession } from "./SigningConnect";
@@ -251,7 +253,7 @@ export function SubmitDialog({
         const eligible = all.filter(
           (m) =>
             m.userId !== env.me.userId &&
-            ["approver", "treasurer", "admin"].includes(m.role) &&
+            (APPROVER_PLUS_ROLES as readonly string[]).includes(m.role) &&
             !m.approvalsPaused
         );
         setMembers(eligible);
@@ -292,12 +294,10 @@ export function SubmitDialog({
   }
 
   const placedReady = !hasSignature || !!placement;
-  const roleLabel = (role: string) =>
-    (["member", "approver", "treasurer", "admin"] as const).includes(
-      role as "member" | "approver" | "treasurer" | "admin"
-    )
-      ? tRole(role as "member" | "approver" | "treasurer" | "admin")
-      : role;
+  const roleLabel = (role: string) => {
+    const key = roleLabelKey(role);
+    return key ? tRole(key) : role;
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">

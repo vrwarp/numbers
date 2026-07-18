@@ -416,11 +416,13 @@ export async function vouchFor(env: EsignEnv, subject: VouchSubject): Promise<vo
   await reportRoster(env, rawDocs);
 }
 
-/** Root-only convenience: grant/revoke a role, then refresh the mirror. */
+/** Grant/revoke a role, then refresh the mirror. Valid only when this device's
+ *  signer is the root or an executive officer/admin at signing time (the
+ *  reducer's role-management rule); the admin role itself is never offered. */
 export async function grantRole(
   env: EsignEnv,
   uid: string,
-  role: "approver" | "treasurer",
+  role: "approver" | "secretary" | "chairman" | "treasurer",
   revoke = false
 ): Promise<void> {
   if (!env.rosterLedgerId || !env.rosterLedgerKey) throw new Error("Not enrolled");

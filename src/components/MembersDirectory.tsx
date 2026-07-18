@@ -8,10 +8,11 @@
  * enrollment state, and the rollout-allowlist grants (previously only the
  * admin dashboard and the profile card).
  *
- * Authority boundaries are unchanged by the move: role grants and key
- * revocations are root-signed roster events (RoleControls renders only for
- * the connected, un-paused admin), and the e-sign access buttons call the
- * admin-only allowlist PATCH. A treasurer sees the directory read-only.
+ * Authority boundaries: role grants are signed roster events valid from the
+ * root or an executive officer/admin (A11) — RoleControls renders for those
+ * mirror roles once connected and un-paused (the ledger re-checks authority
+ * regardless) — while the e-sign access buttons call the admin-only allowlist
+ * PATCH, so only the admin sees them.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -23,6 +24,8 @@ import {
   type EsignEnv,
 } from "@/lib/esign/client";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
+import { ROLE_MANAGER_ROLES } from "@/lib/esign/types";
+import { roleLabelKey } from "@/lib/role-label";
 import RoleControls from "./esign/RoleControls";
 import { SigningConnectCard, useSigningSession } from "./esign/SigningConnect";
 
@@ -42,6 +45,8 @@ interface DirectoryMember {
 const ROLE_STYLE: Record<string, string> = {
   admin: "bg-indigo-100 text-indigo-700",
   treasurer: "bg-purple-100 text-purple-700",
+  chairman: "bg-amber-100 text-amber-700",
+  secretary: "bg-emerald-100 text-emerald-700",
   approver: "bg-sky-100 text-sky-700",
   member: "bg-stone-100 text-stone-500",
 };
@@ -55,10 +60,10 @@ export default function MembersDirectory() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const roleLabel = (r: string) =>
-    (["member", "approver", "treasurer", "admin"] as const).includes(r as never)
-      ? tRole(r as "member" | "approver" | "treasurer" | "admin")
-      : r;
+  const roleLabel = (r: string) => {
+    const key = roleLabelKey(r);
+    return key ? tRole(key) : r;
+  };
 
   const loadMembers = useCallback(async () => {
     const res = await fetch("/api/members");
@@ -77,11 +82,16 @@ export default function MembersDirectory() {
   const { phase, connect, connecting, error: connectError } = useSigningSession(env);
 
   const esignOn = !!env?.bootstrapped && !!env.enabled;
-  // Role grants / key revocations are root-signed roster events — only the
-  // un-paused admin, with a signing session on this device, gets the controls.
+  // Role/key controls sign roster events — shown to un-paused role managers
+  // (executive officers + admin, A11) with a signing session on this device;
+  // the ledger re-checks the signer's authority regardless. The allowlist
+  // PATCH is admin-only server-side, so its buttons stay admin-only here.
   const isAdmin = env?.me.role === "admin" && !env.me.adminPaused;
-  const canManageRoles = isAdmin && esignOn && phase === "ready";
-  const adminMustConnect = isAdmin && esignOn && !!env && backendNeedsPopup(env) && phase !== "ready";
+  const isRoleManager =
+    !!env && (ROLE_MANAGER_ROLES as readonly string[]).includes(env.me.role) && !env.me.adminPaused;
+  const canManageRoles = isRoleManager && esignOn && phase === "ready";
+  const adminMustConnect =
+    isRoleManager && esignOn && !!env && backendNeedsPopup(env) && phase !== "ready";
   const allowlistActive = isAdmin && esignOn && env?.scope !== "everyone";
 
   async function setAllowed(m: DirectoryMember, allowed: boolean) {

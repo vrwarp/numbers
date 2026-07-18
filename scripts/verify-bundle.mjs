@@ -94,7 +94,10 @@ function replayRoster(rosterLedgerId, events) {
     uid === root.uid
       ? ["admin"]
       : (roles.get(uid) ?? []).filter((r) => r.grantedAtMs <= t && (r.revokedAtMs === undefined || r.revokedAtMs > t)).map((r) => r.role);
-  const isApproverAt = (uid, t) => rolesAt(uid, t).some((r) => ["approver", "treasurer", "admin"].includes(r));
+  // Approver-or-above incl. the executive officers (A11) — mirrors
+  // src/lib/esign/types.ts APPROVER_PLUS_ROLES.
+  const isApproverAt = (uid, t) =>
+    rolesAt(uid, t).some((r) => ["approver", "secretary", "chairman", "treasurer", "admin"].includes(r));
 
   for (const e of events.slice(1)) {
     const a = e.action;
@@ -119,10 +122,20 @@ function replayRoster(rosterLedgerId, events) {
         members.push({ ...entry.subject, attestedAtMs: e.createdAtMs });
         pending.delete(a.subject.publicKey);
       }
-    } else if (e.signerPublicKey === root.publicKey) {
+    } else if (a.t === "GRANT_ROLE" || a.t === "REVOKE_ROLE") {
+      // Role management: root key, or an attested executive officer/admin at
+      // the event's own time; the admin role itself stays root-only — mirrors
+      // src/lib/esign/roster.ts (ROLE_MANAGER_ROLES).
+      const isRoot = e.signerPublicKey === root.publicKey;
+      const signer = memberAt(e.signerPublicKey, e.createdAtMs);
+      const isOfficer =
+        !!signer &&
+        rolesAt(signer.uid, e.createdAtMs).some((r) => ["secretary", "chairman", "treasurer", "admin"].includes(r));
+      if ((!isRoot && !isOfficer) || (a.role === "admin" && !isRoot)) continue;
       if (a.t === "GRANT_ROLE") (roles.get(a.uid) ?? roles.set(a.uid, []).get(a.uid)).push({ role: a.role, grantedAtMs: e.createdAtMs });
-      else if (a.t === "REVOKE_ROLE") for (const r of roles.get(a.uid) ?? []) if (r.role === a.role && r.revokedAtMs === undefined) r.revokedAtMs = e.createdAtMs;
-      else if (a.t === "REVOKE_KEY") for (const m of members) if (m.publicKey === a.publicKey && m.revokedAtMs === undefined) m.revokedAtMs = e.createdAtMs;
+      else for (const r of roles.get(a.uid) ?? []) if (r.role === a.role && r.revokedAtMs === undefined) r.revokedAtMs = e.createdAtMs;
+    } else if (e.signerPublicKey === root.publicKey) {
+      if (a.t === "REVOKE_KEY") for (const m of members) if (m.publicKey === a.publicKey && m.revokedAtMs === undefined) m.revokedAtMs = e.createdAtMs;
     }
   }
   return { root, memberAt, rolesAt, isApproverAt };

@@ -15,6 +15,7 @@ import { useDateLabel } from "@/lib/use-date-label";
 import { loadEnv, loadRoster, type EsignEnv } from "@/lib/esign/client";
 import type { RosterTimeline } from "@/lib/esign/roster";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
+import { roleLabelKey } from "@/lib/role-label";
 import { SigningGate } from "@/components/esign/SigningConnect";
 
 interface Member {
@@ -33,6 +34,8 @@ interface Member {
 const ROLE_STYLE: Record<string, string> = {
   admin: "bg-indigo-100 text-indigo-700",
   treasurer: "bg-purple-100 text-purple-700",
+  chairman: "bg-amber-100 text-amber-700",
+  secretary: "bg-emerald-100 text-emerald-700",
   approver: "bg-sky-100 text-sky-700",
   member: "bg-stone-100 text-stone-500",
 };
@@ -46,10 +49,10 @@ export default function MembersTab() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const roleLabel = (r: string) =>
-    (["member", "approver", "treasurer", "admin"] as const).includes(r as never)
-      ? tRole(r as "member" | "approver" | "treasurer" | "admin")
-      : r;
+  const roleLabel = (r: string) => {
+    const key = roleLabelKey(r);
+    return key ? tRole(key) : r;
+  };
 
   const loadMembers = useCallback(async () => {
     try {
@@ -270,10 +273,10 @@ function VouchChain({ env }: { env: EsignEnv }) {
   const [roster, setRoster] = useState<RosterTimeline | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const roleLabel = (r: string) =>
-    (["member", "approver", "treasurer", "admin"] as const).includes(r as never)
-      ? tRole(r as "member" | "approver" | "treasurer" | "admin")
-      : r;
+  const roleLabel = (r: string) => {
+    const key = roleLabelKey(r);
+    return key ? tRole(key) : r;
+  };
 
   const load = useCallback(async () => {
     try {

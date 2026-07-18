@@ -29,6 +29,7 @@ import {
   type VouchSubject,
 } from "@/lib/esign/client";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
+import { ROLE_MANAGER_ROLES } from "@/lib/esign/types";
 import { decodeSubject } from "@/lib/esign/vouch-scan";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import VouchQrScanner from "./VouchQrScanner";
@@ -266,7 +267,7 @@ function VouchInner() {
 
       {/* The attested-members roster (roles, keys, e-sign access) moved to the
           Members page — point the people who can manage it there. */}
-      {(env.me.role === "admin" || env.me.role === "treasurer") && (
+      {(ROLE_MANAGER_ROLES as readonly string[]).includes(env.me.role) && (
         <p className="text-sm text-stone-500">
           {t.rich("membersPageHint", {
             link: (chunks) => (

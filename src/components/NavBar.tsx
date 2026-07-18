@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import AccountMenu from "./AccountMenu";
 import NavTabs, { type NavLink } from "./NavTabs";
 import { ApprovalsIcon, ClaimsIcon, FinanceIcon, ReceiptsIcon, SearchIcon, VouchIcon } from "./nav-icons";
+import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
 
 interface Badges {
   enabled: boolean;
@@ -25,11 +26,13 @@ export default function NavBar({
   userName,
   isAdmin,
   canManageMinistries,
+  canViewMembers,
   searchEnabled,
 }: {
   userName: string;
   isAdmin?: boolean;
   canManageMinistries?: boolean;
+  canViewMembers?: boolean;
   searchEnabled?: boolean;
 }) {
   const pathname = usePathname();
@@ -73,7 +76,7 @@ export default function NavBar({
     links.push({ href: "/approvals", label: t("approvals"), icon: <ApprovalsIcon />, badge: badges.approvals, priority: 80 });
   } else if (
     badges.enabled &&
-    ["approver", "treasurer", "admin"].includes(badges.role ?? "") &&
+    (APPROVER_PLUS_ROLES as readonly string[]).includes(badges.role ?? "") &&
     !badges.approvalsPaused
   ) {
     links.push({ href: "/approvals", label: t("approvals"), icon: <ApprovalsIcon />, priority: 80 });
@@ -110,6 +113,7 @@ export default function NavBar({
           userName={userName}
           isAdmin={isAdmin}
           canManageMinistries={canManageMinistries}
+          canViewMembers={canViewMembers}
           menuTabs={menuTabs}
         />
       </div>

@@ -21,6 +21,7 @@ import { closureRefs } from "@/lib/esign/validity";
 import { buildClaimPdfBytes } from "@/lib/esign/packet";
 import { roundPlacement, type SignaturePlacement } from "@/lib/esign/placement";
 import type { RawLedgerEventDoc, SubmitAction } from "@/lib/esign/types";
+import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
 
 import { enqueueClaimEmbeddingNow } from "@/lib/embeddings/queue";
 
@@ -80,7 +81,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       if (
         !approver ||
         approver.status !== "attested" ||
-        !["approver", "treasurer", "admin"].includes(approver.user.role)
+        !(APPROVER_PLUS_ROLES as readonly string[]).includes(approver.user.role)
       ) {
         throw new ApiError(409, "That member is not an attested approver", "esign.notApprover");
       }

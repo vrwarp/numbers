@@ -1,14 +1,15 @@
 "use client";
 
 /**
- * Admin controls for one attested member (rendered on the Members page), split
- * along the two axes they live on: their ROLE (a select — one of
- * member/approver/treasurer) and their SIGNING KEY (a separate, quieter
- * destructive action). Both changes route through a ConfirmDialog that spells
- * out what will happen — the select never commits on its own. Role grants and
- * key revocations are root-signed roster events (docs/ESIGN_DESIGN.md §4.3,
- * §4.5), so only the root's browser — with a connected signing session — can
- * produce them; the caller gates on that.
+ * Role/key controls for one attested member (rendered on the Members page),
+ * split along the two axes they live on: their ROLE (a select over the
+ * grantable roles) and their SIGNING KEY (a separate, quieter destructive
+ * action). Both changes route through a ConfirmDialog that spells out what
+ * will happen — the select never commits on its own. Role grants are signed
+ * roster events valid from the root or an executive officer/admin (A11);
+ * key revocations stay root-only (docs/ESIGN_DESIGN.md §4.3, §4.5). Either
+ * way the browser needs a connected signing session; the caller gates on the
+ * viewer's mirror role.
  */
 
 import { useEffect, useState } from "react";
@@ -16,6 +17,10 @@ import { useTranslations } from "next-intl";
 import { grantRole, revokeMemberKey, type EsignEnv } from "@/lib/esign/client";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import ConfirmDialog from "./ConfirmDialog";
+
+/** The role select's options: member (= no granted role) plus every grantable
+ *  role. Admin is root-anchored and never offered from here. */
+const GRANTABLE_ROLES = ["member", "approver", "secretary", "chairman", "treasurer"] as const;
 
 export default function RoleControls({
   env,
@@ -29,10 +34,14 @@ export default function RoleControls({
   const t = useTranslations("Members");
   const tRole = useTranslations("Common.role");
   const thrown = useThrownErrorMessage();
-  type Role = "member" | "approver" | "treasurer";
-  const currentRole: Role =
-    member.role === "approver" || member.role === "treasurer" ? member.role : "member";
+  type Role = (typeof GRANTABLE_ROLES)[number];
+  const currentRole: Role = (GRANTABLE_ROLES as readonly string[]).includes(member.role)
+    ? (member.role as Role)
+    : "member";
   const [selectValue, setSelectValue] = useState<Role>(currentRole);
+  // Key revocation is a root-only ledger action (§4.5) — an officer's REVOKE_KEY
+  // would be rejected by the reducer, so don't offer the button off-root.
+  const isRoot = !!env.rootPublicKey && env.me.publicKey === env.rootPublicKey;
   const [dialog, setDialog] = useState<null | "role" | "key">(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,9 +55,13 @@ export default function RoleControls({
     t(
       r === "approver"
         ? "roleExplainApprover"
-        : r === "treasurer"
-          ? "roleExplainTreasurer"
-          : "roleExplainMember"
+        : r === "secretary"
+          ? "roleExplainSecretary"
+          : r === "chairman"
+            ? "roleExplainChairman"
+            : r === "treasurer"
+              ? "roleExplainTreasurer"
+              : "roleExplainMember"
     );
 
   function pickRole(next: Role) {
@@ -63,9 +76,9 @@ export default function RoleControls({
     setDialog(null);
   }
 
-  // Role change is one or two root-signed roster events (§4.3): switching
-  // between two roles revokes the old before granting the new; to/from member
-  // is a single revoke or grant.
+  // Role change is one or two signed roster events (§4.3): switching between
+  // two roles revokes the old before granting the new; to/from member is a
+  // single revoke or grant.
   async function applyRole() {
     setBusy(true);
     setError(null);
@@ -109,25 +122,29 @@ export default function RoleControls({
           onChange={(e) => pickRole(e.target.value as Role)}
           data-testid={`role-select-${member.userId}`}
         >
-          <option value="member">{tRole("member")}</option>
-          <option value="approver">{tRole("approver")}</option>
-          <option value="treasurer">{tRole("treasurer")}</option>
+          {GRANTABLE_ROLES.map((r) => (
+            <option key={r} value={r}>
+              {tRole(r)}
+            </option>
+          ))}
         </select>
       </label>
-      <div className="w-full border-t border-dashed border-stone-200 pt-1.5 sm:flex sm:justify-end">
-        <button
-          className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-          disabled={busy}
-          onClick={() => {
-            setError(null);
-            setDialog("key");
-          }}
-          data-testid={`revoke-key-${member.userId}`}
-        >
-          <span aria-hidden>🔑</span>
-          {t("revokeKey")}
-        </button>
-      </div>
+      {isRoot && (
+        <div className="w-full border-t border-dashed border-stone-200 pt-1.5 sm:flex sm:justify-end">
+          <button
+            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            disabled={busy}
+            onClick={() => {
+              setError(null);
+              setDialog("key");
+            }}
+            data-testid={`revoke-key-${member.userId}`}
+          >
+            <span aria-hidden>🔑</span>
+            {t("revokeKey")}
+          </button>
+        </div>
+      )}
 
       {dialog === "role" && (
         <ConfirmDialog

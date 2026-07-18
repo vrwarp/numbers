@@ -34,14 +34,18 @@ src/lib/positions.ts            Positions (custom approval roles): approverEligi
                                 — dependency-free, unit-tested, client-safe
 src/lib/positions-catalog.ts    Position table reads + resolveSuggestedApprover(claim) (SERVER);
 src/lib/positions-guard.ts      requirePositionEditor (treasurer/admin, same gate as ministries)
-src/lib/members-guard.ts        canViewMembers/requireMemberDirectoryViewer (treasurer/admin,
-                                same gate) — the /members page + /api/members directory
+src/lib/members-guard.ts        canViewMembers/requireMemberDirectoryViewer (treasurer/admin
+                                + the other executive officers, A11) — the /members page +
+                                /api/members directory
 src/components/MembersDirectory.tsx  the Members page: full directory (roles, Positions,
-                                e-sign status), root-only RoleControls (role grant / key
-                                revocation, moved off the vouch screen), admin allowlist
-                                grant/cancel; links Vouch/Positions/Budget Categories
+                                e-sign status), RoleControls for executive officers/admin
+                                (role grant; key revocation stays root-only, moved off the
+                                vouch screen), admin-only allowlist grant/cancel; links
+                                Vouch/Positions/Budget Categories
 src/lib/locales.ts              LOCALES en/zh-Hans/zh-Hant, labels, numbers_locale cookie
                                 name, Accept-Language negotiator — dependency-free, client-safe
+src/lib/role-label.ts           roleLabelKey(): role string → Common.role.* message key,
+                                shared by every role-tag renderer — dependency-free, client-safe
 src/i18n/request.ts             next-intl request config: cookie → Accept-Language → en
                                 (no URL locale routing, no middleware)
 src/i18n/cookie.ts              setLocaleCookie + syncLocalePreference (sign-in reconciles

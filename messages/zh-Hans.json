@@ -28,6 +28,8 @@
     "role": {
       "member": "会友",
       "approver": "审批人",
+      "secretary": "文书",
+      "chairman": "主席",
       "treasurer": "财务同工",
       "admin": "管理员"
     }
@@ -95,8 +97,8 @@
     "dutyFinanceOn": "您可以查看财务队列，并将已批准的报销单标记为已支付。",
     "dutyFinanceOff": "财务队列已隐藏，您暂时无法将报销单标记为已支付。",
     "dutyAdminTitle": "管理",
-    "dutyAdminOn": "您可以管理成员、设置和电子签名。",
-    "dutyAdminOff": "管理页面和控制项已隐藏，重新开启后即可恢复。",
+    "dutyAdminOn": "您可以更改会友的角色；管理员还可以管理设置和电子签名。",
+    "dutyAdminOff": "角色控制和管理页面已隐藏，重新开启后即可恢复。",
     "dutyTurnOn": "开启",
     "dutyTurnOff": "关闭"
   },
@@ -1117,7 +1119,7 @@
     "eligibilityPaused": "Approvals paused",
     "eligibilityCannot": "Needs Approver grant",
     "holderPausedWarn": "{name} has paused approvals, so claims won't pre-fill to them until they resume.",
-    "holderCannotWarn": "{name} can't approve until an admin grants them the Approver role on the <link>Members</link> page."
+    "holderCannotWarn": "{name} 需要执行同工或管理员在<link>成员</link>页面授予“审批人”角色后才能审批。"
   },
   "Members": {
     "title": "成员",
@@ -1145,7 +1147,9 @@
     "roleDialogFromTo": "这会把他们的角色从 <b>{from}</b> 更改为 <b>{to}</b>。",
     "roleExplainMember": "会友可以准备并签署自己的报销，但不能审批或支付他人的报销。",
     "roleExplainApprover": "审批人可以审批报销申请以供支付。",
-    "roleExplainTreasurer": "财务同工可以审批申请，也可以将其标记为已支付。",
+    "roleExplainSecretary": "文书是教会的执行同工之一：可以审批报销申请，也可以更改会友的角色。",
+    "roleExplainChairman": "主席是教会的执行同工之一：可以审批报销申请，也可以更改会友的角色。",
+    "roleExplainTreasurer": "财务同工可以审批申请并将其标记为已支付；作为执行同工，也可以更改会友的角色。",
     "roleDialogConfirm": "更新角色",
     "revokeKey": "吊销密钥",
     "keyDialogTitle": "吊销 {name} 的签名密钥？",

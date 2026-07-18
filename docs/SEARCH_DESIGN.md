@@ -575,6 +575,7 @@ with the endpoint (§8).
 | :-- | :-- | :-- | :-- |
 | member | own receipts + own claims | 404 | 404 |
 | approver | own | all receipts + all claims | claims where `approverUserId = me` AND status ∈ approved/rejected/paid + receipts attached to those claims; empty query = browse newest-first |
+| secretary / chairman | own | all receipts + all claims | same as approver (executive officers are approver-plus, A11) |
 | treasurer / admin | own | all receipts + all claims | same as approver (a treasurer can also hold assignments) |
 
 `scope:"decided"` is **not** denormalized onto the index (it would go stale on every
@@ -612,7 +613,8 @@ currently enumerates approver-inbox / finance-queue / packet / certificate /
 reconcile / `/v/<token>` as the only non-owner reads. Shipping this feature amends
 that list with:
 
-> *Role read (ratified): holders of a verified approver/treasurer/admin role may read
+> *Role read (ratified; A11 extended the approver-plus set with the executive-officer
+> roles chairman/secretary): holders of a verified approver-or-above role may read
 > receipts and claims across all tenants — search summaries and receipt files today;
 > future role-facing read surfaces may rely on the same grant. Draft claims are
 > included, and so are **receipts never placed on any claim** (Shoebox staging photos

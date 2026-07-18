@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi } from "@/lib/api";
 import { requireEsignAccess } from "@/lib/esign/server";
+import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
 import { claimSummary } from "@/lib/esign/claim-server";
 
 export const runtime = "nodejs";
@@ -42,7 +43,7 @@ export async function GET() {
       claims: items,
       me: {
         approvalsPaused: me?.approvalsPaused ?? false,
-        canApprove: ["approver", "treasurer", "admin"].includes(me?.role ?? ""),
+        canApprove: (APPROVER_PLUS_ROLES as readonly string[]).includes(me?.role ?? ""),
       },
     });
   });
