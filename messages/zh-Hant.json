@@ -48,7 +48,8 @@
     "budgetCategories": "Budget categories",
     "pendingWork": "有待處理",
     "search": "搜尋",
-    "positions": "Positions"
+    "positions": "Positions",
+    "members": "成員"
   },
   "Home": {
     "profileNudge": "您的<link>個人資料</link>需要填寫姓名和郵寄地址——兩者都會列印在報銷表上。",
@@ -527,14 +528,7 @@
     "scopeTitle": "誰可以電子簽名",
     "scopeAllowlist": "僅限我選擇的成員",
     "scopeEveryone": "所有人",
-    "allowlistTitle": "可以使用電子簽名的成員",
-    "allowlistNote": "您允許的成員可以看到簽名功能並開通，但仍須先獲得擔保才能簽名。移除某人會對其隱藏簽名功能；其已簽署的內容仍然有效。",
-    "allowlistLoading": "正在載入成員…",
-    "allowlistAllow": "允許",
-    "allowlistRemove": "移除",
-    "allowlistAlwaysOn": "管理員——一律開啟",
-    "allowlistLoadFailed": "無法載入成員清單",
-    "allowlistUpdateFailed": "無法更新該成員"
+    "allowlistOnMembersPage": "請在<link>成員</link>頁面選擇誰可以使用電子簽名。移除某人會對其隱藏簽名功能；其已簽署的內容仍然有效。"
   },
   "Devices": {
     "newDeviceTitle": "這似乎是一台新裝置。",
@@ -605,21 +599,9 @@
     "scanIntro": "直接用相機在此掃描對方的 QR 碼。無法使用相機？請從清單中選擇他，並輸入其<b>完整金鑰指紋</b>（從他的螢幕上讀取；口頭唸的短碼不夠）。",
     "orPick": "或選擇他並輸入其指紋",
     "nobodyPending": "目前沒有人等待擔保。",
-    "attestedMembers": "已認證會友",
-    "roleLabel": "角色",
-    "roleDialogTitle": "變更 {name} 的角色",
-    "roleDialogFromTo": "這會將他們的角色從 <b>{from}</b> 變更為 <b>{to}</b>。",
-    "roleExplainMember": "會友可以準備並簽署自己的報銷，但不能審批或支付他人的報銷。",
-    "roleExplainApprover": "審批人可以審批報銷申請以供支付。",
-    "roleExplainSecretary": "文書是教會的執行同工之一：可以審批報銷申請，也可以更改會友的角色。",
-    "roleExplainChairman": "主席是教會的執行同工之一：可以審批報銷申請，也可以更改會友的角色。",
-    "roleExplainTreasurer": "財務同工可以審批申請並將其標記為已支付；作為執行同工，也可以更改會友的角色。",
-    "roleDialogConfirm": "更新角色",
-    "revokeKey": "吊銷金鑰",
-    "keyDialogTitle": "吊銷 {name} 的簽名金鑰？",
-    "keyDialogBody": "僅當能以他身分簽名的裝置遺失或被盜時才這樣做。他已簽署的內容依然有效，但該金鑰將立即在所有地方失效——他需要重新開通簽名，並再次當面獲得擔保。",
     "vouchFailed": "擔保失敗",
-    "malformedLink": "擔保連結已損壞——請重新掃描"
+    "malformedLink": "擔保連結已損壞——請重新掃描",
+    "membersPageHint": "在找成員名冊？角色、簽名金鑰和電子簽名權限都在<link>成員</link>頁面管理。"
   },
   "VouchScan": {
     "open": "📷 掃描對方的 QR 碼",
@@ -912,6 +894,7 @@
     "scopeAllowlist": "僅限白名單成員",
     "scopeEveryone": "所有人",
     "membersTitle": "成員",
+    "membersManageNote": "角色、簽名金鑰和電子簽名權限在<link>成員</link>頁面管理。",
     "colMember": "成員",
     "colRole": "角色",
     "colEnrollment": "簽署",
@@ -1106,7 +1089,7 @@
   "Positions": {
     "title": "Positions",
     "subtitle": "Custom approval roles you assign to people and use as the default approver for budget categories.",
-    "authorityNote": "A position is a routing label, not authority. Assigning someone here does not let them approve — they still need the Approver role granted through the signature roster.",
+    "authorityNote": "A position is a routing label, not authority. Assigning someone here does not let them approve — they still need the Approver role, granted through the signature roster on the <link>Members</link> page.",
     "loading": "Loading…",
     "loadFailed": "Couldn't load positions.",
     "saveFailed": "Couldn't save positions.",
@@ -1117,6 +1100,7 @@
     "discard": "Discard changes",
     "addPosition": "New position",
     "backToCategories": "Budget categories",
+    "membersPage": "成員",
     "empty": "No positions yet — add one to set default approvers for your budget categories.",
     "namePlaceholder": "Position name (e.g. Deacon of Missions)",
     "descriptionPlaceholder": "What this position approves (optional)",
@@ -1135,6 +1119,40 @@
     "eligibilityPaused": "Approvals paused",
     "eligibilityCannot": "Needs Approver grant",
     "holderPausedWarn": "{name} has paused approvals, so claims won't pre-fill to them until they resume.",
-    "holderCannotWarn": "{name} 需要執行同工或管理員透過簽名名冊授予「審批人」角色後才能審批。"
+    "holderCannotWarn": "{name} 需要執行同工或管理員在<link>成員</link>頁面授予「審批人」角色後才能審批。"
+  },
+  "Members": {
+    "title": "成員",
+    "subtitle": "全教會成員的角色、職位、電子簽名開通與使用權限——集中在這裡管理。",
+    "loading": "載入中…",
+    "loadFailed": "無法載入成員。",
+    "saveFailed": "無法儲存該變更。",
+    "actionFailed": "無法更新名冊。",
+    "vouchLink": "為會友擔保",
+    "positionsLink": "Positions",
+    "categoriesLink": "Budget categories",
+    "esignOffNote": "電子簽名目前已關閉，因此這裡暫不顯示開通狀態和權限控制。",
+    "attestedTitle": "已認證會友",
+    "othersTitle": "其他成員",
+    "othersEmpty": "名錄中的所有成員均已認證。",
+    "statusPending": "等待擔保",
+    "statusRevoked": "金鑰已吊銷",
+    "statusNone": "尚未開通電子簽名",
+    "accessAlwaysOn": "永遠開啟",
+    "accessGrant": "授予電子簽名權限",
+    "accessCancel": "取消電子簽名權限",
+    "pendingHint": "等待擔保的成員需當面完成認證——請前往<link>為會友擔保</link>頁面。",
+    "roleLabel": "角色",
+    "roleDialogTitle": "變更 {name} 的角色",
+    "roleDialogFromTo": "這會將他們的角色從 <b>{from}</b> 變更為 <b>{to}</b>。",
+    "roleExplainMember": "會友可以準備並簽署自己的報銷，但不能審批或支付他人的報銷。",
+    "roleExplainApprover": "審批人可以審批報銷申請以供支付。",
+    "roleExplainSecretary": "文書是教會的執行同工之一：可以審批報銷申請，也可以更改會友的角色。",
+    "roleExplainChairman": "主席是教會的執行同工之一：可以審批報銷申請，也可以更改會友的角色。",
+    "roleExplainTreasurer": "財務同工可以審批申請並將其標記為已支付；作為執行同工，也可以更改會友的角色。",
+    "roleDialogConfirm": "更新角色",
+    "revokeKey": "吊銷金鑰",
+    "keyDialogTitle": "吊銷 {name} 的簽名金鑰？",
+    "keyDialogBody": "僅當能以他身分簽名的裝置遺失或被盜時才這樣做。他已簽署的內容依然有效，但該金鑰將立即在所有地方失效——他需要重新開通簽名，並再次當面獲得擔保。"
   }
 }

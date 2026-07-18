@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useDateLabel } from "@/lib/use-date-label";
 import { loadEnv, loadRoster, type EsignEnv } from "@/lib/esign/client";
@@ -173,9 +174,19 @@ export default function MembersTab() {
         )}
       </section>
 
-      {/* Verified-mirror member directory */}
+      {/* Verified-mirror member directory (read-only here — the management
+          actions live on the Members page) */}
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-stone-500">{t("membersTitle")}</h2>
+        <p className="text-xs text-stone-500">
+          {t.rich("membersManageNote", {
+            link: (chunks) => (
+              <Link href="/members" className="text-indigo-600 underline" data-testid="admin-members-link">
+                {chunks}
+              </Link>
+            ),
+          })}
+        </p>
         {!members ? (
           <p className="text-sm text-stone-400">{t("loading")}</p>
         ) : (

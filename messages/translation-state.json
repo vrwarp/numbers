@@ -127,13 +127,13 @@
   },
   "Common.role.secretary": {
     "source": "Secretary",
-    "context": "Church role tag (one word): the board's secretary — an executive officer who can change members' roles. Church register (文书/文書), not an office assistant.",
+    "context": "Church role tag (one word): the board's secretary — an executive officer with approver authority who can also change members' roles. Church register (文书/文書), not an office assistant.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Common.role.chairman": {
     "source": "Chairman",
-    "context": "Church role tag (one word): chairman of the church board — an executive officer who can change members' roles.",
+    "context": "Church role tag (one word): chairman of the church board — an executive officer with approver authority who can also change members' roles.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -229,6 +229,11 @@
     "source": "Positions",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
+  },
+  "NavBar.members": {
+    "source": "Members",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Home.profileNudge": {
     "source": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
@@ -2883,51 +2888,9 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Identity.allowlistTitle": {
-    "source": "Members who can use electronic signing",
-    "context": "Heading of the admin's allowlist panel.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.allowlistNote": {
-    "source": "People you allow can see the signing features and enroll, but they still need to be vouched for before they can sign. Removing someone hides signing from them; anything they already signed stays valid.",
-    "context": "Explainer under the allowlist heading. The second sentence is the important retention promise.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.allowlistLoading": {
-    "source": "Loading members…",
-    "context": "Placeholder while the allowlist loads.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.allowlistAllow": {
-    "source": "Allow",
-    "context": "Button: add this member to the e-sign allowlist. Keep short.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.allowlistRemove": {
-    "source": "Remove",
-    "context": "Button: take this member off the e-sign allowlist. Keep short.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.allowlistAlwaysOn": {
-    "source": "Admin — always on",
-    "context": "Chip on the admin's own row in the allowlist: admins cannot be excluded.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.allowlistLoadFailed": {
-    "source": "Could not load the member list",
-    "context": "Client-side fallback error for the allowlist panel.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.allowlistUpdateFailed": {
-    "source": "Could not update that member",
-    "context": "Client-side fallback error when an allow/remove toggle fails.",
+  "Identity.allowlistOnMembersPage": {
+    "source": "Choose who can use electronic signing on the <link>Members</link> page. Removing someone hides signing from them; anything they already signed stays valid.",
+    "context": "Note in the rollout controls pointing at the Members page; <link> wraps the page name. The second sentence is the retention promise.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3326,84 +3289,6 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Vouch.attestedMembers": {
-    "source": "Attested members",
-    "context": "Header of the attested-members list.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Vouch.roleLabel": {
-    "source": "Role",
-    "context": "Label before the role select in the attested-members list.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Vouch.roleDialogTitle": {
-    "source": "Change {name}'s role",
-    "context": "Confirm-dialog title for changing a member's role; {name} is the member.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Vouch.roleDialogFromTo": {
-    "source": "This changes their role from <b>{from}</b> to <b>{to}</b>.",
-    "context": "Confirm-dialog line; {from}/{to} are translated role names (Member/Approver/Treasurer). Keep the <b> tags.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Vouch.roleExplainMember": {
-    "source": "Members can prepare and sign their own reimbursements, but can't approve or pay others'.",
-    "context": "Confirm-dialog blurb: what a plain member can do.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Vouch.roleExplainApprover": {
-    "source": "Approvers can approve reimbursement claims for payment.",
-    "context": "Confirm-dialog blurb: what an approver can do.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Vouch.roleExplainSecretary": {
-    "source": "The secretary is an executive officer of the board: they can approve reimbursement claims and change members' roles.",
-    "context": "Confirm-dialog blurb: what the secretary role means (executive officer; approver authority plus changing roles — no payment powers).",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Vouch.roleExplainChairman": {
-    "source": "The chairman is an executive officer of the board: they can approve reimbursement claims and change members' roles.",
-    "context": "Confirm-dialog blurb: what the chairman role means (executive officer; approver authority plus changing roles — no payment powers).",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Vouch.roleExplainTreasurer": {
-    "source": "Treasurers can approve claims and mark them paid, and as an executive officer can change members' roles.",
-    "context": "Confirm-dialog blurb: what a treasurer can do (approver powers, marking paid, and — as an executive officer — changing roles).",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Vouch.roleDialogConfirm": {
-    "source": "Update role",
-    "context": "Confirm button on the role-change dialog.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Vouch.revokeKey": {
-    "source": "Revoke key",
-    "context": "Signing-key action button, and the confirm button on its dialog.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Vouch.keyDialogTitle": {
-    "source": "Revoke {name}'s signing key?",
-    "context": "Confirm-dialog title for revoking a member's signing key; {name} is the member.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Vouch.keyDialogBody": {
-    "source": "Do this only when a device that could sign as them was lost or stolen. Everything they've already signed stays valid, but the key stops working everywhere — they'll set up signing again and get vouched back in person.",
-    "context": "Confirm-dialog body explaining what revoking the signing key does. Old signatures stay valid.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
   "Vouch.vouchFailed": {
     "source": "Vouch failed",
     "context": "Fallback error when signing the vouch fails.",
@@ -3413,6 +3298,12 @@
   "Vouch.malformedLink": {
     "source": "This vouch link is malformed — rescan the QR",
     "context": "Error when the scanned vouch URL is corrupt: rescan the QR.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.membersPageHint": {
+    "source": "Looking for the member roster? Roles, signing keys, and e-sign access are managed on the <link>Members</link> page.",
+    "context": "Pointer for treasurers/admins at the bottom of the vouch page; <link> wraps the Members page name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4897,6 +4788,12 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Admin.membersManageNote": {
+    "source": "Roles, signing keys, and e-sign access are managed on the <link>Members</link> page.",
+    "context": "Note under the admin members table pointing at the Members page; <link> wraps the page name.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Admin.colMember": {
     "source": "Member",
     "zh-Hans": "machine",
@@ -5895,7 +5792,7 @@
     "zh-Hant": "todo"
   },
   "Positions.authorityNote": {
-    "source": "A position is a routing label, not authority. Assigning someone here does not let them approve — they still need the Approver role granted through the signature roster.",
+    "source": "A position is a routing label, not authority. Assigning someone here does not let them approve — they still need the Approver role, granted through the signature roster on the <link>Members</link> page.",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
@@ -5948,6 +5845,11 @@
     "source": "Budget categories",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
+  },
+  "Positions.membersPage": {
+    "source": "Members",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.empty": {
     "source": "No positions yet — add one to set default approvers for your budget categories.",
@@ -6040,7 +5942,195 @@
     "zh-Hant": "todo"
   },
   "Positions.holderCannotWarn": {
-    "source": "{name} can't approve until an executive officer or admin grants them the Approver role through the signature roster.",
+    "source": "{name} can't approve until an executive officer or admin grants them the Approver role on the <link>Members</link> page.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.title": {
+    "source": "Members",
+    "context": "Page title of the Members administration page (the church directory: roles, positions, e-sign). Also the account-menu link and the button on the Positions page (same-value group). One word.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.subtitle": {
+    "source": "Roles, positions, e-sign enrollment, and access for everyone in the church — managed in one place.",
+    "context": "Subtitle under the Members page title.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.loading": {
+    "source": "Loading…",
+    "context": "Placeholder while the member directory loads.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.loadFailed": {
+    "source": "Couldn't load members.",
+    "context": "Client-side fallback error when the directory fetch fails.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.saveFailed": {
+    "source": "Couldn't save that change.",
+    "context": "Client-side fallback error when the e-sign access toggle fails.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.actionFailed": {
+    "source": "Couldn't update the roster.",
+    "context": "Fallback error when a role change or key revocation fails to sign.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.vouchLink": {
+    "source": "Vouch for a member",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.positionsLink": {
+    "source": "Positions",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Members.categoriesLink": {
+    "source": "Budget categories",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Members.esignOffNote": {
+    "source": "Electronic signing is turned off right now, so enrollment status and access controls are hidden here.",
+    "context": "Info note on the Members page while the e-sign master switch is off.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.attestedTitle": {
+    "source": "Attested members",
+    "context": "Header of the attested-members section.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.othersTitle": {
+    "source": "Everyone else",
+    "context": "Header of the not-yet-attested section of the directory. Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.othersEmpty": {
+    "source": "Everyone in the directory has been attested.",
+    "context": "Empty state of the not-yet-attested section: everyone is attested.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.statusPending": {
+    "source": "Awaiting vouches",
+    "context": "Status chip: enrolled but still awaiting in-person vouches. Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.statusRevoked": {
+    "source": "Key revoked",
+    "context": "Status chip: their signing key was revoked. Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.statusNone": {
+    "source": "No e-sign yet",
+    "context": "Status chip: never set up e-sign. Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.accessAlwaysOn": {
+    "source": "Always on",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.accessGrant": {
+    "source": "Grant e-sign access",
+    "context": "Button: allow this member to use e-sign (rollout allowlist). Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.accessCancel": {
+    "source": "Cancel e-sign access",
+    "context": "Button: take this member's e-sign access away (rollout allowlist; nothing they signed is voided). Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.pendingHint": {
+    "source": "People awaiting vouches become attested in person — see <link>Vouch for a member</link>.",
+    "context": "Hint under the directory; <link> wraps the Vouch page title, quoted verbatim.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.roleLabel": {
+    "source": "Role",
+    "context": "Label before the role select in the Members page's attested list.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.roleDialogTitle": {
+    "source": "Change {name}'s role",
+    "context": "Confirm-dialog title for changing a member's role; {name} is the member.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.roleDialogFromTo": {
+    "source": "This changes their role from <b>{from}</b> to <b>{to}</b>.",
+    "context": "Confirm-dialog line; {from}/{to} are translated role names (Member/Approver/Treasurer). Keep the <b> tags.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.roleExplainMember": {
+    "source": "Members can prepare and sign their own reimbursements, but can't approve or pay others'.",
+    "context": "Confirm-dialog blurb: what a plain member can do.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.roleExplainApprover": {
+    "source": "Approvers can approve reimbursement claims for payment.",
+    "context": "Confirm-dialog blurb: what an approver can do.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.roleExplainSecretary": {
+    "source": "The secretary is an executive officer of the board: they can approve reimbursement claims and change members' roles.",
+    "context": "Confirm-dialog blurb on the Members page: what the secretary role means (executive officer; approver authority plus changing roles — no payment powers).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.roleExplainChairman": {
+    "source": "The chairman is an executive officer of the board: they can approve reimbursement claims and change members' roles.",
+    "context": "Confirm-dialog blurb on the Members page: what the chairman role means (executive officer; approver authority plus changing roles — no payment powers).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.roleExplainTreasurer": {
+    "source": "Treasurers can approve claims and mark them paid, and as an executive officer can change members' roles.",
+    "context": "Confirm-dialog blurb: what a treasurer can do (approver powers plus marking paid).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.roleDialogConfirm": {
+    "source": "Update role",
+    "context": "Confirm button on the role-change dialog.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.revokeKey": {
+    "source": "Revoke key",
+    "context": "Signing-key action button, and the confirm button on its dialog.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.keyDialogTitle": {
+    "source": "Revoke {name}'s signing key?",
+    "context": "Confirm-dialog title for revoking a member's signing key; {name} is the member.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.keyDialogBody": {
+    "source": "Do this only when a device that could sign as them was lost or stolen. Everything they've already signed stays valid, but the key stops working everywhere — they'll set up signing again and get vouched back in person.",
+    "context": "Confirm-dialog body explaining what revoking the signing key does. Old signatures stay valid.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   }

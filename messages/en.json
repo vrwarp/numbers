@@ -48,7 +48,8 @@
     "budgetCategories": "Budget categories",
     "pendingWork": "pending work",
     "search": "Search",
-    "positions": "Positions"
+    "positions": "Positions",
+    "members": "Members"
   },
   "Home": {
     "profileNudge": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
@@ -527,14 +528,7 @@
     "scopeTitle": "Who can sign electronically",
     "scopeAllowlist": "Only members I choose",
     "scopeEveryone": "Everyone",
-    "allowlistTitle": "Members who can use electronic signing",
-    "allowlistNote": "People you allow can see the signing features and enroll, but they still need to be vouched for before they can sign. Removing someone hides signing from them; anything they already signed stays valid.",
-    "allowlistLoading": "Loading members…",
-    "allowlistAllow": "Allow",
-    "allowlistRemove": "Remove",
-    "allowlistAlwaysOn": "Admin — always on",
-    "allowlistLoadFailed": "Could not load the member list",
-    "allowlistUpdateFailed": "Could not update that member"
+    "allowlistOnMembersPage": "Choose who can use electronic signing on the <link>Members</link> page. Removing someone hides signing from them; anything they already signed stays valid."
   },
   "Devices": {
     "newDeviceTitle": "This looks like a new device.",
@@ -605,21 +599,9 @@
     "scanIntro": "Scan the candidate's QR right here with your camera. Can't use the camera? Pick them from the list and type their <b>full key fingerprint</b> (read from their screen; the short spoken code is not enough).",
     "orPick": "Or pick them and type their fingerprint",
     "nobodyPending": "Nobody is currently awaiting vouches.",
-    "attestedMembers": "Attested members",
-    "roleLabel": "Role",
-    "roleDialogTitle": "Change {name}'s role",
-    "roleDialogFromTo": "This changes their role from <b>{from}</b> to <b>{to}</b>.",
-    "roleExplainMember": "Members can prepare and sign their own reimbursements, but can't approve or pay others'.",
-    "roleExplainApprover": "Approvers can approve reimbursement claims for payment.",
-    "roleExplainSecretary": "The secretary is an executive officer of the board: they can approve reimbursement claims and change members' roles.",
-    "roleExplainChairman": "The chairman is an executive officer of the board: they can approve reimbursement claims and change members' roles.",
-    "roleExplainTreasurer": "Treasurers can approve claims and mark them paid, and as an executive officer can change members' roles.",
-    "roleDialogConfirm": "Update role",
-    "revokeKey": "Revoke key",
-    "keyDialogTitle": "Revoke {name}'s signing key?",
-    "keyDialogBody": "Do this only when a device that could sign as them was lost or stolen. Everything they've already signed stays valid, but the key stops working everywhere — they'll set up signing again and get vouched back in person.",
     "vouchFailed": "Vouch failed",
-    "malformedLink": "This vouch link is malformed — rescan the QR"
+    "malformedLink": "This vouch link is malformed — rescan the QR",
+    "membersPageHint": "Looking for the member roster? Roles, signing keys, and e-sign access are managed on the <link>Members</link> page."
   },
   "VouchScan": {
     "open": "📷 Scan their QR code",
@@ -912,6 +894,7 @@
     "scopeAllowlist": "Allowlisted members only",
     "scopeEveryone": "Everyone",
     "membersTitle": "Members",
+    "membersManageNote": "Roles, signing keys, and e-sign access are managed on the <link>Members</link> page.",
     "colMember": "Member",
     "colRole": "Role",
     "colEnrollment": "Signing",
@@ -1106,7 +1089,7 @@
   "Positions": {
     "title": "Positions",
     "subtitle": "Custom approval roles you assign to people and use as the default approver for budget categories.",
-    "authorityNote": "A position is a routing label, not authority. Assigning someone here does not let them approve — they still need the Approver role granted through the signature roster.",
+    "authorityNote": "A position is a routing label, not authority. Assigning someone here does not let them approve — they still need the Approver role, granted through the signature roster on the <link>Members</link> page.",
     "loading": "Loading…",
     "loadFailed": "Couldn't load positions.",
     "saveFailed": "Couldn't save positions.",
@@ -1117,6 +1100,7 @@
     "discard": "Discard changes",
     "addPosition": "New position",
     "backToCategories": "Budget categories",
+    "membersPage": "Members",
     "empty": "No positions yet — add one to set default approvers for your budget categories.",
     "namePlaceholder": "Position name (e.g. Deacon of Missions)",
     "descriptionPlaceholder": "What this position approves (optional)",
@@ -1135,6 +1119,40 @@
     "eligibilityPaused": "Approvals paused",
     "eligibilityCannot": "Needs Approver grant",
     "holderPausedWarn": "{name} has paused approvals, so claims won't pre-fill to them until they resume.",
-    "holderCannotWarn": "{name} can't approve until an executive officer or admin grants them the Approver role through the signature roster."
+    "holderCannotWarn": "{name} can't approve until an executive officer or admin grants them the Approver role on the <link>Members</link> page."
+  },
+  "Members": {
+    "title": "Members",
+    "subtitle": "Roles, positions, e-sign enrollment, and access for everyone in the church — managed in one place.",
+    "loading": "Loading…",
+    "loadFailed": "Couldn't load members.",
+    "saveFailed": "Couldn't save that change.",
+    "actionFailed": "Couldn't update the roster.",
+    "vouchLink": "Vouch for a member",
+    "positionsLink": "Positions",
+    "categoriesLink": "Budget categories",
+    "esignOffNote": "Electronic signing is turned off right now, so enrollment status and access controls are hidden here.",
+    "attestedTitle": "Attested members",
+    "othersTitle": "Everyone else",
+    "othersEmpty": "Everyone in the directory has been attested.",
+    "statusPending": "Awaiting vouches",
+    "statusRevoked": "Key revoked",
+    "statusNone": "No e-sign yet",
+    "accessAlwaysOn": "Always on",
+    "accessGrant": "Grant e-sign access",
+    "accessCancel": "Cancel e-sign access",
+    "pendingHint": "People awaiting vouches become attested in person — see <link>Vouch for a member</link>.",
+    "roleLabel": "Role",
+    "roleDialogTitle": "Change {name}'s role",
+    "roleDialogFromTo": "This changes their role from <b>{from}</b> to <b>{to}</b>.",
+    "roleExplainMember": "Members can prepare and sign their own reimbursements, but can't approve or pay others'.",
+    "roleExplainApprover": "Approvers can approve reimbursement claims for payment.",
+    "roleExplainSecretary": "The secretary is an executive officer of the board: they can approve reimbursement claims and change members' roles.",
+    "roleExplainChairman": "The chairman is an executive officer of the board: they can approve reimbursement claims and change members' roles.",
+    "roleExplainTreasurer": "Treasurers can approve claims and mark them paid, and as an executive officer can change members' roles.",
+    "roleDialogConfirm": "Update role",
+    "revokeKey": "Revoke key",
+    "keyDialogTitle": "Revoke {name}'s signing key?",
+    "keyDialogBody": "Do this only when a device that could sign as them was lost or stolen. Everything they've already signed stays valid, but the key stops working everywhere — they'll set up signing again and get vouched back in person."
   }
 }

@@ -26,11 +26,13 @@ export default function NavBar({
   userName,
   isAdmin,
   canManageMinistries,
+  canViewMembers,
   searchEnabled,
 }: {
   userName: string;
   isAdmin?: boolean;
   canManageMinistries?: boolean;
+  canViewMembers?: boolean;
   searchEnabled?: boolean;
 }) {
   const pathname = usePathname();
@@ -111,6 +113,7 @@ export default function NavBar({
           userName={userName}
           isAdmin={isAdmin}
           canManageMinistries={canManageMinistries}
+          canViewMembers={canViewMembers}
           menuTabs={menuTabs}
         />
       </div>

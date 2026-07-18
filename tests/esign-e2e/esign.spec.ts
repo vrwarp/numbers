@@ -113,6 +113,9 @@ async function enroll(persona: Persona): Promise<string> {
  * signed and reported) — not the value.
  */
 async function grantRole(page: Page, name: string, role: "approver" | "treasurer") {
+  // Role grants live on the Members page (root-signed roster events).
+  await page.goto(`${BASE}/members`);
+  await page.waitForSelector('[data-testid="members-directory"]', { timeout: 30_000 });
   await page.locator(`li:has-text('${name}') select`).selectOption(role);
   await page.click('[data-testid="confirm-dialog-submit"]');
   await expect(page.locator('[data-testid="confirm-dialog-submit"]')).toBeHidden({
@@ -266,11 +269,12 @@ test("rollout is allowlist-scoped by default; the admin allows the pilot group",
   expect(denied.status()).toBe(409);
   expect((await denied.json()).code).toBe("esign.notAllowed");
 
-  // The admin's allowlist panel sits under the switch; allow the pilot trio.
-  await root.page.goto(`${BASE}/profile`);
-  await root.page.waitForSelector('[data-testid="allowlist-panel"]', { timeout: 30_000 });
+  // Per-person grants live on the Members page (the profile card keeps the
+  // scope switch and points there); allow the pilot trio.
+  await root.page.goto(`${BASE}/members`);
+  await root.page.waitForSelector('[data-testid="members-directory"]', { timeout: 30_000 });
   for (const email of ["alice@example.com", "bob@example.com", "carol@example.com"]) {
-    const row = root.page.locator('[data-testid="allowlist-panel"] li', { hasText: email });
+    const row = root.page.locator('[data-testid="members-directory"] li', { hasText: email });
     await row.locator('[data-testid^="allow-"]').click();
     await expect(row.locator('[data-testid^="disallow-"]')).toBeVisible({ timeout: 15_000 });
   }
@@ -688,10 +692,11 @@ test("a mid-enroll crash strands no one: the key re-reports on the next visit", 
   // /api/esign/pending. Reproduce it by blocking exactly that POST.
   evan = await newPersona(browser, "evan@example.com", "Evan Park");
 
-  // Root allowlists Evan (scope is still "allowlist" from the rollout test).
-  await root.page.goto(`${BASE}/profile`);
-  await root.page.waitForSelector('[data-testid="allowlist-panel"]', { timeout: 30_000 });
-  const evanRow = root.page.locator('[data-testid="allowlist-panel"] li', {
+  // Root allowlists Evan on the Members page (scope is still "allowlist"
+  // from the rollout test).
+  await root.page.goto(`${BASE}/members`);
+  await root.page.waitForSelector('[data-testid="members-directory"]', { timeout: 30_000 });
+  const evanRow = root.page.locator('[data-testid="members-directory"] li', {
     hasText: "evan@example.com",
   });
   await evanRow.locator('[data-testid^="allow-"]').click();

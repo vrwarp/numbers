@@ -34,6 +34,14 @@ src/lib/positions.ts            Positions (custom approval roles): approverEligi
                                 — dependency-free, unit-tested, client-safe
 src/lib/positions-catalog.ts    Position table reads + resolveSuggestedApprover(claim) (SERVER);
 src/lib/positions-guard.ts      requirePositionEditor (treasurer/admin, same gate as ministries)
+src/lib/members-guard.ts        canViewMembers/requireMemberDirectoryViewer (treasurer/admin
+                                + the other executive officers, A11) — the /members page +
+                                /api/members directory
+src/components/MembersDirectory.tsx  the Members page: full directory (roles, Positions,
+                                e-sign status), RoleControls for executive officers/admin
+                                (role grant; key revocation stays root-only, moved off the
+                                vouch screen), admin-only allowlist grant/cancel; links
+                                Vouch/Positions/Budget Categories
 src/lib/locales.ts              LOCALES en/zh-Hans/zh-Hant, labels, numbers_locale cookie
                                 name, Accept-Language negotiator — dependency-free, client-safe
 src/lib/role-label.ts           roleLabelKey(): role string → Common.role.* message key,
@@ -165,6 +173,15 @@ src/components/SignInCard.tsx   client: Firebase Google popup → POST idToken t
 src/app/claims|profile          thin server components: currentUserId() → redirect("/signin")
                                 → render client component
 assets/cfcc-form-template.pdf   the real church AcroForm — DO NOT regenerate or optimize
+assets/cfcc-form-template-{2,4,8}row.pdf
+                                large-row legibility variants: same table area, form
+                                fields and names, but 2/4/8 taller rows (rebuild with
+                                scripts/make-row-variants.mjs — never edit by hand).
+                                Packet generation auto-picks the smallest variant a
+                                claim fits on (loadTemplate.ts variantRowsFor; ≥9 rows
+                                or a configured TEMPLATE_PDF → official form), which
+                                never changes the packet's form-page count; generate.ts
+                                scales row font sizes to the taller cells (14pt cap)
 prisma/schema.prisma            data model (see DATA_MODEL.md)
 tests/unit/*.test.ts            Vitest; tests/e2e/*.spec.ts Playwright (see TESTING.md)
 src/lib/embeddings/             semantic search (docs/SEARCH_DESIGN.md): provider.ts
@@ -233,6 +250,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/line-items/[id]/split` | POST | `{firstAmountCents?}` default even split; both halves unverified; new row original*=NULL; AuditEvent(split); renumbers sortOrder so new half follows original |
 | `/api/line-items/[id]/merge` | POST | no body; undo-split: folds row into the same-receipt row directly above (400 if none, or if either row excluded); draft only (409); survivor keeps its description/ministry/event/original*, sums amounts, isVerified=false; merged row deleted; AuditEvent(merge); renumbers sortOrder; recomputes totalCents |
 | `/api/profile` | GET PATCH | fullName, mailingAddress (printed on the form), locale, and the A10 duty pauses (`approvalsPaused`/`financePaused`/`adminPaused` — self-service; changes audited `update-availability`). Returns `{user, duties}` where `duties` says which toggles the member's grants make relevant |
+| `/api/members` | GET | the Members page directory: EVERY user with mirror role, Position, e-sign enrollment status, allowlist state, key fingerprint — treasurer/admin gated (`requireMemberDirectoryViewer`, 404 otherwise). Read-only; the page's mutations go through their own guards (roster events, `PATCH /api/esign/allowlist`) |
 | `/api/search` | POST | semantic + exact search (docs/SEARCH_DESIGN.md §6): scope mine/all/decided (role-gated by the verified mirror; member asking beyond mine → 404), exact-match SQL pass + cosine over the in-memory index, degraded exact-only mode when the embed call fails, decided browse with cursor. 404 while unconfigured |
 | `/api/admin/embeddings` (+ `/probe`, `/jobs`, `/rebuild`, `/test-query`) | GET PUT POST | admin search backend config (probe detects dim; GET returns key fingerprint only), queue health/failed retries, forced rebuild, scored test query — behind `requireAdmin()` |
 | `/api/extraction-logs` | GET | own logs, `?reimbursementId=`, newest first, summaries (kind="embedding" rows excluded — operational, §9) |

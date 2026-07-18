@@ -29,8 +29,8 @@ import type { DeviceStatus } from "@/lib/esign/custody";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
+import Link from "next/link";
 import { roleLabelKey } from "@/lib/role-label";
-import AllowlistPanel from "./AllowlistPanel";
 import { DevicesPanel, NewDeviceCard, RecoveryCard } from "./DeviceManager";
 import { SigningConnectCard, useSigningSession } from "./SigningConnect";
 import IdentityQr from "./IdentityQr";
@@ -293,7 +293,19 @@ export default function SigningIdentityCard() {
               </button>
             </div>
           </div>
-          {env.scope !== "everyone" && <AllowlistPanel />}
+          {/* Per-person grants were defragmented onto the Members page — the
+              scope switch stays here with the rest of the master controls. */}
+          {env.scope !== "everyone" && (
+            <p className="rounded-lg bg-stone-50 p-2.5 text-xs text-stone-600">
+              {t.rich("allowlistOnMembersPage", {
+                link: (chunks) => (
+                  <Link href="/members" className="text-indigo-600 underline" data-testid="profile-members-link">
+                    {chunks}
+                  </Link>
+                ),
+              })}
+            </p>
+          )}
         </div>
       )}
 

@@ -62,6 +62,13 @@ export const SAME_VALUE_GROUPS: readonly (readonly string[])[] = [
   // The duty rows reuse the master switch's on/off button wording.
   ["Identity.turnOn", "Profile.dutyTurnOn"],
   ["Identity.turnOff", "Profile.dutyTurnOff"],
+  // The Members / Positions / Budget Categories management pages: each page's
+  // name reads the same in the nav and on its sibling pages' link buttons.
+  ["Members.title", "NavBar.members", "Positions.membersPage"],
+  ["Positions.title", "NavBar.positions", "Members.positionsLink"],
+  ["NavBar.budgetCategories", "Ministries.title", "Positions.backToCategories", "Members.categoriesLink"],
+  ["Vouch.title", "Members.vouchLink"],
+  ["Admin.alwaysOn", "Members.accessAlwaysOn"],
 ];
 
 /**
@@ -79,6 +86,12 @@ export const QUOTED_IN: readonly { message: string; quotes: string; strip?: stri
   { message: "Esign.submitDialogTitle", quotes: "Esign.submitForApproval", strip: "✍️ " },
   // The pending-QR instructions name the nav tab the voucher must open.
   { message: "Identity.pendingVouch", quotes: "NavBar.vouch" },
+  // Pointers to the Members page name it verbatim (via its canonical title).
+  { message: "Vouch.membersPageHint", quotes: "Members.title" },
+  { message: "Admin.membersManageNote", quotes: "Members.title" },
+  { message: "Identity.allowlistOnMembersPage", quotes: "Members.title" },
+  // The directory's pending hint names the vouch page's title.
+  { message: "Members.pendingHint", quotes: "Vouch.title" },
 ];
 
 export function flatten(obj: Messages, prefix = ""): Map<string, string> {

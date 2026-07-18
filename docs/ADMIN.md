@@ -110,6 +110,11 @@ The e-sign master switch/scope reuses the existing `PATCH /api/esign/registry`;
 the rollout allowlist reuses `PATCH /api/esign/allowlist`. The vouch chain is
 rendered client-side via `loadRoster()` (the admin is the enrolled root).
 
+The Members tab stays the read-only monthly-review mirror; the management
+actions (role grants, key revocation, allowlist grants) live on the Members
+page (`/members`, treasurer/admin-gated like Budget Categories and Positions),
+which the tab links to.
+
 ## Guard-rails
 
 `ADMIN_CONFIG_FIELDS` (`src/lib/admin/config-schema.ts`) is the *only* set of
