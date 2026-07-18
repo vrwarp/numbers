@@ -472,7 +472,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
       )}
       <div>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-3xl font-bold">{t("title")}</h1>
+          <h1 className="text-3xl font-bold short:text-xl">{t("title")}</h1>
           <div className="shrink-0">
             <input
               ref={fileInput}
@@ -493,7 +493,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
             </button>
           </div>
         </div>
-        <p className="mt-1.5 text-sm text-stone-500">{t("intro")}</p>
+        <p className="mt-1.5 text-sm text-stone-500 short:hidden">{t("intro")}</p>
       </div>
 
       {error && (
@@ -531,7 +531,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
               }`}
             >
               <div
-                className={`fixed inset-x-0 bottom-0 z-30 flex flex-col justify-center gap-2 border-t bg-white px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] transition-all duration-200 sm:static sm:inset-x-auto sm:min-h-11 sm:rounded-xl sm:border sm:p-2 sm:pl-3.5 ${
+                className={`fixed inset-x-0 bottom-0 z-30 flex flex-col justify-center gap-2 border-t bg-white pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pl-[calc(1rem+env(safe-area-inset-left))] pr-[calc(1rem+env(safe-area-inset-right))] transition-all duration-200 sm:static sm:inset-x-auto sm:min-h-11 sm:rounded-xl sm:border sm:p-2 sm:pl-3.5 ${
                   showSelectHint
                     ? "border-indigo-400 shadow-[0_-8px_24px_rgba(79,70,229,0.18)] sm:shadow-none sm:ring-4 sm:ring-indigo-600/15"
                     : "border-stone-200 shadow-[0_-8px_24px_rgba(0,0,0,0.12)] sm:shadow-sm"
@@ -684,65 +684,75 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
       )}
 
       {preparing && (
+        // Bottom sheet on phones, centred card on desktop. Three bands: a fixed
+        // header carrying the title + the note field the dialog is named after
+        // (task-first — reachable without scrolling past the photo), a
+        // scrollable middle for the rotate/crop tool, and a footer pinned to the
+        // sheet's bottom edge so Save stays above the keyboard on a short
+        // viewport. dvh (not vh) so the cap tracks the keyboard-shrunk viewport.
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
           role="dialog"
           aria-modal
         >
-          <div className="card max-h-[92vh] w-full max-w-md overflow-y-auto p-6">
-            <h2 className="font-bold">
-              {t("prepareTitle")}
-              {pending.length > 1 && (
-                <span className="ml-1 font-normal text-stone-400">{t("prepareLeft", { count: pending.length })}</span>
-              )}
-            </h2>
-            <p className="mt-1 truncate text-sm text-stone-500">
-              {preparing.kind === "local" ? preparing.file.name : preparing.receipt.originalName}
-            </p>
-            {preparing.kind === "uploaded" ? (
-              <div
-                className="mt-3 flex max-h-72 items-center justify-center overflow-hidden rounded-lg bg-stone-100"
-                data-testid="upload-preview"
-              >
-                <div className="max-h-72 w-full overflow-y-auto">
-                  <PdfReceiptPreview
-                    receiptId={preparing.receipt.id}
-                    fileHref={fileUrl(preparing.receipt.id)}
+          <div className="card flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-b-none rounded-t-2xl p-0 pb-[env(safe-area-inset-bottom)] sm:rounded-2xl sm:pb-0">
+            <div className="shrink-0 border-b border-stone-100 px-6 pt-6 pb-4">
+              <h2 className="font-bold">
+                {t("prepareTitle")}
+                {pending.length > 1 && (
+                  <span className="ml-1 font-normal text-stone-400">{t("prepareLeft", { count: pending.length })}</span>
+                )}
+              </h2>
+              <p className="mt-1 truncate text-sm text-stone-500">
+                {preparing.kind === "local" ? preparing.file.name : preparing.receipt.originalName}
+              </p>
+              <label className="mt-3 block text-sm font-medium">
+                {t("noteLabel")}
+                <input
+                  key={preparing.key}
+                  className="input mt-1"
+                  placeholder={t("notePlaceholder")}
+                  value={uploadNote}
+                  onChange={(e) => setUploadNote(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") savePrepare();
+                  }}
+                  maxLength={300}
+                  autoFocus
+                  data-testid="upload-note"
+                />
+              </label>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+              {preparing.kind === "uploaded" ? (
+                <div
+                  className="flex max-h-72 items-center justify-center overflow-hidden rounded-lg bg-stone-100"
+                  data-testid="upload-preview"
+                >
+                  <div className="max-h-72 w-full overflow-y-auto">
+                    <PdfReceiptPreview
+                      receiptId={preparing.receipt.id}
+                      fileHref={fileUrl(preparing.receipt.id)}
+                    />
+                  </div>
+                </div>
+              ) : (
+                // The rotate/crop tool IS the preview — straighten/trim in place.
+                <div data-testid="upload-preview">
+                  <ReceiptImageEditor
+                    key={preparing.key}
+                    embedded
+                    src={preparing.previewUrl}
+                    onChange={setEditTransform}
+                    maxStageHeight={300}
                   />
                 </div>
-              </div>
-            ) : (
-              // The rotate/crop tool IS the preview — straighten/trim in place.
-              <div className="mt-1" data-testid="upload-preview">
-                <ReceiptImageEditor
-                  key={preparing.key}
-                  embedded
-                  src={preparing.previewUrl}
-                  onChange={setEditTransform}
-                  maxStageHeight={300}
-                />
-              </div>
-            )}
-            <label className="mt-4 block text-sm font-medium">
-              {t("noteLabel")}
-              <input
-                key={preparing.key}
-                className="input mt-1"
-                placeholder={t("notePlaceholder")}
-                value={uploadNote}
-                onChange={(e) => setUploadNote(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") savePrepare();
-                }}
-                maxLength={300}
-                autoFocus
-                data-testid="upload-note"
-              />
-            </label>
-            <p className="mt-2 text-xs text-stone-400">
-              {preparing.kind === "local" ? t("prepareHintLocal") : t("prepareHintUploaded")}
-            </p>
-            <div className="mt-5 flex items-center justify-end gap-2">
+              )}
+              <p className="mt-2 text-xs text-stone-400">
+                {preparing.kind === "local" ? t("prepareHintLocal") : t("prepareHintUploaded")}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-stone-100 px-6 py-4">
               {pending.length > 1 && (
                 <button
                   className="mr-auto rounded px-2 py-1 text-xs text-stone-500 hover:bg-stone-100"

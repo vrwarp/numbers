@@ -23,15 +23,29 @@ export default async function HomePage() {
   return (
     <div className="space-y-6">
       {profileIncomplete && (
-        <div className="card border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" data-testid="profile-nudge">
-          {t.rich("profileNudge", {
-            link: (chunks) => (
-              <Link href="/profile" className="font-semibold underline">
-                {chunks}
-              </Link>
-            ),
-          })}
-        </div>
+        <>
+          {/* Full sentence at normal heights; a one-line tappable chip when the
+              viewport is short, so it costs one line instead of three. */}
+          <div
+            className="card border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 short:hidden"
+            data-testid="profile-nudge"
+          >
+            {t.rich("profileNudge", {
+              link: (chunks) => (
+                <Link href="/profile" className="font-semibold underline">
+                  {chunks}
+                </Link>
+              ),
+            })}
+          </div>
+          <Link
+            href="/profile"
+            className="hidden items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 short:flex"
+            data-testid="profile-nudge-short"
+          >
+            <span aria-hidden>⚠</span> {t("profileNudgeShort")}
+          </Link>
+        </>
       )}
       <Shoebox searchEnabled={searchEnabled} />
     </div>

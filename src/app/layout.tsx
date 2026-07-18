@@ -32,6 +32,10 @@ export const viewport: Viewport = {
   // claim bar's home-indicator padding (Shoebox bottom dock) computes to 0
   // in the installed home-screen app.
   viewportFit: "cover",
+  // Resize the layout viewport when the on-screen keyboard opens (instead of
+  // letting it cover fixed footers), so a dialog's pinned Save/Confirm stays
+  // reachable while an input is focused. dvh units below rely on this.
+  interactiveWidget: "resizes-content",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

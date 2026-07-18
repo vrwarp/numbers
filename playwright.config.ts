@@ -21,12 +21,16 @@ const chromiumLaunch = process.env.PLAYWRIGHT_CHROMIUM_PATH
   ? { launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } }
   : {};
 
+// Specs pinned to a single project so they don't run under every desktop
+// engine too.
+const SINGLE_PROJECT_SPECS = /(mobile|short-viewport)\.spec\.ts/;
+
 const allProjects: (Project & { engine: string })[] = [
   {
     name: "chromium-desktop",
     engine: "chromium",
     use: { ...devices["Desktop Chrome"], ...chromiumLaunch },
-    testIgnore: /mobile\.spec\.ts/,
+    testIgnore: SINGLE_PROJECT_SPECS,
   },
   {
     name: "chromium-mobile",
@@ -35,10 +39,21 @@ const allProjects: (Project & { engine: string })[] = [
     testMatch: /mobile\.spec\.ts/,
   },
   {
+    // Limited-height guardrail: a landscape phone (415px tall) triggers the
+    // `short:` variant. The spec drives the layouts this audit fixed — the
+    // split editor never renders under the action bar, dialog footers stay
+    // reachable, the profile Save pins — and re-narrows to keyboard height for
+    // the portrait cases. See docs/MOBILE_LIMITED_HEIGHT_UX.md.
+    name: "chromium-short",
+    engine: "chromium",
+    use: { ...devices["Pixel 7 landscape"], ...chromiumLaunch },
+    testMatch: /short-viewport\.spec\.ts/,
+  },
+  {
     name: "webkit-desktop",
     engine: "webkit",
     use: { ...devices["Desktop Safari"] },
-    testIgnore: /mobile\.spec\.ts/,
+    testIgnore: SINGLE_PROJECT_SPECS,
   },
   {
     name: "webkit-mobile",

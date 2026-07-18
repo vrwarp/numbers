@@ -84,7 +84,7 @@ export default function ManualEntryDialog({
       aria-modal
       data-testid="manual-entry-dialog"
     >
-      <div className="card flex max-h-[90vh] w-full max-w-3xl flex-col p-6">
+      <div className="card flex max-h-[90dvh] w-full max-w-3xl flex-col p-6">
         <div>
           <h2 className="font-bold">{t("title")}</h2>
           <p className="text-sm text-stone-500">
@@ -102,9 +102,9 @@ export default function ManualEntryDialog({
         )}
 
         <div className="mt-4 grid flex-1 gap-4 overflow-y-auto md:grid-cols-2">
-          <div className="max-h-[60vh] overflow-y-auto rounded-lg border border-stone-100 bg-stone-50/50">
+          <div className="max-h-[60dvh] overflow-y-auto rounded-lg border border-stone-100 bg-stone-50/50">
             {receipt.mimeType === "application/pdf" ? (
-              <object data={imageUrl} type="application/pdf" className="h-[60vh] w-full">
+              <object data={imageUrl} type="application/pdf" className="h-[60dvh] w-full">
                 <a href={imageUrl} className="block p-4 text-indigo-600 underline">
                   {t("openPdf")}
                 </a>

@@ -48,7 +48,8 @@
     "search": "搜尋"
   },
   "Home": {
-    "profileNudge": "您的<link>個人資料</link>需要填寫姓名和郵寄地址——兩者都會列印在報銷表上。"
+    "profileNudge": "您的<link>個人資料</link>需要填寫姓名和郵寄地址——兩者都會列印在報銷表上。",
+    "profileNudgeShort": "完善個人資料"
   },
   "SignIn": {
     "tagline": "中華歸主海沃教會費用報銷——隨手拍下收據，之後再提交申請。",

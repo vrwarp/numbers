@@ -48,7 +48,8 @@
     "search": "搜索"
   },
   "Home": {
-    "profileNudge": "您的<link>个人资料</link>需要填写姓名和邮寄地址——两者都会打印在报销表上。"
+    "profileNudge": "您的<link>个人资料</link>需要填写姓名和邮寄地址——两者都会打印在报销表上。",
+    "profileNudgeShort": "完善个人资料"
   },
   "SignIn": {
     "tagline": "中华归主海沃教会费用报销——随手拍下收据，之后再提交申请。",

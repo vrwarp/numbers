@@ -221,7 +221,7 @@ function CategoryGuide({
   for (const i of filtered) if (!groupOrder.includes(i.group)) groupOrder.push(i.group);
 
   // Portaled to <body>: GuideButton drops this next to any ministry selector,
-  // including ones inside the receipt cards' `lg:sticky` column — and sticky
+  // including ones inside the receipt cards' `md:sticky` column — and sticky
   // creates a stacking context, so rendered inline this fixed overlay would
   // paint beneath later receipt cards, the action bar, and the navbar no
   // matter its z-index.
@@ -233,7 +233,7 @@ function CategoryGuide({
       onClick={onClose}
     >
       <div
-        className="card flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden p-0"
+        className="card flex max-h-[85dvh] w-full max-w-lg flex-col overflow-hidden p-0"
         onClick={(e) => e.stopPropagation()}
         data-testid="category-guide"
       >
@@ -989,7 +989,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     <MinistryCatalogContext.Provider value={ministryCatalog}>
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold">
+        <h1 className="text-2xl font-bold short:text-lg">
           {t("title")}{" "}
           <span
             className={`ml-1 align-middle rounded-full px-3 py-1 text-xs font-semibold ${
@@ -1002,7 +1002,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               : tStatus(STATUS_KEYS.find((k) => k === claim.status) ?? "generated")}
           </span>
         </h1>
-        <p className="text-sm text-stone-500">{t("instruction")}</p>
+        <p className="text-sm text-stone-500 short:hidden">{t("instruction")}</p>
       </div>
 
       {error && (
@@ -1059,11 +1059,11 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           items. Dismissed once, remembered thereafter. */}
       {isDraft && !coachDismissed && (
         <div
-          className="mb-4 flex items-start gap-3 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900"
+          className="mb-4 flex items-start gap-3 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900 short:items-center short:py-2"
           data-testid="split-coach"
         >
           <span aria-hidden>💡</span>
-          <span className="flex-1">{t("coachHint")}</span>
+          <span className="flex-1 short:line-clamp-1">{t("coachHint")}</span>
           <button
             className="whitespace-nowrap font-semibold text-indigo-600 hover:text-indigo-800"
             onClick={dismissCoach}
@@ -1119,12 +1119,16 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                 })}
               </div>
             )}
-            <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+            <div className="grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
               {/* The relative wrapper matches the clamped scroll viewport, so the
                   floating edit button stays pinned to the visible part of a
                   tall receipt photo rather than its full scroll height. */}
-              <div className="relative border-b border-stone-100 lg:border-b-0 lg:border-r">
-                <div className="max-h-[75vh] overflow-y-auto bg-stone-50/50">
+              <div className="relative border-b border-stone-100 md:border-b-0 md:border-r">
+                {/* Height-gated clamp: on a short viewport (landscape phone /
+                    keyboard) a tall receipt photo would fill the screen before
+                    the first editable row, so cap it hard; portrait phones and
+                    desktops keep the roomy 75vh. */}
+                <div className="max-h-[75vh] overflow-y-auto bg-stone-50/50 short:max-h-[min(55dvh,240px)]">
                   {/* Keep the PDF arm separate from the image path: a PDF stays a
                       PDF (packet append, "open original", no crop/rotate) — this
                       shows a raster preview inline, it does not reclassify it. */}
@@ -1151,7 +1155,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                 )}
               </div>
               {/* Sticky so the fields stay beside a tall receipt photo while it scrolls. */}
-              <div className="lg:sticky lg:top-20 lg:self-start">
+              <div className="md:sticky md:top-20 md:self-start short:static">
                 {claim.receipts.length === 1 && group.receipt.note && (
                   <div
                     className="border-b border-stone-100 bg-stone-50 px-4 py-2 text-xs text-stone-500"
@@ -1231,8 +1235,18 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           edit utilities (soft-red Discard, Add receipts) on the left, the
           finish action(s) behind a divider on the right — so the e-sign-on
           and e-sign-off bars read the same. E-sign just adds a second finish
-          button (E-sign primary) beside Print. Terse + one row on mobile. */}
-      <div className="card sticky bottom-4 z-20 flex flex-col gap-3 bg-white/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-2">
+          button (E-sign primary) beside Print. Terse + one row on mobile.
+          Hidden (not unmounted — kept in the DOM) while an inline split editor
+          is open: the editor renders in the row's place, and a floating bar
+          bottom-anchored over it would occlude the amount input and Confirm on
+          a short viewport. On short viewports the bar drops its bottom gap and
+          goes full-bleed so no in-flow content peeks through beneath it. */}
+      <div
+        className={`card sticky bottom-4 z-20 flex flex-col gap-3 bg-white/95 p-3 shadow-lg backdrop-blur short:-mx-4 short:rounded-none short:bottom-0 short:flex-row short:flex-wrap short:items-center short:gap-x-3 short:gap-y-2 short:pl-[calc(0.75rem+env(safe-area-inset-left))] short:pr-[calc(0.75rem+env(safe-area-inset-right))] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-2 ${
+          splitOpenId ? "hidden" : ""
+        }`}
+        data-testid="claim-action-bar"
+      >
         {isDraft && claim.receipts.length > 1 ? (
           <div
             className="flex w-full min-w-0 items-center gap-3 sm:w-auto sm:min-w-48 sm:flex-1"
@@ -2276,9 +2290,15 @@ function InlineSplit({
   const [event, setEvent] = useState(item.event);
   const [busy, setBusy] = useState(false);
 
+  const panelRef = useRef<HTMLDivElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
   const mounted = useRef(true);
   useEffect(() => {
+    // Pull the whole editor into view (centred) before focusing: the row it
+    // replaces may be near the bottom of a long claim, and the action bar is
+    // hidden while we're open, so there's room to show the amount + Confirm
+    // together instead of leaving them below the fold.
+    panelRef.current?.scrollIntoView({ block: "center" });
     amountRef.current?.focus();
     amountRef.current?.select();
     return () => {
@@ -2334,7 +2354,8 @@ function InlineSplit({
 
   return (
     <div
-      className="mt-1 flex flex-col gap-3 rounded-lg border border-indigo-200 bg-indigo-50 p-3"
+      ref={panelRef}
+      className="mt-1 flex scroll-mt-4 flex-col gap-3 rounded-lg border border-indigo-200 bg-indigo-50 p-3"
       data-testid={`split-panel-${item.id}`}
     >
       <div className="flex items-center gap-2 text-sm font-semibold text-indigo-800">
@@ -2366,7 +2387,7 @@ function InlineSplit({
         </div>
       </label>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2">
         <div className="rounded-lg border border-stone-200 bg-white px-3 py-2">
           <div className="text-[10px] uppercase tracking-wide text-stone-400">{t("splitStays")}</div>
           <div className="font-mono text-sm font-bold tabular-nums" data-testid="split-stays">
