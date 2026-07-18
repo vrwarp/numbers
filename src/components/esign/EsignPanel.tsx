@@ -46,6 +46,9 @@ interface Member {
   name: string;
   email: string;
   role: string;
+  // The member's custom approval role (Position), when they hold one; the
+  // approver picker labels by this, falling back to `role`. null = none.
+  position: string | null;
   approvalsPaused: boolean;
 }
 
@@ -353,7 +356,9 @@ export function SubmitDialog({
                 <option value="">{t("approverPlaceholder")}</option>
                 {members.map((m) => (
                   <option key={m.userId} value={m.userId}>
-                    {m.name} ({roleLabel(m.role)})
+                    {/* Label by the member's Position (custom approval role);
+                        fall back to the system role when they hold none. */}
+                    {m.name} ({m.position ?? roleLabel(m.role)})
                   </option>
                 ))}
               </select>
