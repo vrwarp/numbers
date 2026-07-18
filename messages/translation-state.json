@@ -605,9 +605,15 @@
   },
   "Shoebox.deleteConfirm": {
     "source": "Delete this receipt?",
-    "context": "Native browser confirm() text before deleting a receipt.",
+    "context": "Message in the in-app dialog asking to confirm deleting a receipt (replaces the old native confirm()).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Shoebox.deleteConfirmButton": {
+    "source": "Delete",
+    "context": "One-word destructive button in the receipt delete-confirmation dialog, paired with Common.cancel; a verb, not a status.",
+    "zh-Hans": "human",
+    "zh-Hant": "human"
   },
   "Shoebox.deleteFailed": {
     "source": "Delete failed",

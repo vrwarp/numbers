@@ -77,9 +77,11 @@ test("shoebox housekeeping: deleting receipts and discarding drafts", async ({ p
     await makeReceiptFixture("keep-2.jpg"),
   ]);
 
-  // Delete one receipt outright.
+  // Delete one receipt outright (in-app confirm dialog, not window.confirm —
+  // iOS home-screen apps suppress native dialogs).
   const cards = page.locator('[data-testid^="receipt-card-"]');
   await cards.first().getByRole("button", { name: /Delete/ }).click();
+  await page.getByTestId("delete-receipt-confirm-confirm").click();
   await expect(cards).toHaveCount(1);
 
   // Build a draft from the survivor, then discard it — the receipt returns.

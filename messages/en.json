@@ -126,6 +126,7 @@
     "dropBody": "Images or PDFs",
     "noteSaveFailed": "Could not save the description",
     "deleteConfirm": "Delete this receipt?",
+    "deleteConfirmButton": "Delete",
     "deleteFailed": "Delete failed",
     "selectedCount": "{count, plural, one {# receipt} other {# receipts}} selected",
     "selectedCountShort": "{count} selected",

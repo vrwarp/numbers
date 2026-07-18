@@ -126,6 +126,7 @@
     "dropBody": "图片或 PDF",
     "noteSaveFailed": "说明保存失败",
     "deleteConfirm": "删除这张收据？",
+    "deleteConfirmButton": "删除",
     "deleteFailed": "删除失败",
     "selectedCount": "已选择 {count, plural, other {# 张收据}}",
     "selectedCountShort": "已选 {count} 张",

@@ -126,6 +126,7 @@
     "dropBody": "圖片或 PDF",
     "noteSaveFailed": "說明儲存失敗",
     "deleteConfirm": "刪除這張收據？",
+    "deleteConfirmButton": "刪除",
     "deleteFailed": "刪除失敗",
     "selectedCount": "已選取 {count, plural, other {# 張收據}}",
     "selectedCountShort": "已選 {count} 張",
