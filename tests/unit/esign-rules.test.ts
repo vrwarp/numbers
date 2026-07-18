@@ -140,7 +140,7 @@ describe("roster reducer", () => {
     ]);
   });
 
-  it("role grants are root-only and time-scoped; key revocation is forward-only", async () => {
+  it("role grants need role-management authority and are time-scoped; key revocation is forward-only", async () => {
     const base = [
       await ev(rootPK, genesis()),
       await ev(rootPK, attest({ uid: "alice", publicKey: alicePK })),
@@ -162,7 +162,7 @@ describe("roster reducer", () => {
     // Alice's key: attested before revocation, gone after.
     expect(roster.memberAt(alicePK, revoke.createdAtMs - 1)?.uid).toBe("alice");
     expect(roster.memberAt(alicePK, revoke.createdAtMs + 1)).toBeUndefined();
-    expect(roster.anomalies.some((a) => /not signed by the root/.test(a.reason))).toBe(true);
+    expect(roster.anomalies.some((a) => /without role-management authority/.test(a.reason))).toBe(true);
   });
 });
 

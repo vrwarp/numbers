@@ -28,11 +28,17 @@ import {
   type VouchSubject,
 } from "@/lib/esign/client";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
+import { ROLE_MANAGER_ROLES } from "@/lib/esign/types";
+import { roleLabelKey } from "@/lib/role-label";
 import { decodeSubject } from "@/lib/esign/vouch-scan";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import VouchQrScanner from "./VouchQrScanner";
 import ConfirmDialog from "./ConfirmDialog";
 import { SigningConnectCard, useSigningSession } from "./SigningConnect";
+
+/** The role select's options: member (= no granted role) plus every grantable
+ *  role. Admin is root-anchored and never offered from here. */
+const GRANTABLE_ROLES = ["member", "approver", "secretary", "chairman", "treasurer"] as const;
 
 /**
  * Admin controls for one attested member, split along the two axes they live
@@ -53,9 +59,10 @@ function RoleControls({
   const t = useTranslations("Vouch");
   const tRole = useTranslations("Common.role");
   const thrown = useThrownErrorMessage();
-  type Role = "member" | "approver" | "treasurer";
-  const currentRole: Role =
-    member.role === "approver" || member.role === "treasurer" ? member.role : "member";
+  type Role = "member" | "approver" | "secretary" | "chairman" | "treasurer";
+  const currentRole: Role = (GRANTABLE_ROLES as readonly string[]).includes(member.role)
+    ? (member.role as Role)
+    : "member";
   const [selectValue, setSelectValue] = useState<Role>(currentRole);
   const [dialog, setDialog] = useState<null | "role" | "key">(null);
   const [busy, setBusy] = useState(false);
@@ -70,9 +77,13 @@ function RoleControls({
     t(
       r === "approver"
         ? "roleExplainApprover"
-        : r === "treasurer"
-          ? "roleExplainTreasurer"
-          : "roleExplainMember"
+        : r === "secretary"
+          ? "roleExplainSecretary"
+          : r === "chairman"
+            ? "roleExplainChairman"
+            : r === "treasurer"
+              ? "roleExplainTreasurer"
+              : "roleExplainMember"
     );
 
   function pickRole(next: Role) {
@@ -87,9 +98,9 @@ function RoleControls({
     setDialog(null);
   }
 
-  // Role change is one or two root-signed roster events (§4.3): switching
-  // between two roles revokes the old before granting the new; to/from member
-  // is a single revoke or grant.
+  // Role change is one or two signed roster events (§4.3): switching between
+  // two roles revokes the old before granting the new; to/from member is a
+  // single revoke or grant.
   async function applyRole() {
     setBusy(true);
     setError(null);
@@ -133,9 +144,11 @@ function RoleControls({
           onChange={(e) => pickRole(e.target.value as Role)}
           data-testid={`role-select-${member.userId}`}
         >
-          <option value="member">{tRole("member")}</option>
-          <option value="approver">{tRole("approver")}</option>
-          <option value="treasurer">{tRole("treasurer")}</option>
+          {GRANTABLE_ROLES.map((r) => (
+            <option key={r} value={r}>
+              {tRole(r)}
+            </option>
+          ))}
         </select>
       </label>
       <div className="w-full border-t border-dashed border-stone-200 pt-1.5 sm:flex sm:justify-end">
@@ -318,8 +331,7 @@ function VouchInner() {
 
   if (!env) return <p className="text-sm text-stone-500">{tCommon("loading")}</p>;
 
-  const roleName = (role: string) =>
-    (["member", "approver", "treasurer", "admin"] as const).find((r) => r === role);
+  const roleName = roleLabelKey;
 
   return (
     <div className="mx-auto max-w-lg space-y-4">
@@ -466,10 +478,11 @@ function VouchInner() {
                   </div>
                   <div className="mt-0.5 text-xs text-stone-400">{m.email}</div>
                 </div>
-                {/* Role grants are root-signed roster events (§4.3) — only the
-                    root's browser can produce them, and only once its signing
-                    session is connected (they sign a roster event). */}
-                {env.me.role === "admin" &&
+                {/* Role grants are signed roster events (§4.3) — only a browser
+                    whose signer is the root or an executive officer/admin can
+                    produce valid ones, and only once its signing session is
+                    connected. Paused administration (A10) hides the controls. */}
+                {(ROLE_MANAGER_ROLES as readonly string[]).includes(env.me.role) &&
                   !env.me.adminPaused &&
                   phase === "ready" &&
                   m.userId !== env.me.userId && (

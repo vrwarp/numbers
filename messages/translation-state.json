@@ -125,6 +125,18 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Common.role.secretary": {
+    "source": "Secretary",
+    "context": "Church role tag (one word): the board's secretary — an executive officer who can change members' roles. Church register (文书/文書), not an office assistant.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.role.chairman": {
+    "source": "Chairman",
+    "context": "Church role tag (one word): chairman of the church board — an executive officer who can change members' roles.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Common.role.treasurer": {
     "source": "Treasurer",
     "context": "Church role: handles payments (writes the checks).",
@@ -453,13 +465,13 @@
     "zh-Hant": "machine"
   },
   "Profile.dutyAdminOn": {
-    "source": "You can manage members, settings, and electronic signing.",
+    "source": "You can change members' roles, and admins can also manage settings and electronic signing.",
     "context": "Body text of the admin duty row while ON.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Profile.dutyAdminOff": {
-    "source": "Admin pages and controls are hidden until you turn this back on.",
+    "source": "Role controls and admin pages are hidden until you turn this back on.",
     "context": "Body text of the admin duty row while OFF — the member can always return here to re-enable.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -3350,9 +3362,21 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Vouch.roleExplainSecretary": {
+    "source": "The secretary is an executive officer of the board and can change members' roles.",
+    "context": "Confirm-dialog blurb: what the secretary role means (executive officer; may change roles — no approval or payment powers).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Vouch.roleExplainChairman": {
+    "source": "The chairman is an executive officer of the board and can change members' roles.",
+    "context": "Confirm-dialog blurb: what the chairman role means (executive officer; may change roles — no approval or payment powers).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Vouch.roleExplainTreasurer": {
-    "source": "Treasurers can approve claims and also mark them paid.",
-    "context": "Confirm-dialog blurb: what a treasurer can do (approver powers plus marking paid).",
+    "source": "Treasurers can approve claims and mark them paid, and as an executive officer can change members' roles.",
+    "context": "Confirm-dialog blurb: what a treasurer can do (approver powers, marking paid, and — as an executive officer — changing roles).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -6016,8 +6040,8 @@
     "zh-Hant": "todo"
   },
   "Positions.holderCannotWarn": {
-    "source": "{name} can't approve until an admin grants them the Approver role through the signature roster.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "source": "{name} can't approve until an executive officer or admin grants them the Approver role through the signature roster.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   }
 }

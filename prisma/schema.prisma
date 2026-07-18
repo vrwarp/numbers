@@ -18,7 +18,7 @@ model User {
   mailingAddress String?
   // Verified mirror of roster-granted roles (see docs/ESIGN_DESIGN.md §5.5):
   // written only from signature-verified GRANT_ROLE/REVOKE_ROLE events.
-  role           String          @default("member") // member | approver | treasurer | admin
+  role           String          @default("member") // member | approver | secretary | chairman | treasurer | admin
   // Custom approval-role assignments (Positions). A pure app-layer routing
   // label — being a Position holder grants NO authority; the holder still needs
   // a real Approver+ roster grant to actually sign an approval.

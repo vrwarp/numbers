@@ -13,6 +13,7 @@ import type {
   RosterAction,
   VerifiedEvent,
 } from "./types";
+import { ROLE_MANAGER_ROLES } from "./types";
 
 /** A voucher edge: the identity (uid + the exact key it signed with) whose
  *  ATTEST counted toward a member's attestation. Retained so verifiers can
@@ -191,20 +192,41 @@ export function replayRoster(
       continue;
     }
 
-    // Everything below is root-only (v1).
+    if (a.t === "GRANT_ROLE" || a.t === "REVOKE_ROLE") {
+      // Role management: the root key, or an attested executive officer /
+      // admin at the event's own time (role-at-exercise, same as A9). The
+      // `admin` role itself stays root-only — officers manage member roles
+      // but cannot mint or depose admins.
+      const isRoot = event.signerPublicKey === root.publicKey;
+      const signer = memberAt(event.signerPublicKey, t);
+      const isOfficer =
+        !!signer && rolesAt(signer.uid, t).some((r) => ROLE_MANAGER_ROLES.includes(r));
+      if (!isRoot && !isOfficer) {
+        bad(`${a.t} signed without role-management authority`);
+        continue;
+      }
+      if (a.role === "admin" && !isRoot) {
+        bad(`${a.t} for the admin role is root-only`);
+        continue;
+      }
+      if (a.t === "GRANT_ROLE") {
+        const grants = roles.get(a.uid) ?? [];
+        grants.push({ role: a.role, grantedAtMs: t });
+        roles.set(a.uid, grants);
+      } else {
+        for (const grant of roles.get(a.uid) ?? []) {
+          if (grant.role === a.role && grant.revokedAtMs === undefined) grant.revokedAtMs = t;
+        }
+      }
+      continue;
+    }
+
+    // Everything below is root-only.
     if (event.signerPublicKey !== root.publicKey) {
       bad(`${a.t} not signed by the root key`);
       continue;
     }
-    if (a.t === "GRANT_ROLE") {
-      const grants = roles.get(a.uid) ?? [];
-      grants.push({ role: a.role, grantedAtMs: t });
-      roles.set(a.uid, grants);
-    } else if (a.t === "REVOKE_ROLE") {
-      for (const grant of roles.get(a.uid) ?? []) {
-        if (grant.role === a.role && grant.revokedAtMs === undefined) grant.revokedAtMs = t;
-      }
-    } else if (a.t === "REVOKE_KEY") {
+    if (a.t === "REVOKE_KEY") {
       let hit = false;
       for (const m of members) {
         if (m.publicKey === a.publicKey && m.revokedAtMs === undefined) {

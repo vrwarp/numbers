@@ -19,6 +19,10 @@ describe("approverEligibility", () => {
     expect(approverEligibility({ role: "member", attested: true, approvalsPaused: false })).toBe("cannotApprove");
     expect(approverEligibility({ role: "approver", attested: false, approvalsPaused: false })).toBe("cannotApprove");
   });
+  it("cannotApprove for chairman/secretary — executive officers hold no approval authority (A11)", () => {
+    expect(approverEligibility({ role: "chairman", attested: true, approvalsPaused: false })).toBe("cannotApprove");
+    expect(approverEligibility({ role: "secretary", attested: true, approvalsPaused: false })).toBe("cannotApprove");
+  });
 });
 
 // Helper builders keep the selection cases readable.

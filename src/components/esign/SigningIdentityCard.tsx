@@ -29,6 +29,7 @@ import type { DeviceStatus } from "@/lib/esign/custody";
 import { fingerprintDisplay, keyFingerprint } from "@/lib/esign/canonical";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
+import { roleLabelKey } from "@/lib/role-label";
 import AllowlistPanel from "./AllowlistPanel";
 import { DevicesPanel, NewDeviceCard, RecoveryCard } from "./DeviceManager";
 import { SigningConnectCard, useSigningSession } from "./SigningConnect";
@@ -214,9 +215,7 @@ export default function SigningIdentityCard() {
       <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600">{t("chipNone")}</span>
     );
 
-  const roleName = (["member", "approver", "treasurer", "admin"] as const).find(
-    (r) => r === env.me.role
-  );
+  const roleName = roleLabelKey(env.me.role);
 
   // Bootstrap, enrollment, and device/roster reads all need a signing session.
   // On production Firestore, gate them behind an explicit connect click so the

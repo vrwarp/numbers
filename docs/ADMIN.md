@@ -14,8 +14,10 @@ cross-tenant surface: **404, never 403** (`requireAdmin` in
 
 ### Seeding the first admin
 
-The roster role is only granted by a signature-verified `GRANT_ROLE` event, so
-a brand-new deployment has no admin until the e-sign root bootstraps. To seed an
+The roster role is only granted by a signature-verified `GRANT_ROLE` event —
+signed by the root or an attested executive officer (chairman/secretary/
+treasurer) or admin (A11; the `admin` role itself is root-only) — so a
+brand-new deployment has no admin until the e-sign root bootstraps. To seed an
 admin immediately — before, or instead of, standing up e-signatures — set
 `ADMIN_EMAILS` (comma/space-separated) in the environment or `config.json`.
 It is an **app-surface** grant: it opens the `/admin` area and the e-sign

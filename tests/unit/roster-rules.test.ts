@@ -52,8 +52,13 @@ function attest(
   return ev({ t: "ATTEST", v: 1, ledger: ROSTER, ts: createdAtMs, subject }, signerKey, createdAtMs);
 }
 
-function grant(uid: string, createdAtMs: number): VerifiedEvent<GrantRoleAction> {
-  return ev({ t: "GRANT_ROLE", v: 1, ledger: ROSTER, ts: createdAtMs, uid, role: "approver" }, "K_root", createdAtMs);
+function grant(
+  uid: string,
+  createdAtMs: number,
+  role: GrantRoleAction["role"] = "approver",
+  signerKey = "K_root"
+): VerifiedEvent<GrantRoleAction> {
+  return ev({ t: "GRANT_ROLE", v: 1, ledger: ROSTER, ts: createdAtMs, uid, role }, signerKey, createdAtMs);
 }
 
 const subj = (uid: string, key: string, over: Partial<AttestAction["subject"]> = {}): AttestAction["subject"] => ({
@@ -160,6 +165,99 @@ describe("pooled vouches must name the same subject identity (regression)", () =
       attest("K_b", s, 21),
     ]);
     expect(t.memberAt("K_c", 30)?.uid).toBe("c");
+  });
+});
+
+describe("executive-officer role management", () => {
+  // Root seats A and B; A becomes an officer; grants signed by A follow.
+  const seated = (officerRole: "chairman" | "secretary" | "treasurer") => [
+    genesis(),
+    attest("K_root", subj("a", "K_a"), 10),
+    attest("K_root", subj("b", "K_b"), 11),
+    grant("a", 20, officerRole),
+  ];
+
+  it.each(["chairman", "secretary", "treasurer"] as const)(
+    "a %s can grant and revoke member roles",
+    (officerRole) => {
+      const granted = replayRoster(ROSTER, [...seated(officerRole), grant("b", 30, "approver", "K_a")]);
+      expect(granted.rolesAt("b", 35)).toEqual(["approver"]);
+      expect(granted.anomalies).toEqual([]);
+
+      const revoke = ev(
+        { t: "REVOKE_ROLE", v: 1, ledger: ROSTER, ts: 40, uid: "b", role: "approver" } as RosterAction,
+        "K_a",
+        40
+      );
+      const revoked = replayRoster(ROSTER, [...seated(officerRole), grant("b", 30, "approver", "K_a"), revoke]);
+      expect(revoked.rolesAt("b", 45)).toEqual([]);
+      expect(revoked.rolesAt("b", 35)).toEqual(["approver"]); // forward-only
+    }
+  );
+
+  it("officers can appoint other officers (chairman grants secretary)", () => {
+    const t = replayRoster(ROSTER, [...seated("chairman"), grant("b", 30, "secretary", "K_a")]);
+    expect(t.rolesAt("b", 35)).toEqual(["secretary"]);
+  });
+
+  it("a plain member or approver cannot grant roles", () => {
+    const asMember = replayRoster(ROSTER, [
+      genesis(),
+      attest("K_root", subj("a", "K_a"), 10),
+      grant("b", 30, "approver", "K_a"),
+    ]);
+    expect(asMember.rolesAt("b", 35)).toEqual([]);
+    expect(asMember.anomalies.some((x) => /role-management authority/.test(x.reason))).toBe(true);
+
+    const asApprover = replayRoster(ROSTER, [
+      genesis(),
+      attest("K_root", subj("a", "K_a"), 10),
+      grant("a", 20, "approver"),
+      grant("b", 30, "treasurer", "K_a"),
+    ]);
+    expect(asApprover.rolesAt("b", 35)).toEqual([]);
+    expect(asApprover.anomalies.some((x) => /role-management authority/.test(x.reason))).toBe(true);
+  });
+
+  it("the admin role itself stays root-only — officers can neither mint nor depose admins", () => {
+    const mint = replayRoster(ROSTER, [...seated("chairman"), grant("b", 30, "admin", "K_a")]);
+    expect(mint.rolesAt("b", 35)).toEqual([]);
+    expect(mint.anomalies.some((x) => /admin role is root-only/.test(x.reason))).toBe(true);
+
+    const depose = replayRoster(ROSTER, [
+      ...seated("chairman"),
+      grant("b", 25, "admin"), // root-signed: valid
+      ev({ t: "REVOKE_ROLE", v: 1, ledger: ROSTER, ts: 30, uid: "b", role: "admin" } as RosterAction, "K_a", 30),
+    ]);
+    expect(depose.rolesAt("b", 35)).toEqual(["admin"]);
+    expect(depose.anomalies.some((x) => /admin role is root-only/.test(x.reason))).toBe(true);
+  });
+
+  it("authority is checked at exercise time (A9): a revoked officer's later grants are void", () => {
+    const t = replayRoster(ROSTER, [
+      ...seated("secretary"),
+      ev({ t: "REVOKE_ROLE", v: 1, ledger: ROSTER, ts: 25, uid: "a", role: "secretary" } as RosterAction, "K_root", 25),
+      grant("b", 30, "approver", "K_a"),
+    ]);
+    expect(t.rolesAt("b", 35)).toEqual([]);
+    expect(t.anomalies.some((x) => /role-management authority/.test(x.reason))).toBe(true);
+    // …and grants signed BEFORE their own grant existed are void too.
+    const early = replayRoster(ROSTER, [
+      genesis(),
+      attest("K_root", subj("a", "K_a"), 10),
+      grant("b", 15, "approver", "K_a"), // A not yet an officer
+      grant("a", 20, "secretary"),
+    ]);
+    expect(early.rolesAt("b", 35)).toEqual([]);
+  });
+
+  it("chairman and secretary hold no approver-or-above authority", () => {
+    const t = replayRoster(ROSTER, [...seated("chairman"), grant("b", 30, "secretary", "K_a")]);
+    expect(t.isApproverAt("a", 35)).toBe(false);
+    expect(t.isApproverAt("b", 35)).toBe(false);
+    // A single officer vouch therefore does NOT tip attestation by itself.
+    const vouch = replayRoster(ROSTER, [...seated("chairman"), attest("K_a", subj("c", "K_c"), 30)]);
+    expect(vouch.memberAt("K_c", 35)).toBeUndefined();
   });
 });
 

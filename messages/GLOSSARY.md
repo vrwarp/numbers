@@ -52,6 +52,9 @@ zh-Hans (登录→登錄 would be wrong; Taiwan says 登入).
 | awaiting approval | 待审批 | 待審批 | the `submitted` status chip |
 | paid | 已支付 | 已支付 | terminal claim status |
 | treasurer | 财务同工 | 財務同工 | church register, not corporate 财务主管 |
+| chairman (board) | 主席 | 主席 | executive officer of the board |
+| secretary (board) | 文书 | 文書 | executive officer; church register, not office 秘书 |
+| executive officer | 执行同工 | 執行同工 | the board's chairman / secretary / treasurer |
 | admin / administrator | 管理员 | 管理員 | |
 | vouch | 担保 | 擔保 | in-person identity confirmation by a member |
 | attest / attested | 认证 / 已认证 | 認證 / 已認證 | roster status after enough vouches |

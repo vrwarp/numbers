@@ -21,6 +21,7 @@ import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { formatCents } from "@/lib/money";
 import type { SignaturePlacement } from "@/lib/esign/placement";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
+import { roleLabelKey } from "@/lib/role-label";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain, type ClaimRef } from "./chain";
 import { SigningConnectCard, useSigningSession } from "./SigningConnect";
@@ -292,12 +293,10 @@ export function SubmitDialog({
   }
 
   const placedReady = !hasSignature || !!placement;
-  const roleLabel = (role: string) =>
-    (["member", "approver", "treasurer", "admin"] as const).includes(
-      role as "member" | "approver" | "treasurer" | "admin"
-    )
-      ? tRole(role as "member" | "approver" | "treasurer" | "admin")
-      : role;
+  const roleLabel = (role: string) => {
+    const key = roleLabelKey(role);
+    return key ? tRole(key) : role;
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">

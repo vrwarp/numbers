@@ -5,6 +5,7 @@ import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { setLocaleCookie } from "@/i18n/cookie";
 import { LOCALES } from "@/lib/locales";
 import { isAppAdmin } from "@/lib/config";
+import { ROLE_MANAGER_ROLES } from "@/lib/esign/types";
 
 export const runtime = "nodejs";
 
@@ -36,8 +37,11 @@ function profilePayload(user: {
       approvals: ["approver", "treasurer", "admin"].includes(user.role),
       finance: ["treasurer", "admin"].includes(user.role),
       // Pause state must not hide its own switch: judge adminship as if not
-      // paused, so a paused admin still sees the toggle to unpause.
-      admin: isAppAdmin({ ...user, adminPaused: false }),
+      // paused, so a paused admin still sees the toggle to unpause. Executive
+      // officers get the toggle too — the same pause hides their role controls.
+      admin:
+        isAppAdmin({ ...user, adminPaused: false }) ||
+        (ROLE_MANAGER_ROLES as readonly string[]).includes(user.role),
     },
   };
 }

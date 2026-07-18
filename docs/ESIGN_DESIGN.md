@@ -46,6 +46,7 @@ generated PDF — is untouched; signing begins where it currently ends.
 | A8 | **Rollout allowlist** (owner direction: enable e-sign per person, not for everyone at once): `EsignRegistry.scope` — `"allowlist"` (the default) or `"everyone"` — under the A5 master switch, plus `User.esignAllowed` managed from the admin's profile card (`/api/esign/allowlist`, audited as `esign-allowlist`; scope changes ride the `esign-toggle` audit). With scope allowlist, every ceremony/queue/enrollment route refuses non-allowed members (`requireEsignAccess`, 409 `esign.notAllowed`), key material is not relayed to them, badges vanish, and the UI shows them nothing — identical posture to the switch being off. Admins always pass (they operate the controls). Like A5 this gates the APP's surfaces only: roster validity is cryptographic and untouched — removing someone from the allowlist never revokes what they signed (that is REVOKE_KEY/supersession, §4.5), and verification surfaces never check it. |
 | A9 | **Role-at-exercise for decisions** (closes the demoted-approver hole): an APPROVE binds only if the named approver still holds approver-or-above at the APPROVE's own `createdAt` — the same as-of-signing rule MARK_PAID always had; previously the role was checked only when the SUBMIT named them, so an approver revoked mid-flight could still push a claim through. §5.3.4 amended; enforced identically in `validity.ts` and `scripts/verify-bundle.mjs` (unit-tested: revoke→approve is a void anomaly; re-grant re-arms; pre-revocation approvals stand forever — forward-only, so paid claims stay verifiable). **REJECT is deliberately exempt**: it declines to sign rather than signing, so a demoted approver can still hand the claim back. The decision route mirrors the rule (409 `esign.approverRoleLost` at APPROVE preflight) and, at commit, re-evaluates the ledger and flips mirror status only if the reported event actually binds (409 `esign.decisionNotBinding` otherwise) — the preflight→append race can therefore never make the mirror disagree with the chain. The owner's panel shows an assigned-approver-`ineligible` notice pointing at the existing withdraw+reassign escape (§6.1's stalled-approver path); the inbox disables Approve (Reject stays) with a role-lost banner. |
 | A10 | **Self-service duty pauses**: each role-holder can switch their own duties off on their profile (`User.approvalsPaused` / `financePaused` / `adminPaused`, PATCH `/api/profile`, audited as `update-availability` with field diffs). Same app-surface-only posture as A5/A8 — NEVER a role change, never a roster event, invisible to ledger validity. Approvals paused: hidden from the approver picker and refused by the submit preflight (409 `esign.approverUnavailable`), but claims ALREADY assigned stay decidable (the ledger would accept the signature regardless — app refusal would only manufacture mirror divergence) — the inbox says so, badges keep counting assigned work, and the owner's panel shows a `paused` notice with the reassign path. Finance paused: finance queue 404s, mark-paid refuses, nav tab vanishes (nothing to grandfather — payment was never claim-assigned). Admin paused: `isAppAdmin()` fails everywhere it gates (admin area, master switch, allowlist, role controls), whichever way adminship was granted (roster role or ADMIN_EMAILS); the profile toggle itself is never admin-gated, so the pause is always self-reversible. |
+| A11 | **Executive-officer role management** (owner direction: the board's three executive officers — chairman, secretary, treasurer — manage member roles, not just the root): two new roles `chairman` and `secretary` (no approver/finance authority — they are NOT approver-or-above, don't tip attestation solo, and get no §6.3 read grant), and `GRANT_ROLE`/`REVOKE_ROLE` now count when signed by the root key OR an attested signer holding `secretary`/`chairman`/`treasurer`/`admin` (`ROLE_MANAGER_ROLES`) at the event's own `createdAt` — role-at-exercise, same posture as A9, so a deposed officer's later grants are void while earlier ones stand. The `admin` role itself stays root-only to grant or revoke (officers can neither mint nor depose admins — no self-escalation past the board tier), and `REVOKE_KEY` stays root-only. Enforced identically in `roster.ts` and `scripts/verify-bundle.mjs` (unit-tested per officer role, plus the root-only-admin and revoked-officer cases). App surfaces: the vouch screen's role controls (now offering all four grantable roles) appear for role-manager mirror roles, gated by the A10 admin pause — whose profile toggle executive officers now also see; the officer roles rank between approver and treasurer in `ROLE_RANK` for the single-role mirror. |
 
 ## 2. Trust model — what the cryptography buys
 
@@ -217,8 +218,9 @@ The Submit/Approve/Mark-paid buttons prompt un-enrolled users into this wizard.
   holding the `approver`/`treasurer`/root role at that point in the log. Self-vouching
   (signer uid = subject uid) never counts. The root's own key is attested by the
   roster's genesis event.
-- Vouching asserts identity only. Roles arrive as separate events, valid **only when
-  signed by the root key** (v1; delegation to the treasurer is a later option):
+- Vouching asserts identity only. Roles arrive as separate events, valid when signed
+  by **the root key or an attested executive officer/admin at the event's own time**
+  (A11 — originally root-only v1; the `admin` role itself stays root-only):
 
 ```jsonc
 { "t": "GRANT_ROLE", "v": 1, "ledger": "…", "ts": …, "uid": "…", "role": "approver" }
@@ -247,7 +249,11 @@ rules-pinned §9.2; ties broken by event doc id) with a pure reducer:
    collusion could retire it). **Key supersession (A7):** the moment a key crosses
    the attestation threshold, the same uid's earlier keys are revoked at that
    instant — the quorum that grants identity is the quorum that replaces it.
-4. `GRANT_ROLE`/`REVOKE_ROLE`/`REVOKE_KEY` count only from the root key.
+4. `GRANT_ROLE`/`REVOKE_ROLE` count from the root key or from an attested signer
+   holding a role-management role (`secretary`/`chairman`/`treasurer`/`admin`,
+   `ROLE_MANAGER_ROLES`) at the event's own `createdAt` (A11); grants/revokes of the
+   `admin` role itself count only from the root key. `REVOKE_KEY` counts only from
+   the root key.
 5. Output is a timeline: `stateAt(t)` returns `publicKey → {uid, name, roles[]}` as of
    server time `t`. **Claim events are judged against `stateAt(event.createdAt)`** — a
    signer must be attested (with the required role) *when they signed*; later
@@ -740,8 +746,8 @@ model EsignClaimArchive { // retention pointer — survives claim deletion untou
 }
 ```
 
-`User.role` becomes the verified role mirror: `member | approver | treasurer | admin`
-(update the stale `schema.prisma` comment, which predates `approver`) — UI/queue authz
+`User.role` becomes the verified role mirror: `member | approver | secretary |
+chairman | treasurer | admin` (highest-ranked active grant wins, `ROLE_RANK`) — UI/queue authz
 only; the roster is the signed truth and the mirror is written only from verified
 events (§5.5). Every transition writes an AuditEvent (`submit`, `approve`, `reject`,
 `mark-paid`, `esign-consent`, `esign-reconcile` join the action list) — invariant 7

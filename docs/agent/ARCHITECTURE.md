@@ -36,6 +36,8 @@ src/lib/positions-catalog.ts    Position table reads + resolveSuggestedApprover(
 src/lib/positions-guard.ts      requirePositionEditor (treasurer/admin, same gate as ministries)
 src/lib/locales.ts              LOCALES en/zh-Hans/zh-Hant, labels, numbers_locale cookie
                                 name, Accept-Language negotiator — dependency-free, client-safe
+src/lib/role-label.ts           roleLabelKey(): role string → Common.role.* message key,
+                                shared by every role-tag renderer — dependency-free, client-safe
 src/i18n/request.ts             next-intl request config: cookie → Accept-Language → en
                                 (no URL locale routing, no middleware)
 src/i18n/cookie.ts              setLocaleCookie + syncLocalePreference (sign-in reconciles

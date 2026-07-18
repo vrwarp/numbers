@@ -28,6 +28,8 @@
     "role": {
       "member": "Member",
       "approver": "Approver",
+      "secretary": "Secretary",
+      "chairman": "Chairman",
       "treasurer": "Treasurer",
       "admin": "Admin"
     }
@@ -94,8 +96,8 @@
     "dutyFinanceOn": "You can see the finance queue and mark approved claims as paid.",
     "dutyFinanceOff": "The finance queue is hidden and you can't mark claims as paid.",
     "dutyAdminTitle": "Administration",
-    "dutyAdminOn": "You can manage members, settings, and electronic signing.",
-    "dutyAdminOff": "Admin pages and controls are hidden until you turn this back on.",
+    "dutyAdminOn": "You can change members' roles, and admins can also manage settings and electronic signing.",
+    "dutyAdminOff": "Role controls and admin pages are hidden until you turn this back on.",
     "dutyTurnOn": "Turn on",
     "dutyTurnOff": "Turn off"
   },
@@ -609,7 +611,9 @@
     "roleDialogFromTo": "This changes their role from <b>{from}</b> to <b>{to}</b>.",
     "roleExplainMember": "Members can prepare and sign their own reimbursements, but can't approve or pay others'.",
     "roleExplainApprover": "Approvers can approve reimbursement claims for payment.",
-    "roleExplainTreasurer": "Treasurers can approve claims and also mark them paid.",
+    "roleExplainSecretary": "The secretary is an executive officer of the board and can change members' roles.",
+    "roleExplainChairman": "The chairman is an executive officer of the board and can change members' roles.",
+    "roleExplainTreasurer": "Treasurers can approve claims and mark them paid, and as an executive officer can change members' roles.",
     "roleDialogConfirm": "Update role",
     "revokeKey": "Revoke key",
     "keyDialogTitle": "Revoke {name}'s signing key?",
@@ -1131,6 +1135,6 @@
     "eligibilityPaused": "Approvals paused",
     "eligibilityCannot": "Needs Approver grant",
     "holderPausedWarn": "{name} has paused approvals, so claims won't pre-fill to them until they resume.",
-    "holderCannotWarn": "{name} can't approve until an admin grants them the Approver role through the signature roster."
+    "holderCannotWarn": "{name} can't approve until an executive officer or admin grants them the Approver role through the signature roster."
   }
 }

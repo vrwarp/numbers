@@ -28,6 +28,8 @@
     "role": {
       "member": "會友",
       "approver": "審批人",
+      "secretary": "文書",
+      "chairman": "主席",
       "treasurer": "財務同工",
       "admin": "管理員"
     }
@@ -94,8 +96,8 @@
     "dutyFinanceOn": "您可以查看財務佇列，並將已批准的報銷單標記為已支付。",
     "dutyFinanceOff": "財務佇列已隱藏，您暫時無法將報銷單標記為已支付。",
     "dutyAdminTitle": "管理",
-    "dutyAdminOn": "您可以管理成員、設定和電子簽名。",
-    "dutyAdminOff": "管理頁面和控制項已隱藏，重新開啟後即可恢復。",
+    "dutyAdminOn": "您可以更改會友的角色；管理員還可以管理設定和電子簽名。",
+    "dutyAdminOff": "角色控制和管理頁面已隱藏，重新開啟後即可恢復。",
     "dutyTurnOn": "開啟",
     "dutyTurnOff": "關閉"
   },
@@ -609,7 +611,9 @@
     "roleDialogFromTo": "這會將他們的角色從 <b>{from}</b> 變更為 <b>{to}</b>。",
     "roleExplainMember": "會友可以準備並簽署自己的報銷，但不能審批或支付他人的報銷。",
     "roleExplainApprover": "審批人可以審批報銷申請以供支付。",
-    "roleExplainTreasurer": "財務同工可以審批申請，也可以將其標記為已支付。",
+    "roleExplainSecretary": "文書是教會的執行同工之一，可以更改會友的角色。",
+    "roleExplainChairman": "主席是教會的執行同工之一，可以更改會友的角色。",
+    "roleExplainTreasurer": "財務同工可以審批申請並將其標記為已支付；作為執行同工，也可以更改會友的角色。",
     "roleDialogConfirm": "更新角色",
     "revokeKey": "吊銷金鑰",
     "keyDialogTitle": "吊銷 {name} 的簽名金鑰？",
@@ -1131,6 +1135,6 @@
     "eligibilityPaused": "Approvals paused",
     "eligibilityCannot": "Needs Approver grant",
     "holderPausedWarn": "{name} has paused approvals, so claims won't pre-fill to them until they resume.",
-    "holderCannotWarn": "{name} can't approve until an admin grants them the Approver role through the signature roster."
+    "holderCannotWarn": "{name} 需要執行同工或管理員透過簽名名冊授予「審批人」角色後才能審批。"
   }
 }
