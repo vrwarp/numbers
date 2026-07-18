@@ -21,9 +21,13 @@ describe("searchCapabilities", () => {
     expect(searchCapabilities(flags({ role: "member" }))).toEqual({ canAll: false, canDecided: false });
   });
 
-  it("chairman/secretary: executive officers get NO read grant (role management only, A11)", () => {
+  it("chairman/secretary: approver-plus (A11) — approver's read grant, narrowed by the approvals pause", () => {
     for (const role of ["chairman", "secretary"]) {
-      expect(searchCapabilities(flags({ role }))).toEqual({ canAll: false, canDecided: false });
+      expect(searchCapabilities(flags({ role }))).toEqual({ canAll: true, canDecided: true });
+      expect(searchCapabilities(flags({ role, approvalsPaused: true }))).toEqual({
+        canAll: false,
+        canDecided: false,
+      });
     }
   });
 

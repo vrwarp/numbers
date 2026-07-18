@@ -32,9 +32,11 @@ locale("en"), printIncludeReceipts(false), printIncludeCertificate(false), creat
 - `role` = `member | approver | secretary | chairman | treasurer | admin` — the
   VERIFIED roster mirror (docs/ESIGN_DESIGN.md §5.5): written only from
   signature-verified GRANT_ROLE/REVOKE_ROLE replay (highest active grant by
-  `ROLE_RANK`), never by hand. Gates app surfaces (queues, pickers, admin; the
-  executive-officer roles — chairman/secretary/treasurer — gate the vouch
-  screen's role controls, A11); the roster is the signed truth.
+  `ROLE_RANK`, a capability chain), never by hand. Gates app surfaces (queues,
+  pickers, admin); the roster is the signed truth. Chairman/secretary/treasurer
+  are the executive officers (A11): all approver-or-above
+  (`APPROVER_PLUS_ROLES`) and all role managers (`ROLE_MANAGER_ROLES`, the vouch
+  screen's role controls); finance stays treasurer/admin.
 - `esignAllowed` — A8 rollout allowlist flag (admin-managed app gate; never validity).
 - `approvalsPaused` / `financePaused` / `adminPaused` — A10 self-service duty pauses,
   toggled by the member on their own profile (audited `update-availability`). App

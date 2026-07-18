@@ -3363,14 +3363,14 @@
     "zh-Hant": "machine"
   },
   "Vouch.roleExplainSecretary": {
-    "source": "The secretary is an executive officer of the board and can change members' roles.",
-    "context": "Confirm-dialog blurb: what the secretary role means (executive officer; may change roles — no approval or payment powers).",
+    "source": "The secretary is an executive officer of the board: they can approve reimbursement claims and change members' roles.",
+    "context": "Confirm-dialog blurb: what the secretary role means (executive officer; approver authority plus changing roles — no payment powers).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Vouch.roleExplainChairman": {
-    "source": "The chairman is an executive officer of the board and can change members' roles.",
-    "context": "Confirm-dialog blurb: what the chairman role means (executive officer; may change roles — no approval or payment powers).",
+    "source": "The chairman is an executive officer of the board: they can approve reimbursement claims and change members' roles.",
+    "context": "Confirm-dialog blurb: what the chairman role means (executive officer; approver authority plus changing roles — no payment powers).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

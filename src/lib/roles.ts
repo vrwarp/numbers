@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
 
 /**
  * The role-read grant (docs/SEARCH_DESIGN.md §6.3, ESIGN_DESIGN §6.3 amendment)
@@ -29,7 +30,7 @@ export type RoleDutyFlags = {
 export type SearchCapabilities = { canAll: boolean; canDecided: boolean };
 
 export function searchCapabilities(u: RoleDutyFlags): SearchCapabilities {
-  const grantsApprovals = ["approver", "treasurer", "admin"].includes(u.role);
+  const grantsApprovals = (APPROVER_PLUS_ROLES as readonly string[]).includes(u.role);
   const grantsFinance = ["treasurer", "admin"].includes(u.role);
   const grantsAdmin = u.role === "admin";
   const approvalsActive = grantsApprovals && !u.approvalsPaused;

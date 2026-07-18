@@ -22,6 +22,7 @@ import { formatCents } from "@/lib/money";
 import type { SignaturePlacement } from "@/lib/esign/placement";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { roleLabelKey } from "@/lib/role-label";
+import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain, type ClaimRef } from "./chain";
 import { SigningConnectCard, useSigningSession } from "./SigningConnect";
@@ -252,7 +253,7 @@ export function SubmitDialog({
         const eligible = all.filter(
           (m) =>
             m.userId !== env.me.userId &&
-            ["approver", "treasurer", "admin"].includes(m.role) &&
+            (APPROVER_PLUS_ROLES as readonly string[]).includes(m.role) &&
             !m.approvalsPaused
         );
         setMembers(eligible);

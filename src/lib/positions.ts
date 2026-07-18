@@ -17,6 +17,7 @@
  */
 
 import { parseMinistryCode } from "@/lib/ministries";
+import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
 
 /** Whether a holder can currently be pre-filled as (and actually act as) an
  *  approver. Mirrors the approver picker / submit preflight rule exactly:
@@ -27,7 +28,7 @@ import { parseMinistryCode } from "@/lib/ministries";
  *                      / needs to enroll before they can sign anything) */
 export type ApproverEligibility = "ok" | "paused" | "cannotApprove";
 
-export const APPROVER_ROLES = ["approver", "treasurer", "admin"] as const;
+export const APPROVER_ROLES = APPROVER_PLUS_ROLES;
 
 export function approverEligibility(u: {
   role: string;

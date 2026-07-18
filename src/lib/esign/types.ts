@@ -61,6 +61,22 @@ export type EsignRole = "approver" | "secretary" | "chairman" | "treasurer" | "a
  */
 export const ROLE_MANAGER_ROLES: EsignRole[] = ["secretary", "chairman", "treasurer", "admin"];
 
+/**
+ * Approver-or-above (A11): every role that carries an approver's full
+ * authority — approving claims, tipping attestation with a single vouch, the
+ * §6.3 read grant. The executive officers are all approver-plus; finance
+ * (MARK_PAID, the queue) stays treasurer/admin. One list feeds the ledger rule
+ * (roster.ts isApproverAt, mirrored in scripts/verify-bundle.mjs) AND the app
+ * surfaces (routes, pickers, nav) so they can never drift apart.
+ */
+export const APPROVER_PLUS_ROLES: EsignRole[] = [
+  "approver",
+  "secretary",
+  "chairman",
+  "treasurer",
+  "admin",
+];
+
 export interface GrantRoleAction {
   t: "GRANT_ROLE";
   v: 1;
@@ -190,10 +206,11 @@ export type ClaimAction =
 
 export type EsignAction = RosterAction | ClaimAction;
 
-/** Roles ranked by breadth of app-surface capability — picks the single
- *  mirrored `User.role` when a uid holds several grants (not board seniority:
- *  treasurer outranks chairman/secretary because it carries approvals +
- *  finance on top of role management). */
+/** Roles ranked by breadth of capability — picks the single mirrored
+ *  `User.role` when a uid holds several grants. A true chain: secretary/
+ *  chairman = approver + role management; treasurer adds finance; admin adds
+ *  the admin area (treasurer outranks chairman by capability, not board
+ *  seniority). */
 export const ROLE_RANK: Record<string, number> = {
   member: 0,
   approver: 1,

@@ -5,6 +5,7 @@ import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { computeLineItemChanges, type ChangeSet } from "@/lib/audit";
 import { mostCommonMinistryEvent } from "@/lib/ministries";
 import { resolveSuggestedApprover } from "@/lib/positions-catalog";
+import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
 
 import { enqueueClaimEmbeddingDebounced, deleteEmbeddingsFor } from "@/lib/embeddings/queue";
 
@@ -82,7 +83,7 @@ async function approverInfo(approverUserId: string | null) {
   });
   if (!approver) return null;
   const eligible =
-    ["approver", "treasurer", "admin"].includes(approver.role) &&
+    (APPROVER_PLUS_ROLES as readonly string[]).includes(approver.role) &&
     approver.signerIdentity?.status === "attested";
   return {
     name: approver.fullName || approver.email,

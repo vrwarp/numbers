@@ -251,13 +251,15 @@ describe("executive-officer role management", () => {
     expect(early.rolesAt("b", 35)).toEqual([]);
   });
 
-  it("chairman and secretary hold no approver-or-above authority", () => {
+  it("chairman and secretary are approver-or-above (full approver authority)", () => {
     const t = replayRoster(ROSTER, [...seated("chairman"), grant("b", 30, "secretary", "K_a")]);
-    expect(t.isApproverAt("a", 35)).toBe(false);
-    expect(t.isApproverAt("b", 35)).toBe(false);
-    // A single officer vouch therefore does NOT tip attestation by itself.
+    expect(t.isApproverAt("a", 35)).toBe(true);
+    expect(t.isApproverAt("b", 35)).toBe(true);
+    expect(t.isApproverAt("a", 15)).toBe(false); // not before the grant
+    // A single officer vouch therefore tips attestation by itself, like any
+    // approver's.
     const vouch = replayRoster(ROSTER, [...seated("chairman"), attest("K_a", subj("c", "K_c"), 30)]);
-    expect(vouch.memberAt("K_c", 35)).toBeUndefined();
+    expect(vouch.memberAt("K_c", 35)?.uid).toBe("c");
   });
 });
 

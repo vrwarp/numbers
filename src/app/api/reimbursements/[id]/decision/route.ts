@@ -26,6 +26,7 @@ import { readStoredFile } from "@/lib/storage";
 import { signatureAnchor } from "@/lib/pdf/generate";
 import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
 import type { ApproveAction, RawLedgerEventDoc, RejectAction } from "@/lib/esign/types";
+import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
 
 export const runtime = "nodejs";
 
@@ -81,7 +82,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       // them — pausing only stops new submissions naming them.
       if (body.decision === "approve") {
         const me = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-        if (!["approver", "treasurer", "admin"].includes(me?.role ?? "")) {
+        if (!(APPROVER_PLUS_ROLES as readonly string[]).includes(me?.role ?? "")) {
           throw new ApiError(
             409,
             "Your approver role has been removed — you can decline, but not approve",

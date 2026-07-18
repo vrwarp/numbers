@@ -94,7 +94,10 @@ function replayRoster(rosterLedgerId, events) {
     uid === root.uid
       ? ["admin"]
       : (roles.get(uid) ?? []).filter((r) => r.grantedAtMs <= t && (r.revokedAtMs === undefined || r.revokedAtMs > t)).map((r) => r.role);
-  const isApproverAt = (uid, t) => rolesAt(uid, t).some((r) => ["approver", "treasurer", "admin"].includes(r));
+  // Approver-or-above incl. the executive officers (A11) — mirrors
+  // src/lib/esign/types.ts APPROVER_PLUS_ROLES.
+  const isApproverAt = (uid, t) =>
+    rolesAt(uid, t).some((r) => ["approver", "secretary", "chairman", "treasurer", "admin"].includes(r));
 
   for (const e of events.slice(1)) {
     const a = e.action;

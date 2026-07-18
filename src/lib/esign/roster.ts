@@ -13,7 +13,7 @@ import type {
   RosterAction,
   VerifiedEvent,
 } from "./types";
-import { ROLE_MANAGER_ROLES } from "./types";
+import { APPROVER_PLUS_ROLES, ROLE_MANAGER_ROLES } from "./types";
 
 /** A voucher edge: the identity (uid + the exact key it signed with) whose
  *  ATTEST counted toward a member's attestation. Retained so verifiers can
@@ -63,8 +63,6 @@ export interface RosterTimeline {
   /** True when the uid holds approver-or-above at time t. */
   isApproverAt(uid: string, tMs: number): boolean;
 }
-
-const APPROVER_PLUS: EsignRole[] = ["approver", "treasurer", "admin"];
 
 /** Two ATTEST subjects name the same identity (all four bound fields agree). */
 function sameSubject(a: AttestAction["subject"], b: AttestAction["subject"]): boolean {
@@ -122,7 +120,7 @@ export function replayRoster(
     return [...out];
   };
   const isApproverAt = (uid: string, tMs: number) =>
-    rolesAt(uid, tMs).some((r) => APPROVER_PLUS.includes(r));
+    rolesAt(uid, tMs).some((r) => APPROVER_PLUS_ROLES.includes(r));
 
   for (const event of events.slice(1)) {
     const a = event.action;
