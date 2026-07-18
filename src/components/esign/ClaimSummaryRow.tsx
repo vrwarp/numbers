@@ -63,9 +63,11 @@ export default function ClaimSummaryRow({
       {/* min-w-0 + truncate so long text shrinks instead of pushing the amount
           off the card (flex items default to min-width:auto). */}
       <div className="min-w-0 flex-1 text-left">
-        <div className="truncate font-semibold">{claim.ownerName}</div>
+        <div className="font-semibold">{claim.ownerName}</div>
+        {/* Only the description truncates — the name and the dates line are
+            short and meaningful in full, so they wrap rather than ellipsis. */}
         <div className="truncate text-sm text-stone-500">{subtitle}</div>
-        {meta && <div className="truncate text-xs text-stone-400">{meta}</div>}
+        {meta && <div className="text-xs text-stone-400">{meta}</div>}
       </div>
       <div className="flex shrink-0 items-center gap-3">
         <span className="text-lg font-bold">{formatCents(claim.totalCents)}</span>
