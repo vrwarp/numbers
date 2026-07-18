@@ -89,6 +89,7 @@ test("shoebox housekeeping: deleting receipts and discarding drafts", async ({ p
   await page.getByTestId("generate-claim").click();
   await page.waitForURL(/\/claims\/[^/]+$/, { timeout: 30_000 });
   await page.getByTestId("discard-claim").click();
+  await page.getByTestId("claim-confirm-confirm").click();
   await page.waitForURL("/");
   await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(1);
 
@@ -119,6 +120,7 @@ test("removing a receipt from a draft claim returns it to the shoebox", async ({
   await expect(rows).toHaveCount(2);
   await expect(page.getByTestId("claim-total")).toHaveText("$204.20");
   await page.locator('[data-testid^="remove-receipt-"]').first().click();
+  await page.getByTestId("claim-confirm-confirm").click();
   await expect(rows).toHaveCount(1);
   await expect(page.getByTestId("claim-total")).toHaveText("$102.10");
 
@@ -256,6 +258,7 @@ test("revert to draft unfreezes a generated claim and its receipts", async ({ pa
   await page.goto(`/claims/${claimId}`);
   await expect(page.getByTestId("claim-status")).toHaveText("Generated");
   await page.getByTestId("revert-claim").click();
+  await page.getByTestId("claim-confirm-confirm").click();
   await expect(page.getByTestId("claim-status")).toHaveText("Draft");
 
   // Receipt is back to unassigned; rows are editable again (edit revokes the

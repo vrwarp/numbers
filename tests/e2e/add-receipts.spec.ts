@@ -58,8 +58,9 @@ test("receipts can be added to a draft claim from the review screen", async ({ p
   // Added rows behave like created ones: unverified until confirmed…
   await expect(page.getByTestId("verify-progress")).toContainText("0 / 3 verified");
 
-  // …and an added receipt can be removed again.
+  // …and an added receipt can be removed again (in-app confirm dialog).
   await page.getByTestId(`remove-receipt-${amazon.id}`).click();
+  await page.getByTestId("claim-confirm-confirm").click();
   await expect(page.locator('[data-testid^="group-"]')).toHaveCount(2);
   await expect(page.getByTestId("claim-total")).toHaveText("$74.12");
 

@@ -163,6 +163,9 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
 
   // Picked photos exist only in this tab until their dialog is dismissed —
   // warn before a navigation throws them away. (Uploaded PDFs are safe.)
+  // Known gap: iOS Safari never fires beforeunload (WebKit policy), so iPhone
+  // users get no warning — the modal prepare dialog being open is the only
+  // guard there. Don't move real work into this handler.
   const hasLocalPending = pending.some((i) => i.kind === "local");
   useEffect(() => {
     if (!hasLocalPending) return;

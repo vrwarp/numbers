@@ -576,10 +576,10 @@ test("printed recovery sheet; a tablet recovers by phrase alone", async ({ brows
 
 test("revoking the phone rotates the AMK server-side and locks it out", async () => {
   test.setTimeout(300_000);
-  alice.page.on("dialog", (d) => void d.accept());
   await alice.page.goto(`${BASE}/profile`);
   await alice.page.waitForSelector('[data-testid="devices-panel"]', { timeout: 30_000 });
   await alice.page.click(`[data-testid="remove-device-${phoneDeviceId}"]`);
+  await alice.page.click('[data-testid="remove-device-confirm-confirm"]');
   await alice.page.waitForFunction(
     () => document.querySelectorAll('[data-testid^="remove-device-"]').length === 1,
     { timeout: 60_000 }
@@ -634,11 +634,11 @@ test("lost everything: start-over + re-vouch supersedes the key; history stands"
 }) => {
   test.setTimeout(300_000);
   aliceNew = await newPersona(browser, "alice@example.com", "Alice Rivera");
-  aliceNew.page.on("dialog", (d) => void d.accept());
   await aliceNew.page.goto(`${BASE}/profile`);
   await aliceNew.page.waitForSelector('[data-testid="new-device-card"]', { timeout: 45_000 });
   await aliceNew.page.click("summary:has-text('None of these work?')");
   await aliceNew.page.click('[data-testid="start-over"]');
+  await aliceNew.page.click('[data-testid="start-over-confirm-confirm"]');
   // Start-over wipes the fleet and drops straight into the enroll wizard.
   await aliceNew.page.check('[data-testid="consent-checkbox"]', { timeout: 45_000 });
   await aliceNew.page.click('[data-testid="consent-next"]');

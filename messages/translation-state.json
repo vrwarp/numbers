@@ -1295,9 +1295,15 @@
   },
   "Review.revertConfirm": {
     "source": "Revert this claim to draft? Only do this if you haven’t turned in the printed form yet. Rows become editable again, and the receipts leave “processed”.",
-    "context": "Native confirm() before reverting. Quotes the 'processed' status word — its exact translation is provided as mustContain and must appear verbatim (test-enforced).",
+    "context": "In-app confirmation dialog before reverting. Quotes the 'processed' status word — its exact translation is provided as mustContain and must appear verbatim (test-enforced).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Review.revertConfirmButton": {
+    "source": "Revert",
+    "context": "One-word destructive button in the revert-claim confirmation dialog, paired with Common.cancel; a verb (undo the freeze, back to draft), matching Review.revert's term.",
+    "zh-Hans": "human",
+    "zh-Hant": "human"
   },
   "Review.revertFailed": {
     "source": "Revert failed",
@@ -1307,9 +1313,15 @@
   },
   "Review.removeConfirm": {
     "source": "Remove this receipt from the claim? Its rows are deleted and the receipt goes back to the Receipts page.",
-    "context": "Native confirm() before removing a receipt from the claim; mentions the Receipts page by name — match Shoebox.title's wording.",
+    "context": "In-app confirmation dialog before removing a receipt from the claim; mentions the Receipts page by name — match Shoebox.title's wording.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Review.removeConfirmButton": {
+    "source": "Remove",
+    "context": "One-word destructive button in the remove-receipt confirmation dialog, paired with Common.cancel; a verb, matching Review.removeButton's term.",
+    "zh-Hans": "human",
+    "zh-Hant": "human"
   },
   "Review.removeFailed": {
     "source": "Remove failed",
@@ -1319,7 +1331,7 @@
   },
   "Review.discardConfirm": {
     "source": "Discard this draft claim? Receipts go back to the Receipts page.",
-    "context": "Native confirm() before deleting the draft claim; mentions the Receipts page by name — match Shoebox.title's wording.",
+    "context": "In-app confirmation dialog before deleting the draft claim; mentions the Receipts page by name — match Shoebox.title's wording.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1890,7 +1902,7 @@
   },
   "Review.revertConfirmSigned": {
     "source": "Revert this claim to draft? Every signature collected so far becomes void, and approval starts over.",
-    "context": "confirm() before reverting a claim that has e-signatures: warns that collected signatures become void and approval restarts.",
+    "context": "in-app confirmation dialog before reverting a claim that has e-signatures: warns that collected signatures become void and approval restarts.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1944,9 +1956,15 @@
   },
   "Esign.withdrawConfirm": {
     "source": "Withdraw this submission so you can pick a different approver?",
-    "context": "confirm() before withdrawing a submission to pick a different approver.",
+    "context": "in-app confirmation dialog before withdrawing a submission to pick a different approver.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Esign.withdrawConfirmButton": {
+    "source": "Withdraw",
+    "context": "One-word destructive button in the withdraw-submission confirmation dialog, paired with Common.cancel; a verb, matching Esign.withdrawButton's term.",
+    "zh-Hans": "human",
+    "zh-Hant": "human"
   },
   "Esign.withdrawButton": {
     "source": "↪ Withdraw / change approver",
@@ -2941,9 +2959,15 @@
   },
   "Devices.startOverConfirm": {
     "source": "Start over from nothing?\n\nThis signs ALL your devices out and throws away your current signing key. You'll set up again from scratch and be vouched for again in person — which automatically retires the old key. Anything you already signed stays valid.",
-    "context": "confirm() for start-over. Keep the blank line (\\n\\n). Serious but calm: old signatures stay valid.",
+    "context": "in-app confirmation dialog for start-over. Keep the blank line (\\n\\n). Serious but calm: old signatures stay valid.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Devices.startOverConfirmButton": {
+    "source": "Start over",
+    "context": "Short destructive button in the start-over confirmation dialog, paired with Common.cancel; a verb phrase, matching Devices.startOver's term.",
+    "zh-Hans": "human",
+    "zh-Hant": "human"
   },
   "Devices.couldNotStart": {
     "source": "Could not start",
@@ -3061,9 +3085,15 @@
   },
   "Devices.removeConfirm": {
     "source": "Sign “{name}” out of electronic signing?\n\nIt loses access right away. If the device might be in someone else's hands, tell your administrator in person too, so they can revoke your signing key.",
-    "context": "confirm() for removing a device; {name} is the device name. Keep the blank line (\\n\\n).",
+    "context": "in-app confirmation dialog for removing a device; {name} is the device name. Keep the blank line (\\n\\n).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Devices.removeConfirmButton": {
+    "source": "Sign out",
+    "context": "Short destructive button in the device sign-out confirmation dialog, paired with Common.cancel; a verb (sign the device out), matching the wording of Devices.removeConfirm.",
+    "zh-Hans": "human",
+    "zh-Hant": "human"
   },
   "Devices.couldNotRemove": {
     "source": "Could not remove the device",

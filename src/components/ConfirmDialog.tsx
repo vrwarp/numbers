@@ -37,7 +37,7 @@ export default function ConfirmDialog({
       aria-label={message}
     >
       <div className="card w-full max-w-sm p-6" data-testid={testId}>
-        <p className="text-sm">{message}</p>
+        <p className="whitespace-pre-line text-sm">{message}</p>
         <div className="mt-5 flex justify-end gap-2">
           <button
             className="btn-secondary"

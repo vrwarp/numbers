@@ -55,3 +55,28 @@ test("tap-delete works with native confirm() suppressed (iOS standalone)", async
   await expect(page.getByTestId("clear-selection")).toHaveCount(0);
   expect(nativeDialogs).toEqual([]);
 });
+
+/** Same iOS-standalone constraint for the claim screen's destructive actions:
+ *  discarding a draft must confirm through in-app UI, not window.confirm(). */
+test("tap-discard of a draft claim works with native confirm() suppressed", async ({
+  page,
+}, testInfo) => {
+  const nativeDialogs: string[] = [];
+  page.on("dialog", (d) => {
+    nativeDialogs.push(d.message());
+    void d.dismiss();
+  });
+
+  await signInAs(page, `mobile-disc-${testInfo.project.name}@example.com`, "Mobile Mary");
+  await page.goto("/");
+  await uploadReceipts(page, [await makeReceiptFixture("mobile-discard.jpg")]);
+  await page.locator('[data-testid^="receipt-card-"]').first().tap();
+  await page.getByTestId("generate-claim").tap();
+  await page.waitForURL(/\/claims\/[^/]+$/, { timeout: 30_000 });
+
+  await page.getByTestId("discard-claim").tap();
+  await page.getByTestId("claim-confirm-confirm").tap();
+  await page.waitForURL("/");
+  await expect(page.locator('[data-testid^="receipt-card-"]')).toHaveCount(1);
+  expect(nativeDialogs).toEqual([]);
+});
