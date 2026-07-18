@@ -105,7 +105,12 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    exception beside invariant 2 — writes stay owner-only. The grant is narrowed
    per-duty by the A10 pauses (`src/lib/roles.ts` `searchCapabilities`): a
    fully-paused role-holder reads like a member (scope/file 404); never from
-   `ADMIN_EMAILS`.
+   `ADMIN_EMAILS`. The TEAM read grant (§6.3 team amendment) sits beside it:
+   membership in an active Team (budget-category codes) grants `scope="team"` —
+   read-only over receipts whose own line item carries a team code on a
+   non-draft claim (+ the containing claims) — membership-derived per request
+   (`src/lib/teams-catalog.ts`), never role- or `ADMIN_EMAILS`-derived; A10
+   pauses don't apply; same pre-filter + hydration re-check discipline.
 
 ## Docs map
 

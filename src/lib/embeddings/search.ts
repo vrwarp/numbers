@@ -1,4 +1,6 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { teamPrefetch } from "@/lib/teams-catalog";
 import { sha256Hex } from "./content";
 import { embeddingSettings, modelConfigOf } from "./settings";
 import { embedText } from "./provider";
@@ -11,7 +13,7 @@ import { formatMinistryEvent } from "@/lib/ministries";
 /** The search engine behind POST /api/search (docs/SEARCH_DESIGN.md §6). */
 
 export type SearchTypes = ("receipt" | "claim")[];
-export type SearchScopeName = "mine" | "all" | "decided";
+export type SearchScopeName = "mine" | "all" | "decided" | "team";
 
 export type ReceiptItem = {
   kind: "receipt";
@@ -71,16 +73,25 @@ export async function decidedPrefetch(userId: string) {
   };
 }
 
+/** Per-kind scope constraints re-applied at hydration (§6.1 step 6): `mine`
+ *  restricts by owner, `team` by the prefetched allowed-id sets, `all` is
+ *  genuinely unrestricted. An index-cache bug can never leak a row the DB
+ *  query itself excludes. */
+type ScopeWheres = {
+  receipt: Prisma.ReceiptWhereInput;
+  claim: Prisma.ReimbursementWhereInput;
+};
+
 async function hydrate(
   receiptIds: string[],
   claimIds: string[],
-  scopeWhere: { userId?: string },
+  scopeWheres: ScopeWheres,
   includeOwner: boolean
 ): Promise<Map<string, SearchItem>> {
   const out = new Map<string, SearchItem>();
   if (receiptIds.length) {
     const rows = await prisma.receipt.findMany({
-      where: { id: { in: receiptIds }, ...scopeWhere },
+      where: { AND: [{ id: { in: receiptIds } }, scopeWheres.receipt] },
       include: {
         user: includeOwner ? { select: { fullName: true, email: true } } : undefined,
         reimbursements: {
@@ -112,7 +123,7 @@ async function hydrate(
   }
   if (claimIds.length) {
     const rows = await prisma.reimbursement.findMany({
-      where: { id: { in: claimIds }, ...scopeWhere },
+      where: { AND: [{ id: { in: claimIds } }, scopeWheres.claim] },
       include: {
         user: { select: { fullName: true, email: true } },
         lineItems: { where: { isExcluded: false }, select: { ministry: true, event: true } },
@@ -197,7 +208,19 @@ export async function runSearch(opts: {
   if (!settings) throw new Error("search unconfigured"); // route 404s before this
 
   const decided = scope === "decided" ? await decidedPrefetch(userId) : null;
-  const scopeWhere = scope === "mine" ? { userId } : {};
+  // Team scope (§6.3 team amendment): allowed-id sets from live membership —
+  // receipts whose own line item carries a team code on a non-draft claim,
+  // plus the containing claims.
+  const team = scope === "team" ? await teamPrefetch(userId) : null;
+  const scopeWheres: ScopeWheres =
+    scope === "mine"
+      ? { receipt: { userId }, claim: { userId } }
+      : scope === "team"
+        ? {
+            receipt: { id: { in: team!.receiptIds } },
+            claim: { id: { in: team!.claimIds } },
+          }
+        : { receipt: {}, claim: {} };
   const includeOwner = scope !== "mine";
 
   // Browse mode: decided scope + empty query = the decided set newest-first.
@@ -211,9 +234,38 @@ export async function runSearch(opts: {
       take: BROWSE_PAGE,
       select: { id: true },
     });
-    const hydrated = await hydrate([], page.map((c) => c.id), {}, true);
+    const hydrated = await hydrate([], page.map((c) => c.id), scopeWheres, true);
     const items = page
       .map((c) => hydrated.get(`claim:${c.id}`))
+      .filter((x): x is SearchItem => !!x);
+    return {
+      exact: [],
+      exactTotal: 0,
+      best: null,
+      groups: groupByYear(items),
+      indexed: await pendingCounts(userId),
+      ...(offset + BROWSE_PAGE < ids.length
+        ? { nextCursor: String(offset + BROWSE_PAGE) }
+        : {}),
+    };
+  }
+
+  // Browse mode: team scope + empty query = the team's receipts newest-first
+  // ("list all the receipts under my teams' budgets"). Claims join in only on
+  // an actual query — the browse list keeps the receipt as the spine.
+  if (scope === "team" && !normalizeQuery(query)) {
+    const offset = Number(opts.cursor ?? 0) || 0;
+    const ids = team!.receiptIds;
+    const page = await prisma.receipt.findMany({
+      where: { id: { in: ids } },
+      orderBy: { createdAt: "desc" },
+      skip: offset,
+      take: BROWSE_PAGE,
+      select: { id: true },
+    });
+    const hydrated = await hydrate(page.map((r) => r.id), [], scopeWheres, true);
+    const items = page
+      .map((r) => hydrated.get(`receipt:${r.id}`))
       .filter((x): x is SearchItem => !!x);
     return {
       exact: [],
@@ -232,7 +284,9 @@ export async function runSearch(opts: {
       ? { kind: "mine", userId }
       : scope === "decided"
         ? { kind: "decided", ...decided! }
-        : { kind: "all" };
+        : scope === "team"
+          ? { kind: "team", ...team! }
+          : { kind: "all" };
   const exactRaw = await exactMatchPass(query, exactScope, types);
 
   // Semantic pass — degraded (exact-only) when the embed call fails.
@@ -286,6 +340,8 @@ export async function runSearch(opts: {
     const entries = await indexEntries(settings.model);
     const decidedClaims = decided ? new Set(decided.claimIds) : null;
     const decidedReceipts = decided ? new Set(decided.receiptIds) : null;
+    const teamClaims = team ? new Set(team.claimIds) : null;
+    const teamReceipts = team ? new Set(team.receiptIds) : null;
     const minScore = settings.minScoreMilli / 1000;
     for (const entry of entries) {
       if (!types.includes(entry.kind)) continue;
@@ -293,6 +349,10 @@ export async function runSearch(opts: {
       if (scope === "mine" && entry.userId !== userId) continue;
       if (scope === "decided") {
         const set = entry.kind === "claim" ? decidedClaims! : decidedReceipts!;
+        if (!set.has(entry.targetId)) continue;
+      }
+      if (scope === "team") {
+        const set = entry.kind === "claim" ? teamClaims! : teamReceipts!;
         if (!set.has(entry.targetId)) continue;
       }
       const score = dot(qv, entry.vector);
@@ -316,7 +376,7 @@ export async function runSearch(opts: {
   const hydrated = await hydrate(
     [...exactRaw.receiptIds, ...semantic.filter((s) => s.entry.kind === "receipt").map((s) => s.entry.targetId)],
     [...exactRaw.claimIds, ...semantic.filter((s) => s.entry.kind === "claim").map((s) => s.entry.targetId)],
-    scope === "mine" ? scopeWhere : {},
+    scopeWheres,
     includeOwner
   );
 

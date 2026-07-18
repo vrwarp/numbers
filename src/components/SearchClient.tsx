@@ -58,8 +58,12 @@ type SearchResponse = {
   nextCursor?: string;
 };
 
-type Scope = "mine" | "all" | "decided";
+type Scope = "mine" | "all" | "decided" | "team";
 type TypeFilter = "receipt" | "claim" | null;
+
+/** Scopes that browse their set on an empty query ("list everything"):
+ *  decided claims, and the team read grant's receipts (§6.3). */
+const browsesEmpty = (s: Scope) => s === "decided" || s === "team";
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-amber-100 text-amber-800",
@@ -84,13 +88,17 @@ export default function SearchClient({
   userId,
   canAll,
   canDecided,
+  canTeam,
 }: {
   userId: string;
   // Cross-tenant search capabilities (docs/SEARCH_DESIGN.md §6.3): the verified
   // role narrowed by the A10 duty pauses. canAll → whole-church scope; canDecided
-  // → the "Claims I decided" browse (implies canAll).
+  // → the "Claims I decided" browse (implies canAll). canTeam is different in
+  // kind: membership-derived (active Team with budget categories), so a plain
+  // member can hold it without any role.
   canAll: boolean;
   canDecided: boolean;
+  canTeam: boolean;
 }) {
   const t = useTranslations("Search");
   const tStatus = useTranslations("Common.status");
@@ -140,6 +148,7 @@ export default function SearchClient({
     let initScope: Scope = "mine";
     if (urlScope === "all" && canAll) initScope = "all";
     else if (urlScope === "decided" && canDecided) initScope = "decided";
+    else if (urlScope === "team" && canTeam) initScope = "team";
     const initType: TypeFilter =
       urlType === "receipt" || urlType === "claim" ? urlType : null;
     setQuery(urlQ);
@@ -157,7 +166,7 @@ export default function SearchClient({
         setRecents((prev) => [...prev, ...d.recents.filter((q: string) => !prev.includes(q))].slice(0, 5));
       })
       .catch(() => {});
-    if (urlQ.trim() || initScope === "decided") {
+    if (urlQ.trim() || browsesEmpty(initScope)) {
       void runSearch(urlQ, { scope: initScope, type: initType });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -184,7 +193,7 @@ export default function SearchClient({
     ) => {
       const useScope = opts.scope ?? scope;
       const useType = opts.type !== undefined ? opts.type : typeFilter;
-      if (!q.trim() && useScope !== "decided") return;
+      if (!q.trim() && !browsesEmpty(useScope)) return;
       if (!opts.append && !opts.cursor) syncUrl(q, useScope, useType);
       const seq = ++submitSeq.current;
       abortRef.current?.abort();
@@ -288,7 +297,7 @@ export default function SearchClient({
     (next: Scope) => {
       setScope(next);
       const q = query;
-      if (q.trim() || next === "decided") void runSearch(q, { scope: next });
+      if (q.trim() || browsesEmpty(next)) void runSearch(q, { scope: next });
       else syncUrl(q, next, typeFilter);
     },
     [query, runSearch, syncUrl, typeFilter]
@@ -299,7 +308,7 @@ export default function SearchClient({
   const changeType = useCallback(
     (next: TypeFilter) => {
       setTypeFilter(next);
-      if (query.trim() || scope === "decided") void runSearch(query, { type: next });
+      if (query.trim() || browsesEmpty(scope)) void runSearch(query, { type: next });
       else syncUrl(query, scope, next);
     },
     [query, scope, runSearch, syncUrl]
@@ -356,9 +365,10 @@ export default function SearchClient({
             </button>
           ))}
         </div>
-        {canAll && (
+        {(canAll || canTeam) && (
           <>
-            {/* "Where" — the cross-tenant scope control (§6.3), role-holders only. */}
+            {/* "Where" — the cross-tenant scope control (§6.3): role-holders,
+                plus team members (membership-derived, §6.3 team amendment). */}
             <span
               aria-hidden
               className="ml-1 text-xs font-semibold uppercase tracking-wide text-stone-400"
@@ -371,10 +381,15 @@ export default function SearchClient({
               aria-label={t("scopeLabel")}
               className="inline-flex overflow-hidden rounded-full border border-stone-300 text-xs font-semibold"
             >
-              {/* "Claims I decided" only when the Approvals duty is active (§6.3). */}
-              {(["mine", "all", "decided"] as const)
-                .filter((s) => s !== "decided" || canDecided)
-                .map((s) => (
+              {/* Each cross-tenant segment appears only with its grant: "Whole
+                  church" (canAll), "My teams" (canTeam), "Claims I decided"
+                  (canDecided, §6.3). */}
+              {([
+                "mine",
+                ...(canAll ? (["all"] as const) : []),
+                ...(canTeam ? (["team"] as const) : []),
+                ...(canDecided ? (["decided"] as const) : []),
+              ] as Scope[]).map((s) => (
                 <button
                   key={s}
                   role="radio"
@@ -382,7 +397,13 @@ export default function SearchClient({
                   className={`px-3 py-1.5 ${scope === s ? "bg-indigo-600 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
                   onClick={() => changeScope(s)}
                 >
-                  {s === "mine" ? t("scopeMine") : s === "all" ? t("scopeAll") : t("scopeDecided")}
+                  {s === "mine"
+                    ? t("scopeMine")
+                    : s === "all"
+                      ? t("scopeAll")
+                      : s === "team"
+                        ? t("scopeTeam")
+                        : t("scopeDecided")}
                 </button>
               ))}
             </div>
@@ -390,6 +411,9 @@ export default function SearchClient({
         )}
         {scope === "decided" && (
           <span className="text-xs text-stone-500">{t("scopeDecidedHint")}</span>
+        )}
+        {scope === "team" && (
+          <span className="text-xs text-stone-500">{t("scopeTeamHint")}</span>
         )}
       </div>
 
@@ -467,7 +491,7 @@ export default function SearchClient({
           data-testid="search-submit"
           className="btn-primary min-h-11 shrink-0 px-5"
           onClick={onSubmit}
-          disabled={searching || (!query.trim() && scope !== "decided")}
+          disabled={searching || (!query.trim() && !browsesEmpty(scope))}
         >
           {searching ? t("searching") : t("searchButton")}
         </button>

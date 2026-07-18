@@ -5,6 +5,7 @@ import "./globals.css";
 import { currentUser } from "@/auth";
 import { isAppAdmin } from "@/lib/config";
 import { canViewMembers } from "@/lib/members-guard";
+import { canManageTeams } from "@/lib/teams-guard";
 import { embeddingEnabled } from "@/lib/embeddings/settings";
 import NavBar from "@/components/NavBar";
 import DeviceRequestsBanner from "@/components/esign/DeviceRequestsBanner";
@@ -56,6 +57,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               isAdmin={isAppAdmin(user)}
               canManageMinistries={user.role === "treasurer" || isAppAdmin(user)}
               canViewMembers={canViewMembers(user)}
+              canManageTeams={canManageTeams(user)}
               searchEnabled={searchEnabled}
             />
           )}

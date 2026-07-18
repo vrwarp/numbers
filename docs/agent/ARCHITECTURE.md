@@ -34,6 +34,14 @@ src/lib/positions.ts            Positions (custom approval roles): approverEligi
                                 — dependency-free, unit-tested, client-safe
 src/lib/positions-catalog.ts    Position table reads + resolveSuggestedApprover(claim) (SERVER);
 src/lib/positions-guard.ts      requirePositionEditor (treasurer/admin, same gate as ministries)
+src/lib/teams-catalog.ts        Teams reads + the TEAM READ GRANT (SEARCH_DESIGN §6.3 team
+                                amendment): teamPrefetch (allowed-id Sets for scope="team"),
+                                canReadReceiptViaTeam (file/preview per-id check),
+                                hasTeamReadGrant (canTeam) — membership-derived, SERVER ONLY
+src/lib/teams-guard.ts          canManageTeams/requireTeamEditor (Approver-or-above or
+                                app-admin — wider than ministries on purpose)
+src/components/Teams.tsx        /teams editor: name/description, member picker, budget-category
+                                code chips (stored as codes, not Ministry ids)
 src/lib/members-guard.ts        canViewMembers/requireMemberDirectoryViewer (treasurer/admin
                                 + the other executive officers, A11) — the /members page +
                                 /api/members directory
@@ -251,7 +259,8 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/line-items/[id]/merge` | POST | no body; undo-split: folds row into the same-receipt row directly above (400 if none, or if either row excluded); draft only (409); survivor keeps its description/ministry/event/original*, sums amounts, isVerified=false; merged row deleted; AuditEvent(merge); renumbers sortOrder; recomputes totalCents |
 | `/api/profile` | GET PATCH | fullName, mailingAddress (printed on the form), locale, and the A10 duty pauses (`approvalsPaused`/`financePaused`/`adminPaused` — self-service; changes audited `update-availability`). Returns `{user, duties}` where `duties` says which toggles the member's grants make relevant |
 | `/api/members` | GET | the Members page directory: EVERY user with mirror role, Position, e-sign enrollment status, allowlist state, key fingerprint — treasurer/admin gated (`requireMemberDirectoryViewer`, 404 otherwise). Read-only; the page's mutations go through their own guards (roster events, `PATCH /api/esign/allowlist`) |
-| `/api/search` | POST | semantic + exact search (docs/SEARCH_DESIGN.md §6): scope mine/all/decided (role-gated by the verified mirror; member asking beyond mine → 404), exact-match SQL pass + cosine over the in-memory index, degraded exact-only mode when the embed call fails, decided browse with cursor. 404 while unconfigured |
+| `/api/teams` | GET PUT | the Teams catalog (SEARCH_DESIGN §6.3 team amendment): GET teams+member directory, PUT replace (archive-don't-delete, audited `admin-teams`) — Approver-or-above via `requireTeamEditor` (404 otherwise). Associations stored as budget-category CODES |
+| `/api/search` | POST | semantic + exact search (docs/SEARCH_DESIGN.md §6): scope mine/all/decided/team (mine free; all/decided role-gated by the verified mirror; team gated on live Team membership — member asking beyond their grants → 404), exact-match SQL pass + cosine over the in-memory index, degraded exact-only mode when the embed call fails, decided/team browse with cursor (decided = claims by decidedAt; team = the team receipts by createdAt). 404 while unconfigured |
 | `/api/admin/embeddings` (+ `/probe`, `/jobs`, `/rebuild`, `/test-query`) | GET PUT POST | admin search backend config (probe detects dim; GET returns key fingerprint only), queue health/failed retries, forced rebuild, scored test query — behind `requireAdmin()` |
 | `/api/extraction-logs` | GET | own logs, `?reimbursementId=`, newest first, summaries (kind="embedding" rows excluded — operational, §9) |
 | `/api/extraction-logs/[id]` | GET | full tuning record: log + lineItems w/ computed `corrections` + `humanCreated` + parsed auditEvents |
