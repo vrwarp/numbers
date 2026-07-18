@@ -54,7 +54,11 @@ export default function ClaimSummaryRow({
   const subtitle = claimSubtitle(claim, (count) => tEsign("itemsCount", { count }));
   const meta = useMetaLine(claim);
   return (
-    <div className="flex w-full items-center gap-3">
+    // min-w-0 so the row can shrink when it is itself a flex child (the finance
+    // paid row nests it inside a flex toggle button next to a View link); without
+    // it the row keeps its content width and the amount overflows onto that link
+    // on narrow screens. A no-op in the block-parent inbox/queue rows.
+    <div className="flex w-full min-w-0 items-center gap-3">
       {leading}
       {/* min-w-0 + truncate so long text shrinks instead of pushing the amount
           off the card (flex items default to min-width:auto). */}
