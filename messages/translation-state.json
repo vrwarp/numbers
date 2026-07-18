@@ -224,6 +224,12 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Home.profileNudgeShort": {
+    "source": "Finish your profile",
+    "context": "Compact one-line version of Home.profileNudge shown as a tappable chip on short/limited-height viewports; the whole chip links to the profile page. Keep it very short (fits one line beside a ⚠ icon). Imperative.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "SignIn.tagline": {
     "source": "CFCC expense reimbursements — snap receipts now, file the claim later.",
     "context": "One-liner under the app name on the sign-in card. English uses the CFCC abbreviation; Chinese uses the church's full Chinese name.",

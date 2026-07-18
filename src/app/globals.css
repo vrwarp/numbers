@@ -4,6 +4,13 @@
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
+/* Height-aware variant. Every other breakpoint in the app is width-based, so a
+   landscape phone (e.g. 844×390) or a portrait phone with the keyboard up gets
+   desktop chrome with almost no vertical room. `short:` lets components reclaim
+   height on cramped viewports: shrink titles, hide intros, un-stick the nav.
+   500px is just above a landscape phone's height and well below any tablet. */
+@custom-variant short (@media (max-height: 500px));
+
 /* Per-script CJK stacks (no webfonts — every target OS ships these). The
    point over bare system-ui is the *regional glyph forms*: zh-Hans gets
    Simplified-styled faces, zh-Hant Traditional-styled ones (骨/说/門 differ). */
@@ -18,6 +25,13 @@ html[lang="zh-Hant"] body {
 
 html, body {
   touch-action: pan-x pan-y;
+}
+
+/* Keep focus-scrolling and scrollIntoView clear of the claim's floating action
+   bar (sticky bottom-4, ~72px tall) so a focused input at the bottom of a long
+   claim isn't parked underneath it. */
+html {
+  scroll-padding-bottom: 6rem;
 }
 
 body {

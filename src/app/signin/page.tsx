@@ -11,13 +11,15 @@ export default async function SignInPage() {
   const t = await getTranslations("SignIn");
 
   return (
-    <div className="mx-auto mt-16 max-w-md">
-      <div className="card p-8 text-center">
-        <div className="text-5xl" aria-hidden>
+    <div className="mx-auto mt-16 max-w-md short:mt-4">
+      <div className="card p-8 text-center short:p-5">
+        {/* Sign-in is a once-per-device screen, so the brand hero compresses
+            (not disappears) on a short viewport to pull the controls up. */}
+        <div className="text-5xl short:text-3xl" aria-hidden>
           ⛪
         </div>
-        <h1 className="mt-3 text-2xl font-bold text-indigo-700">Numbers</h1>
-        <p className="mt-1 text-sm text-stone-500">{t("tagline")}</p>
+        <h1 className="mt-3 text-2xl font-bold text-indigo-700 short:mt-1 short:text-xl">Numbers</h1>
+        <p className="mt-1 text-sm text-stone-500 short:hidden">{t("tagline")}</p>
 
         <SignInCard firebaseConfig={firebaseWebConfig()} testMode={isAuthTestMode()} />
       </div>

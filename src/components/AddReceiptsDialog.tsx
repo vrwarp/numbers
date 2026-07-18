@@ -183,7 +183,7 @@ export default function AddReceiptsDialog({
       aria-modal
       data-testid="add-receipts-dialog"
     >
-      <div className="card flex max-h-[85vh] w-full max-w-3xl flex-col p-6">
+      <div className="card flex max-h-[85dvh] w-full max-w-3xl flex-col p-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="font-bold">{t("title")}</h2>

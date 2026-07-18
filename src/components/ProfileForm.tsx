@@ -152,8 +152,8 @@ export default function ProfileForm() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-sm text-stone-500">{t("subtitle")}</p>
+        <h1 className="text-2xl font-bold short:text-lg">{t("title")}</h1>
+        <p className="text-sm text-stone-500 short:hidden">{t("subtitle")}</p>
       </div>
       <form onSubmit={save} className="card space-y-4 p-6">
         <div>
@@ -205,7 +205,10 @@ export default function ProfileForm() {
             ))}
           </select>
         </div>
-        <div className="flex items-center gap-3">
+        {/* On a short viewport the form runs past the fold with the keyboard up,
+            so Save pins to the bottom edge (bleeding past the card's p-6). The
+            "Saved ✓" / error feedback sits in the same row, where the tap is. */}
+        <div className="z-10 flex items-center gap-3 short:sticky short:bottom-0 short:-mx-6 short:-mb-6 short:border-t short:border-stone-200 short:bg-white/95 short:px-6 short:py-3 short:backdrop-blur">
           <button type="submit" className="btn-primary" disabled={busy} data-testid="profile-save">
             {busy ? tCommon("saving") : tCommon("save")}
           </button>

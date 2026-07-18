@@ -49,7 +49,8 @@
     "positions": "Positions"
   },
   "Home": {
-    "profileNudge": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form."
+    "profileNudge": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
+    "profileNudgeShort": "Finish your profile"
   },
   "SignIn": {
     "tagline": "CFCC expense reimbursements — snap receipts now, file the claim later.",

@@ -39,10 +39,10 @@ export default async function ClaimsPage() {
   const dateLabels = { today: tDate("today"), yesterday: tDate("yesterday") };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 short:space-y-3">
       <div>
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <p className="text-sm text-stone-500">{t("subtitle")}</p>
+        <h1 className="text-2xl font-bold short:text-lg">{t("title")}</h1>
+        <p className="text-sm text-stone-500 short:hidden">{t("subtitle")}</p>
       </div>
 
       {searchEnabled && (
@@ -73,7 +73,7 @@ export default async function ClaimsPage() {
         <ul className="space-y-3">
           {claims.map((c) => (
             <li key={c.id}>
-              <Link href={`/claims/${c.id}`} className="card card-lift pressable flex items-center justify-between p-4" data-testid={`claim-${c.id}`}>
+              <Link href={`/claims/${c.id}`} className="card card-lift pressable flex items-center justify-between p-4 short:py-2.5" data-testid={`claim-${c.id}`}>
                 <div>
                   <div className="font-semibold">
                     {relativeDateLabel(new Date(c.createdAt), now, dateLabels, (d) =>
