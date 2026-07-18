@@ -45,7 +45,8 @@
     "account": "Account",
     "budgetCategories": "Budget categories",
     "pendingWork": "pending work",
-    "search": "Search"
+    "search": "Search",
+    "positions": "Positions"
   },
   "Home": {
     "profileNudge": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form."
@@ -436,7 +437,8 @@
     "clearPad": "Clear and start over",
     "waitingFor": "Waiting for {name} to review this claim.",
     "approverPausedNote": "{name} isn't taking new approval requests right now. They can still decide this claim, or you can withdraw it and pick a different approver.",
-    "approverIneligibleNote": "{name} can no longer approve claims. Withdraw this submission and pick a different approver."
+    "approverIneligibleNote": "{name} can no longer approve claims. Withdraw this submission and pick a different approver.",
+    "approverPrefilledFrom": "Pre-filled from the {position} default. Change it below if needed."
   },
   "Approvals": {
     "title": "Approvals",
@@ -782,7 +784,11 @@
       "codeFormat": "Account code must be exactly 3 digits and not 999: “{code}”.",
       "codeDuplicate": "Two active categories share the code {code} — codes must be unique."
     },
-    "embeddingProbeFailed": "Could not reach the embedding server. Check the address and key, or use “Save without testing”."
+    "embeddingProbeFailed": "Could not reach the embedding server. Check the address and key, or use “Save without testing”.",
+    "position": {
+      "invalid": "Those positions couldn’t be saved — check the form and try again.",
+      "unknownHolder": "One of the selected people couldn’t be found. Refresh and try again."
+    }
   },
   "AddReceipts": {
     "title": "Add receipts to this claim",
@@ -1046,7 +1052,14 @@
     "renameWarning": "Renaming or recoding a category that’s already on claims won’t relabel those past rows — their printed value stays as it was. To retire one, archive it instead.",
     "reservedNote": "Codes are 3 digits. 999 is reserved for uncategorized “Other…” entries and never prints on the form.",
     "empty": "No categories yet — add one to get started.",
-    "countActive": "{active} of {total} active"
+    "countActive": "{active} of {total} active",
+    "managePositions": "Manage positions",
+    "defaultApprover": "Default approver",
+    "defaultApproverNone": "No default — submitter chooses",
+    "positionArchivedOption": "{name} (archived)",
+    "routesTo": "Routes to {name}",
+    "routesNobody": "No holder here can approve yet — claims won't be pre-filled.",
+    "routesNoHolder": "This position has no holder yet."
   },
   "Search": {
     "title": "Search",
@@ -1084,5 +1097,39 @@
     "degraded": "Right now search only finds results containing your exact words. Descriptive search will be back soon.",
     "dateHint": "Search matches descriptions, not dates — dates are shown on each result.",
     "showMore": "Show more"
+  },
+  "Positions": {
+    "title": "Positions",
+    "subtitle": "Custom approval roles you assign to people and use as the default approver for budget categories.",
+    "authorityNote": "A position is a routing label, not authority. Assigning someone here does not let them approve — they still need the Approver role granted through the signature roster.",
+    "loading": "Loading…",
+    "loadFailed": "Couldn't load positions.",
+    "saveFailed": "Couldn't save positions.",
+    "saved": "Positions saved.",
+    "save": "Save {count} change(s)",
+    "saveNone": "Saved",
+    "saving": "Saving…",
+    "discard": "Discard changes",
+    "addPosition": "New position",
+    "backToCategories": "Budget categories",
+    "empty": "No positions yet — add one to set default approvers for your budget categories.",
+    "namePlaceholder": "Position name (e.g. Deacon of Missions)",
+    "descriptionPlaceholder": "What this position approves (optional)",
+    "active": "Active",
+    "archived": "Archived",
+    "usedByCategories": "Default approver for {count} budget category(ies)",
+    "usedByNone": "Not used by any budget category",
+    "holders": "Holders",
+    "noHolders": "No holder assigned yet.",
+    "addHolder": "Add a holder",
+    "choosePerson": "Choose a person…",
+    "primary": "Primary",
+    "makePrimary": "Make primary",
+    "removeHolder": "Remove",
+    "eligibilityOk": "Can approve",
+    "eligibilityPaused": "Approvals paused",
+    "eligibilityCannot": "Needs Approver grant",
+    "holderPausedWarn": "{name} has paused approvals, so claims won't pre-fill to them until they resume.",
+    "holderCannotWarn": "{name} can't approve until an admin grants them the Approver role through the signature roster."
   }
 }

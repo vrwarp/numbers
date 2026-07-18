@@ -134,6 +134,11 @@ export default function AccountMenu({
               {t("budgetCategories")}
             </Link>
           ) : null}
+          {canManageMinistries ? (
+            <Link href="/positions" className={itemClass} data-testid="nav-positions">
+              {t("positions")}
+            </Link>
+          ) : null}
           {isAdmin ? (
             <Link href="/admin" className={itemClass}>
               {t("admin")}

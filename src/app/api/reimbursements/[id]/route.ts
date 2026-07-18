@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { computeLineItemChanges, type ChangeSet } from "@/lib/audit";
 import { mostCommonMinistryEvent } from "@/lib/ministries";
+import { resolveSuggestedApprover } from "@/lib/positions-catalog";
 
 import { enqueueClaimEmbeddingDebounced, deleteEmbeddingsFor } from "@/lib/embeddings/queue";
 
@@ -42,10 +43,19 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
       include: REVIEW_INCLUDE,
     });
     if (!reimbursement) throw new ApiError(404, "Claim not found", "claimNotFound");
+    // Pre-fill hint for the approver picker (Positions): only meaningful before
+    // a decision, and only a suggestion — never assigns. Resolution is
+    // fail-open (returns null on any miss), so the review screen never depends
+    // on it.
+    const suggested = ["draft", "generated", "rejected"].includes(reimbursement.status)
+      ? await resolveSuggestedApprover(reimbursement)
+      : null;
     return NextResponse.json({
       reimbursement: {
         ...reimbursement,
         approverInfo: await approverInfo(reimbursement.approverUserId),
+        suggestedApproverUserId: suggested?.userId ?? null,
+        suggestedApproverPosition: suggested?.positionName ?? null,
       },
     });
   });

@@ -213,6 +213,11 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "NavBar.positions": {
+    "source": "Positions",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "Home.profileNudge": {
     "source": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
     "context": "Warning banner on the home page; <link> wraps the word that opens the profile page.",
@@ -2381,6 +2386,11 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Esign.approverPrefilledFrom": {
+    "source": "Pre-filled from the {position} default. Change it below if needed.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "Approvals.title": {
     "source": "Approvals",
     "context": "Page title of the approver's inbox; also the nav link.",
@@ -4259,6 +4269,16 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Errors.position.invalid": {
+    "source": "Those positions couldn’t be saved — check the form and try again.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.position.unknownHolder": {
+    "source": "One of the selected people couldn’t be found. Refresh and try again.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "AddReceipts.title": {
     "source": "Add receipts to this claim",
     "context": "Dialog heading: add receipts to an existing draft claim.",
@@ -5589,6 +5609,41 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Ministries.managePositions": {
+    "source": "Manage positions",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.defaultApprover": {
+    "source": "Default approver",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.defaultApproverNone": {
+    "source": "No default — submitter chooses",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.positionArchivedOption": {
+    "source": "{name} (archived)",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.routesTo": {
+    "source": "Routes to {name}",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.routesNobody": {
+    "source": "No holder here can approve yet — claims won't be pre-filled.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.routesNoHolder": {
+    "source": "This position has no holder yet.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "Search.title": {
     "source": "Search",
     "context": "Page title of the search screen and (via SAME_VALUE_GROUPS) the nav tab + submit button. One word. Use 搜索 (Hans) / 搜尋 (Hant) per glossary.",
@@ -5798,5 +5853,165 @@
     "context": "Load-more button for the decided-claims browse (20 per page).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Positions.title": {
+    "source": "Positions",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.subtitle": {
+    "source": "Custom approval roles you assign to people and use as the default approver for budget categories.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.authorityNote": {
+    "source": "A position is a routing label, not authority. Assigning someone here does not let them approve — they still need the Approver role granted through the signature roster.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.loading": {
+    "source": "Loading…",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.loadFailed": {
+    "source": "Couldn't load positions.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.saveFailed": {
+    "source": "Couldn't save positions.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.saved": {
+    "source": "Positions saved.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.save": {
+    "source": "Save {count} change(s)",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.saveNone": {
+    "source": "Saved",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.saving": {
+    "source": "Saving…",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.discard": {
+    "source": "Discard changes",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.addPosition": {
+    "source": "New position",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.backToCategories": {
+    "source": "Budget categories",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.empty": {
+    "source": "No positions yet — add one to set default approvers for your budget categories.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.namePlaceholder": {
+    "source": "Position name (e.g. Deacon of Missions)",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.descriptionPlaceholder": {
+    "source": "What this position approves (optional)",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.active": {
+    "source": "Active",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.archived": {
+    "source": "Archived",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.usedByCategories": {
+    "source": "Default approver for {count} budget category(ies)",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.usedByNone": {
+    "source": "Not used by any budget category",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.holders": {
+    "source": "Holders",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.noHolders": {
+    "source": "No holder assigned yet.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.addHolder": {
+    "source": "Add a holder",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.choosePerson": {
+    "source": "Choose a person…",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.primary": {
+    "source": "Primary",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.makePrimary": {
+    "source": "Make primary",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.removeHolder": {
+    "source": "Remove",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.eligibilityOk": {
+    "source": "Can approve",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.eligibilityPaused": {
+    "source": "Approvals paused",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.eligibilityCannot": {
+    "source": "Needs Approver grant",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.holderPausedWarn": {
+    "source": "{name} has paused approvals, so claims won't pre-fill to them until they resume.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.holderCannotWarn": {
+    "source": "{name} can't approve until an admin grants them the Approver role through the signature roster.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
   }
 }

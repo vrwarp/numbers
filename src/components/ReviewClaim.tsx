@@ -77,6 +77,10 @@ interface Claim {
     name: string;
     availability: "available" | "paused" | "ineligible";
   } | null;
+  // Budget-category default approver (Positions), server-resolved: pre-fills
+  // the submit picker. A suggestion only; null when nothing routes.
+  suggestedApproverUserId?: string | null;
+  suggestedApproverPosition?: string | null;
   signatureLedgerId: string | null;
   signatureLedgerKey: string | null;
   packetSha256: string | null;
@@ -1022,6 +1026,8 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             ownerUid: "", // owner view — filled server-side checks apply
             approverUserId: claim.approverUserId,
             approverInfo: claim.approverInfo ?? null,
+            suggestedApproverUserId: claim.suggestedApproverUserId ?? null,
+            suggestedApproverPosition: claim.suggestedApproverPosition ?? null,
             signatureLedgerId: claim.signatureLedgerId,
             signatureLedgerKey: claim.signatureLedgerKey,
             packetSha256: claim.packetSha256,
@@ -1350,6 +1356,8 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             status: claim.status,
             ownerUid: esignEnv.me.userId,
             approverUserId: claim.approverUserId,
+            suggestedApproverUserId: claim.suggestedApproverUserId ?? null,
+            suggestedApproverPosition: claim.suggestedApproverPosition ?? null,
             signatureLedgerId: claim.signatureLedgerId,
             signatureLedgerKey: claim.signatureLedgerKey,
             packetSha256: claim.packetSha256,

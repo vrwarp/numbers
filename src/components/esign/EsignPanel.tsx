@@ -34,6 +34,11 @@ export interface EsignClaim extends ClaimRef {
   /** Assigned approver's routing availability (server-computed mirror state,
    *  A9/A10) — drives the owner's waiting/reassign notices while submitted. */
   approverInfo?: { name: string; availability: "available" | "paused" | "ineligible" } | null;
+  /** Approver to pre-fill from the claim's budget-category default Positions
+   *  (server-resolved; null when nothing routes). A suggestion only — the
+   *  submitter still picks and signs the approver themselves. */
+  suggestedApproverUserId?: string | null;
+  suggestedApproverPosition?: string | null;
 }
 
 interface Member {
@@ -240,14 +245,21 @@ export function SubmitDialog({
         const all = ((await res.json()).members ?? []) as Member[];
         // Approver-or-above, not me, and not paused (A10) — the submit
         // preflight re-checks all three server-side.
-        setMembers(
-          all.filter(
-            (m) =>
-              m.userId !== env.me.userId &&
-              ["approver", "treasurer", "admin"].includes(m.role) &&
-              !m.approvalsPaused
-          )
+        const eligible = all.filter(
+          (m) =>
+            m.userId !== env.me.userId &&
+            ["approver", "treasurer", "admin"].includes(m.role) &&
+            !m.approvalsPaused
         );
+        setMembers(eligible);
+        // Pre-fill the budget-category default approver (Positions) when it is
+        // a currently-pickable member — a suggestion the submitter can change.
+        if (
+          claim.suggestedApproverUserId &&
+          eligible.some((m) => m.userId === claim.suggestedApproverUserId)
+        ) {
+          setApproverUserId(claim.suggestedApproverUserId);
+        }
       }
       if (enrolled && hasSignature) {
         const [pkt, anc] = await Promise.all([
@@ -258,7 +270,7 @@ export function SubmitDialog({
         if (anc.ok) setAnchor((await anc.json()).anchor as SignaturePlacement);
       }
     })();
-  }, [env.me.userId, claim.id, enrolled, hasSignature]);
+  }, [env.me.userId, claim.id, claim.suggestedApproverUserId, enrolled, hasSignature]);
 
   async function sign() {
     setBusy(true);
@@ -346,6 +358,16 @@ export function SubmitDialog({
                 ))}
               </select>
             </label>
+            {approverUserId &&
+              approverUserId === claim.suggestedApproverUserId &&
+              claim.suggestedApproverPosition && (
+                <p
+                  className="rounded-lg bg-indigo-50 p-2 text-xs text-indigo-900"
+                  data-testid="approver-prefill-note"
+                >
+                  {t("approverPrefilledFrom", { position: claim.suggestedApproverPosition })}
+                </p>
+              )}
             <label className="block text-sm font-medium">
               {t("typedNameLabel")}
               <input

@@ -45,7 +45,8 @@
     "account": "帳戶",
     "budgetCategories": "Budget categories",
     "pendingWork": "有待處理",
-    "search": "搜尋"
+    "search": "搜尋",
+    "positions": "Positions"
   },
   "Home": {
     "profileNudge": "您的<link>個人資料</link>需要填寫姓名和郵寄地址——兩者都會列印在報銷表上。"
@@ -436,7 +437,8 @@
     "clearPad": "清除重簽",
     "waitingFor": "正在等待 {name} 審閱這張報銷單。",
     "approverPausedNote": "{name} 目前不接收新的審批請求。對方仍可以處理這張報銷單；您也可以撤回並改選其他審批人。",
-    "approverIneligibleNote": "{name} 已無法再審批報銷單。請撤回本次提交並改選其他審批人。"
+    "approverIneligibleNote": "{name} 已無法再審批報銷單。請撤回本次提交並改選其他審批人。",
+    "approverPrefilledFrom": "Pre-filled from the {position} default. Change it below if needed."
   },
   "Approvals": {
     "title": "審批",
@@ -782,7 +784,11 @@
       "codeFormat": "Account code must be exactly 3 digits and not 999: “{code}”.",
       "codeDuplicate": "Two active categories share the code {code} — codes must be unique."
     },
-    "embeddingProbeFailed": "無法連線嵌入伺服器。請檢查位址和金鑰，或使用「不測試直接儲存」。"
+    "embeddingProbeFailed": "無法連線嵌入伺服器。請檢查位址和金鑰，或使用「不測試直接儲存」。",
+    "position": {
+      "invalid": "Those positions couldn’t be saved — check the form and try again.",
+      "unknownHolder": "One of the selected people couldn’t be found. Refresh and try again."
+    }
   },
   "AddReceipts": {
     "title": "向這張報銷單新增收據",
@@ -1046,7 +1052,14 @@
     "renameWarning": "Renaming or recoding a category that’s already on claims won’t relabel those past rows — their printed value stays as it was. To retire one, archive it instead.",
     "reservedNote": "Codes are 3 digits. 999 is reserved for uncategorized “Other…” entries and never prints on the form.",
     "empty": "No categories yet — add one to get started.",
-    "countActive": "{active} of {total} active"
+    "countActive": "{active} of {total} active",
+    "managePositions": "Manage positions",
+    "defaultApprover": "Default approver",
+    "defaultApproverNone": "No default — submitter chooses",
+    "positionArchivedOption": "{name} (archived)",
+    "routesTo": "Routes to {name}",
+    "routesNobody": "No holder here can approve yet — claims won't be pre-filled.",
+    "routesNoHolder": "This position has no holder yet."
   },
   "Search": {
     "title": "搜尋",
@@ -1084,5 +1097,39 @@
     "degraded": "目前搜尋只能找到包含你輸入的確切文字的結果，按描述搜尋很快恢復。",
     "dateHint": "搜尋比對的是描述而不是日期——每筆結果上都標有日期。",
     "showMore": "顯示更多"
+  },
+  "Positions": {
+    "title": "Positions",
+    "subtitle": "Custom approval roles you assign to people and use as the default approver for budget categories.",
+    "authorityNote": "A position is a routing label, not authority. Assigning someone here does not let them approve — they still need the Approver role granted through the signature roster.",
+    "loading": "Loading…",
+    "loadFailed": "Couldn't load positions.",
+    "saveFailed": "Couldn't save positions.",
+    "saved": "Positions saved.",
+    "save": "Save {count} change(s)",
+    "saveNone": "Saved",
+    "saving": "Saving…",
+    "discard": "Discard changes",
+    "addPosition": "New position",
+    "backToCategories": "Budget categories",
+    "empty": "No positions yet — add one to set default approvers for your budget categories.",
+    "namePlaceholder": "Position name (e.g. Deacon of Missions)",
+    "descriptionPlaceholder": "What this position approves (optional)",
+    "active": "Active",
+    "archived": "Archived",
+    "usedByCategories": "Default approver for {count} budget category(ies)",
+    "usedByNone": "Not used by any budget category",
+    "holders": "Holders",
+    "noHolders": "No holder assigned yet.",
+    "addHolder": "Add a holder",
+    "choosePerson": "Choose a person…",
+    "primary": "Primary",
+    "makePrimary": "Make primary",
+    "removeHolder": "Remove",
+    "eligibilityOk": "Can approve",
+    "eligibilityPaused": "Approvals paused",
+    "eligibilityCannot": "Needs Approver grant",
+    "holderPausedWarn": "{name} has paused approvals, so claims won't pre-fill to them until they resume.",
+    "holderCannotWarn": "{name} can't approve until an admin grants them the Approver role through the signature roster."
   }
 }

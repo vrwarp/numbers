@@ -29,6 +29,11 @@ src/lib/config-file.ts          configValue(name): env setting resolved from
 src/lib/ministries.ts           MINISTRY_GROUPS budget categories (+ flat MINISTRIES,
                                 isKnownMinistry, formatMinistryEvent, mostCommonMinistryEvent)
                                 — dependency-free, safe for client components
+src/lib/positions.ts            Positions (custom approval roles): approverEligibility +
+                                pickSuggestedApprover (the default-approver pre-fill selection)
+                                — dependency-free, unit-tested, client-safe
+src/lib/positions-catalog.ts    Position table reads + resolveSuggestedApprover(claim) (SERVER);
+src/lib/positions-guard.ts      requirePositionEditor (treasurer/admin, same gate as ministries)
 src/lib/locales.ts              LOCALES en/zh-Hans/zh-Hant, labels, numbers_locale cookie
                                 name, Accept-Language negotiator — dependency-free, client-safe
 src/i18n/request.ts             next-intl request config: cookie → Accept-Language → en
@@ -211,7 +216,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | | POST | `{rotate: 0|90|180|270, crop?: {left,top,width,height} fractions of the ROTATED frame, restore?, reimbursementId?}` → sharp rotate→crop → compression ladder → overwrite stored file + sizeBytes. Source is the current file, or the preserved original when `restore:true` (rotate/crop still apply on top). A normal first edit copies the pristine upload to `<id>.orig.<ext>` (`originalFilePath`); `{restore:true}` with no transform is a plain restore. AuditEvent(edit-receipt-image / restore-receipt-image). 400 PDFs/no-op/too-small crop/nothing-to-restore; 409 while receipt is `processed` (a generated claim's packet must re-download unchanged) |
 | `/api/reimbursements` | GET | list own claims with counts |
 | | POST | `{receiptIds[], manual?}` → validates ownership (404 else; ANY status is allowed — a receipt may go on many claims and is re-extracted each time) → extractReceipts (one call per receipt) → create draft + ONE line item per receipt (composed description, amount = total − refunds, original* snapshot) + stamp Receipt merchant/purchaseDate/extracted*Cents + one ExtractionLog per call. A read failure degrades to a BLANK manual-entry row (no receiptUpdate, original* NULL) instead of failing the batch; only a quota/rate-limit error is all-or-nothing (log ALL + 429, no claim). `manual:true` skips AI entirely → all-blank rows, no ExtractionLogs (the rate-limit escape hatch) |
-| `/api/reimbursements/[id]` | GET | claim + lineItems(sortOrder asc) + receipts join |
+| `/api/reimbursements/[id]` | GET | claim + lineItems(sortOrder asc) + receipts join + `approverInfo` (A9/A10 availability) + `suggestedApproverUserId`/`suggestedApproverPosition` (Positions pre-fill: pre-submit statuses only, fail-open — the largest-dollar category's default Position → its first approval-eligible non-owner holder; never assigns) |
 | | PATCH | zod partial {singleMinistry, claimMinistry, claimEvent, claimDescription}; draft only (409). When single mode is on and the mirrored values were touched (or the mode was just enabled), FANS claimMinistry/claimEvent out onto every non-excluded row — each touched row is un-verified and gets its own AuditEvent(update, source:"claim-ministry") — plus one AuditEvent(update-claim) for the settings diff. Multi→single with no explicit claimMinistry adopts `mostCommonMinistryEvent(rows)`. Returns the full refreshed claim (GET shape). Single mode is a mirror, not a lock: row PATCHes stay allowed |
 | | DELETE | draft only (409 else); receipts return to shoebox |
 | `/api/reimbursements/[id]/suggest` | POST | `{description}` (≤300) → draft only (409); persists it as claimDescription (AuditEvent on change) → text-only provider call (mock-aware, RPM-throttled, no cooldown retry — the user is waiting) → `{suggestion: {ministry(null unless verbatim in MINISTRIES), event, rationale}}`; ExtractionLog(kind:"suggestion") success AND failure; 429 quota / 502 unusable answer. Never writes to line items — the human applies via the claim PATCH |
