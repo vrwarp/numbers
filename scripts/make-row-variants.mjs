@@ -116,6 +116,13 @@ for (const rows of targets) {
         height: pitch - BORDER - FIELD_TOP_GAP,
       });
     }
+    if (row <= rows) {
+      // The official form's ministry cells are single-line (nothing wraps in
+      // an 18pt row); in the tall variant cells a long ministry/event value
+      // should wrap large instead of shrinking to fit one line. Description
+      // is already multiline on the official form; Qty/Amount stay single.
+      field("For Ministry  EventRow{n}", row).enableMultiline();
+    }
   }
 
   const out = new URL(`../assets/cfcc-form-template-${rows}row.pdf`, import.meta.url);

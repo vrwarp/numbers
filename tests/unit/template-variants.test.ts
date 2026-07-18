@@ -80,6 +80,12 @@ describe.each(VARIANTS)("%i-row template variant", (rows) => {
     }
     expect(names).not.toContain(`Description QuantityRow${rows + 1}`);
     expect(names).not.toContain(`AmountRow${rows + 1}`);
+    // Long ministry/event values wrap in the tall cells instead of shrinking
+    // to fit one line (the official form's ministry cells stay single-line).
+    const form = doc.getForm();
+    for (let row = 1; row <= rows; row++) {
+      expect(form.getTextField(`For Ministry  EventRow${row}`).isMultiline()).toBe(true);
+    }
     // Everything outside the item rows is untouched.
     for (const kept of ["TotalAmount", "Make check payable to", "Requestor Name", "Request Date"]) {
       expect(names).toContain(kept);
