@@ -61,9 +61,17 @@ export function apiErrorPayload(err: unknown): { body: object; status: number } 
 /** Wrap a route handler body, converting ApiError/unknown errors to JSON responses. */
 export async function handleApi<T>(fn: () => Promise<T>): Promise<NextResponse | T> {
   try {
-    return await fn();
+    const res = await fn();
+    // Default API responses to no-store: iOS Safari heuristically reuses
+    // unmarked fetch GETs (notably across back/forward-cache restores), which
+    // makes deletes/edits appear to not stick on iPhones. Routes that want
+    // caching (receipt file/preview max-age) set their own header and win.
+    if (res instanceof Response && !res.headers.has("cache-control")) {
+      res.headers.set("cache-control", "no-store");
+    }
+    return res;
   } catch (err) {
     const { body, status } = apiErrorPayload(err);
-    return NextResponse.json(body, { status });
+    return NextResponse.json(body, { status, headers: { "cache-control": "no-store" } });
   }
 }

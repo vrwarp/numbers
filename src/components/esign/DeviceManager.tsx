@@ -35,6 +35,7 @@ import {
   type PendingDeviceRequest,
 } from "@/lib/esign/devices";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 // --- M2: the new-device gate ---------------------------------------------------
 
@@ -58,6 +59,7 @@ export function NewDeviceCard({
   const [phrase, setPhrase] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [startOverOpen, setStartOverOpen] = useState(false);
   const unsubRef = useRef<(() => void) | null>(null);
 
   useEffect(() => () => unsubRef.current?.(), []);
@@ -92,10 +94,10 @@ export function NewDeviceCard({
     }
   }
 
+  // Confirms through ConfirmDialog, not window.confirm() — iOS suppresses
+  // native dialogs in home-screen (standalone) web apps.
   async function doStartOver() {
-    if (!confirm(t("startOverConfirm"))) {
-      return;
-    }
+    setStartOverOpen(false);
     setBusy(true);
     setError(null);
     try {
@@ -182,10 +184,24 @@ export function NewDeviceCard({
           {t("noneWork")}
         </summary>
         <p className="mt-2">{t("noneWorkBody")}</p>
-        <button className="btn-secondary mt-2" onClick={doStartOver} disabled={busy} data-testid="start-over">
+        <button
+          className="btn-secondary mt-2"
+          onClick={() => setStartOverOpen(true)}
+          disabled={busy}
+          data-testid="start-over"
+        >
           {t("startOver")}
         </button>
       </details>
+      <ConfirmDialog
+        open={startOverOpen}
+        message={t("startOverConfirm")}
+        confirmLabel={t("startOverConfirmButton")}
+        busy={busy}
+        onConfirm={doStartOver}
+        onCancel={() => setStartOverOpen(false)}
+        testId="start-over-confirm"
+      />
     </div>
   );
 }
@@ -278,6 +294,9 @@ export function DevicesPanel({ env }: { env: DeviceEnv }) {
   const [devices, setDevices] = useState<AuthorizedDevice[]>([]);
   const [selfId, setSelfId] = useState<string>("");
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Device awaiting sign-out confirmation via ConfirmDialog (iOS home-screen
+  // apps suppress window.confirm — see ConfirmDialog).
+  const [removing, setRemoving] = useState<AuthorizedDevice | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -296,10 +315,8 @@ export function DevicesPanel({ env }: { env: DeviceEnv }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [env.me.userId]);
 
-  async function remove(device: AuthorizedDevice) {
-    if (!confirm(t("removeConfirm", { name: device.decryptedDeviceName }))) {
-      return;
-    }
+  async function doRemove(device: AuthorizedDevice) {
+    setRemoving(null);
     setBusyId(device.deviceId);
     setError(null);
     try {
@@ -336,7 +353,7 @@ export function DevicesPanel({ env }: { env: DeviceEnv }) {
               <button
                 className="rounded-lg border border-red-200 px-2 py-0.5 text-xs text-red-700 hover:bg-red-50"
                 disabled={busyId === d.deviceId}
-                onClick={() => remove(d)}
+                onClick={() => setRemoving(d)}
                 data-testid={`remove-device-${d.deviceId}`}
               >
                 {busyId === d.deviceId ? "…" : t("removeDevice")}
@@ -347,6 +364,15 @@ export function DevicesPanel({ env }: { env: DeviceEnv }) {
       </ul>
       {error && <p className="mt-2 rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
       <p className="mt-2 text-xs text-stone-400">{t("lostHint")}</p>
+      <ConfirmDialog
+        open={removing !== null}
+        message={removing ? t("removeConfirm", { name: removing.decryptedDeviceName }) : ""}
+        confirmLabel={t("removeConfirmButton")}
+        busy={busyId !== null}
+        onConfirm={() => removing && doRemove(removing)}
+        onCancel={() => setRemoving(null)}
+        testId="remove-device-confirm"
+      />
     </div>
   );
 }

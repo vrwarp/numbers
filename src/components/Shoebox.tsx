@@ -6,6 +6,7 @@ import { useOpenParam } from "@/lib/use-open-param";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import LocaleSwitcher from "./LocaleSwitcher";
 import ReceiptViewer from "./ReceiptViewer";
 import PdfReceiptPreview from "@/components/PdfReceiptPreview";
@@ -81,6 +82,9 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
   const selectHintTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [viewing, setViewing] = useState<Receipt | null>(null);
+  // Receipt id awaiting delete confirmation (the ConfirmDialog is open).
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
   // Whole-page drag target: true while a file is dragged over the Shoebox.
   const [dragging, setDragging] = useState(false);
   // Depth counter so nested dragenter/dragleave don't flicker the overlay.
@@ -159,6 +163,9 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
 
   // Picked photos exist only in this tab until their dialog is dismissed —
   // warn before a navigation throws them away. (Uploaded PDFs are safe.)
+  // Known gap: iOS Safari never fires beforeunload (WebKit policy), so iPhone
+  // users get no warning — the modal prepare dialog being open is the only
+  // guard there. Don't move real work into this handler.
   const hasLocalPending = pending.some((i) => i.kind === "local");
   useEffect(() => {
     if (!hasLocalPending) return;
@@ -295,8 +302,17 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
     await load();
   }
 
-  async function deleteReceipt(id: string) {
-    if (!confirm(t("deleteConfirm"))) return;
+  // Deletion confirms through ConfirmDialog, never window.confirm(): iOS
+  // suppresses native dialogs in home-screen (standalone) web apps, which made
+  // the delete button silently do nothing on installed iPhones.
+  function deleteReceipt(id: string) {
+    setDeletingId(id);
+  }
+
+  async function confirmDeleteReceipt() {
+    if (!deletingId) return;
+    const id = deletingId;
+    setDeleteBusy(true);
     const res = await fetch(`/api/receipts/${id}`, { method: "DELETE" });
     if (!res.ok) setError(apiError(await res.json().catch(() => null), t("deleteFailed")));
     setSelected((prev) => {
@@ -305,6 +321,8 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
       return next;
     });
     await load();
+    setDeleteBusy(false);
+    setDeletingId(null);
   }
 
   // Skip AI extraction and go straight to a claim of blank rows the user fills
@@ -747,6 +765,16 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={deletingId !== null}
+        message={t("deleteConfirm")}
+        confirmLabel={t("deleteConfirmButton")}
+        busy={deleteBusy}
+        onConfirm={confirmDeleteReceipt}
+        onCancel={() => setDeletingId(null)}
+        testId="delete-receipt-confirm"
+      />
 
       {viewing && (
         <ReceiptViewer

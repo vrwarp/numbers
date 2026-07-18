@@ -17,6 +17,7 @@ import {
 import { centsToDollarString, formatCents, parseDollarsToCents, subtotalCents } from "@/lib/money";
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import AddReceiptsDialog from "@/components/AddReceiptsDialog";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import ManualEntryDialog from "@/components/ManualEntryDialog";
 import PdfReceiptPreview from "@/components/PdfReceiptPreview";
 import EsignPanel, { SubmitDialog } from "@/components/esign/EsignPanel";
@@ -410,6 +411,12 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     unverify: number;
   } | null>(null);
   const [fanOutUndo, setFanOutUndo] = useState<FanOutUndo | null>(null);
+  // Destructive action awaiting ConfirmDialog approval (revert / remove a
+  // receipt / discard the draft) — only one can be pending at a time.
+  const [pendingConfirm, setPendingConfirm] = useState<
+    { kind: "revert" } | { kind: "remove"; receiptId: string } | { kind: "discard" } | null
+  >(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
 
   useEffect(() => {
     if (!nudgedItemId) return;
@@ -930,22 +937,24 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     setSubmitOpen(true);
   }
 
-  async function revertClaim() {
-    const underSignature = (SIGNED_STATUSES as readonly string[]).includes(claim!.status);
-    if (
-      !confirm(underSignature ? t("revertConfirmSigned") : t("revertConfirm"))
-    )
-      return;
+  // The three destructive actions confirm through ConfirmDialog, never
+  // window.confirm() — iOS suppresses native dialogs in home-screen
+  // (standalone) web apps, so a confirm()-gated action silently no-ops there.
+  function revertClaim() {
+    setPendingConfirm({ kind: "revert" });
+  }
+
+  async function doRevertClaim() {
     const res = await fetch(`/api/reimbursements/${claim!.id}/revert`, { method: "POST" });
     if (!res.ok) setError(apiError(await res.json().catch(() => null), t("revertFailed")));
     await load();
   }
 
-  async function removeReceipt(receiptId: string) {
-    if (
-      !confirm(t("removeConfirm"))
-    )
-      return;
+  function removeReceipt(receiptId: string) {
+    setPendingConfirm({ kind: "remove", receiptId });
+  }
+
+  async function doRemoveReceipt(receiptId: string) {
     const res = await fetch(`/api/reimbursements/${claim!.id}/receipts/${receiptId}`, {
       method: "DELETE",
     });
@@ -953,11 +962,27 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     await load();
   }
 
-  async function deleteClaim() {
-    if (!confirm(t("discardConfirm"))) return;
+  function deleteClaim() {
+    setPendingConfirm({ kind: "discard" });
+  }
+
+  async function doDeleteClaim() {
     const res = await fetch(`/api/reimbursements/${claim!.id}`, { method: "DELETE" });
     if (res.ok) router.push("/");
     else setError(apiError(await res.json().catch(() => null), t("deleteFailed")));
+  }
+
+  async function runPendingConfirm() {
+    if (!pendingConfirm) return;
+    setConfirmBusy(true);
+    try {
+      if (pendingConfirm.kind === "revert") await doRevertClaim();
+      else if (pendingConfirm.kind === "remove") await doRemoveReceipt(pendingConfirm.receiptId);
+      else await doDeleteClaim();
+    } finally {
+      setConfirmBusy(false);
+      setPendingConfirm(null);
+    }
   }
 
   return (
@@ -1450,6 +1475,30 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={pendingConfirm !== null}
+        message={
+          pendingConfirm?.kind === "revert"
+            ? (SIGNED_STATUSES as readonly string[]).includes(claim.status)
+              ? t("revertConfirmSigned")
+              : t("revertConfirm")
+            : pendingConfirm?.kind === "remove"
+              ? t("removeConfirm")
+              : t("discardConfirm")
+        }
+        confirmLabel={
+          pendingConfirm?.kind === "revert"
+            ? t("revertConfirmButton")
+            : pendingConfirm?.kind === "remove"
+              ? t("removeConfirmButton")
+              : t("discard")
+        }
+        busy={confirmBusy}
+        onConfirm={runPendingConfirm}
+        onCancel={() => setPendingConfirm(null)}
+        testId="claim-confirm"
+      />
 
       {/* A fan-out can un-verify rows wholesale, so it's always one click to
           take back while the toast is up. */}

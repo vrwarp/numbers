@@ -21,6 +21,7 @@ import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { formatCents } from "@/lib/money";
 import type { SignaturePlacement } from "@/lib/esign/placement";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain, type ClaimRef } from "./chain";
 import { SigningConnectCard, useSigningSession } from "./SigningConnect";
 import DocumentSignField from "./DocumentSignField";
@@ -53,6 +54,10 @@ export default function EsignPanel({
   const t = useTranslations("Esign");
   const [env, setEnv] = useState<EsignEnv | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  // Withdraw confirms through ConfirmDialog, not window.confirm() — iOS
+  // suppresses native dialogs in home-screen (standalone) web apps.
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawBusy, setWithdrawBusy] = useState(false);
   const signed = ["submitted", "rejected", "approved", "paid"].includes(claim.status);
   // On the owner's review screen the claim's ownerUid IS the signed-in user.
   const chainClaim =
@@ -139,18 +144,7 @@ export default function EsignPanel({
           <button
             className="btn-secondary"
             data-testid="change-approver"
-            onClick={async () => {
-              if (!confirm(t("withdrawConfirm"))) return;
-              await withdrawSubmission(
-                {
-                  id: claim.id,
-                  signatureLedgerId: claim.signatureLedgerId!,
-                  signatureLedgerKey: claim.signatureLedgerKey!,
-                },
-                state.thread!.submit!.actionHash
-              );
-              await onChanged();
-            }}
+            onClick={() => setWithdrawOpen(true)}
           >
             {t("withdrawButton")}
           </button>
@@ -164,6 +158,38 @@ export default function EsignPanel({
           {t("reverify")}
         </button>
       </div>
+      <ConfirmDialog
+        open={withdrawOpen}
+        message={t("withdrawConfirm")}
+        confirmLabel={t("withdrawConfirmButton")}
+        busy={withdrawBusy}
+        onConfirm={async () => {
+          // The chain can re-verify while the dialog is up; bail if the
+          // submit action is no longer there to withdraw.
+          const submit = state?.thread?.submit;
+          if (!submit) {
+            setWithdrawOpen(false);
+            return;
+          }
+          setWithdrawBusy(true);
+          try {
+            await withdrawSubmission(
+              {
+                id: claim.id,
+                signatureLedgerId: claim.signatureLedgerId!,
+                signatureLedgerKey: claim.signatureLedgerKey!,
+              },
+              submit.actionHash
+            );
+            await onChanged();
+          } finally {
+            setWithdrawBusy(false);
+            setWithdrawOpen(false);
+          }
+        }}
+        onCancel={() => setWithdrawOpen(false)}
+        testId="withdraw-confirm"
+      />
       {dialogOpen && (
         <SubmitDialog
           claim={claim}

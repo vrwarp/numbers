@@ -28,6 +28,10 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // Required for env(safe-area-inset-*) to resolve on iOS — without it the
+  // claim bar's home-indicator padding (Shoebox bottom dock) computes to 0
+  // in the installed home-screen app.
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
