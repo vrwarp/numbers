@@ -163,6 +163,15 @@ src/components/SignInCard.tsx   client: Firebase Google popup → POST idToken t
 src/app/claims|profile          thin server components: currentUserId() → redirect("/signin")
                                 → render client component
 assets/cfcc-form-template.pdf   the real church AcroForm — DO NOT regenerate or optimize
+assets/cfcc-form-template-{2,4,8}row.pdf
+                                large-row legibility variants: same table area, form
+                                fields and names, but 2/4/8 taller rows (rebuild with
+                                scripts/make-row-variants.mjs — never edit by hand).
+                                Packet generation auto-picks the smallest variant a
+                                claim fits on (loadTemplate.ts variantRowsFor; ≥9 rows
+                                or a configured TEMPLATE_PDF → official form), which
+                                never changes the packet's form-page count; generate.ts
+                                scales row font sizes to the taller cells (14pt cap)
 prisma/schema.prisma            data model (see DATA_MODEL.md)
 tests/unit/*.test.ts            Vitest; tests/e2e/*.spec.ts Playwright (see TESTING.md)
 src/lib/embeddings/             semantic search (docs/SEARCH_DESIGN.md): provider.ts
