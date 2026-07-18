@@ -111,7 +111,7 @@ export default function SigningIdentityCard() {
   }
   const toggleEnabled = (next: boolean) => patchRegistry({ enabled: next });
 
-  const { phase, connect, connecting, error: connectError } = useSigningSession(env);
+  const { phase, connect, connecting, error: connectError, justConnected } = useSigningSession(env);
 
   // Load the environment up front — no ledger reads, so no popup — so the gate
   // can decide and the header renders. The heavy device/roster reads that would
@@ -138,6 +138,19 @@ export default function SigningIdentityCard() {
   useEffect(() => {
     if (phase === "ready") void refresh();
   }, [phase, refresh]);
+
+  // Fold the "Enable signing" tap into the connect click: a never-enrolled
+  // member who just connected the signing session (Google popup) lands straight
+  // on the enroll consent instead of a second button. Gated on justConnected so
+  // this fires only after the interactive click, never on a restored session at
+  // page load; and on a null identityStatus so the new-device / already-enrolled
+  // branches are untouched. The wizard is a plain DOM modal (no popup), so it
+  // needs no user gesture to open.
+  useEffect(() => {
+    if (justConnected && env?.bootstrapped && env.enabled && !env.me.identityStatus) {
+      setWizardOpen(true);
+    }
+  }, [justConnected, env?.bootstrapped, env?.enabled, env?.me.identityStatus]);
 
   // Live-update: while enrolled with a roster session, watch the roster ledger
   // so a vouch (pending → attested), role grant, or key revocation made

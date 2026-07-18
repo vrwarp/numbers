@@ -53,11 +53,17 @@ export function useSigningSession(env: EsignEnv | null) {
   const [phase, setPhase] = useState<SigningPhase>("checking");
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // True only when "ready" was reached by an explicit connect() click, not by a
+  // session restored on mount — lets callers auto-advance (e.g. straight into
+  // the enroll consent) right after the Google popup without also popping a
+  // modal on every later page load. Reset when a new env probe starts.
+  const [justConnected, setJustConnected] = useState(false);
 
   useEffect(() => {
     if (!env) return;
     let cancelled = false;
     setPhase("checking");
+    setJustConnected(false);
     void (async () => {
       try {
         // Warm the SDK before we decide, so the connect click reaches
@@ -80,6 +86,7 @@ export function useSigningSession(env: EsignEnv | null) {
     setError(null);
     try {
       await connectSigningSession(env);
+      setJustConnected(true);
       setPhase("ready");
     } catch (err) {
       const message = connectErrorMessage(err, t, thrown);
@@ -88,7 +95,7 @@ export function useSigningSession(env: EsignEnv | null) {
     }
   }, [env, t, thrown]);
 
-  return { phase, connect, connecting, error };
+  return { phase, connect, connecting, error, justConnected };
 }
 
 /** The connect prompt itself — one obvious button, plain words. */
