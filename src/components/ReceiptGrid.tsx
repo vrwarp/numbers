@@ -25,6 +25,7 @@ function PdfThumb({ id }: { id: string }) {
       alt={t("pdfThumbAlt")}
       loading="lazy"
       onError={() => setFailed(true)}
+      decoding="async"
       className="h-full w-full object-cover object-top"
       data-testid={`pdf-thumb-${id}`}
     />
@@ -88,24 +89,40 @@ export default function ReceiptGrid({
             key={r.id}
             data-testid={`receipt-card-${r.id}`}
       data-open-id={r.id}
-            // Selection is shown by the filled checkmark alone — no outline.
+            // Selected cards get a ring in addition to the filled checkmark —
+            // one small glyph alone is easy to read as decoration.
             className={`card relative overflow-hidden ${
               selectable ? "card-lift cursor-pointer select-none" : "opacity-70"
-            }`}
+            } ${isSelected ? "ring-2 ring-indigo-500 ring-offset-1" : ""}`}
             onClick={selectable ? () => onToggle?.(r.id) : undefined}
           >
             {selectable && (
-              <div
-                className={`absolute left-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold shadow ${
-                  isSelected
-                    ? "border-indigo-600 bg-indigo-600/80 text-white"
-                    : "border-stone-300 bg-white/80 text-stone-500"
-                } ${nudgeSelect && index < 2 && !isSelected ? "nudge-ring-select border-indigo-600 text-indigo-600" : ""}`}
-                aria-checked={isSelected}
+              // The real, focusable selection control (the card's onClick is a
+              // pointer convenience on top). 44px hit target around a 32px
+              // visual circle; Enter/Space toggle for keyboard users.
+              <button
+                type="button"
+                className="group absolute left-0.5 top-0.5 z-10 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                 role="checkbox"
+                aria-checked={isSelected}
+                aria-label={t("selectReceipt", { name: r.originalName })}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggle?.(r.id);
+                }}
+                data-testid={`receipt-select-${r.id}`}
               >
-                ✓
-              </div>
+                <span
+                  aria-hidden
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold shadow ${
+                    isSelected
+                      ? "border-indigo-600 bg-indigo-600/80 text-white"
+                      : "border-stone-400 bg-white/90 text-stone-500 group-hover:border-indigo-500 group-hover:text-indigo-600"
+                  } ${nudgeSelect && index < 2 && !isSelected ? "nudge-ring-select border-indigo-600 text-indigo-600" : ""}`}
+                >
+                  ✓
+                </span>
+              </button>
             )}
             {onDelete && (
               <button
@@ -128,6 +145,8 @@ export default function ReceiptGrid({
                   key={fileUrl?.(r.id)}
                   src={fileUrl ? fileUrl(r.id) : `/api/receipts/${r.id}/file`}
                   alt={r.originalName}
+                  loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover"
                 />
               )}

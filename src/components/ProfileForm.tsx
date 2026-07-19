@@ -85,6 +85,9 @@ export default function ProfileForm() {
   const apiError = useApiErrorMessage();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [duties, setDuties] = useState<Duties | null>(null);
+  // Active teams this member belongs to — surfacing the read grant they'd
+  // otherwise never learn about (it only manifests as a Search scope).
+  const [teams, setTeams] = useState<string[]>([]);
   const [fullName, setFullName] = useState("");
   const [mailingAddress, setMailingAddress] = useState("");
   const [locale, setLocale] = useState<string>(activeLocale);
@@ -93,13 +96,22 @@ export default function ProfileForm() {
   const [busy, setBusy] = useState(false);
   const [dutyBusy, setDutyBusy] = useState<DutyFlag | null>(null);
   const [dutyError, setDutyError] = useState<string | null>(null);
+  // "?return=<path>" sends the user back to where the missing profile blocked
+  // them (the claim review banner links here). Same-origin paths only.
+  const [returnTo, setReturnTo] = useState<string | null>(null);
+
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get("return");
+    if (raw && raw.startsWith("/") && !raw.startsWith("//")) setReturnTo(raw);
+  }, []);
 
   useEffect(() => {
     fetch("/api/profile")
       .then((r) => r.json())
-      .then(({ user, duties }) => {
+      .then(({ user, duties, teams }) => {
         setProfile(user);
         setDuties(duties ?? null);
+        setTeams(Array.isArray(teams) ? teams : []);
         setFullName(user.fullName ?? "");
         setMailingAddress(user.mailingAddress ?? "");
         setLocale(user.locale ?? "en");
@@ -139,6 +151,12 @@ export default function ProfileForm() {
     });
     if (res.ok) {
       setSaved(true);
+      // Close the loop for users sent here mid-task (e.g. the claim review's
+      // profile banner) — but only once the form actually satisfies it.
+      if (returnTo && fullName.trim() && mailingAddress.trim()) {
+        router.push(returnTo);
+        return;
+      }
       // The route also set the locale cookie — re-render in the new language.
       if (locale !== activeLocale) router.refresh();
     } else {
@@ -174,6 +192,9 @@ export default function ProfileForm() {
             placeholder={t("fullNamePlaceholder")}
             data-testid="profile-name"
           />
+          {!fullName.trim() && (
+            <p className="mt-1 text-xs text-amber-700">{t("printedOnForm")}</p>
+          )}
         </div>
         <div>
           <label className="text-sm font-medium" htmlFor="mailingAddress">
@@ -188,6 +209,9 @@ export default function ProfileForm() {
             placeholder={t("mailingAddressPlaceholder")}
             data-testid="profile-address"
           />
+          {!mailingAddress.trim() && (
+            <p className="mt-1 text-xs text-amber-700">{t("printedOnForm")}</p>
+          )}
         </div>
         <div>
           <label className="text-sm font-medium" htmlFor="locale">
@@ -210,7 +234,7 @@ export default function ProfileForm() {
         {/* On a short viewport the form runs past the fold with the keyboard up,
             so Save pins to the bottom edge (bleeding past the card's p-6). The
             "Saved ✓" / error feedback sits in the same row, where the tap is. */}
-        <div className="z-10 flex items-center gap-3 short:sticky short:bottom-0 short:-mx-6 short:-mb-6 short:border-t short:border-stone-200 short:bg-white/95 short:px-6 short:py-3 short:backdrop-blur">
+        <div className="z-10 flex items-center gap-3 short:sticky short:bottom-0 short:-mx-6 short:-mb-6 short:border-t short:border-stone-200 short:bg-white/95 short:px-6 short:py-3 short:pb-[calc(0.75rem+env(safe-area-inset-bottom))] short:backdrop-blur">
           <button type="submit" className="btn-primary" disabled={busy} data-testid="profile-save">
             {busy ? tCommon("saving") : tCommon("save")}
           </button>
@@ -263,6 +287,22 @@ export default function ProfileForm() {
             />
           )}
           {dutyError && <p className="text-sm text-red-700">{dutyError}</p>}
+        </div>
+      )}
+
+      {teams.length > 0 && (
+        <div className="card space-y-1 p-6" data-testid="profile-teams-card">
+          <h2 className="font-semibold">{t("teamsTitle")}</h2>
+          <p className="text-sm text-stone-600">{teams.join(", ")}</p>
+          <p className="text-sm text-stone-500">
+            {t.rich("teamsBody", {
+              link: (chunks) => (
+                <a href="/search?scope=team" className="text-indigo-600 underline">
+                  {chunks}
+                </a>
+              ),
+            })}
+          </p>
         </div>
       )}
 

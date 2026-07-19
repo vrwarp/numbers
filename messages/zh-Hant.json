@@ -7,7 +7,7 @@
   "Common": {
     "status": {
       "draft": "草稿",
-      "generated": "已產生",
+      "generated": "可提交",
       "needsReview": "待核對",
       "processed": "已處理",
       "submitted": "待審批",
@@ -20,6 +20,8 @@
     "save": "儲存",
     "saving": "儲存中…",
     "loading": "載入中…",
+    "pdfReady": "您的 PDF 已就緒。",
+    "pdfReadyAction": "儲存 / 分享",
     "language": "語言",
     "date": {
       "today": "今天",
@@ -32,7 +34,8 @@
       "chairman": "主席",
       "treasurer": "財務同工",
       "admin": "管理員"
-    }
+    },
+    "close": "關閉"
   },
   "NavBar": {
     "shoebox": "收據",
@@ -72,7 +75,7 @@
   },
   "Claims": {
     "title": "報銷單",
-    "subtitle": "草稿需要核對；已產生的報銷單可以列印簽名。",
+    "subtitle": "草稿需要核對；標為「可提交」的報銷單可以列印或送審。",
     "emptyTitle": "還沒有報銷單",
     "emptyBody": "在<link>收據</link>頁面選取收據，然後按「新增報銷單」。",
     "counts": "{items} 個項目 · {receipts, plural, other {# 張收據}}",
@@ -86,6 +89,7 @@
     "fullNamePlaceholder": "例如：陳恩典",
     "mailingAddress": "郵寄地址",
     "mailingAddressPlaceholder": "123 Main St, San Jose, CA 95110",
+    "printedOnForm": "將列印在報銷表上。",
     "saved": "已儲存 ✓",
     "loadFailed": "個人資料載入失敗",
     "saveFailed": "儲存失敗",
@@ -101,12 +105,15 @@
     "dutyAdminOn": "您可以更改會友的角色；管理員還可以管理設定和電子簽名。",
     "dutyAdminOff": "角色控制和管理頁面已隱藏，重新開啟後即可恢復。",
     "dutyTurnOn": "開啟",
-    "dutyTurnOff": "關閉"
+    "dutyTurnOff": "關閉",
+    "teamsTitle": "您的團隊",
+    "teamsBody": "團隊成員可以檢視歸入團隊預算類別的收據。請在<link>搜尋 → 我的團隊</link>中檢視。"
   },
   "ReceiptGrid": {
     "pdfChip": "PDF",
     "pdfThumbAlt": "PDF 收據",
     "deleteReceipt": "刪除 {name}",
+    "selectReceipt": "選擇 {name}",
     "viewLarger": "放大檢視 {name}",
     "viewLargerTitle": "放大檢視",
     "notePlaceholder": "新增說明…",
@@ -124,14 +131,16 @@
   },
   "Shoebox": {
     "title": "收據",
-    "intro": "隨時把收據放進來，準備報銷時再選取它們提交。",
-    "upload": "📷 上傳收據",
+    "intro": "隨時新增收據——拍照或上傳檔案都可以。準備報銷時再選取它們提交。",
+    "upload": "上傳收據",
+    "takePhoto": "📷 拍照",
+    "restoredPhoto": "已從上次造訪中復原——這張照片當時尚未儲存。",
     "uploading": "上傳中…",
     "uploadFailed": "上傳失敗",
     "dropTitle": "放開以上傳收據",
     "dropBody": "圖片或 PDF",
     "noteSaveFailed": "說明儲存失敗",
-    "deleteConfirm": "刪除這張收據？",
+    "deleteConfirm": "刪除「{name}」？此操作無法復原。",
     "deleteConfirmButton": "刪除",
     "deleteFailed": "刪除失敗",
     "selectedCount": "已選取 {count, plural, other {# 張收據}}",
@@ -140,6 +149,7 @@
     "selectPromptShort": "選取收據以開始",
     "newClaim": "✨ 新增報銷單",
     "clearSelection": "清除",
+    "selectAll": "全選",
     "waitingRateLimit": "正在等候限額恢復…",
     "readingShort": "正在讀取收據…",
     "selectHint": "請先選取一張收據——點擊下方的 ✓",
@@ -244,6 +254,14 @@
     "subtotal": "小計：",
     "claimTotal": "報銷總額",
     "verifiedProgress": "已核對 {verified} / {total}",
+    "verifyAll": "✓ 全部核對",
+    "verifyAllConfirm": "將 {count, plural, other {# 列}}標記為已核對？請先對照收據檢查每列的描述、事工和金額。",
+    "verifyAllButton": "核對 {count, plural, other {# 列}}",
+    "profileIncomplete": "您的個人資料還缺少姓名和郵寄地址——兩者都會列印在報銷表上。",
+    "profileIncompleteCta": "填寫姓名和地址",
+    "profileIncompleteShort": "請先完成個人資料",
+    "amountRestored": "無法辨識該金額——已恢復原來的數值。",
+    "descriptionRestored": "描述不能為空——已恢復原來的文字。",
     "generatedFrozen": "已產生——各列已鎖定。",
     "addReceipts": "＋ 新增收據",
     "discard": "放棄",
@@ -360,7 +378,8 @@
     "splitConfirm": "拆分",
     "underSignatureFrozen": "簽署中——報銷文件與明細已凍結。",
     "downloadSigned": "⬇ 下載已簽署文件",
-    "revertConfirmSigned": "要將這張報銷單退回草稿嗎？目前已收集的簽名將全部作廢，審批需要重新開始。"
+    "revertConfirmSigned": "要將這張報銷單退回草稿嗎？目前已收集的簽名將全部作廢，審批需要重新開始。",
+    "retiredOption": "{value}（已停用）"
   },
   "Esign": {
     "submitForApproval": "✍️ 提交審批",
@@ -371,7 +390,7 @@
     "panelPaidWithCheck": "已支付——支票號 {checkNumber}",
     "approverComment": "審批人留言：「{comment}」",
     "certificateLink": "📜 批准證書",
-    "withdrawConfirm": "要撤回本次提交、改選其他審批人嗎？",
+    "withdrawConfirm": "要撤回本次提交、改選其他審批人嗎？撤回後可立即從報銷單的電子簽名按鈕重新提交。",
     "withdrawConfirmButton": "撤回",
     "withdrawButton": "撤回／更換審批人",
     "resubmit": "✍️ 重新提交",
@@ -396,6 +415,10 @@
     "notAttested": "你還不能簽名——請先在<link>個人資料</link>中開通簽名，然後獲得擔保。",
     "submitIntro": "你正在為這張報銷單（{amount}）申請批准。請把簽名放到表單上，選擇審批人，然後簽署。若之後報銷單有改動，你的簽名即告失效，審批需重新開始。",
     "openingForm": "正在開啟表單…",
+    "prepFailed": "無法載入表單——請檢查網路後重試。",
+    "retryButton": "重試",
+    "noEligibleApprovers": "目前沒有可用的審批人——所有可審批的成員都已暫停或未註冊。請與財務負責人聯繫。",
+    "placeSignatureHint": "請先在上方表單上按住以放置您的簽名。",
     "approverLabel": "審批人",
     "approverPlaceholder": "請選擇審批人…",
     "typedNameLabel": "輸入你的全名以簽署",
@@ -454,7 +477,21 @@
     "waitingFor": "正在等待 {name} 審閱這張報銷單。",
     "approverPausedNote": "{name} 目前不接收新的審批請求。對方仍可以處理這張報銷單；您也可以撤回並改選其他審批人。",
     "approverIneligibleNote": "{name} 已無法再審批報銷單。請撤回本次提交並改選其他審批人。",
-    "approverPrefilledFrom": "Pre-filled from the {position} default. Change it below if needed."
+    "approverPrefilledFrom": "Pre-filled from the {position} default. Change it below if needed.",
+    "signedButNotSynced": "您的簽名已記錄。頁面暫時無法重新整理報銷單狀態——稍後會自動更新。請勿再次簽署。",
+    "hintPickApprover": "請先選擇審批人。",
+    "hintTypeName": "請先輸入您的姓名。",
+    "hintAffirm": "請先勾選同意框。",
+    "consentGloss": "簡要說明：您同意在本應用程式中的簽署等同於您本人具有法律效力的親筆簽名，與紙面簽字效力相同。（本段僅為摘要，具法律效力的是下方英文文本。）",
+    "withdrawFailed": "無法撤回本次提交——未做任何變更。請重試。",
+    "makeChanges": "✏️ 修改內容",
+    "reviseConfirm": "要重新開啟這張報銷單進行編輯嗎？已收集的所有簽名將作廢，重新提交後審批將重新開始。",
+    "reviseConfirmButton": "重新開啟編輯",
+    "reviseFailed": "無法重新開啟報銷單",
+    "waitingDays": "· 已等待 {days, plural, other {# 天}}",
+    "alreadyDecidedNote": "這張報銷單已有審批結果——清單稍後會更新。",
+    "assignedElsewhereNote": "這張報銷單已指派給其他審批人。",
+    "undoStroke": "復原一筆"
   },
   "Approvals": {
     "title": "審批",
@@ -469,7 +506,8 @@
     "roleLostNotice": "您的審批人角色已被移除。您可以拒絕這些報銷單，讓提交人改選其他審批人，但無法批准。",
     "rejectConfirmTitle": "拒絕這份報銷單？",
     "rejectConfirmBody": "拒絕後無法復原，你之後也無法再批准這份報銷單。{name} 需要修改並重新提交，才能重新進入審批。",
-    "rejectConfirmAction": "✗ 拒絕報銷單"
+    "rejectConfirmAction": "✗ 拒絕報銷單",
+    "openGone": "該報銷單已不在此清單中——可能已有審批結果。"
   },
   "Finance": {
     "title": "財務",
@@ -486,12 +524,15 @@
     "clearSelection": "清除",
     "printAll": "全部列印",
     "printing": "正在準備…",
-    "printFailed": "無法產生單據包，請重試。"
+    "printFailed": "無法產生單據包，請重試。",
+    "openGone": "該報銷單已不在此清單中——可能已完成付款。",
+    "noCheckNumberNote": "未填寫支票號——非支票付款可留空；若開了支票請填寫。",
+    "selectAllPaid": "全選"
   },
   "Identity": {
     "title": "電子簽名",
     "chipReady": "可以簽署",
-    "chipPending": "就差一步",
+    "chipPending": "等待擔保",
     "chipRevoked": "已停用",
     "chipNone": "未開通",
     "loadFailed": "無法載入簽名狀態",
@@ -540,7 +581,11 @@
     "scopeTitle": "誰可以電子簽名",
     "scopeAllowlist": "僅限我選擇的成員",
     "scopeEveryone": "所有人",
-    "allowlistOnMembersPage": "請在<link>成員</link>頁面選擇誰可以使用電子簽名。移除某人會對其隱藏簽名功能；其已簽署的內容仍然有效。"
+    "allowlistOnMembersPage": "請在<link>成員</link>頁面選擇誰可以使用電子簽名。移除某人會對其隱藏簽名功能；其已簽署的內容仍然有效。",
+    "scanFromVouchTab": "重要提示：請對方在本應用程式的「擔保」分頁中掃描此碼——不要用手機相機應用程式掃描。",
+    "whoCanVouch": "可以為您擔保的成員：{names}{more, plural, =0 {} other { 等，還有 # 人}}。",
+    "revokedBody": "您的簽名金鑰已被管理員停用。您之前簽署的內容仍然有效，但若要再次簽署，需要重新設定簽名並再次當面獲得擔保。",
+    "reEnrollButton": "重新設定簽名"
   },
   "Devices": {
     "newDeviceTitle": "這似乎是一台新裝置。",
@@ -578,7 +623,7 @@
     "couldNotRemove": "無法移除該裝置",
     "lostHint": "裝置丟了？先在這裡移除；若可能已落入他人之手，請當面告知管理員——他們可以直接吊銷簽名金鑰。",
     "recoveryRoot": "請保護好教會的簽名錨點。若此裝置遺失且沒有復原單，全教會的電子簽名將不得不推倒重建。",
-    "recoveryNudge": "再加一道保險：列印一張復原單，即使這台裝置遺失，你也能在新裝置上簽名。",
+    "recoveryNudge": "再加一道保險：列印一張復原單，即使這台裝置遺失，你也能在新裝置上簽名。沒有復原單的話，裝置全部遺失就需要重新註冊並再次當面獲得擔保。",
     "printSheet": "列印我的復原單",
     "later": "以後再說",
     "phraseDialogTitle": "列印你的復原單",
@@ -590,7 +635,10 @@
     "savedCheckbox": "復原單已列印（或已抄寫），並已妥善保存。",
     "done": "完成",
     "couldNotCreatePhrase": "無法產生復原口令",
-    "couldNotBuildSheet": "無法產生復原單"
+    "couldNotBuildSheet": "無法產生復原單",
+    "waitingCancel": "取消並重新開始",
+    "rejectFailed": "無法拒絕該請求——它可能仍在等待中。請重試。",
+    "freshPhraseNote": "每次開啟都會產生全新的助記詞——之前列印的復原單將立即失效。"
   },
   "Vouch": {
     "title": "為會友擔保",
@@ -613,7 +661,8 @@
     "nobodyPending": "目前沒有人等待擔保。",
     "vouchFailed": "擔保失敗",
     "malformedLink": "擔保連結已損壞——請重新掃描",
-    "membersPageHint": "在找成員名冊？角色、簽名金鑰和電子簽名權限都在<link>成員</link>頁面管理。"
+    "membersPageHint": "在找成員名冊？角色、簽名金鑰和電子簽名權限都在<link>成員</link>頁面管理。",
+    "keylessDevice": "此瀏覽器尚未持有您的簽名金鑰，無法在此進行擔保。請先在「個人資料」中新增此裝置，或改用您已能簽名的裝置進行擔保。"
   },
   "VouchScan": {
     "open": "📷 掃描對方的 QR 碼",
@@ -621,13 +670,13 @@
     "aim": "對準對方的 QR 碼",
     "notVouch": "這不是擔保 QR 碼——請對準對方的 QR 碼。",
     "insecure": "此裝置無法在此開啟相機。請改用下方的清單。",
-    "denied": "相機權限遭拒。請在瀏覽器設定中允許，或改用下方的清單。",
+    "denied": "相機權限遭拒。請在裝置設定中為本應用程式允許相機權限，或改用下方的清單。",
     "startFailed": "無法啟動相機。請改用下方的清單。"
   },
   "Verify": {
     "verifying": "正在你的瀏覽器中驗證簽名…",
     "failedTitle": "驗證失敗",
-    "linkInvalid": "此驗證連結無效（{part}）",
+    "linkInvalid": "此驗證連結無效或已過期",
     "confirmedTitle": "確認屬實",
     "warningsTitle": "需要進一步核對",
     "storyGeneric": "這份文件已在你的瀏覽器中完成密碼學核對——詳見下方。",
@@ -695,7 +744,8 @@
     "rosterOddities": "名冊中有 {count} 處異常",
     "invalidEvents": "無效事件（保持可見）：",
     "independentCheckCert": "獨立核驗：用教會公布的根指紋，對證書內嵌的資料包執行 <code>scripts/verify-bundle.mjs</code>。",
-    "unknown": "未知"
+    "unknown": "未知",
+    "orgHeader": "CFCC · 報銷單驗證"
   },
   "Errors": {
     "notSignedIn": "尚未登入",
@@ -738,6 +788,7 @@
     "claimEmpty": "報銷單沒有可報銷的列項目",
     "rowsUnverified": "還有 {count} 列需要核對後才能產生 PDF",
     "rowsMissingMinistry": "還有 {count} 列需要選擇事工後才能產生 PDF",
+    "profileIncomplete": "請先在個人資料中填寫姓名和郵寄地址——兩者都會列印在報銷表上",
     "invalidManualEntry": "無效的手動輸入欄位",
     "receiptNotOnClaim": "這張報銷單上沒有該收據",
     "rowAlreadyEdited": "該收據的列已被編輯過——請直接調整該列",
@@ -776,7 +827,8 @@
       "contentString": "內容必須為文字。",
       "contextTooLong": "教會背景過長（上限 {max} 位元組）。",
       "unknownField": "該設定無法在此編輯。",
-      "nothingToChange": "沒有可變更的內容。"
+      "nothingToChange": "沒有可變更的內容。",
+      "selfLockout": "此變更會移除您自己的管理員權限——請保留您的電子郵件"
     },
     "ministry": {
       "invalid": "Those budget categories couldn’t be saved — check the form and try again.",
@@ -792,12 +844,14 @@
       "invalid": "Those teams couldn’t be saved — check the form and try again.",
       "codeFormat": "Invalid budget category code: “{code}”.",
       "unknownMember": "One of the selected people couldn’t be found. Refresh and try again."
-    }
+    },
+    "searchInvalid": "無法理解該搜尋——請調整後重試",
+    "searchEmptyQuery": "請先輸入要搜尋的內容"
   },
   "AddReceipts": {
     "title": "向這張報銷單新增收據",
     "intro": "從已有收據中選取，或直接上傳新收據——每張都會由 AI 讀取並產生待核對的一列。",
-    "upload": "📷 上傳收據",
+    "upload": "上傳收據",
     "uploading": "上傳中…",
     "emptyTitle": "沒有其他可新增的收據",
     "emptyBody": "上傳收據的相片或 PDF 即可新增。",
@@ -1028,8 +1082,23 @@
       "scoreExact": "精確",
       "rebuildTitle": "重建索引",
       "rebuildHint": "在目前模型上重新讀取全部內容——當搜尋伺服器被悄悄更換時使用。",
-      "rebuild": "重建"
-    }
+      "rebuild": "重建",
+      "confirmModelChange": "變更模型會清除所有已儲存的向量，並針對 AI 端點重新讀取全部收據和報銷單——搜尋將降級數小時。確定繼續嗎？",
+      "confirmModelChangeButton": "變更模型並重建",
+      "confirmRebuild": "要重建整個搜尋索引嗎？所有收據和報銷單都會針對 AI 端點重新讀取——需要數小時並消耗 AI 呼叫。"
+    },
+    "allowAction": "允許",
+    "blockAction": "停用",
+    "detailToggle": "詳情",
+    "kind_embedding": "搜尋索引",
+    "action_admin_config": "變更了應用程式設定",
+    "action_admin_ministries": "編輯了預算類別",
+    "action_admin_teams": "編輯了團隊",
+    "action_admin_positions": "編輯了職位",
+    "action_admin_church_context": "編輯了教會背景資料",
+    "action_update_embedding_config": "變更了搜尋設定",
+    "action_rebuild_embeddings": "重建了搜尋索引",
+    "action_retry_embedding": "重試了失敗的索引"
   },
   "Ministries": {
     "title": "Budget categories",
@@ -1048,7 +1117,7 @@
     "code": "Code",
     "name": "Name",
     "description": "Description (optional)",
-    "descriptionPlaceholder": "Add a hint for requesters…",
+    "descriptionPlaceholder": "為報銷人新增提示——它同時會引導 AI 的類別建議…",
     "codeAria": "Account code",
     "nameAria": "Category name",
     "active": "Active",
@@ -1068,7 +1137,9 @@
     "positionArchivedOption": "{name} (archived)",
     "routesTo": "Routes to {name}",
     "routesNobody": "No holder here can approve yet — claims won't be pre-filled.",
-    "routesNoHolder": "This position has no holder yet."
+    "routesNoHolder": "This position has no holder yet.",
+    "removeUnsavedAria": "移除未儲存的類別 {name}",
+    "newCategoryFallback": "新類別"
   },
   "Search": {
     "title": "搜尋",
@@ -1081,7 +1152,7 @@
     "scopeMine": "我的",
     "scopeAll": "全教會",
     "scopeDecided": "我審批過的",
-    "scopeDecidedHint": "我批准或拒絕過的——不含仍在等待審批的",
+    "scopeDecidedHint": "您批准或拒絕過的報銷單——不含仍在等待您處理的。搜尋框留空可列出全部。",
     "typeFilterLabel": "顯示",
     "scopeFilterLabel": "範圍",
     "typeAll": "全部",
@@ -1107,7 +1178,12 @@
     "dateHint": "搜尋比對的是描述而不是日期——每筆結果上都標有日期。",
     "showMore": "顯示更多",
     "scopeTeam": "My teams",
-    "scopeTeamHint": "Receipts and claims under your teams' budget categories. Leave the search empty to list all of them."
+    "scopeTeamHint": "Receipts and claims under your teams' budget categories. Leave the search empty to list all of them.",
+    "viewOnlyCard": "僅供檢視——您無權開啟這張報銷單。",
+    "emptyDegradedBody": "描述搜尋暫時無法使用，且沒有完全符合的結果——請稍後再試。",
+    "emptyTeamBrowse": "您的團隊暫時沒有已提交報銷單上的收據——新的收據會顯示在這裡。",
+    "unavailableTitle": "搜尋尚未設定",
+    "unavailableBody": "管理員需要先設定搜尋後端，此頁面才能使用。應用程式的其他功能不受影響。"
   },
   "Positions": {
     "title": "Positions",
@@ -1163,7 +1239,9 @@
     "eligibilityPaused": "Approvals paused",
     "eligibilityCannot": "Needs Approver grant",
     "holderPausedWarn": "{name} has paused approvals, so claims won't pre-fill to them until they resume.",
-    "holderCannotWarn": "{name} 需要執行同工或管理員在<link>成員</link>頁面授予「審批人」角色後才能審批。"
+    "holderCannotWarn": "{name} 需要執行同工或管理員在<link>成員</link>頁面授予「審批人」角色後才能審批。",
+    "routingNote": "跨多個預算類別的報銷單會按金額最大的類別的預設審批人預填；不可用的擔任者會被跳過。",
+    "localizedNamesHint": "中文名稱為選填——留空時使用英文名稱。"
   },
   "Members": {
     "title": "成員",
@@ -1197,7 +1275,10 @@
     "roleDialogConfirm": "更新角色",
     "revokeKey": "吊銷金鑰",
     "keyDialogTitle": "吊銷 {name} 的簽名金鑰？",
-    "keyDialogBody": "僅當能以他身分簽名的裝置遺失或被盜時才這樣做。他已簽署的內容依然有效，但該金鑰將立即在所有地方失效——他需要重新開通簽名，並再次當面獲得擔保。"
+    "keyDialogBody": "僅當能以他身分簽名的裝置遺失或被盜時才這樣做。他已簽署的內容依然有效，但該金鑰將立即在所有地方失效——他需要重新開通簽名，並再次當面獲得擔保。",
+    "attestedSince": "認證於 {date}",
+    "statusRevokedHint": "其簽名金鑰已停用。若要再次簽署，需在其個人資料頁重新設定簽名並再次當面獲得擔保。",
+    "statusNoneHint": "尚未設定電子簽名。可從其個人資料頁開始設定。"
   },
   "Teams": {
     "title": "Teams",
@@ -1226,6 +1307,7 @@
     "noMembers": "No members yet.",
     "addMember": "Add a member",
     "choosePerson": "Choose a person…",
-    "removeMember": "Remove"
+    "removeMember": "Remove",
+    "archiveEndsAccess": "封存後，儲存時將結束所有成員的檢視權限。"
   }
 }

@@ -90,6 +90,19 @@ export async function signInAs(page: Page, email: string, name = "Test User"): P
   await expect(page.getByRole("heading", { name: "Receipts" })).toBeVisible();
 }
 
+/** Fill the profile via the API. The PDF route refuses to print a packet with
+ *  blank payee lines, so any spec that generates a claim PDF needs this. */
+export async function completeProfile(
+  page: Page,
+  name = "Test Member",
+  address = "123 Main St, San Jose, CA 95110"
+): Promise<void> {
+  const res = await page.request.patch("/api/profile", {
+    data: { fullName: name, mailingAddress: address },
+  });
+  expect(res.ok()).toBeTruthy();
+}
+
 /** Upload fixture files through the Shoebox file input. Picking files opens a
  *  prepare dialog per file BEFORE anything uploads (client-side edit chance);
  *  Save sends that file — fill the optional note on the first, save through the

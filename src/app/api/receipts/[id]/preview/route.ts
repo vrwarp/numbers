@@ -73,7 +73,9 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     const pageParam = req.nextUrl.searchParams.get("page");
     if (pageParam === null) {
       return NextResponse.json(manifest, {
-        headers: { "Cache-Control": "private, max-age=3600" },
+        // Derived from the original PDF, which is never edited — the preview
+        // cache (manifest included) genuinely cannot go stale.
+        headers: { "Cache-Control": "private, max-age=31536000, immutable" },
       });
     }
     const page = Number(pageParam);
@@ -84,7 +86,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     return new NextResponse(new Uint8Array(webp), {
       headers: {
         "Content-Type": "image/webp",
-        "Cache-Control": "private, max-age=3600",
+        "Cache-Control": "private, max-age=31536000, immutable",
       },
     });
   });

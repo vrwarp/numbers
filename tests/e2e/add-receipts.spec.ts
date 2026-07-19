@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
+import { completeProfile, makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
 
 // Mock extraction fixtures (deterministic; see src/lib/ai/mock.ts):
 //   costco.jpg        → Costco Wholesale, net $102.10
@@ -8,6 +8,7 @@ import { makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
 test("receipts can be added to a draft claim from the review screen", async ({ page }, testInfo) => {
   page.on("dialog", (d) => d.accept());
   await signInAs(page, `adder-${testInfo.project.name}-r${testInfo.retry}@example.com`, "Addy More");
+  await completeProfile(page);
 
   // One claim from just the Costco receipt; the Amazon one stays in the Shoebox.
   await page.goto("/shoebox");
@@ -93,6 +94,6 @@ test("receipts can be added to a draft claim from the review screen", async ({ p
   expect(frozen.status()).toBe(409);
   // The button is gone on a generated claim.
   await page.reload();
-  await expect(page.getByTestId("claim-status")).toHaveText("Generated");
+  await expect(page.getByTestId("claim-status")).toHaveText("Ready to submit");
   await expect(page.getByTestId("add-receipts")).toHaveCount(0);
 });

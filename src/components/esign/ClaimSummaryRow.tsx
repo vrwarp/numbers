@@ -41,6 +41,17 @@ function useMetaLine(c: ClaimRowData): string {
   return parts.join(" · ");
 }
 
+/** Days a claim has sat waiting on the person reading this row (approver
+ *  while submitted, treasurer while approved). Only surfaced once it's been
+ *  a few days — fresh work doesn't need a pressure cue. */
+function waitingDays(c: ClaimRowData): number | null {
+  const since =
+    c.status === "submitted" ? c.submittedAt : c.status === "approved" ? c.decidedAt : null;
+  if (!since) return null;
+  const days = Math.floor((Date.now() - new Date(since).getTime()) / 86_400_000);
+  return days >= 3 ? days : null;
+}
+
 export default function ClaimSummaryRow({
   claim,
   leading,
@@ -67,7 +78,16 @@ export default function ClaimSummaryRow({
         {/* Only the description truncates — the name and the dates line are
             short and meaningful in full, so they wrap rather than ellipsis. */}
         <div className="truncate text-sm text-stone-500">{subtitle}</div>
-        {meta && <div className="text-xs text-stone-400">{meta}</div>}
+        {(meta || waitingDays(claim) !== null) && (
+          <div className="text-xs text-stone-400">
+            {meta}
+            {waitingDays(claim) !== null && (
+              <span className="ml-1 font-medium text-amber-600" data-testid="waiting-days">
+                {tEsign("waitingDays", { days: waitingDays(claim)! })}
+              </span>
+            )}
+          </div>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-3">
         <span className="text-lg font-bold">{formatCents(claim.totalCents)}</span>

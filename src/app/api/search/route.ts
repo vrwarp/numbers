@@ -25,20 +25,20 @@ const BodySchema = z.object({
 export async function POST(req: NextRequest) {
   return handleApi(async () => {
     const userId = await requireUserId();
-    if (!(await embeddingEnabled())) throw new ApiError(404, "Not found");
+    if (!(await embeddingEnabled())) throw new ApiError(404, "Not found", "notFound");
     const parsed = BodySchema.safeParse(await req.json().catch(() => null));
-    if (!parsed.success) throw new ApiError(400, "Invalid search request");
+    if (!parsed.success) throw new ApiError(400, "Invalid search request", "searchInvalid");
 
     const caps = await searchCapabilitiesFor(userId);
     const scope = parsed.data.scope ?? (caps.canAll ? "all" : "mine");
-    if (scope === "all" && !caps.canAll) throw new ApiError(404, "Not found");
-    if (scope === "decided" && !caps.canDecided) throw new ApiError(404, "Not found");
+    if (scope === "all" && !caps.canAll) throw new ApiError(404, "Not found", "notFound");
+    if (scope === "decided" && !caps.canDecided) throw new ApiError(404, "Not found", "notFound");
     // Team scope (§6.3 team amendment): membership-derived, standard 404 when
     // the caller holds no team read grant.
-    if (scope === "team" && !caps.canTeam) throw new ApiError(404, "Not found");
+    if (scope === "team" && !caps.canTeam) throw new ApiError(404, "Not found", "notFound");
     // decided/team browse their sets on an empty query; other scopes need one.
     if (!parsed.data.query.trim() && scope !== "decided" && scope !== "team") {
-      throw new ApiError(400, "Empty query");
+      throw new ApiError(400, "Empty query", "searchEmptyQuery");
     }
 
     const result = await runSearch({

@@ -8,10 +8,13 @@
  * approved/paid.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
+import { useAutoRefresh } from "@/lib/use-auto-refresh";
+import { useModalDismiss } from "@/lib/use-modal-dismiss";
 import {
+  LedgerCommittedError,
   loadEnv,
   runSubmitCeremony,
   withdrawSubmission,
@@ -26,6 +29,7 @@ import { usePositionLabel } from "@/lib/use-position-label";
 import type { PositionNameSet } from "@/lib/positions";
 import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import PdfLink from "@/components/PdfLink";
 import {
   AuditDetails,
   ChainAlert,
@@ -93,6 +97,14 @@ export default function EsignPanel({
   const [verifiedAt, setVerifiedAt] = useState<Date | null>(null);
   // Set when a withdraw attempt lost the race with the approver's decision.
   const [withdrawRace, setWithdrawRace] = useState<"approved" | "rejected" | null>(null);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  // Post-rejection "make the changes" path: revert-to-draft with its own
+  // consequence confirm, so the fix-it action lives NEXT TO the rejection
+  // comment instead of hiding behind the action bar's "Revert" jargon.
+  const [reviseOpen, setReviseOpen] = useState(false);
+  const [reviseBusy, setReviseBusy] = useState(false);
+  const [reviseError, setReviseError] = useState<string | null>(null);
+  const thrown = useThrownErrorMessage();
   const signed = ["submitted", "rejected", "approved", "paid"].includes(claim.status);
   // On the owner's review screen the claim's ownerUid IS the signed-in user.
   const chainClaim =
@@ -112,6 +124,17 @@ export default function EsignPanel({
   useEffect(() => {
     void loadEnv().then(setEnv).catch(() => {});
   }, []);
+
+  // "Awaiting approval" should resolve itself on this screen — poll the mirror
+  // (and re-verify the chain) while submitted, so the requester learns of the
+  // decision without hammering the buttons. Paused during dialogs.
+  useAutoRefresh(
+    () => {
+      void onChanged();
+      void refresh();
+    },
+    { paused: claim.status !== "submitted" || dialogOpen || withdrawOpen }
+  );
 
   const checkStatus = async () => {
     setCheckingStatus(true);
@@ -242,15 +265,14 @@ export default function EsignPanel({
           </button>
         )}
         {(claim.status === "approved" || claim.status === "paid") && (
-          <a
+          <PdfLink
             className="btn-secondary"
             href={`/api/reimbursements/${claim.id}/certificate`}
-            target="_blank"
-            rel="noreferrer"
-            data-testid="certificate-link"
+            filename={`cfcc-certificate-${claim.id}.pdf`}
+            testId="certificate-link"
           >
             {t("certificateLink")}
-          </a>
+          </PdfLink>
         )}
         {claim.status === "submitted" && state?.thread?.submit && (
           <button
@@ -262,9 +284,16 @@ export default function EsignPanel({
           </button>
         )}
         {claim.status === "rejected" && (
-          <button className="btn-primary" onClick={() => setDialogOpen(true)} data-testid="resubmit">
-            {t("resubmit")}
-          </button>
+          <>
+            {/* The approver asked for CHANGES — editing is the primary path;
+                resubmitting the identical packet is the secondary one. */}
+            <button className="btn-primary" onClick={() => setReviseOpen(true)} data-testid="revise-claim">
+              {t("makeChanges")}
+            </button>
+            <button className="btn-secondary" onClick={() => setDialogOpen(true)} data-testid="resubmit">
+              {t("resubmit")}
+            </button>
+          </>
         )}
       </div>
       {/* Every Check-status press resolves here (aria-live announces it); the
@@ -302,8 +331,10 @@ export default function EsignPanel({
         message={t("withdrawConfirm")}
         confirmLabel={t("withdrawConfirmButton")}
         busy={withdrawBusy}
+        tone="primary"
         onConfirm={async () => {
           setWithdrawBusy(true);
+          setWithdrawError(null);
           try {
             // Re-verify before appending: the approver may have decided while
             // the dialog was up, and a withdraw after a decision is dead on
@@ -313,12 +344,16 @@ export default function EsignPanel({
             const decided = fresh?.thread?.decision?.action as { t?: string } | undefined;
             if (decided?.t === "APPROVE" || decided?.t === "REJECT") {
               setWithdrawRace(decided.t === "APPROVE" ? "approved" : "rejected");
+              setWithdrawOpen(false);
               await onChanged();
               return;
             }
             // Bail if the submit action is no longer there to withdraw.
             const submit = fresh?.thread?.submit;
-            if (!submit) return;
+            if (!submit) {
+              setWithdrawOpen(false);
+              return;
+            }
             await withdrawSubmission(
               {
                 id: claim.id,
@@ -328,13 +363,53 @@ export default function EsignPanel({
               submit.actionHash
             );
             await onChanged();
+            setWithdrawOpen(false);
+          } catch (err) {
+            // A silent close here is indistinguishable from success — say
+            // what happened. A committed-but-unsynced withdrawal will catch
+            // up via reconciliation/auto-refresh; anything else failed.
+            if (err instanceof LedgerCommittedError) {
+              setWithdrawError(t("signedButNotSynced"));
+              await onChanged();
+            } else {
+              setWithdrawError(thrown(err, t("withdrawFailed")));
+            }
           } finally {
             setWithdrawBusy(false);
-            setWithdrawOpen(false);
           }
         }}
-        onCancel={() => setWithdrawOpen(false)}
+        onCancel={() => {
+          setWithdrawError(null);
+          setWithdrawOpen(false);
+        }}
+        errorText={withdrawError}
         testId="withdraw-confirm"
+      />
+      <ConfirmDialog
+        open={reviseOpen}
+        message={t("reviseConfirm")}
+        confirmLabel={t("reviseConfirmButton")}
+        busy={reviseBusy}
+        errorText={reviseError}
+        onConfirm={async () => {
+          setReviseBusy(true);
+          setReviseError(null);
+          try {
+            const res = await fetch(`/api/reimbursements/${claim.id}/revert`, { method: "POST" });
+            if (!res.ok) throw new Error((await res.json().catch(() => null))?.error ?? "revert failed");
+            setReviseOpen(false);
+            await onChanged();
+          } catch (err) {
+            setReviseError(thrown(err, t("reviseFailed")));
+          } finally {
+            setReviseBusy(false);
+          }
+        }}
+        onCancel={() => {
+          setReviseError(null);
+          setReviseOpen(false);
+        }}
+        testId="revise-confirm"
       />
       {dialogOpen && (
         <SubmitDialog
@@ -377,13 +452,29 @@ export function SubmitDialog({
   const [bytes, setBytes] = useState<ArrayBuffer | null>(null);
   const [anchor, setAnchor] = useState<SignaturePlacement | null>(null);
   const [placement, setPlacement] = useState<SignaturePlacement | null>(null);
+  // A transient fetch failure must never strand the ceremony on a permanent
+  // "Opening the form…" — track it and offer a retry.
+  const [membersLoaded, setMembersLoaded] = useState(false);
+  const [prepFailed, setPrepFailed] = useState(false);
+  const [prepAttempt, setPrepAttempt] = useState(0);
+  // Signature landed on the ledger but the mirror update failed — the action
+  // is DONE; the button must never allow a second signature.
+  const [committed, setCommitted] = useState(false);
+  // A tap on the disabled sign button reveals the first missing requirement.
+  const [attempted, setAttempted] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalDismiss(dialogRef, () => {
+    if (!busy) onClose();
+  });
   const enrolled = env.me.identityStatus === "attested";
   const hasSignature = !!env.me.signatureImage;
 
   useEffect(() => {
     void (async () => {
-      const res = await fetch("/api/esign/members");
-      if (res.ok) {
+      setPrepFailed(false);
+      try {
+        const res = await fetch("/api/esign/members");
+        if (!res.ok) throw new Error("members fetch failed");
         const all = ((await res.json()).members ?? []) as Member[];
         // Approver-or-above, not me, and not paused (A10) — the submit
         // preflight re-checks all three server-side.
@@ -394,25 +485,32 @@ export function SubmitDialog({
             !m.approvalsPaused
         );
         setMembers(eligible);
-        // Pre-fill the budget-category default approver (Positions) when it is
-        // a currently-pickable member — a suggestion the submitter can change.
-        if (
+        setMembersLoaded(true);
+        // Pre-fill: on a resubmit keep the previously chosen approver when
+        // still pickable; otherwise the budget-category default (Positions).
+        // Suggestions only — the submitter still picks and signs themselves.
+        if (claim.approverUserId && eligible.some((m) => m.userId === claim.approverUserId)) {
+          setApproverUserId(claim.approverUserId);
+        } else if (
           claim.suggestedApproverUserId &&
           eligible.some((m) => m.userId === claim.suggestedApproverUserId)
         ) {
           setApproverUserId(claim.suggestedApproverUserId);
         }
-      }
-      if (enrolled && hasSignature) {
-        const [pkt, anc] = await Promise.all([
-          fetch(`/api/reimbursements/${claim.id}/packet`),
-          fetch(`/api/reimbursements/${claim.id}/sign-anchor`),
-        ]);
-        if (pkt.ok) setBytes(await pkt.arrayBuffer());
-        if (anc.ok) setAnchor((await anc.json()).anchor as SignaturePlacement);
+        if (enrolled && hasSignature) {
+          const [pkt, anc] = await Promise.all([
+            fetch(`/api/reimbursements/${claim.id}/packet`),
+            fetch(`/api/reimbursements/${claim.id}/sign-anchor`),
+          ]);
+          if (!pkt.ok || !anc.ok) throw new Error("packet/anchor fetch failed");
+          setBytes(await pkt.arrayBuffer());
+          setAnchor((await anc.json()).anchor as SignaturePlacement);
+        }
+      } catch {
+        setPrepFailed(true);
       }
     })();
-  }, [env.me.userId, claim.id, claim.suggestedApproverUserId, enrolled, hasSignature]);
+  }, [env.me.userId, claim.id, claim.suggestedApproverUserId, enrolled, hasSignature, prepAttempt]);
 
   async function sign() {
     setBusy(true);
@@ -425,7 +523,14 @@ export function SubmitDialog({
       });
       await onDone();
     } catch (err) {
-      setError(thrown(err, t("submissionFailed")));
+      if (err instanceof LedgerCommittedError) {
+        // The signature IS recorded — a retry would sign twice. Lock the
+        // button and say so; auto-refresh/reconciliation catches the mirror up.
+        setCommitted(true);
+        setError(t("signedButNotSynced"));
+      } else {
+        setError(thrown(err, t("submissionFailed")));
+      }
       setBusy(false);
     }
   }
@@ -437,8 +542,13 @@ export function SubmitDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">
-      <div className="max-h-[92vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-t-2xl bg-white p-6 sm:rounded-2xl">
+    <div
+      ref={dialogRef}
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="max-h-[92dvh] w-full max-w-lg space-y-4 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:rounded-2xl sm:pb-6">
         <h3 className="text-lg font-bold">{t("submitDialogTitle")}</h3>
         {!enrolled ? (
           <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
@@ -470,6 +580,18 @@ export function SubmitDialog({
             <p className="text-sm text-stone-600">
               {t("submitIntro", { amount: formatCents(claim.totalCents) })}
             </p>
+            {prepFailed && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">
+                <span>{t("prepFailed")}</span>
+                <button
+                  className="font-semibold underline underline-offset-2"
+                  onClick={() => setPrepAttempt((n) => n + 1)}
+                  data-testid="prep-retry"
+                >
+                  {t("retryButton")}
+                </button>
+              </div>
+            )}
             {hasSignature && bytes && anchor && env.me.signatureImage ? (
               <DocumentSignField
                 bytes={bytes}
@@ -477,7 +599,7 @@ export function SubmitDialog({
                 anchor={anchor}
                 onChange={setPlacement}
               />
-            ) : hasSignature ? (
+            ) : hasSignature && !prepFailed ? (
               <div className="flex h-40 items-center justify-center rounded-lg border border-stone-200 text-sm text-stone-400">
                 {t("openingForm")}
               </div>
@@ -500,6 +622,11 @@ export function SubmitDialog({
                 ))}
               </select>
             </label>
+            {membersLoaded && members.length === 0 && (
+              <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="no-approvers-note">
+                {t("noEligibleApprovers")}
+              </p>
+            )}
             {approverUserId &&
               approverUserId === claim.suggestedApproverUserId &&
               claim.suggestedApproverPosition && (
@@ -523,7 +650,10 @@ export function SubmitDialog({
               <summary className="cursor-pointer font-medium">{t("consentSummary")}</summary>
               {/* The consent document is a hash-bound signed input (consentSha256,
                   docs/ESIGN_DESIGN.md §5.4) — it stays the English ueta-v1 text
-                  verbatim; only the chrome around it is localized. */}
+                  verbatim; only the chrome around it is localized. The gloss is a
+                  plain-language SUMMARY in the UI language, labeled as such, so a
+                  non-English reader isn't affirming a text they can't read at all. */}
+              <p className="mt-2">{t("consentGloss")}</p>
               <p className="mt-2 text-stone-400">{t("consentEnglishNote")}</p>
               <pre className="mt-2 whitespace-pre-wrap">{CONSENT_TEXT}</pre>
             </details>
@@ -537,18 +667,46 @@ export function SubmitDialog({
               <span>{t("intentAffirmation")}</span>
             </label>
             {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+            {/* Why the button is greyed out — tooltips don't exist on touch.
+                The signature-placement case shows unprompted (it's the least
+                obvious); the rest reveal on a tap of the disabled button. */}
+            {(() => {
+              const reason = busy || committed
+                ? null
+                : !approverUserId
+                  ? t("hintPickApprover")
+                  : hasSignature && bytes && anchor && !placement
+                    ? t("placeSignatureHint")
+                    : !typedName.trim()
+                      ? t("hintTypeName")
+                      : !affirmed
+                        ? t("hintAffirm")
+                        : null;
+              const unprompted = hasSignature && bytes && anchor && !placement && !!approverUserId;
+              return reason && (attempted || unprompted) ? (
+                <p className="text-right text-xs text-stone-500" data-testid="submit-place-hint">
+                  {reason}
+                </p>
+              ) : null;
+            })()}
             <div className="flex justify-end gap-2">
               <button className="btn-secondary" onClick={onClose}>
-                {tCommon("cancel")}
+                {committed ? tCommon("close") : tCommon("cancel")}
               </button>
+              <span
+                onClick={() => {
+                  if (!busy && !committed) setAttempted(true);
+                }}
+              >
               <button
-                className="btn-primary disabled:opacity-50"
-                disabled={!approverUserId || !typedName.trim() || !affirmed || !placedReady || busy}
+                className="btn-primary disabled:pointer-events-none disabled:opacity-50"
+                disabled={!approverUserId || !typedName.trim() || !affirmed || !placedReady || busy || committed}
                 onClick={sign}
                 data-testid="sign-submit"
               >
                 {busy ? t("signing") : t("signAndSubmit")}
               </button>
+              </span>
             </div>
           </>
         )}

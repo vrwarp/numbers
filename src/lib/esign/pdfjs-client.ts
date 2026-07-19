@@ -36,16 +36,28 @@ function polyfillGetOrInsert(proto: {
     };
   }
 }
-polyfillGetOrInsert(Map.prototype as never);
-polyfillGetOrInsert(WeakMap.prototype as never);
+// pdfjs-dist is ~122 KB gz — a static `import * as pdfjs` here dragged it into
+// the First Load of every page that merely *references* a ceremony component
+// (~40% of the review page's bundle), defeating this file's stated laziness.
+// The library now loads on the first actual render call; the polyfill and the
+// worker wiring run once inside that same async path.
+type PdfjsModule = typeof import("pdfjs-dist");
+let pdfjsPromise: Promise<PdfjsModule> | null = null;
 
-import * as pdfjs from "pdfjs-dist";
-
-// The worker is served from our own origin by /api/esign/pdf-worker (which
-// streams the file out of node_modules). Bundling the ESM worker directly
-// fights Next's serverExternalPackages handling of pdfjs-dist; a same-origin
-// route sidesteps it and still works offline (no CDN).
-pdfjs.GlobalWorkerOptions.workerSrc = "/api/esign/pdf-worker";
+function loadPdfjs(): Promise<PdfjsModule> {
+  pdfjsPromise ??= (async () => {
+    polyfillGetOrInsert(Map.prototype as never);
+    polyfillGetOrInsert(WeakMap.prototype as never);
+    const pdfjs = await import("pdfjs-dist");
+    // The worker is served from our own origin by /api/esign/pdf-worker (which
+    // streams the file out of node_modules). Bundling the ESM worker directly
+    // fights Next's serverExternalPackages handling of pdfjs-dist; a
+    // same-origin route sidesteps it and still works offline (no CDN).
+    pdfjs.GlobalWorkerOptions.workerSrc = "/api/esign/pdf-worker";
+    return pdfjs;
+  })();
+  return pdfjsPromise;
+}
 
 export interface RenderedPage {
   /** Rendered bitmap as a data URL, ready for an <img> backdrop. */
@@ -75,6 +87,7 @@ export async function renderFirstPage(
   cssWidthPx = 800,
   oversample = 2
 ): Promise<RenderedPage> {
+  const pdfjs = await loadPdfjs();
   const loadingTask = pdfjs.getDocument({ data: new Uint8Array(data.slice(0)) });
   const doc = await loadingTask.promise;
   try {

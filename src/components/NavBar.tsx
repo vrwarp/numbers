@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import AccountMenu from "./AccountMenu";
@@ -40,13 +41,20 @@ export default function NavBar({
   const pathname = usePathname();
   const t = useTranslations("NavBar");
   // E-sign work badges (no notification infra — the nav surfaces state).
+  // Refreshed on navigation AND on a visible-tab interval: with no push
+  // notifications anywhere, this badge is the ONLY way an approver parked on
+  // another page learns that work arrived.
   const [badges, setBadges] = useState<Badges>({ enabled: false });
-  useEffect(() => {
+  const loadBadges = useCallback(() => {
     void fetch("/api/esign/badges")
       .then((r) => (r.ok ? r.json() : { enabled: false }))
       .then(setBadges)
       .catch(() => {});
-  }, [pathname]);
+  }, []);
+  useEffect(() => {
+    loadBadges();
+  }, [loadBadges, pathname]);
+  useAutoRefresh(loadBadges, { intervalMs: 90_000 });
 
   // Tabs the row reduced — compressed to icons or overflowed out — which the
   // account menu also lists (with labels). `overflow` is the hidden subset,
@@ -99,7 +107,7 @@ export default function NavBar({
     .map((l) => ({ ...l, hidden: overflowSet.has(l.href) }));
 
   return (
-    <header className="sticky top-0 z-40 border-b border-stone-200 bg-white/90 backdrop-blur short-wide:static">
+    <header className="sticky top-0 z-40 border-b border-stone-200 bg-white/90 pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] backdrop-blur short-wide:static">
       <div className="keyboard-smooth mx-auto flex max-w-6xl items-center gap-2 px-3 py-3 short-wide:py-1.5 sm:px-4">
         <Link
           href="/"

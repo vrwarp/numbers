@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { parseDollarsToCents } from "@/lib/money";
 import { useApiErrorMessage } from "@/lib/use-api-error";
+import { useModalDismiss } from "@/lib/use-modal-dismiss";
 
 /**
  * Shown when the AI couldn't read a receipt: the image sits next to the exact
@@ -35,6 +36,11 @@ export default function ManualEntryDialog({
   const [summary, setSummary] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  // Escape defers the receipt (same as "Skip for now") — never mid-save.
+  useModalDismiss(dialogRef, () => {
+    if (!saving) onSkip();
+  });
 
   function centsOrNull(input: string): number | null {
     try {
@@ -79,6 +85,7 @@ export default function ManualEntryDialog({
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="dialog"
       aria-modal

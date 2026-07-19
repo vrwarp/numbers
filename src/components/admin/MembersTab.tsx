@@ -236,7 +236,9 @@ export default function MembersTab() {
                             onClick={() => toggleAllowed(m, !m.allowed)}
                             data-testid={`allow-${m.userId}`}
                           >
-                            {busyId === m.userId ? "…" : m.allowed ? t("access") : t("noAccess")}
+                            {/* Verb = what the click DOES; a state-word here
+                                reads as a label, not a control. */}
+                            {busyId === m.userId ? "…" : m.allowed ? t("blockAction") : t("allowAction")}
                           </button>
                         )}
                       </td>

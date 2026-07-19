@@ -7,21 +7,26 @@
  * certificate links.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useOpenParam } from "@/lib/use-open-param";
+import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { useTranslations } from "next-intl";
-import { runPaidCeremony } from "@/lib/esign/client";
+import { LedgerCommittedError, runPaidCeremony } from "@/lib/esign/client";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
-import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain } from "./chain";
+import { AuditDetails, ChainAlert, PacketLink, ThreadSignatures, chainLooksGood, useClaimChain } from "./chain";
 import { SigningConnectCard } from "./SigningConnect";
 import { type InboxClaim } from "./ApprovalsInbox";
 import ClaimSummaryRow from "./ClaimSummaryRow";
+import PdfLink from "@/components/PdfLink";
+import { deliverPdf, downloadBlob, isStandalonePwa, pdfFile, sharePdf } from "@/lib/pdf-delivery";
 
 export default function FinanceQueue() {
   const t = useTranslations("Finance");
   const tEsign = useTranslations("Esign");
+  const tCommon = useTranslations("Common");
   const apiError = useApiErrorMessage();
-  const [claims, setClaims] = useState<InboxClaim[]>([]);
+  // null = first load still in flight — don't flash the empty state.
+  const [claims, setClaims] = useState<InboxClaim[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   // Batch-print selection over the paid section (docs: treasurer prints many
   // filed packets at once). Both toggles default OFF — the lean output is just
@@ -33,6 +38,8 @@ export default function FinanceQueue() {
   const [includeCertificate, setIncludeCertificate] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [printError, setPrintError] = useState<string | null>(null);
+  // Built batch waiting for a fresh-gesture share (standalone PWA only).
+  const [printReady, setPrintReady] = useState<{ blob: Blob; filename: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,12 +66,15 @@ export default function FinanceQueue() {
     }).catch(() => {});
   }, []);
   // ?open=<id> deep link from search results (shared contract).
+  const list = claims ?? [];
+  const [openGone, setOpenGone] = useState(false);
   useOpenParam({
-    ready: claims.length > 0,
-    exists: (id) => claims.some((c) => c.id === id),
+    ready: claims !== null,
+    exists: (id) => list.some((c) => c.id === id),
     beforeScroll: (id) => {
-      if (claims.find((c) => c.id === id)?.status === "approved") setOpenId(id);
+      if (list.find((c) => c.id === id)?.status === "approved") setOpenId(id);
     },
+    onGone: () => setOpenGone(true),
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -86,9 +96,12 @@ export default function FinanceQueue() {
   useEffect(() => {
     void load();
   }, [load]);
+  // Newly approved claims should appear without a manual reload — but never
+  // refresh under an open paid ceremony or while a print is being built.
+  useAutoRefresh(load, { paused: openId !== null || printing });
 
-  const queue = claims.filter((c) => c.status === "approved");
-  const paid = claims.filter((c) => c.status === "paid");
+  const queue = list.filter((c) => c.status === "approved");
+  const paid = list.filter((c) => c.status === "paid");
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -105,7 +118,10 @@ export default function FinanceQueue() {
     setPrintError(null);
     // Open the tab inside the click gesture so the pop-up isn't blocked; point
     // it at the built PDF, or close it (and fall back to a download) on failure.
-    const win = window.open("", "_blank");
+    // Standalone PWA: no tab at all — blob tabs fail there and the overlay
+    // browser has no session cookie; the share sheet is the print/save path.
+    const standalone = isStandalonePwa();
+    const win = standalone ? null : window.open("", "_blank");
     try {
       const res = await fetch("/api/finance/print", {
         method: "POST",
@@ -115,7 +131,14 @@ export default function FinanceQueue() {
       if (!res.ok) {
         throw new Error(apiError(await res.json().catch(() => null), t("printFailed")));
       }
-      const url = URL.createObjectURL(await res.blob());
+      const blob = await res.blob();
+      if (standalone) {
+        if (!(await deliverPdf(blob, "cfcc-packets.pdf"))) {
+          setPrintReady({ blob, filename: "cfcc-packets.pdf" });
+        }
+        return;
+      }
+      const url = URL.createObjectURL(blob);
       if (win) win.location.href = url;
       else {
         const a = document.createElement("a");
@@ -141,8 +164,15 @@ export default function FinanceQueue() {
         <p className="text-sm text-stone-500">{t("subtitle")}</p>
       </div>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {openGone && (
+        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800" role="status" data-testid="open-gone-toast">
+          {t("openGone")}
+        </p>
+      )}
 
-      {queue.length === 0 ? (
+      {claims === null ? (
+        <p className="text-sm text-stone-500">{tCommon("loading")}</p>
+      ) : queue.length === 0 ? (
         <div className="card p-8 text-center text-stone-500">
           <div className="text-3xl">🧮</div>
           <p className="mt-2">{t("empty")}</p>
@@ -168,7 +198,18 @@ export default function FinanceQueue() {
 
       {paid.length > 0 && (
         <div>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-stone-400">{t("paidHeader")}</h2>
+          <div className="mb-2 flex items-center gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-400">{t("paidHeader")}</h2>
+            {paid.some((c) => !selected.has(c.id)) && (
+              <button
+                className="text-[13px] font-medium text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
+                onClick={() => setSelected(new Set(paid.map((c) => c.id)))}
+                data-testid="print-select-all"
+              >
+                {t("selectAllPaid")}
+              </button>
+            )}
+          </div>
           <ul className="space-y-3">
             {paid.map((c) => {
               const isSel = selected.has(c.id);
@@ -208,15 +249,14 @@ export default function FinanceQueue() {
                   {/* Opens the approval certificate — the signature cover page,
                       the full signed packet, and the offline verification bundle.
                       Served inline, so a new tab keeps the finance page put. */}
-                  <a
+                  <PdfLink
                     className="btn-secondary shrink-0"
                     href={`/api/reimbursements/${c.id}/certificate`}
-                    target="_blank"
-                    rel="noreferrer"
-                    data-testid={`paid-open-${c.id}`}
+                    filename={`cfcc-certificate-${c.id}.pdf`}
+                    testId={`paid-open-${c.id}`}
                   >
                     {t("viewCertificate")}
-                  </a>
+                  </PdfLink>
                 </li>
               );
             })}
@@ -228,7 +268,7 @@ export default function FinanceQueue() {
         // Floating batch-print toolbar (mirrors the claim page's action bar):
         // count, the two content toggles, and Print all — building one PDF with
         // every selected packet for a single trip to the printer.
-        <div className="fixed inset-x-0 bottom-4 z-30 flex justify-center px-4">
+        <div className="fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-30 flex justify-center px-4">
           <div className="card flex flex-wrap items-center gap-x-4 gap-y-2 bg-white/95 p-3 shadow-lg backdrop-blur">
             <span className="text-sm font-medium">{t("selectedCount", { count: selected.size })}</span>
             <label className="flex items-center gap-2 text-sm">
@@ -256,6 +296,21 @@ export default function FinanceQueue() {
               {t("includeCertificate")}
             </label>
             {printError && <span className="w-full text-sm text-red-700 sm:w-auto">{printError}</span>}
+            {/* Fresh-gesture share fallback (standalone PWA): the built batch
+                waits for a tap that still owns its user activation. */}
+            {printReady && (
+              <button
+                className="w-full rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 sm:w-auto"
+                onClick={async () => {
+                  const outcome = await sharePdf(pdfFile(printReady.blob, printReady.filename));
+                  if (outcome === "unavailable") downloadBlob(printReady.blob, printReady.filename);
+                  if (outcome !== "blocked") setPrintReady(null);
+                }}
+                data-testid="print-ready-share"
+              >
+                {tCommon("pdfReady")} {tCommon("pdfReadyAction")}
+              </button>
+            )}
             <div className="flex items-center gap-2 sm:ml-auto sm:border-l sm:border-stone-200 sm:pl-4">
               <button className="btn-secondary !px-3" onClick={() => setSelected(new Set())}>
                 {t("clearSelection")}
@@ -287,10 +342,19 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
   const [affirmed, setAffirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [committed, setCommitted] = useState(false);
+  const [attempted, setAttempted] = useState(false);
 
+  const prefilled = useRef(false);
   useEffect(() => {
-    if (state && !typedName) setTypedName(state.env.me.name);
-  }, [state, typedName]);
+    // Prefill once when verification lands — re-filling on every render
+    // would fight a deliberate clear of the field.
+    if (state && !prefilled.current) {
+      prefilled.current = true;
+      if (!typedName) setTypedName(state.env.me.name);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   const thread = state?.thread ?? null;
   const verified =
@@ -320,7 +384,14 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
       );
       await onChanged();
     } catch (err) {
-      setActionError(thrown(err, tEsign("ceremonyFailed")));
+      if (err instanceof LedgerCommittedError) {
+        // Payment IS signed on the ledger — never allow a second signature.
+        setCommitted(true);
+        setActionError(tEsign("signedButNotSynced"));
+        await onChanged();
+      } else {
+        setActionError(thrown(err, tEsign("ceremonyFailed")));
+      }
       setBusy(false);
     }
   }
@@ -335,9 +406,11 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
       {state && (
         <>
           <ChainAlert state={state} />
-          {!verified && (
-            <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
-              {tEsign("failClosed")}
+          {!verified && chainLooksGood(state) && (
+            <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="failclosed-note">
+              {thread && thread.state !== "approved"
+                ? tEsign("alreadyDecidedNote")
+                : tEsign("failClosed")}
             </p>
           )}
           <ThreadSignatures state={state} />
@@ -348,32 +421,33 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
               away. Pre-feature approvals fall back to the original alone. */}
           {state.approvedPacketUrl ? (
             <div className="flex flex-wrap items-center gap-3">
-              <a
+              <PacketLink
                 className="btn-secondary inline-block"
-                href={state.approvedPacketUrl}
-                target="_blank"
-                rel="noreferrer"
-                data-testid="open-approved-packet"
+                url={state.approvedPacketUrl}
+                blob={state.approvedPacketBlob}
+                filename={`cfcc-approved-${claim.id}.pdf`}
+                testId="open-approved-packet"
               >
                 {tEsign("openApprovedPacketButton")}
-              </a>
-              {state.packetUrl && (
-                <a
-                  className="text-sm text-indigo-600 underline"
-                  href={state.packetUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {tEsign("openOriginalPacketLink")}
-                </a>
-              )}
+              </PacketLink>
+              <PacketLink
+                className="text-sm text-indigo-600 underline"
+                url={state.packetUrl}
+                blob={state.packetBlob}
+                filename={`cfcc-reimbursement-${claim.id}.pdf`}
+              >
+                {tEsign("openOriginalPacketLink")}
+              </PacketLink>
             </div>
           ) : (
-            state.packetUrl && (
-              <a className="btn-secondary inline-block" href={state.packetUrl} target="_blank" rel="noreferrer">
-                {tEsign("openPacketButton")}
-              </a>
-            )
+            <PacketLink
+              className="btn-secondary inline-block"
+              url={state.packetUrl}
+              blob={state.packetBlob}
+              filename={`cfcc-reimbursement-${claim.id}.pdf`}
+            >
+              {tEsign("openPacketButton")}
+            </PacketLink>
           )}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium">
@@ -390,10 +464,36 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
             <span>{tEsign("intentAffirmation")}</span>
           </label>
           {actionError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{actionError}</p>}
-          <div className="flex justify-end">
+          {/* Blank check number is legitimate (bank transfer, cash) — say so,
+              so an EMPTY field reads as a choice, not an oversight. */}
+          {!checkNumber.trim() && !busy && (
+            <p className="text-right text-xs text-stone-400" data-testid="no-check-note">
+              {t("noCheckNumberNote")}
+            </p>
+          )}
+          {(() => {
+            const reason = busy || committed || !verified
+              ? null
+              : !typedName.trim()
+                ? tEsign("hintTypeName")
+                : !affirmed
+                  ? tEsign("hintAffirm")
+                  : null;
+            return reason && attempted ? (
+              <p className="text-right text-xs text-stone-500" data-testid="paid-hint">
+                {reason}
+              </p>
+            ) : null;
+          })()}
+          <div
+            className="flex justify-end"
+            onClick={() => {
+              if (!busy && !committed) setAttempted(true);
+            }}
+          >
             <button
-              className="btn-primary disabled:opacity-50"
-              disabled={!verified || busy || !typedName.trim() || !affirmed}
+              className="btn-primary disabled:pointer-events-none disabled:opacity-50"
+              disabled={!verified || busy || committed || !typedName.trim() || !affirmed}
               onClick={pay}
               data-testid="mark-paid-button"
             >

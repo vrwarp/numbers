@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
+import { completeProfile, makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
 
 // A fixture whose file name contains "unreadable" makes the mock extractor
 // throw (see src/lib/ai/mock.ts), standing in for a photo the AI can't read —
@@ -10,6 +10,7 @@ test("a receipt the AI can't read gets a manual-entry dialog instead of blocking
 }, testInfo) => {
   page.on("dialog", (d) => d.accept());
   await signInAs(page, `manual-${testInfo.project.name}-r${testInfo.retry}@example.com`, "Manny Entry");
+  await completeProfile(page);
 
   await page.goto("/shoebox");
   await uploadReceipts(page, [

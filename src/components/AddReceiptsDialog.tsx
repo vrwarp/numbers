@@ -6,6 +6,7 @@ import ReceiptGrid, { type ReceiptSummary } from "./ReceiptGrid";
 import { readNdjsonStream } from "@/lib/ndjson";
 import type { ClaimStreamMessage } from "@/lib/claim-stream";
 import { useApiErrorMessage } from "@/lib/use-api-error";
+import { useModalDismiss } from "@/lib/use-modal-dismiss";
 
 /**
  * Modal for adding receipts to an existing draft claim: pick from the Shoebox
@@ -34,6 +35,11 @@ export default function AddReceiptsDialog({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [uploading, setUploading] = useState(false);
   const [adding, setAdding] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  // Escape closes — but never mid-upload/mid-extraction.
+  useModalDismiss(dialogRef, () => {
+    if (!adding && !uploading) onClose();
+  });
   const [status, setStatus] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -178,6 +184,7 @@ export default function AddReceiptsDialog({
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="dialog"
       aria-modal

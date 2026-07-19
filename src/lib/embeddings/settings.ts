@@ -56,7 +56,26 @@ async function seedFromEnv(): Promise<EmbeddingSettingsRow | null> {
 
 /** Current settings row, seeding from env on first read. Null = unconfigured
  *  (feature off: no entry points, routes 404, worker idle). */
+// Single-row config read on the hottest path in the app (the layout gates
+// every page render on it). Cached for a few seconds; the admin PUT
+// invalidates in-process, so staleness only spans concurrent navigations.
+let settingsCache: { row: EmbeddingSettingsRow | null; at: number } | null = null;
+const SETTINGS_TTL_MS = 5_000;
+
+export function invalidateEmbeddingSettingsCache() {
+  settingsCache = null;
+}
+
 export async function embeddingSettings(): Promise<EmbeddingSettingsRow | null> {
+  if (settingsCache && Date.now() - settingsCache.at < SETTINGS_TTL_MS) {
+    return settingsCache.row;
+  }
+  const fresh = await embeddingSettingsUncached();
+  settingsCache = { row: fresh, at: Date.now() };
+  return fresh;
+}
+
+async function embeddingSettingsUncached(): Promise<EmbeddingSettingsRow | null> {
   const row = await prisma.embeddingSettings.findFirst();
   if (row) return row;
   try {

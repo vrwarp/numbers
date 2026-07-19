@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { loadPendingPhotos, removePendingPhoto, stashPendingPhoto } from "@/lib/pending-photos";
 import LocaleSwitcher from "./LocaleSwitcher";
 import ReceiptViewer from "./ReceiptViewer";
 import PdfReceiptPreview from "@/components/PdfReceiptPreview";
@@ -25,6 +26,11 @@ interface LocalPending {
   file: File;
   edited: Blob | null;
   previewUrl: string;
+  /** IndexedDB crash-safety row (src/lib/pending-photos) — removed once the
+   *  upload lands; null when the stash failed (private mode). */
+  storeId: string | null;
+  /** True when this photo was recovered from a previous, interrupted visit. */
+  restored?: boolean;
 }
 
 /** A PDF that was uploaded the moment it was picked: browsers can't thumbnail
@@ -45,6 +51,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
   const apiError = useApiErrorMessage();
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
+  const cameraInput = useRef<HTMLInputElement>(null);
   const [receipts, setReceipts] = useState<Receipt[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // Picked files awaiting the prepare step (describe + optional rotate/crop),
@@ -109,6 +116,33 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
     load();
   }, [load]);
 
+  // Recover photos stranded by an interrupted visit (app switch, tab
+  // reclaim): re-queue them through the same prepare dialog, flagged so it
+  // can say where they came from.
+  useEffect(() => {
+    let cancelled = false;
+    void loadPendingPhotos().then((rows) => {
+      if (cancelled || rows.length === 0) return;
+      setPending((q) => [
+        ...q,
+        ...rows
+          .filter((r) => !q.some((i) => i.kind === "local" && i.storeId === r.id))
+          .map((r) => ({
+            kind: "local" as const,
+            key: pendingKey.current++,
+            file: r.file,
+            edited: null,
+            previewUrl: URL.createObjectURL(r.file),
+            storeId: r.id,
+            restored: true,
+          })),
+      ]);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function onFilesPicked(files: FileList | null) {
     if (!files || files.length === 0) return;
     // Images are NOT uploaded yet: their prepare dialog comes first so any
@@ -122,13 +156,21 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
     const images = picked.filter((f) => f.type !== "application/pdf");
     const pdfs = picked.filter((f) => f.type === "application/pdf");
     if (images.length > 0) {
-      const items = images.map((file) => ({
-        kind: "local" as const,
-        key: pendingKey.current++,
-        file,
-        edited: null,
-        previewUrl: URL.createObjectURL(file),
-      }));
+      const items = images.map((file) => {
+        // Stash the photo before anything else: iOS never fires beforeunload
+        // and reclaims background tabs, so IndexedDB is the only thing that
+        // saves a picked-but-unsaved photo from silent loss.
+        const storeId = crypto.randomUUID();
+        void stashPendingPhoto(storeId, file);
+        return {
+          kind: "local" as const,
+          key: pendingKey.current++,
+          file,
+          edited: null,
+          previewUrl: URL.createObjectURL(file),
+          storeId,
+        };
+      });
       setPending((q) => [...q, ...items]);
     }
     if (pdfs.length > 0) void uploadPdfsNow(pdfs);
@@ -189,7 +231,10 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
       const res = await fetch("/api/receipts", { method: "POST", body: form });
       if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("uploadFailed")));
       const done = new Set(items.map((i) => i.key));
-      for (const item of items) URL.revokeObjectURL(item.previewUrl);
+      for (const item of items) {
+        URL.revokeObjectURL(item.previewUrl);
+        if (item.storeId) void removePendingPhoto(item.storeId);
+      }
       setPending((q) => q.filter((i) => !done.has(i.key)));
       setUploadNote("");
       await load();
@@ -292,14 +337,30 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
     });
   }
 
+  /** One tap for the common "file everything I've collected" case. Only the
+   *  unassigned section — re-claiming processed receipts stays deliberate. */
+  function selectAllUnassigned() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const r of unassigned) next.add(r.id);
+      return next;
+    });
+  }
+
   async function saveNote(id: string, note: string) {
+    // Optimistic: reflect the note locally; a one-field save must not reload
+    // (and briefly flicker) the entire grid.
+    const prev = receipts;
+    setReceipts((rs) => (rs ?? []).map((r) => (r.id === id ? { ...r, note } : r)));
     const res = await fetch(`/api/receipts/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ note }),
     });
-    if (!res.ok) setError(apiError(await res.json().catch(() => null), t("noteSaveFailed")));
-    await load();
+    if (!res.ok) {
+      setError(apiError(await res.json().catch(() => null), t("noteSaveFailed")));
+      setReceipts(prev);
+    }
   }
 
   // Deletion confirms through ConfirmDialog, never window.confirm(): iOS
@@ -314,13 +375,20 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
     const id = deletingId;
     setDeleteBusy(true);
     const res = await fetch(`/api/receipts/${id}`, { method: "DELETE" });
-    if (!res.ok) setError(apiError(await res.json().catch(() => null), t("deleteFailed")));
+    if (!res.ok) {
+      setError(apiError(await res.json().catch(() => null), t("deleteFailed")));
+      // The refusal may carry state we can't see (e.g. joined a claim) —
+      // resync rather than guessing.
+      await load();
+    } else {
+      // Drop the card locally; no need to refetch the whole grid.
+      setReceipts((rs) => (rs ?? []).filter((r) => r.id !== id));
+    }
     setSelected((prev) => {
       const next = new Set(prev);
       next.delete(id);
       return next;
     });
-    await load();
     setDeleteBusy(false);
     setDeletingId(null);
   }
@@ -431,6 +499,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
   const processed = (receipts ?? []).filter((r) => r.status !== "unassigned");
   const hasClaimBar = receipts !== null && (unassigned.length > 0 || processed.length > 0);
   const barEmpty = selected.size === 0;
+  const canSelectAll = unassigned.some((r) => !selected.has(r.id));
 
   // ?open=<id> deep-link landing (search results → "Find in Receipts"):
   // auto-expand the processed section when the target lives there, scroll +
@@ -473,7 +542,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
       <div>
         <div className="flex items-center justify-between gap-3">
           <h1 className="keyboard-smooth text-3xl font-bold short:text-xl">{t("title")}</h1>
-          <div className="shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
             <input
               ref={fileInput}
               type="file"
@@ -483,6 +552,32 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
               data-testid="file-input"
               onChange={(e) => onFilesPicked(e.target.files)}
             />
+            {/* Dedicated camera path for the "snap it the moment you buy"
+                journey — `capture` skips the file-chooser detour straight into
+                the camera. Phone-width only; the plain picker (with its own
+                camera option) stays for library uploads and desktop. */}
+            <input
+              ref={cameraInput}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              data-testid="camera-input"
+              onChange={(e) => onFilesPicked(e.target.files)}
+            />
+            {/* The responsive hiding lives on a plain wrapper: .btn-secondary is
+                unlayered CSS, so a same-element `sm:hidden` (layered utility)
+                loses the cascade and the button would show on desktop too. */}
+            <div className="sm:hidden">
+              <button
+                className="btn-secondary"
+                onClick={() => cameraInput.current?.click()}
+                disabled={uploading}
+                data-testid="camera-button"
+              >
+                {t("takePhoto")}
+              </button>
+            </div>
             <button
               className="btn-primary"
               onClick={() => fileInput.current?.click()}
@@ -545,6 +640,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
               >
                 <div className="flex items-center gap-3">
                   <span
+                    aria-live="polite"
                     className={`min-w-0 text-sm transition-colors duration-200 ${
                       barEmpty
                         ? `text-[13px] font-semibold ${showSelectHint ? "text-indigo-700" : "text-indigo-900"}`
@@ -571,6 +667,15 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
                       </>
                     )}
                   </span>
+                  {!generating && canSelectAll && (
+                    <button
+                      className="whitespace-nowrap text-[13px] font-medium text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
+                      onClick={selectAllUnassigned}
+                      data-testid="select-all-receipts"
+                    >
+                      {t("selectAll")}
+                    </button>
+                  )}
                   {!barEmpty && !generating && (
                     <button
                       className="text-[13px] text-stone-500 underline underline-offset-2 hover:text-stone-700"
@@ -708,6 +813,14 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
               <p className="mt-1 truncate text-sm text-stone-500">
                 {preparing.kind === "local" ? preparing.file.name : preparing.receipt.originalName}
               </p>
+              {preparing.kind === "local" && preparing.restored && (
+                <p
+                  className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900"
+                  data-testid="restored-photo-note"
+                >
+                  {t("restoredPhoto")}
+                </p>
+              )}
               <label className="mt-3 block text-sm font-medium">
                 {t("noteLabel")}
                 <input
@@ -780,7 +893,9 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
 
       <ConfirmDialog
         open={deletingId !== null}
-        message={t("deleteConfirm")}
+        message={t("deleteConfirm", {
+          name: receipts?.find((r) => r.id === deletingId)?.originalName ?? "",
+        })}
         confirmLabel={t("deleteConfirmButton")}
         busy={deleteBusy}
         onConfirm={confirmDeleteReceipt}

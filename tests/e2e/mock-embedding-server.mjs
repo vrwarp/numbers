@@ -21,7 +21,9 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
-const PORT = Number(process.env.MOCK_EMBED_PORT ?? 3101);
+// 3197: NOT 3101 — that is the e-sign e2e app server; a leftover mock on it
+// makes reuseExistingServer mistake embedding JSON for the app and hang the suite.
+const PORT = Number(process.env.MOCK_EMBED_PORT ?? 3197);
 const fixtures = JSON.parse(
   readFileSync(path.resolve("tests/e2e/embedding-fixtures/embeddings.json"), "utf8")
 );

@@ -13,11 +13,11 @@ export AI_MOCK="1"
 # server that serves REAL vectors recorded from the live endpoint
 # (npm run record:embeddings) — genuine model geometry, zero network. Model
 # and dim come from the recording so re-recording needs no edits here.
-kill "$(lsof -t -i:3101 2>/dev/null)" 2>/dev/null || true
+kill "$(lsof -t -i:3197 2>/dev/null)" 2>/dev/null || true
 node tests/e2e/mock-embedding-server.mjs &
 MOCK_EMBED_PID=$!
 trap 'kill "$MOCK_EMBED_PID" 2>/dev/null || true' EXIT
-export EMBEDDING_ENDPOINT="http://127.0.0.1:3101"
+export EMBEDDING_ENDPOINT="http://127.0.0.1:3197"
 export EMBEDDING_API_KEY="e2e-replay"
 # NB: node -p colorizes non-string values when it feels like it — write() only.
 export EMBEDDING_MODEL="$(node -e "process.stdout.write(String(JSON.parse(require('fs').readFileSync('tests/e2e/embedding-fixtures/embeddings.json','utf8')).model))")"

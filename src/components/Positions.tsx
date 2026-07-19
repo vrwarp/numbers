@@ -219,7 +219,11 @@ export default function Positions() {
           deleteIds: [...pendingDelete],
         }),
       });
-      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        // Attach the payload so useThrownErrorMessage can translate the code.
+        throw Object.assign(new Error((body as { error?: string } | null)?.error ?? "request failed"), { payload: body });
+      }
       await load();
       setOk(true);
     } catch (err) {
@@ -238,6 +242,9 @@ export default function Positions() {
         <p className="mt-0.5 text-sm text-stone-500">{t("subtitle")}</p>
       </div>
 
+      <p className="rounded-lg bg-stone-50 p-2.5 text-xs text-stone-600">
+        {t("routingNote")}
+      </p>
       <p className="rounded-lg bg-stone-50 p-2.5 text-xs text-stone-600">
         ℹ{" "}
         {t.rich("authorityNote", {
@@ -295,7 +302,7 @@ export default function Positions() {
         />
       ))}
 
-      <div className="sticky bottom-0 -mx-4 -mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-stone-200 bg-white/90 px-4 py-3 backdrop-blur">
+      <div className="sticky bottom-0 -mx-4 -mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-stone-200 bg-white/90 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
         <button className="btn-primary" disabled={!canSave} onClick={save} data-testid="positions-save">
           {busy ? t("saving") : changed > 0 ? t("save", { count: changed }) : t("saveNone")}
         </button>
@@ -335,7 +342,7 @@ function EligibilityBadge({ eligibility }: { eligibility: ApproverEligibility })
   const t = useTranslations("Positions");
   const map = {
     ok: "bg-emerald-100 text-emerald-800",
-    paused: "bg-stone-100 text-stone-600",
+    paused: "bg-amber-50 text-amber-700",
     cannotApprove: "bg-amber-100 text-amber-900",
   } as const;
   const label = {
@@ -414,6 +421,7 @@ function PositionCard({
                   language, English used as the fallback when left blank. */}
               <div className="flex flex-wrap gap-1.5">
                 <input
+                  title={t("localizedNamesHint")}
                   className="input min-w-0 flex-1 text-sm"
                   value={row.nameZhHans}
                   placeholder={t("nameZhHansPlaceholder")}
