@@ -274,6 +274,32 @@ export const DEFAULT_MINISTRY_ENTRIES: MinistryEntry[] = MINISTRY_GROUPS.flatMap
 );
 
 /**
+ * Merge the built-in defaults into an edited catalog (the treasurer's "Load
+ * defaults" action). Non-destructive: a row whose code matches a default gets
+ * the default description only when its own is blank, and nothing else about
+ * existing rows changes — treasurer-authored text always wins, and archived
+ * categories stay archived (a code present on ANY row, active or archived,
+ * counts as present, so loading defaults never resurrects one). Defaults whose
+ * codes are absent entirely come back in `missing`, in default-list order, for
+ * the caller to append as new rows.
+ */
+export function mergeDefaultMinistries<T extends { code: string; description: string }>(
+  rows: readonly T[]
+): { rows: T[]; missing: MinistryEntry[]; filled: number } {
+  const byCode = new Map(DEFAULT_MINISTRY_ENTRIES.map((e) => [e.code, e]));
+  let filled = 0;
+  const merged = rows.map((r) => {
+    const def = byCode.get(r.code);
+    if (!def || !def.description || r.description.trim() !== "") return r;
+    filled += 1;
+    return { ...r, description: def.description };
+  });
+  const present = new Set(rows.map((r) => r.code));
+  const missing = DEFAULT_MINISTRY_ENTRIES.filter((e) => !present.has(e.code));
+  return { rows: merged, missing, filled };
+}
+
+/**
  * The single string printed in the PDF's "For Ministry / Event" column.
  * Em dash rather than "/" because category names already contain slashes
  * ("340 Nursery / Toddler Program").

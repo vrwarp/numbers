@@ -8,6 +8,7 @@ import {
   formatMinistryEvent,
   isKnownMinistry,
   isValidMinistryCode,
+  mergeDefaultMinistries,
   ministryGroupsFromEntries,
   mostCommonMinistryEvent,
   parseMinistryCode,
@@ -89,6 +90,55 @@ describe("split code + name", () => {
       { label: "Admin", options: ["245 Drinking Water"] },
       { label: "Education", options: ["320 VBS"] },
     ]);
+  });
+});
+
+describe("mergeDefaultMinistries", () => {
+  const row = (code: string, description: string, active = true, name = "Custom Name") => ({
+    code,
+    name,
+    description,
+    active,
+  });
+
+  it("fills a blank description on a matching code and counts it", () => {
+    const { rows, filled } = mergeDefaultMinistries([row("245", ""), row("270", "  ")]);
+    expect(filled).toBe(2);
+    expect(rows[0].description).toBe(DEFAULT_MINISTRY_DESCRIPTIONS["245"]);
+    expect(rows[1].description).toBe(DEFAULT_MINISTRY_DESCRIPTIONS["270"]);
+  });
+
+  it("never overwrites treasurer-authored text or touches other fields", () => {
+    const { rows, filled } = mergeDefaultMinistries([row("245", "Our own note")]);
+    expect(filled).toBe(0);
+    expect(rows[0]).toEqual(row("245", "Our own note"));
+  });
+
+  it("reports absent defaults as missing, in default-list order", () => {
+    const { missing } = mergeDefaultMinistries([row("245", "")]);
+    expect(missing.map((e) => e.code)).toEqual(
+      DEFAULT_MINISTRY_ENTRIES.map((e) => e.code).filter((c) => c !== "245")
+    );
+  });
+
+  it("treats an archived row's code as present, so defaults never resurrect it", () => {
+    const { rows, missing } = mergeDefaultMinistries([row("470", "", false)]);
+    expect(missing.some((e) => e.code === "470")).toBe(false);
+    // The blank description still gets the guidance (harmless on an archived row).
+    expect(rows[0].description).toBe(DEFAULT_MINISTRY_DESCRIPTIONS["470"]);
+  });
+
+  it("ignores rows whose code is not a default (custom categories)", () => {
+    const { rows, filled } = mergeDefaultMinistries([row("612", "")]);
+    expect(filled).toBe(0);
+    expect(rows[0].description).toBe("");
+  });
+
+  it("an empty catalog yields every default as missing", () => {
+    const { rows, missing, filled } = mergeDefaultMinistries([]);
+    expect(rows).toEqual([]);
+    expect(filled).toBe(0);
+    expect(missing).toEqual(DEFAULT_MINISTRY_ENTRIES);
   });
 });
 

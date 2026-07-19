@@ -174,3 +174,45 @@ test("a position can be deleted, clearing any budget-category default it held", 
   );
   expect(stillUsed.length).toBe(0);
 });
+
+test("Load defaults refills a blanked description and stages missing categories", async ({ page }, testInfo) => {
+  const email = `ministries-defaults-${testInfo.project.name}@example.org`;
+  await signInAs(page, email, "Ministries Defaults");
+  const prisma = e2ePrisma();
+  try {
+    await prisma.user.update({ where: { email }, data: { role: "treasurer" } });
+  } finally {
+    await prisma.$disconnect();
+  }
+  await page.reload();
+
+  // Blank the first category's description (rows sort by group, then code, so
+  // this is a stable built-in code) and persist the blank.
+  await page.goto("/ministries");
+  const firstDesc = page.getByTestId("ministry-description").first();
+  const original = await firstDesc.inputValue();
+  await firstDesc.fill("");
+  await page.getByTestId("ministries-save").click();
+  await page.getByTestId("ministries-saved").waitFor();
+
+  // Load defaults: the blank comes back filled with the built-in guidance,
+  // staged but not saved (the banner says so, and Save shows pending changes).
+  await page.getByTestId("load-defaults").click();
+  await expect(page.getByTestId("defaults-loaded")).toBeVisible();
+  await expect(firstDesc).not.toHaveValue("");
+  await page.getByTestId("ministries-save").click();
+  await page.getByTestId("ministries-saved").waitFor();
+
+  // A second click has nothing left to stage.
+  await page.getByTestId("load-defaults").click();
+  await expect(page.getByTestId("defaults-loaded")).toContainText("Nothing to load");
+
+  // Restore the original text so this test leaves the catalog as it found it.
+  // (When the catalog was seeded from the defaults, the refill already equals
+  // the original and there is nothing to save.)
+  if (original && original !== (await firstDesc.inputValue())) {
+    await firstDesc.fill(original);
+    await page.getByTestId("ministries-save").click();
+    await page.getByTestId("ministries-saved").waitFor();
+  }
+});

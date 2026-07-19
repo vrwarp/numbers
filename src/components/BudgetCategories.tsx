@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { mergeDefaultMinistries } from "@/lib/ministries";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { usePositionLabel } from "@/lib/use-position-label";
 import type { ApproverEligibility } from "@/lib/positions";
@@ -53,6 +54,11 @@ export default function BudgetCategories() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
+  // What the last "Load defaults" click staged, for the info banner. Cleared on
+  // every (re)load — i.e. after a save or a discard.
+  const [defaultsResult, setDefaultsResult] = useState<{ added: number; filled: number } | null>(
+    null
+  );
   const snapshot = useRef<Map<string, string>>(new Map());
   const newKey = useRef(0);
 
@@ -65,6 +71,7 @@ export default function BudgetCategories() {
       snapshot.current = new Map(mapped.map((r) => [r.key, serialize(r)]));
       setRows(mapped);
       setOk(false);
+      setDefaultsResult(null);
     } catch (err) {
       setError(thrown(err, t("loadFailed")));
     }
@@ -144,6 +151,28 @@ export default function BudgetCategories() {
     addCategory(name);
   };
 
+  // Stage (never save) the built-in defaults: append categories whose code is
+  // missing entirely and fill blank descriptions on matching codes. Existing
+  // names, groups, archived state, and non-empty descriptions are untouched —
+  // the human reviews the staged changes and saves, like any other edit.
+  const loadDefaults = () => {
+    if (!rows) return;
+    const { rows: merged, missing, filled } = mergeDefaultMinistries(rows);
+    const additions: Row[] = missing.map((e) => ({
+      id: null,
+      key: `add-${newKey.current++}`,
+      code: e.code,
+      name: e.name,
+      group: e.group,
+      description: e.description,
+      active: true,
+      defaultPositionId: null,
+    }));
+    setRows([...merged, ...additions]);
+    setDefaultsResult({ added: additions.length, filled });
+    setOk(false);
+  };
+
   async function save() {
     if (!rows) return;
     setBusy(true);
@@ -192,11 +221,27 @@ export default function BudgetCategories() {
           {t("saved")}
         </p>
       )}
+      {defaultsResult && (
+        <p className="rounded-lg bg-sky-50 p-2 text-sm text-sky-900" data-testid="defaults-loaded">
+          {defaultsResult.added + defaultsResult.filled > 0
+            ? t("defaultsLoaded", defaultsResult)
+            : t("defaultsNoop")}
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Link className="btn-secondary" href="/positions" data-testid="nav-manage-positions">
           {t("managePositions")}
         </Link>
+        <button
+          className="btn-secondary"
+          onClick={loadDefaults}
+          disabled={busy}
+          title={t("loadDefaultsTitle")}
+          data-testid="load-defaults"
+        >
+          {t("loadDefaults")}
+        </button>
         <button className="btn-secondary" onClick={addGroup} data-testid="add-group">
           {t("addGroup")}
         </button>
@@ -314,6 +359,7 @@ function GroupCard({
               value={r.description}
               placeholder={t("descriptionPlaceholder")}
               aria-label={t("description")}
+              data-testid="ministry-description"
               onChange={(e) => onPatch(r.key, { description: e.target.value })}
             />
             <button
