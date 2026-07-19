@@ -22,6 +22,7 @@ import ManualEntryDialog from "@/components/ManualEntryDialog";
 import PdfReceiptPreview from "@/components/PdfReceiptPreview";
 import EsignPanel, { SubmitDialog } from "@/components/esign/EsignPanel";
 import { loadEnv, type EsignEnv } from "@/lib/esign/client";
+import type { PositionNameSet } from "@/lib/positions";
 import { useApiErrorMessage } from "@/lib/use-api-error";
 
 /** Statuses in which the packet is under signature — the stored bytes are
@@ -80,7 +81,7 @@ interface Claim {
   // Budget-category default approver (Positions), server-resolved: pre-fills
   // the submit picker. A suggestion only; null when nothing routes.
   suggestedApproverUserId?: string | null;
-  suggestedApproverPosition?: string | null;
+  suggestedApproverPosition?: PositionNameSet | null;
   signatureLedgerId: string | null;
   signatureLedgerKey: string | null;
   packetSha256: string | null;

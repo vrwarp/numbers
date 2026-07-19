@@ -17,8 +17,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
-import { DEFAULT_POSITION_ENTRIES, type ApproverEligibility } from "@/lib/positions";
+import { DEFAULT_POSITION_ENTRIES, builtinPositionKey, type ApproverEligibility } from "@/lib/positions";
 import { roleLabelKey } from "@/lib/role-label";
+import { usePositionLabel } from "@/lib/use-position-label";
 
 interface Member {
   userId: string;
@@ -37,6 +38,8 @@ interface ApiHolder {
 interface ApiPosition {
   id: string;
   name: string;
+  nameZhHans: string | null;
+  nameZhHant: string | null;
   description: string;
   active: boolean;
   sortOrder: number;
@@ -46,6 +49,8 @@ interface Row {
   key: string;
   id: string | null;
   name: string;
+  nameZhHans: string; // custom position's Simplified name ("" = none)
+  nameZhHant: string; // custom position's Traditional name ("" = none)
   description: string;
   active: boolean;
   holderIds: string[]; // primary first
@@ -60,7 +65,8 @@ const ROLE_STYLE: Record<string, string> = {
   member: "bg-stone-100 text-stone-500",
 };
 
-const serialize = (r: Row) => JSON.stringify([r.name, r.description, r.active, r.holderIds]);
+const serialize = (r: Row) =>
+  JSON.stringify([r.name, r.nameZhHans, r.nameZhHant, r.description, r.active, r.holderIds]);
 
 export default function Positions() {
   const t = useTranslations("Positions");
@@ -86,6 +92,8 @@ export default function Positions() {
         key: p.id,
         id: p.id,
         name: p.name,
+        nameZhHans: p.nameZhHans ?? "",
+        nameZhHant: p.nameZhHant ?? "",
         description: p.description,
         active: p.active,
         holderIds: p.holders.map((h) => h.userId),
@@ -132,7 +140,10 @@ export default function Positions() {
   };
   const addPosition = () => {
     const key = `add-${newKey.current++}`;
-    setRows((rs) => [...(rs ?? []), { key, id: null, name: "", description: "", active: true, holderIds: [] }]);
+    setRows((rs) => [
+      ...(rs ?? []),
+      { key, id: null, name: "", nameZhHans: "", nameZhHant: "", description: "", active: true, holderIds: [] },
+    ]);
     setOk(false);
   };
   // Seed the editor with the built-in deacon roster as unsaved rows (holders
@@ -145,6 +156,9 @@ export default function Positions() {
         key: `add-${newKey.current++}`,
         id: null,
         name: e.name,
+        // Built-ins localize via the Positions.builtin catalog, not columns.
+        nameZhHans: "",
+        nameZhHant: "",
         description: e.description,
         active: e.active,
         holderIds: [],
@@ -166,6 +180,8 @@ export default function Positions() {
           positions: rows.map((r) => ({
             id: r.id ?? undefined,
             name: r.name,
+            nameZhHans: r.nameZhHans,
+            nameZhHant: r.nameZhHant,
             description: r.description,
             active: r.active,
             holders: r.holderIds.map((userId) => ({ userId })),
@@ -297,10 +313,15 @@ function PositionCard({
 }) {
   const t = useTranslations("Positions");
   const tRole = useTranslations("Common.role");
+  const positionLabel = usePositionLabel();
   const roleLabel = (r: string) => {
     const key = roleLabelKey(r);
     return key ? tRole(key) : r;
   };
+  // A built-in role's name is a localized, canonical value — show it read-only
+  // (in the active locale) so saving never overwrites the English handle the
+  // localization keys off. Custom, treasurer-authored roles stay editable.
+  const isBuiltin = builtinPositionKey(row.name) !== null;
 
   const available = members.filter((m) => !row.holderIds.includes(m.userId));
   const addHolder = (userId: string) => {
@@ -315,14 +336,45 @@ function PositionCard({
     <div className={`card space-y-3 p-4 ${row.active ? "" : "opacity-70"}`} data-testid="position-card">
       <div className="flex flex-wrap items-start gap-2">
         <div className="min-w-0 flex-1 space-y-2">
-          <input
-            className={`input font-semibold ${bad ? "border-red-400 ring-1 ring-red-300" : ""}`}
-            value={row.name}
-            placeholder={t("namePlaceholder")}
-            aria-label={t("namePlaceholder")}
-            onChange={(e) => onPatch(row.key, { name: e.target.value })}
-            data-testid="position-name"
-          />
+          {isBuiltin ? (
+            <div className="flex flex-wrap items-center gap-2" data-testid="position-name">
+              <span className="font-semibold text-stone-800">{positionLabel(row.name)}</span>
+              <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-semibold text-stone-500">
+                {t("builtinBadge")}
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <input
+                className={`input font-semibold ${bad ? "border-red-400 ring-1 ring-red-300" : ""}`}
+                value={row.name}
+                placeholder={t("namePlaceholder")}
+                aria-label={t("nameEnLabel")}
+                onChange={(e) => onPatch(row.key, { name: e.target.value })}
+                data-testid="position-name"
+              />
+              {/* Optional per-language names — shown to people using that
+                  language, English used as the fallback when left blank. */}
+              <div className="flex flex-wrap gap-1.5">
+                <input
+                  className="input min-w-0 flex-1 text-sm"
+                  value={row.nameZhHans}
+                  placeholder={t("nameZhHansPlaceholder")}
+                  aria-label={t("nameZhHansPlaceholder")}
+                  onChange={(e) => onPatch(row.key, { nameZhHans: e.target.value })}
+                  data-testid="position-name-zh-hans"
+                />
+                <input
+                  className="input min-w-0 flex-1 text-sm"
+                  value={row.nameZhHant}
+                  placeholder={t("nameZhHantPlaceholder")}
+                  aria-label={t("nameZhHantPlaceholder")}
+                  onChange={(e) => onPatch(row.key, { nameZhHant: e.target.value })}
+                  data-testid="position-name-zh-hant"
+                />
+              </div>
+            </div>
+          )}
           <input
             className="input text-sm text-stone-600"
             value={row.description}

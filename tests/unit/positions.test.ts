@@ -1,31 +1,76 @@
 import { describe, expect, it } from "vitest";
+import fs from "fs";
+import path from "path";
 import {
   approverEligibility,
   pickSuggestedApprover,
+  builtinPositionKey,
+  customPositionName,
   DEFAULT_POSITION_ENTRIES,
   type ApproverEligibility,
   type PositionForSuggest,
 } from "@/lib/positions";
 
+describe("customPositionName", () => {
+  const set = { name: "Youth Deacon", nameZhHans: "青年执事", nameZhHant: "青年執事" };
+  it("returns the per-locale name for zh, English for en", () => {
+    expect(customPositionName(set, "en")).toBe("Youth Deacon");
+    expect(customPositionName(set, "zh-Hans")).toBe("青年执事");
+    expect(customPositionName(set, "zh-Hant")).toBe("青年執事");
+  });
+  it("falls back to the English name when a locale column is blank/null", () => {
+    expect(customPositionName({ name: "Youth Deacon", nameZhHans: null, nameZhHant: "" }, "zh-Hans")).toBe(
+      "Youth Deacon"
+    );
+    expect(customPositionName({ name: "Youth Deacon", nameZhHans: "  ", nameZhHant: null }, "zh-Hant")).toBe(
+      "Youth Deacon"
+    );
+  });
+});
+
 describe("DEFAULT_POSITION_ENTRIES", () => {
   it("is the standing deacon roster, active and in a stable order", () => {
     expect(DEFAULT_POSITION_ENTRIES.map((e) => e.name)).toEqual([
-      "English Discipleship Deacon",
-      "English Evangelism Deacon",
       "Chinese Caring Deacon",
       "Chinese Evangelism Deacon",
-      "Children's Deacon",
+      "Children's Ministry Deacon",
+      "English Discipleship Deacon",
+      "English Evangelism Deacon",
+      "Finance Deacon",
       "General Affairs Deacon",
       "Missions Deacon",
-      "Worship Deacon",
       "Property Deacon",
-      "Finance Deacon",
+      "Worship Deacon",
     ]);
     DEFAULT_POSITION_ENTRIES.forEach((e, i) => {
       expect(e.active).toBe(true);
       expect(e.description).toBe("");
       expect(e.sortOrder).toBe(i);
+      expect(e.key).toBeTruthy();
     });
+  });
+
+  it("every default has a localized name in every catalog (en/zh-Hans/zh-Hant)", () => {
+    const dir = path.join(process.cwd(), "messages");
+    for (const locale of ["en", "zh-Hans", "zh-Hant"]) {
+      const builtin = JSON.parse(fs.readFileSync(path.join(dir, `${locale}.json`), "utf8"))
+        .Positions.builtin as Record<string, string>;
+      for (const e of DEFAULT_POSITION_ENTRIES) {
+        expect(builtin[e.key]?.trim(), `${locale}: Positions.builtin.${e.key}`).toBeTruthy();
+      }
+    }
+  });
+});
+
+describe("builtinPositionKey", () => {
+  it("maps a canonical default name to its i18n key (trimming whitespace)", () => {
+    expect(builtinPositionKey("Chinese Caring Deacon")).toBe("chineseCaring");
+    expect(builtinPositionKey("  Worship Deacon  ")).toBe("worship");
+  });
+  it("returns null for a custom, treasurer-authored name", () => {
+    expect(builtinPositionKey("Office Staff")).toBeNull();
+    expect(builtinPositionKey("Deacon of Missions")).toBeNull();
+    expect(builtinPositionKey("")).toBeNull();
   });
 });
 
@@ -53,6 +98,8 @@ describe("approverEligibility", () => {
 // Helper builders keep the selection cases readable.
 const pos = (name: string, holderUserIds: string[], active = true): PositionForSuggest => ({
   name,
+  nameZhHans: null,
+  nameZhHant: null,
   active,
   holderUserIds,
 });
@@ -78,7 +125,11 @@ describe("pickSuggestedApprover", () => {
       eligibility: elig({ jane: "ok", mike: "ok" }),
       ownerUserId: "owner",
     });
-    expect(out).toEqual({ userId: "jane", positionId: "pDeacon", positionName: "Deacon of Missions" });
+    expect(out).toEqual({
+      userId: "jane",
+      positionId: "pDeacon",
+      positionName: { name: "Deacon of Missions", nameZhHans: null, nameZhHant: null },
+    });
   });
 
   it("skips ineligible/paused holders and takes the next eligible backup", () => {
@@ -121,7 +172,7 @@ describe("pickSuggestedApprover", () => {
       ownerUserId: "owner",
     });
     expect(out?.userId).toBe("sam");
-    expect(out?.positionName).toBe("Staff");
+    expect(out?.positionName.name).toBe("Staff");
   });
 
   it("falls through to the next-ranked position when the top one has no eligible holder", () => {

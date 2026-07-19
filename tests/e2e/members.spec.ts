@@ -62,4 +62,61 @@ test("a treasurer reaches the directory alongside Budget categories and Position
   // The Positions page cross-links back to the directory for role grants.
   await page.goto("/positions");
   await expect(page.getByTestId("positions-members-link")).toBeVisible();
+
+  // Seeding the built-in roster renders localizable names + a "Built-in" tag;
+  // switching locale re-labels them from the Positions.builtin catalog while the
+  // canonical English name persists underneath (usePositionLabel).
+  await page.getByTestId("load-default-positions").click();
+  const firstCard = page.getByTestId("position-card").first();
+  await expect(firstCard.getByText("Chinese Caring Deacon", { exact: true })).toBeVisible();
+  await expect(firstCard.getByText("Built-in", { exact: true })).toBeVisible();
+
+  await page.context().addCookies([
+    { name: "numbers_locale", value: "zh-Hant", url: page.url() },
+  ]);
+  await page.goto("/positions");
+  await page.getByTestId("load-default-positions").click();
+  const zhCard = page.getByTestId("position-card").first();
+  await expect(zhCard.getByText("中文部關懷執事", { exact: true })).toBeVisible();
+  await expect(zhCard.getByText("Chinese Caring Deacon", { exact: true })).toHaveCount(0);
+});
+
+test("a custom position carries its own name per language, English as fallback", async ({ page }, testInfo) => {
+  const email = `positions-i18n-${testInfo.project.name}@example.org`;
+  await signInAs(page, email, "Positions I18n");
+  const prisma = e2ePrisma();
+  try {
+    await prisma.user.update({ where: { email }, data: { role: "treasurer" } });
+  } finally {
+    await prisma.$disconnect();
+  }
+  await page.reload();
+
+  // Author a custom role with Simplified + Traditional names of its own.
+  await page.goto("/positions");
+  await page.getByTestId("add-position").click();
+  const card = page.getByTestId("position-card").last();
+  await card.getByTestId("position-name").fill("Youth Ministry Deacon");
+  await card.getByTestId("position-name-zh-hans").fill("青年事工执事");
+  await card.getByTestId("position-name-zh-hant").fill("青年事工執事");
+  await page.getByTestId("positions-save").click();
+  await page.getByTestId("positions-saved").waitFor();
+
+  const custom = (await (await page.request.get("/api/positions")).json()).positions.find(
+    (p: { name: string }) => p.name === "Youth Ministry Deacon"
+  );
+  expect(custom.nameZhHant).toBe("青年事工執事");
+
+  // The budget-category default-approver picker resolves the custom name to the
+  // active locale (its own per-locale string), not the English one.
+  const checkedOption = async (loc: string) => {
+    await page.context().addCookies([{ name: "numbers_locale", value: loc, url: page.url() }]);
+    await page.goto("/ministries");
+    const sel = page.getByTestId("ministry-default-position").first();
+    await sel.selectOption(custom.id as string);
+    return sel.locator("option:checked");
+  };
+  await expect(await checkedOption("en")).toHaveText("Youth Ministry Deacon");
+  await expect(await checkedOption("zh-Hant")).toHaveText("青年事工執事");
+  await expect(await checkedOption("zh-Hans")).toHaveText("青年事工执事");
 });

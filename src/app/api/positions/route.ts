@@ -23,9 +23,20 @@ export const runtime = "nodejs";
  */
 
 const HolderSchema = z.object({ userId: z.string().min(1) });
+// Optional per-locale names for a custom position. "" / null → stored NULL, so
+// display falls back to the English `name` (a built-in ignores these and
+// localizes via the Positions.builtin catalog instead).
+const localeName = z
+  .string()
+  .trim()
+  .max(100)
+  .nullish()
+  .transform((v) => v || null);
 const RowSchema = z.object({
   id: z.string().optional(),
   name: z.string().trim().min(1).max(100),
+  nameZhHans: localeName,
+  nameZhHant: localeName,
   description: z.string().trim().max(500).default(""),
   active: z.boolean().default(true),
   holders: z.array(HolderSchema).max(50).default([]),
@@ -76,7 +87,14 @@ export async function PUT(req: Request) {
     // Upsert each position and replace its holders (delete + recreate keeps the
     // ordering authoritative and is trivial at church scale).
     rows.forEach((r, i) => {
-      const data = { name: r.name, description: r.description, active: r.active, sortOrder: i };
+      const data = {
+        name: r.name,
+        nameZhHans: r.nameZhHans,
+        nameZhHant: r.nameZhHant,
+        description: r.description,
+        active: r.active,
+        sortOrder: i,
+      };
       const seen = new Set<string>();
       const holders = r.holders.filter((h) => !seen.has(h.userId) && seen.add(h.userId));
       if (r.id && existingIds.has(r.id)) {

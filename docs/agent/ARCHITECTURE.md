@@ -33,7 +33,11 @@ src/lib/positions.ts            Positions (custom approval roles): approverEligi
                                 pickSuggestedApprover (the default-approver pre-fill selection) +
                                 DEFAULT_POSITION_ENTRIES (the standing deacon roster the editor's
                                 empty-state "Load default positions" button seeds — never
-                                auto-applied) — dependency-free, unit-tested, client-safe
+                                auto-applied) + PositionNameSet/customPositionName (per-locale name
+                                resolution) — dependency-free, unit-tested, client-safe
+src/lib/use-position-label.ts   usePositionLabel(): the single client localization boundary for
+                                position names — built-ins via Positions.builtin.<key>, custom via
+                                their own name/nameZhHans/nameZhHant (useLocale, no refetch on switch)
 src/lib/positions-catalog.ts    Position table reads + resolveSuggestedApprover(claim) (SERVER);
 src/lib/positions-guard.ts      requirePositionEditor (treasurer/admin, same gate as ministries)
 src/lib/teams-catalog.ts        Teams reads + the TEAM READ GRANT (SEARCH_DESIGN §6.3 team

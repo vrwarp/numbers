@@ -44,36 +44,91 @@ export function approverEligibility(u: {
 /** A catalog entry for a Position (a custom approval role), independent of any
  *  holders. Mirrors the MinistryEntry shape: the built-in defaults are the seed
  *  the treasurer's editor starts from and the fallback the loader serves while
- *  the `Position` table is empty. */
+ *  the `Position` table is empty.
+ *
+ *  `name` is the canonical English name — it is what gets STORED on the
+ *  `Position` row and printed nowhere (positions never reach the PDF or the
+ *  signed payload). `key` is the stable i18n handle: display code translates a
+ *  built-in via `Positions.builtin.<key>` (see builtinPositionKey), falling back
+ *  to the stored name for custom, treasurer-authored positions. */
 export interface PositionEntry {
+  key: string;
   name: string;
   description: string;
   active: boolean;
   sortOrder: number;
 }
 
-/** The built-in default Positions — the church's standing deacon roster. On a
- *  fresh deployment the Positions editor opens pre-filled with these (holders
- *  unassigned) so the treasurer only has to assign people, exactly as the Budget
- *  Categories editor opens pre-filled with DEFAULT_MINISTRY_ENTRIES. Names are
- *  catalog values (like ministry names) and are never translated. */
-export const DEFAULT_POSITION_ENTRIES: PositionEntry[] = [
-  "English Discipleship Deacon",
-  "English Evangelism Deacon",
-  "Chinese Caring Deacon",
-  "Chinese Evangelism Deacon",
-  "Children's Deacon",
-  "General Affairs Deacon",
-  "Missions Deacon",
-  "Worship Deacon",
-  "Property Deacon",
-  "Finance Deacon",
-].map((name, i) => ({ name, description: "", active: true, sortOrder: i }));
+/** The built-in default Positions as [i18n key, canonical English name] pairs.
+ *  `as const` keeps the keys a literal union (BuiltinPositionKey) so the display
+ *  hook can pass them to a typed next-intl `t`. Order matches the church's
+ *  roster. */
+const BUILTIN_POSITIONS = [
+  ["chineseCaring", "Chinese Caring Deacon"],
+  ["chineseEvangelism", "Chinese Evangelism Deacon"],
+  ["childrensMinistry", "Children's Ministry Deacon"],
+  ["englishDiscipleship", "English Discipleship Deacon"],
+  ["englishEvangelism", "English Evangelism Deacon"],
+  ["finance", "Finance Deacon"],
+  ["generalAffairs", "General Affairs Deacon"],
+  ["missions", "Missions Deacon"],
+  ["property", "Property Deacon"],
+  ["worship", "Worship Deacon"],
+] as const;
 
-/** A position as the pre-fill selector needs it: whether it still routes and
- *  the userIds of its holders in assignment order (primary first). */
-export interface PositionForSuggest {
+/** The i18n key of a built-in position — a leaf of `Positions.builtin.*`. */
+export type BuiltinPositionKey = (typeof BUILTIN_POSITIONS)[number][0];
+
+/** The built-in default Positions — the church's standing deacon roster. On a
+ *  fresh deployment the "Load default positions" button seeds these (holders
+ *  unassigned) so the treasurer only has to assign people. Unlike ministry
+ *  names, these ARE localized: they render through `Positions.builtin.<key>`
+ *  (en/zh-Hans/zh-Hant) at every display site while the canonical English name
+ *  is what persists. */
+export const DEFAULT_POSITION_ENTRIES: PositionEntry[] = BUILTIN_POSITIONS.map(
+  ([key, name], i) => ({ key, name, description: "", active: true, sortOrder: i })
+);
+
+/** Canonical English name → built-in i18n key, or null for a custom position.
+ *  The display boundary uses this to decide whether a stored position name is a
+ *  localizable built-in (translate via `Positions.builtin.<key>`) or arbitrary
+ *  church data to show verbatim. A treasurer who renames a built-in in the
+ *  editor turns it custom — the match falls through and their text is shown as
+ *  typed, which is the intended behavior. Dependency-free so client and server
+ *  share it. */
+const BUILTIN_KEY_BY_NAME: ReadonlyMap<string, BuiltinPositionKey> = new Map(
+  BUILTIN_POSITIONS.map(([key, name]) => [name, key])
+);
+export function builtinPositionKey(name: string): BuiltinPositionKey | null {
+  return BUILTIN_KEY_BY_NAME.get(name.trim()) ?? null;
+}
+
+/** A position's name in every locale the app carries. `name` is the required
+ *  English fallback; the two Chinese fields are the optional per-locale names a
+ *  treasurer types for a CUSTOM position (null = fall back to `name`). Built-in
+ *  defaults leave these null and localize via `Positions.builtin.<key>` instead.
+ *  This is the shape every display site receives so the client can localize a
+ *  custom name without a refetch when the language is switched. */
+export interface PositionNameSet {
   name: string;
+  nameZhHans: string | null;
+  nameZhHant: string | null;
+}
+
+/** The locale-appropriate name of a CUSTOM position: the matching per-locale
+ *  column when the treasurer filled it, else the English `name`. Built-ins are
+ *  handled by the catalog (builtinPositionKey) before this is reached. Pure so
+ *  client and server share it. */
+export function customPositionName(set: PositionNameSet, locale: string): string {
+  if (locale === "zh-Hans") return set.nameZhHans?.trim() || set.name;
+  if (locale === "zh-Hant") return set.nameZhHant?.trim() || set.name;
+  return set.name;
+}
+
+/** A position as the pre-fill selector needs it: its name set (for the
+ *  pre-fill label + tie-break), whether it still routes, and the userIds of its
+ *  holders in assignment order (primary first). */
+export interface PositionForSuggest extends PositionNameSet {
   active: boolean;
   holderUserIds: string[];
 }
@@ -93,7 +148,9 @@ export interface SuggestInputs {
 export interface SuggestedApprover {
   userId: string;
   positionId: string;
-  positionName: string;
+  /** The resolved position's full name set, so the review screen can localize
+   *  the "pre-filled from …" note in the reader's language. */
+  positionName: PositionNameSet;
 }
 
 /**
@@ -135,7 +192,8 @@ export function pickSuggestedApprover(inp: SuggestInputs): SuggestedApprover | n
     for (const userId of pos.holderUserIds) {
       if (userId === inp.ownerUserId) continue;
       if (inp.eligibility.get(userId) === "ok") {
-        return { userId, positionId, positionName: pos.name };
+        const { name, nameZhHans, nameZhHant } = pos;
+        return { userId, positionId, positionName: { name, nameZhHans, nameZhHant } };
       }
     }
   }
