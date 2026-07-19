@@ -95,6 +95,18 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Common.pdfReady": {
+    "source": "Your PDF is ready.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Toast/button text when a built PDF is waiting for a tap to open the iOS share sheet; pairs with pdfReadyAction."
+  },
+  "Common.pdfReadyAction": {
+    "source": "Save / Share",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Button label opening the OS share sheet for the ready PDF (Save to Files / Print / AirDrop). Short."
+  },
   "Common.language": {
     "source": "Language",
     "context": "Label for the language selectors (NavBar switcher aria + profile field).",
@@ -404,9 +416,9 @@
   },
   "Profile.printedOnForm": {
     "source": "Printed on the reimbursement form.",
+    "context": "Short hint under the empty Name / Mailing address fields: these values print on the official reimbursement form.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Short hint under the empty Name / Mailing address fields: these values print on the official reimbursement form."
+    "zh-Hant": "machine"
   },
   "Profile.saved": {
     "source": "Saved ✓",
@@ -524,9 +536,9 @@
   },
   "ReceiptGrid.selectReceipt": {
     "source": "Select {name}",
+    "context": "aria-label of the selection checkbox on a receipt card; {name} = the receipt's file name. 'Select' = mark for inclusion in a claim.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "aria-label of the selection checkbox on a receipt card; {name} = the receipt's file name. 'Select' = mark for inclusion in a claim."
+    "zh-Hant": "machine"
   },
   "ReceiptGrid.viewLarger": {
     "source": "View {name} larger",
@@ -620,9 +632,15 @@
   },
   "Shoebox.takePhoto": {
     "source": "📷 Take photo",
+    "context": "Phone-only camera button beside Upload; opens the camera directly. Keep the 📷.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.restoredPhoto": {
+    "source": "Recovered from your last visit — this photo hadn't been saved yet.",
     "zh-Hans": "machine",
     "zh-Hant": "machine",
-    "context": "Phone-only camera button beside Upload; opens the camera directly. Keep the 📷."
+    "context": "Amber note in the photo prepare dialog when a photo was recovered from an interrupted previous visit (saved locally, not yet uploaded)."
   },
   "Shoebox.uploading": {
     "source": "Uploading…",
@@ -710,9 +728,9 @@
   },
   "Shoebox.selectAll": {
     "source": "Select all",
+    "context": "Short link in the claim bar that selects every not-yet-claimed receipt.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Short link in the claim bar that selects every not-yet-claimed receipt."
+    "zh-Hant": "machine"
   },
   "Shoebox.waitingRateLimit": {
     "source": "Waiting on rate limit…",
@@ -1292,51 +1310,51 @@
   },
   "Review.verifyAll": {
     "source": "✓ Verify all",
+    "context": "Small button in the verify-progress row that marks every remaining row verified. Keep the ✓; 'verify' = 核对 as in verifiedProgress.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Small button in the verify-progress row that marks every remaining row verified. Keep the ✓; 'verify' = 核对 as in verifiedProgress."
+    "zh-Hant": "machine"
   },
   "Review.verifyAllConfirm": {
     "source": "Mark {count, plural, one {# row} other {# rows}} as verified? Check each description, ministry, and amount against its receipt first.",
+    "context": "Body of the verify-all confirmation dialog; 'verified' = 核对 like verifiedProgress.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Body of the verify-all confirmation dialog; 'verified' = 核对 like verifiedProgress."
+    "zh-Hant": "machine"
   },
   "Review.verifyAllButton": {
     "source": "Verify {count, plural, one {# row} other {# rows}}",
+    "context": "Confirm button of the verify-all dialog; {count} = rows about to be marked verified.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Confirm button of the verify-all dialog; {count} = rows about to be marked verified."
+    "zh-Hant": "machine"
   },
   "Review.profileIncomplete": {
     "source": "Your name and mailing address are still missing from your profile — they are printed on the reimbursement form.",
+    "context": "Amber banner above the claim action bar; pairs with the 'Add name & address' link (profileIncompleteCta).",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Amber banner above the claim action bar; pairs with the 'Add name & address' link (profileIncompleteCta)."
+    "zh-Hant": "machine"
   },
   "Review.profileIncompleteCta": {
     "source": "Add name & address",
+    "context": "Short link label in the profile banner, leads to the profile page.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Short link label in the profile banner, leads to the profile page."
+    "zh-Hant": "machine"
   },
   "Review.profileIncompleteShort": {
     "source": "Finish your profile first",
+    "context": "Tooltip on the disabled Print/E-sign buttons while the profile is missing name/address.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Tooltip on the disabled Print/E-sign buttons while the profile is missing name/address."
+    "zh-Hant": "machine"
   },
   "Review.amountRestored": {
     "source": "Couldn't read that amount — restored the previous value.",
+    "context": "Inline note after an unreadable amount entry was reverted to the stored value.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Inline note after an unreadable amount entry was reverted to the stored value."
+    "zh-Hant": "machine"
   },
   "Review.descriptionRestored": {
     "source": "A description is required — restored the previous text.",
+    "context": "Inline note after an emptied row description was reverted (each row needs a description).",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Inline note after an emptied row description was reverted (each row needs a description)."
+    "zh-Hant": "machine"
   },
   "Review.generatedFrozen": {
     "source": "Generated — rows are frozen.",
@@ -2144,27 +2162,27 @@
   },
   "Esign.prepFailed": {
     "source": "Couldn’t load the form — check your connection and try again.",
+    "context": "Error box in a signing ceremony when loading the PDF/signature anchor failed; paired with the Retry link.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Error box in a signing ceremony when loading the PDF/signature anchor failed; paired with the Retry link."
+    "zh-Hant": "machine"
   },
   "Esign.retryButton": {
     "source": "Retry",
+    "context": "One-word retry link inside the ceremony load-failure box.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "One-word retry link inside the ceremony load-failure box."
+    "zh-Hant": "machine"
   },
   "Esign.noEligibleApprovers": {
     "source": "No approver is available right now — everyone who could approve is paused or unenrolled. Check with your treasurer.",
+    "context": "Amber note in the submit-for-approval dialog when the approver dropdown has nobody to list (all paused or unenrolled).",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Amber note in the submit-for-approval dialog when the approver dropdown has nobody to list (all paused or unenrolled)."
+    "zh-Hant": "machine"
   },
   "Esign.placeSignatureHint": {
     "source": "Press and hold on the form above to place your signature first.",
+    "context": "Hint above the disabled Sign/Approve button until the user press-holds the form preview to stamp their signature.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Hint above the disabled Sign/Approve button until the user press-holds the form preview to stamp their signature."
+    "zh-Hant": "machine"
   },
   "Esign.approverLabel": {
     "source": "Approver",
@@ -4068,9 +4086,9 @@
   },
   "Errors.profileIncomplete": {
     "source": "Add your name and mailing address to your profile first — they are printed on the reimbursement form",
+    "context": "API error when generating the claim PDF while the profile lacks a name/mailing address (both print on the official form).",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "API error when generating the claim PDF while the profile lacks a name/mailing address (both print on the official form)."
+    "zh-Hant": "machine"
   },
   "Errors.invalidManualEntry": {
     "source": "Invalid manual-entry fields",

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { fetchAndDeliver, isStandalonePwa } from "@/lib/pdf-delivery";
 import ReceiptImageEditor from "./ReceiptImageEditor";
 import { usePdfPreviewManifest, pdfPreviewPageUrl } from "./PdfReceiptPreview";
 
@@ -175,7 +176,10 @@ export default function ReceiptViewer({
       aria-label={t("ariaTitle", { name: receipt.originalName })}
       data-testid="receipt-viewer"
     >
-      <div className="flex items-center justify-between gap-3 px-4 py-3 text-white">
+      {/* Safe-area padded: this surface is fixed inset-0 under viewport-fit
+          cover, so without the insets the close button sits under the iOS
+          status bar/notch and the controls under the home indicator. */}
+      <div className="flex items-center justify-between gap-3 py-3 pl-[calc(1rem+env(safe-area-inset-left))] pr-[calc(1rem+env(safe-area-inset-right))] pt-[calc(0.75rem+env(safe-area-inset-top))] text-white">
         <span className="truncate text-sm font-medium" title={receipt.originalName}>
           {receipt.originalName}
         </span>
@@ -187,7 +191,16 @@ export default function ReceiptViewer({
             className={ctrlBtn}
             aria-label={t("openNewTab")}
             title={t("openNewTab")}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              // Standalone PWA: the new tab is an overlay browser without the
+              // session cookie (it would show the sign-in page) — fetch the
+              // bytes in-app and hand them to the share sheet instead.
+              if (isStandalonePwa()) {
+                e.preventDefault();
+                void fetchAndDeliver(src, receipt.originalName).catch(() => {});
+              }
+            }}
           >
             ↗
           </a>
@@ -226,7 +239,7 @@ export default function ReceiptViewer({
               <div className="text-sm">{t("rendering")}</div>
             </div>
           ) : (
-            <div className="h-full w-full overflow-auto">
+            <div className="h-full w-full overflow-auto overscroll-contain">
               <div className="mx-auto" style={{ width: `${view.scale * 100}%` }}>
                 {Array.from({ length: pdfPreview.manifest.pages }, (_, i) => (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -263,13 +276,15 @@ export default function ReceiptViewer({
               style={{
                 transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
                 cursor: view.scale > 1 ? "grab" : "zoom-in",
+                // iOS long-press save/copy callout fights the pan gesture.
+                WebkitTouchCallout: "none",
               }}
               className="pointer-events-auto max-h-full max-w-full touch-none select-none object-contain will-change-transform"
             />
           </div>
         )}
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-5 flex flex-col items-center gap-2">
+        <div className="pointer-events-none absolute inset-x-0 bottom-[calc(1.25rem+env(safe-area-inset-bottom))] flex flex-col items-center gap-2">
           {canEdit && (
             <button
               className="pointer-events-auto flex h-10 items-center justify-center gap-1.5 rounded-full bg-black/70 px-4 text-sm font-medium text-white shadow-lg backdrop-blur transition-colors hover:bg-black/80"

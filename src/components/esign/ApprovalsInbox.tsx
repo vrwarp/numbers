@@ -17,10 +17,11 @@ import ClaimSummaryRow from "./ClaimSummaryRow";
 import { runDecisionCeremony } from "@/lib/esign/client";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
-import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain } from "./chain";
+import { AuditDetails, ChainAlert, PacketLink, ThreadSignatures, useClaimChain } from "./chain";
 import ConfirmDialog from "./ConfirmDialog";
 import { SigningConnectCard } from "./SigningConnect";
 import DocumentSignField, { type TextStamp } from "./DocumentSignField";
+import PdfLink from "@/components/PdfLink";
 import type { FieldAnchor, SignaturePlacement } from "@/lib/esign/placement";
 import type { SubmitAction } from "@/lib/esign/types";
 
@@ -148,19 +149,18 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
               const hasCertificate = c.status === "approved" || c.status === "paid";
               return (
                 <li key={c.id} className="card card-lift" data-testid={`decided-${c.id}`} data-open-id={c.id}>
-                  <a
+                  <PdfLink
                     className="pressable block rounded-xl p-4"
                     href={
                       hasCertificate
                         ? `/api/reimbursements/${c.id}/certificate`
                         : `/api/reimbursements/${c.id}/packet`
                     }
-                    target="_blank"
-                    rel="noreferrer"
-                    data-testid={`decided-open-${c.id}`}
+                    filename={`cfcc-${hasCertificate ? "certificate" : "reimbursement"}-${c.id}.pdf`}
+                    testId={`decided-open-${c.id}`}
                   >
                     <ClaimSummaryRow claim={c} trailing={<StatusChip status={c.status} />} />
-                  </a>
+                  </PdfLink>
                 </li>
               );
             })}
@@ -355,17 +355,15 @@ function DecisionCeremony({
           {/* The stamp surface previews only the first form page; this opens the
               whole packet — every form page plus the appended receipts — so the
               approver can review what they're signing. */}
-          {state.packetUrl && (
-            <a
-              className="btn-secondary inline-block self-start"
-              href={state.packetUrl}
-              target="_blank"
-              rel="noreferrer"
-              data-testid="open-packet"
-            >
-              {tEsign("openPacketButton")}
-            </a>
-          )}
+          <PacketLink
+            className="btn-secondary inline-block self-start"
+            url={state.packetUrl}
+            blob={state.packetBlob}
+            filename={`cfcc-reimbursement-${claim.id}.pdf`}
+            testId="open-packet"
+          >
+            {tEsign("openPacketButton")}
+          </PacketLink>
           {/* Click-to-stamp on the EXACT verified bytes (never a server
               raster) — placing the approval signature where it goes, with the
               printed name + date the certificate stamps alongside it. */}

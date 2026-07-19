@@ -25,6 +25,7 @@ import { loadEnv, type EsignEnv } from "@/lib/esign/client";
 import type { PositionNameSet } from "@/lib/positions";
 import { useApiErrorMessage } from "@/lib/use-api-error";
 import { useModalDismiss } from "@/lib/use-modal-dismiss";
+import { deliverPdf, pdfFile, sharePdf, downloadBlob } from "@/lib/pdf-delivery";
 
 /** Statuses in which the packet is under signature — the stored bytes are
  *  frozen, downloads must NOT regenerate, and only paid blocks revert. */
@@ -414,6 +415,9 @@ export default function ReviewClaim({
   // Pulses the profile-incomplete banner after a click on the gated finish
   // buttons while the payee lines are still blank.
   const [profileNudged, setProfileNudged] = useState(false);
+  // Built PDF waiting for a fresh-gesture share (standalone iOS only —
+  // navigator.share can't run off the spent click, see src/lib/pdf-delivery).
+  const [pdfReady, setPdfReady] = useState<{ blob: Blob; filename: string } | null>(null);
   // Single-ministry mode state: the AI's ranked candidates (never applied
   // until the user taps one), whether we're on the terminal follow-up turn
   // (escape hatch becomes "pick manually"), the candidate just applied (drives
@@ -942,14 +946,13 @@ export default function ReviewClaim({
         : await fetch(`/api/reimbursements/${claim!.id}/pdf`, { method: "POST" });
       if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("pdfFailed")));
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `cfcc-reimbursement-${claim!.id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      const filename = `cfcc-reimbursement-${claim!.id}.pdf`;
+      // Standalone iOS: the share sheet is the delivery channel, and it may
+      // demand a fresh tap (the click's activation was spent on the fetch) —
+      // in that case park the bytes behind a "Save / Share" button.
+      if (!(await deliverPdf(blob, filename))) {
+        setPdfReady({ blob, filename });
+      }
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : t("pdfFailed"));
@@ -1195,7 +1198,7 @@ export default function ReviewClaim({
                     keyboard) a tall receipt photo would fill the screen before
                     the first editable row, so cap it hard; portrait phones and
                     desktops keep the roomy 75vh. */}
-                <div className="max-h-[75vh] overflow-y-auto bg-stone-50/50 short:max-h-[min(55dvh,240px)]">
+                <div className="max-h-[75dvh] overflow-y-auto overscroll-contain bg-stone-50/50 short:max-h-[min(55dvh,240px)]">
                   {/* Keep the PDF arm separate from the image path: a PDF stays a
                       PDF (packet append, "open original", no crop/rotate) — this
                       shows a raster preview inline, it does not reclassify it. */}
@@ -1330,7 +1333,7 @@ export default function ReviewClaim({
           a short viewport. On short viewports the bar drops its bottom gap and
           goes full-bleed so no in-flow content peeks through beneath it. */}
       <div
-        className={`card sticky bottom-4 z-20 flex flex-col gap-3 bg-white/95 p-3 shadow-lg backdrop-blur short:-mx-4 short:rounded-none short:bottom-0 short:flex-row short:flex-wrap short:items-center short:gap-x-3 short:gap-y-2 short:pl-[calc(0.75rem+env(safe-area-inset-left))] short:pr-[calc(0.75rem+env(safe-area-inset-right))] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-2 ${
+        className={`card sticky bottom-4 z-20 flex flex-col gap-3 bg-white/95 p-3 shadow-lg backdrop-blur short:-mx-4 short:rounded-none short:bottom-0 short:flex-row short:flex-wrap short:items-center short:gap-x-3 short:gap-y-2 short:pb-[calc(0.75rem+env(safe-area-inset-bottom))] short:pl-[calc(0.75rem+env(safe-area-inset-left))] short:pr-[calc(0.75rem+env(safe-area-inset-right))] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-2 ${
           splitOpenId ? "hidden" : ""
         }`}
         data-testid="claim-action-bar"
@@ -1639,6 +1642,38 @@ export default function ReviewClaim({
         onCancel={() => setPendingConfirm(null)}
         testId="claim-confirm"
       />
+
+      {/* Fresh-gesture share fallback (standalone iOS): the built PDF waits
+          here for a tap that still owns its user activation. */}
+      {pdfReady && (
+        <div
+          className="fixed bottom-24 left-1/2 z-30 -translate-x-1/2"
+          role="status"
+          data-testid="pdf-ready-toast"
+        >
+          <div className="flex items-center gap-3 rounded-lg bg-stone-900 px-4 py-2 text-sm text-white shadow-xl">
+            <span>{tCommon("pdfReady")}</span>
+            <button
+              className="font-semibold text-emerald-300 hover:text-emerald-200"
+              onClick={async () => {
+                const outcome = await sharePdf(pdfFile(pdfReady.blob, pdfReady.filename));
+                if (outcome === "unavailable") downloadBlob(pdfReady.blob, pdfReady.filename);
+                if (outcome !== "blocked") setPdfReady(null);
+              }}
+              data-testid="pdf-ready-share"
+            >
+              {tCommon("pdfReadyAction")}
+            </button>
+            <button
+              className="text-stone-400 hover:text-white"
+              onClick={() => setPdfReady(null)}
+              aria-label={t("dismissAria")}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* A fan-out can un-verify rows wholesale, so it's always one click to
           take back while the toast is up. */}

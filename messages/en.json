@@ -20,6 +20,8 @@
     "save": "Save",
     "saving": "Saving…",
     "loading": "Loading…",
+    "pdfReady": "Your PDF is ready.",
+    "pdfReadyAction": "Save / Share",
     "language": "Language",
     "date": {
       "today": "Today",
@@ -129,6 +131,7 @@
     "intro": "Add receipts as you go — snap a photo or upload a file. Select some when you're ready to file a claim.",
     "upload": "Upload Receipt",
     "takePhoto": "📷 Take photo",
+    "restoredPhoto": "Recovered from your last visit — this photo hadn't been saved yet.",
     "uploading": "Uploading…",
     "uploadFailed": "Upload failed",
     "dropTitle": "Drop receipts to upload",

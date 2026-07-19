@@ -63,7 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             />
           )}
           {user && <DeviceRequestsBanner />}
-          <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+          <main className="mx-auto max-w-6xl py-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">{children}</main>
         </NextIntlClientProvider>
       </body>
     </html>

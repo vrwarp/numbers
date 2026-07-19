@@ -13,10 +13,12 @@ import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { useTranslations } from "next-intl";
 import { runPaidCeremony } from "@/lib/esign/client";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
-import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain } from "./chain";
+import { AuditDetails, ChainAlert, PacketLink, ThreadSignatures, useClaimChain } from "./chain";
 import { SigningConnectCard } from "./SigningConnect";
 import { type InboxClaim } from "./ApprovalsInbox";
 import ClaimSummaryRow from "./ClaimSummaryRow";
+import PdfLink from "@/components/PdfLink";
+import { deliverPdf, downloadBlob, isStandalonePwa, pdfFile, sharePdf } from "@/lib/pdf-delivery";
 
 export default function FinanceQueue() {
   const t = useTranslations("Finance");
@@ -36,6 +38,8 @@ export default function FinanceQueue() {
   const [includeCertificate, setIncludeCertificate] = useState(false);
   const [printing, setPrinting] = useState(false);
   const [printError, setPrintError] = useState<string | null>(null);
+  // Built batch waiting for a fresh-gesture share (standalone PWA only).
+  const [printReady, setPrintReady] = useState<{ blob: Blob; filename: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,7 +116,10 @@ export default function FinanceQueue() {
     setPrintError(null);
     // Open the tab inside the click gesture so the pop-up isn't blocked; point
     // it at the built PDF, or close it (and fall back to a download) on failure.
-    const win = window.open("", "_blank");
+    // Standalone PWA: no tab at all — blob tabs fail there and the overlay
+    // browser has no session cookie; the share sheet is the print/save path.
+    const standalone = isStandalonePwa();
+    const win = standalone ? null : window.open("", "_blank");
     try {
       const res = await fetch("/api/finance/print", {
         method: "POST",
@@ -122,7 +129,14 @@ export default function FinanceQueue() {
       if (!res.ok) {
         throw new Error(apiError(await res.json().catch(() => null), t("printFailed")));
       }
-      const url = URL.createObjectURL(await res.blob());
+      const blob = await res.blob();
+      if (standalone) {
+        if (!(await deliverPdf(blob, "cfcc-packets.pdf"))) {
+          setPrintReady({ blob, filename: "cfcc-packets.pdf" });
+        }
+        return;
+      }
+      const url = URL.createObjectURL(blob);
       if (win) win.location.href = url;
       else {
         const a = document.createElement("a");
@@ -217,15 +231,14 @@ export default function FinanceQueue() {
                   {/* Opens the approval certificate — the signature cover page,
                       the full signed packet, and the offline verification bundle.
                       Served inline, so a new tab keeps the finance page put. */}
-                  <a
+                  <PdfLink
                     className="btn-secondary shrink-0"
                     href={`/api/reimbursements/${c.id}/certificate`}
-                    target="_blank"
-                    rel="noreferrer"
-                    data-testid={`paid-open-${c.id}`}
+                    filename={`cfcc-certificate-${c.id}.pdf`}
+                    testId={`paid-open-${c.id}`}
                   >
                     {t("viewCertificate")}
-                  </a>
+                  </PdfLink>
                 </li>
               );
             })}
@@ -237,7 +250,7 @@ export default function FinanceQueue() {
         // Floating batch-print toolbar (mirrors the claim page's action bar):
         // count, the two content toggles, and Print all — building one PDF with
         // every selected packet for a single trip to the printer.
-        <div className="fixed inset-x-0 bottom-4 z-30 flex justify-center px-4">
+        <div className="fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-30 flex justify-center px-4">
           <div className="card flex flex-wrap items-center gap-x-4 gap-y-2 bg-white/95 p-3 shadow-lg backdrop-blur">
             <span className="text-sm font-medium">{t("selectedCount", { count: selected.size })}</span>
             <label className="flex items-center gap-2 text-sm">
@@ -265,6 +278,21 @@ export default function FinanceQueue() {
               {t("includeCertificate")}
             </label>
             {printError && <span className="w-full text-sm text-red-700 sm:w-auto">{printError}</span>}
+            {/* Fresh-gesture share fallback (standalone PWA): the built batch
+                waits for a tap that still owns its user activation. */}
+            {printReady && (
+              <button
+                className="w-full rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 sm:w-auto"
+                onClick={async () => {
+                  const outcome = await sharePdf(pdfFile(printReady.blob, printReady.filename));
+                  if (outcome === "unavailable") downloadBlob(printReady.blob, printReady.filename);
+                  if (outcome !== "blocked") setPrintReady(null);
+                }}
+                data-testid="print-ready-share"
+              >
+                {tCommon("pdfReady")} {tCommon("pdfReadyAction")}
+              </button>
+            )}
             <div className="flex items-center gap-2 sm:ml-auto sm:border-l sm:border-stone-200 sm:pl-4">
               <button className="btn-secondary !px-3" onClick={() => setSelected(new Set())}>
                 {t("clearSelection")}
@@ -357,32 +385,33 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
               away. Pre-feature approvals fall back to the original alone. */}
           {state.approvedPacketUrl ? (
             <div className="flex flex-wrap items-center gap-3">
-              <a
+              <PacketLink
                 className="btn-secondary inline-block"
-                href={state.approvedPacketUrl}
-                target="_blank"
-                rel="noreferrer"
-                data-testid="open-approved-packet"
+                url={state.approvedPacketUrl}
+                blob={state.approvedPacketBlob}
+                filename={`cfcc-approved-${claim.id}.pdf`}
+                testId="open-approved-packet"
               >
                 {tEsign("openApprovedPacketButton")}
-              </a>
-              {state.packetUrl && (
-                <a
-                  className="text-sm text-indigo-600 underline"
-                  href={state.packetUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {tEsign("openOriginalPacketLink")}
-                </a>
-              )}
+              </PacketLink>
+              <PacketLink
+                className="text-sm text-indigo-600 underline"
+                url={state.packetUrl}
+                blob={state.packetBlob}
+                filename={`cfcc-reimbursement-${claim.id}.pdf`}
+              >
+                {tEsign("openOriginalPacketLink")}
+              </PacketLink>
             </div>
           ) : (
-            state.packetUrl && (
-              <a className="btn-secondary inline-block" href={state.packetUrl} target="_blank" rel="noreferrer">
-                {tEsign("openPacketButton")}
-              </a>
-            )
+            <PacketLink
+              className="btn-secondary inline-block"
+              url={state.packetUrl}
+              blob={state.packetBlob}
+              filename={`cfcc-reimbursement-${claim.id}.pdf`}
+            >
+              {tEsign("openPacketButton")}
+            </PacketLink>
           )}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium">

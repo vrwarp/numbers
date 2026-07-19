@@ -99,7 +99,7 @@ export default function NavBar({
     .map((l) => ({ ...l, hidden: overflowSet.has(l.href) }));
 
   return (
-    <header className="sticky top-0 z-40 border-b border-stone-200 bg-white/90 backdrop-blur short-wide:static">
+    <header className="sticky top-0 z-40 border-b border-stone-200 bg-white/90 pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] backdrop-blur short-wide:static">
       <div className="keyboard-smooth mx-auto flex max-w-6xl items-center gap-2 px-3 py-3 short-wide:py-1.5 sm:px-4">
         <Link
           href="/"

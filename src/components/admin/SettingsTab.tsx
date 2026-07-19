@@ -144,7 +144,7 @@ export default function SettingsTab() {
         );
       })}
 
-      <div className="sticky bottom-0 flex items-center gap-3 border-t border-stone-200 bg-white/90 py-3 backdrop-blur">
+      <div className="sticky bottom-0 flex items-center gap-3 border-t border-stone-200 bg-white/90 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
         <button className="btn-primary" disabled={busy || pending === 0} onClick={save} data-testid="settings-save">
           {busy ? t("saving") : t("saveChanges", { count: pending })}
         </button>

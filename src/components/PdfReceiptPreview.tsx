@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import PdfLink from "@/components/PdfLink";
 
 export interface PdfPreviewManifest {
   pages: number;
@@ -95,14 +96,13 @@ export default function PdfReceiptPreview({
           )}
         </>
       )}
-      <a
+      <PdfLink
         href={openHref}
-        target="_blank"
-        rel="noopener noreferrer"
+        filename="receipt.pdf"
         className="border-t border-stone-100 px-4 py-2 text-center text-sm text-indigo-600 underline"
       >
         {t("open")}
-      </a>
+      </PdfLink>
     </div>
   );
 }

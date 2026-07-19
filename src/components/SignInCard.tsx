@@ -33,12 +33,19 @@ function isEmbeddedBrowser(): boolean {
  * to /signin pay for the bundle), then the ID token is exchanged for our
  * httpOnly session cookie so the rest of the app never touches Firebase.
  *
- * We use signInWithPopup (never signInWithRedirect): on iOS every browser is
- * WebKit, and storage partitioning breaks the redirect handler's sessionStorage
- * round-trip ("Unable to process request due to missing initial state"). The
- * popup keeps its handshake in memory and survives partitioning — provided it
- * opens inside the click's user gesture, which is why the modules are preloaded
- * (an await before window.open forfeits the gesture and iOS blocks the popup).
+ * We use signInWithPopup (never signInWithRedirect by default): on iOS every
+ * browser is WebKit, and storage partitioning breaks the redirect handler's
+ * sessionStorage round-trip ("Unable to process request due to missing initial
+ * state"). The popup keeps its handshake in memory and survives partitioning —
+ * provided it opens inside the click's user gesture, which is why the modules
+ * are preloaded (an await before window.open forfeits the gesture and iOS
+ * blocks the popup).
+ *
+ * ONE exception: when the popup is BLOCKED (installed home-screen PWAs are the
+ * common case) and FIREBASE_AUTH_PROXY has made the authDomain this very
+ * origin, the redirect handler is first-party — partitioning can't touch it —
+ * so we fall back to signInWithRedirect instead of dead-ending on an error
+ * message. getRedirectResult on mount completes that round-trip.
  */
 export default function SignInCard({
   firebaseConfig,
@@ -88,6 +95,18 @@ export default function SignInCard({
       return;
     }
     if (code === "auth/popup-blocked") {
+      // First-party authDomain (auth proxy) ⇒ the redirect flow works even
+      // under WebKit partitioning — use it instead of a dead-end message.
+      const l = loaded.current;
+      if (l && firebaseConfig?.authDomain === window.location.host) {
+        void l.fb
+          .signInWithRedirect(l.auth, new l.fb.GoogleAuthProvider())
+          .catch(() => {
+            setError(t("popupBlocked"));
+            setBusy(false);
+          });
+        return;
+      }
       setError(t("popupBlocked"));
     } else {
       setError(err instanceof Error ? err.message : t("failed"));
@@ -96,11 +115,21 @@ export default function SignInCard({
   }
 
   // Flag in-app browsers and preload the Firebase modules so the popup can open
-  // synchronously inside the click handler.
+  // synchronously inside the click handler. Also complete a redirect-fallback
+  // round-trip if one is landing (popup-blocked path above).
   useEffect(() => {
     if (!firebaseConfig) return;
     setEmbedded(isEmbeddedBrowser());
-    loadFirebase().catch(() => {});
+    loadFirebase()
+      .then(async (l) => {
+        const result = await l.fb.getRedirectResult(l.auth).catch(() => null);
+        if (result?.user) {
+          setBusy(true);
+          await exchangeSession(l, result.user).catch(showError);
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firebaseConfig]);
 
   async function signInWithGoogle() {

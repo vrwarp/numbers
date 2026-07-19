@@ -20,6 +20,8 @@
     "save": "儲存",
     "saving": "儲存中…",
     "loading": "載入中…",
+    "pdfReady": "您的 PDF 已就緒。",
+    "pdfReadyAction": "儲存 / 分享",
     "language": "語言",
     "date": {
       "today": "今天",
@@ -129,6 +131,7 @@
     "intro": "隨時新增收據——拍照或上傳檔案都可以。準備報銷時再選取它們提交。",
     "upload": "上傳收據",
     "takePhoto": "📷 拍照",
+    "restoredPhoto": "已從上次造訪中復原——這張照片當時尚未儲存。",
     "uploading": "上傳中…",
     "uploadFailed": "上傳失敗",
     "dropTitle": "放開以上傳收據",

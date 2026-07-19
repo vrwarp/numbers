@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { loadPendingPhotos, removePendingPhoto, stashPendingPhoto } from "@/lib/pending-photos";
 import LocaleSwitcher from "./LocaleSwitcher";
 import ReceiptViewer from "./ReceiptViewer";
 import PdfReceiptPreview from "@/components/PdfReceiptPreview";
@@ -25,6 +26,11 @@ interface LocalPending {
   file: File;
   edited: Blob | null;
   previewUrl: string;
+  /** IndexedDB crash-safety row (src/lib/pending-photos) — removed once the
+   *  upload lands; null when the stash failed (private mode). */
+  storeId: string | null;
+  /** True when this photo was recovered from a previous, interrupted visit. */
+  restored?: boolean;
 }
 
 /** A PDF that was uploaded the moment it was picked: browsers can't thumbnail
@@ -110,6 +116,33 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
     load();
   }, [load]);
 
+  // Recover photos stranded by an interrupted visit (app switch, tab
+  // reclaim): re-queue them through the same prepare dialog, flagged so it
+  // can say where they came from.
+  useEffect(() => {
+    let cancelled = false;
+    void loadPendingPhotos().then((rows) => {
+      if (cancelled || rows.length === 0) return;
+      setPending((q) => [
+        ...q,
+        ...rows
+          .filter((r) => !q.some((i) => i.kind === "local" && i.storeId === r.id))
+          .map((r) => ({
+            kind: "local" as const,
+            key: pendingKey.current++,
+            file: r.file,
+            edited: null,
+            previewUrl: URL.createObjectURL(r.file),
+            storeId: r.id,
+            restored: true,
+          })),
+      ]);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function onFilesPicked(files: FileList | null) {
     if (!files || files.length === 0) return;
     // Images are NOT uploaded yet: their prepare dialog comes first so any
@@ -123,13 +156,21 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
     const images = picked.filter((f) => f.type !== "application/pdf");
     const pdfs = picked.filter((f) => f.type === "application/pdf");
     if (images.length > 0) {
-      const items = images.map((file) => ({
-        kind: "local" as const,
-        key: pendingKey.current++,
-        file,
-        edited: null,
-        previewUrl: URL.createObjectURL(file),
-      }));
+      const items = images.map((file) => {
+        // Stash the photo before anything else: iOS never fires beforeunload
+        // and reclaims background tabs, so IndexedDB is the only thing that
+        // saves a picked-but-unsaved photo from silent loss.
+        const storeId = crypto.randomUUID();
+        void stashPendingPhoto(storeId, file);
+        return {
+          kind: "local" as const,
+          key: pendingKey.current++,
+          file,
+          edited: null,
+          previewUrl: URL.createObjectURL(file),
+          storeId,
+        };
+      });
       setPending((q) => [...q, ...items]);
     }
     if (pdfs.length > 0) void uploadPdfsNow(pdfs);
@@ -190,7 +231,10 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
       const res = await fetch("/api/receipts", { method: "POST", body: form });
       if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("uploadFailed")));
       const done = new Set(items.map((i) => i.key));
-      for (const item of items) URL.revokeObjectURL(item.previewUrl);
+      for (const item of items) {
+        URL.revokeObjectURL(item.previewUrl);
+        if (item.storeId) void removePendingPhoto(item.storeId);
+      }
       setPending((q) => q.filter((i) => !done.has(i.key)));
       setUploadNote("");
       await load();
@@ -751,6 +795,14 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
               <p className="mt-1 truncate text-sm text-stone-500">
                 {preparing.kind === "local" ? preparing.file.name : preparing.receipt.originalName}
               </p>
+              {preparing.kind === "local" && preparing.restored && (
+                <p
+                  className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900"
+                  data-testid="restored-photo-note"
+                >
+                  {t("restoredPhoto")}
+                </p>
+              )}
               <label className="mt-3 block text-sm font-medium">
                 {t("noteLabel")}
                 <input

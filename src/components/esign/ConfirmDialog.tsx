@@ -40,7 +40,7 @@ export default function ConfirmDialog({
       role="dialog"
       aria-modal="true"
     >
-      <div className="max-h-[92vh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-2xl bg-white p-6 sm:rounded-2xl">
+      <div className="max-h-[92dvh] w-full max-w-md space-y-4 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:rounded-2xl sm:pb-6">
         <h3 className="text-lg font-bold">{title}</h3>
         <div className="space-y-2 text-sm text-stone-600">{children}</div>
         {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}

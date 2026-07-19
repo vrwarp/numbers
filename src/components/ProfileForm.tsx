@@ -230,7 +230,7 @@ export default function ProfileForm() {
         {/* On a short viewport the form runs past the fold with the keyboard up,
             so Save pins to the bottom edge (bleeding past the card's p-6). The
             "Saved ✓" / error feedback sits in the same row, where the tap is. */}
-        <div className="z-10 flex items-center gap-3 short:sticky short:bottom-0 short:-mx-6 short:-mb-6 short:border-t short:border-stone-200 short:bg-white/95 short:px-6 short:py-3 short:backdrop-blur">
+        <div className="z-10 flex items-center gap-3 short:sticky short:bottom-0 short:-mx-6 short:-mb-6 short:border-t short:border-stone-200 short:bg-white/95 short:px-6 short:py-3 short:pb-[calc(0.75rem+env(safe-area-inset-bottom))] short:backdrop-blur">
           <button type="submit" className="btn-primary" disabled={busy} data-testid="profile-save">
             {busy ? tCommon("saving") : tCommon("save")}
           </button>

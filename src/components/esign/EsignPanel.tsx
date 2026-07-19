@@ -27,6 +27,7 @@ import { usePositionLabel } from "@/lib/use-position-label";
 import type { PositionNameSet } from "@/lib/positions";
 import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import PdfLink from "@/components/PdfLink";
 import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain, type ClaimRef } from "./chain";
 import { SigningConnectCard, useSigningSession } from "./SigningConnect";
 import DocumentSignField from "./DocumentSignField";
@@ -154,15 +155,14 @@ export default function EsignPanel({
 
       <div className="flex flex-wrap gap-2">
         {(claim.status === "approved" || claim.status === "paid") && (
-          <a
+          <PdfLink
             className="btn-secondary"
             href={`/api/reimbursements/${claim.id}/certificate`}
-            target="_blank"
-            rel="noreferrer"
-            data-testid="certificate-link"
+            filename={`cfcc-certificate-${claim.id}.pdf`}
+            testId="certificate-link"
           >
             {t("certificateLink")}
-          </a>
+          </PdfLink>
         )}
         {claim.status === "submitted" && state?.thread?.submit && (
           <button
@@ -328,7 +328,7 @@ export function SubmitDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">
-      <div className="max-h-[92vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-t-2xl bg-white p-6 sm:rounded-2xl">
+      <div className="max-h-[92dvh] w-full max-w-lg space-y-4 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:rounded-2xl sm:pb-6">
         <h3 className="text-lg font-bold">{t("submitDialogTitle")}</h3>
         {!enrolled ? (
           <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">

@@ -35,6 +35,7 @@ import {
   type PendingDeviceRequest,
 } from "@/lib/esign/devices";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
+import { deliverPdf } from "@/lib/pdf-delivery";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 // --- M2: the new-device gate ---------------------------------------------------
@@ -480,13 +481,13 @@ function PhraseDialog({
         email: env.me.email,
       });
       const blob = new Blob([bytes as BlobPart], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "signing-recovery-sheet.pdf";
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 30_000);
-      setDownloaded(true);
+      // Standalone PWA: a.download silently no-ops, so the share sheet
+      // delivers instead (Save to Files / Print / AirDrop). No server GET can
+      // exist for this file — the words never touch the server — so a second
+      // tap of the same button re-shares if activation was already spent.
+      if (await deliverPdf(blob, "signing-recovery-sheet.pdf")) {
+        setDownloaded(true);
+      }
     } catch (err) {
       setError(thrown(err, t("couldNotBuildSheet")));
     }
@@ -494,7 +495,7 @@ function PhraseDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">
-      <div className="max-h-[92vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-t-2xl bg-white p-6 sm:rounded-2xl">
+      <div className="max-h-[92dvh] w-full max-w-lg space-y-4 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:rounded-2xl sm:pb-6">
         <h3 className="text-lg font-bold">{t("phraseDialogTitle")}</h3>
         {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         {!words ? (
