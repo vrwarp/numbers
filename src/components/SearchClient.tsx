@@ -340,38 +340,44 @@ export default function SearchClient({
       <h1 className="text-2xl font-bold">{t("title")}</h1>
 
       <div className="flex flex-wrap items-center gap-2">
-        {/* "Show" — the type filter is available to everyone (not role-gated). */}
-        <span
-          aria-hidden
-          className="text-xs font-semibold uppercase tracking-wide text-stone-400"
-        >
-          {t("typeFilterLabel")}
-        </span>
-        <div
-          data-testid="search-type-filter"
-          role="radiogroup"
-          aria-label={t("typeFilterLabel")}
-          className="inline-flex overflow-hidden rounded-full border border-stone-300 text-xs font-semibold"
-        >
-          {([null, "receipt", "claim"] as const).map((ty) => (
-            <button
-              key={ty ?? "all"}
-              role="radio"
-              aria-checked={typeFilter === ty}
-              className={`px-3 py-1.5 ${typeFilter === ty ? "bg-indigo-600 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
-              onClick={() => changeType(ty)}
-            >
-              {ty === null ? t("typeAll") : ty === "receipt" ? t("typeReceipts") : t("typeClaims")}
-            </button>
-          ))}
+        {/* "Show" — the type filter is available to everyone (not role-gated).
+            Label + control stay in one non-wrapping group so the label never
+            strands on a line above its buttons. */}
+        <div className="flex items-center gap-2">
+          <span
+            aria-hidden
+            className="text-xs font-semibold uppercase tracking-wide text-stone-400"
+          >
+            {t("typeFilterLabel")}
+          </span>
+          <div
+            data-testid="search-type-filter"
+            role="radiogroup"
+            aria-label={t("typeFilterLabel")}
+            className="inline-flex overflow-hidden rounded-full border border-stone-300 text-xs font-semibold"
+          >
+            {([null, "receipt", "claim"] as const).map((ty) => (
+              <button
+                key={ty ?? "all"}
+                role="radio"
+                aria-checked={typeFilter === ty}
+                className={`px-3 py-1.5 ${typeFilter === ty ? "bg-indigo-600 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
+                onClick={() => changeType(ty)}
+              >
+                {ty === null ? t("typeAll") : ty === "receipt" ? t("typeReceipts") : t("typeClaims")}
+              </button>
+            ))}
+          </div>
         </div>
         {(canAll || canTeam) && (
-          <>
-            {/* "Where" — the cross-tenant scope control (§6.3): role-holders,
-                plus team members (membership-derived, §6.3 team amendment). */}
+          /* "Where" — the cross-tenant scope control (§6.3): role-holders,
+              plus team members (membership-derived, §6.3 team amendment).
+              Label + control share one non-wrapping group so "Where" wraps
+              onto the second line together with its buttons. */
+          <div className="flex items-center gap-2">
             <span
               aria-hidden
-              className="ml-1 text-xs font-semibold uppercase tracking-wide text-stone-400"
+              className="text-xs font-semibold uppercase tracking-wide text-stone-400"
             >
               {t("scopeFilterLabel")}
             </span>
@@ -407,7 +413,7 @@ export default function SearchClient({
                 </button>
               ))}
             </div>
-          </>
+          </div>
         )}
         {scope === "decided" && (
           <span className="text-xs text-stone-500">{t("scopeDecidedHint")}</span>
