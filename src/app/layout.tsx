@@ -4,6 +4,7 @@ import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import "./globals.css";
 import { currentUser } from "@/auth";
 import { isAppAdmin } from "@/lib/config";
+import { canManageMinistries } from "@/lib/ministries-guard";
 import { canViewMembers } from "@/lib/members-guard";
 import { canManageTeams } from "@/lib/teams-guard";
 import { embeddingEnabled } from "@/lib/embeddings/settings";
@@ -55,7 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <NavBar
               userName={user.fullName ?? user.email}
               isAdmin={isAppAdmin(user)}
-              canManageMinistries={user.role === "treasurer" || isAppAdmin(user)}
+              canManageMinistries={canManageMinistries(user)}
               canViewMembers={canViewMembers(user)}
               canManageTeams={canManageTeams(user)}
               searchEnabled={searchEnabled}
