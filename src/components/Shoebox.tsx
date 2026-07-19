@@ -45,6 +45,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
   const apiError = useApiErrorMessage();
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
+  const cameraInput = useRef<HTMLInputElement>(null);
   const [receipts, setReceipts] = useState<Receipt[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // Picked files awaiting the prepare step (describe + optional rotate/crop),
@@ -292,6 +293,16 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
     });
   }
 
+  /** One tap for the common "file everything I've collected" case. Only the
+   *  unassigned section — re-claiming processed receipts stays deliberate. */
+  function selectAllUnassigned() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const r of unassigned) next.add(r.id);
+      return next;
+    });
+  }
+
   async function saveNote(id: string, note: string) {
     const res = await fetch(`/api/receipts/${id}`, {
       method: "PATCH",
@@ -431,6 +442,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
   const processed = (receipts ?? []).filter((r) => r.status !== "unassigned");
   const hasClaimBar = receipts !== null && (unassigned.length > 0 || processed.length > 0);
   const barEmpty = selected.size === 0;
+  const canSelectAll = unassigned.some((r) => !selected.has(r.id));
 
   // ?open=<id> deep-link landing (search results → "Find in Receipts"):
   // auto-expand the processed section when the target lives there, scroll +
@@ -473,7 +485,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
       <div>
         <div className="flex items-center justify-between gap-3">
           <h1 className="keyboard-smooth text-3xl font-bold short:text-xl">{t("title")}</h1>
-          <div className="shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
             <input
               ref={fileInput}
               type="file"
@@ -483,6 +495,27 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
               data-testid="file-input"
               onChange={(e) => onFilesPicked(e.target.files)}
             />
+            {/* Dedicated camera path for the "snap it the moment you buy"
+                journey — `capture` skips the file-chooser detour straight into
+                the camera. Phone-width only; the plain picker (with its own
+                camera option) stays for library uploads and desktop. */}
+            <input
+              ref={cameraInput}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              data-testid="camera-input"
+              onChange={(e) => onFilesPicked(e.target.files)}
+            />
+            <button
+              className="btn-secondary sm:hidden"
+              onClick={() => cameraInput.current?.click()}
+              disabled={uploading}
+              data-testid="camera-button"
+            >
+              {t("takePhoto")}
+            </button>
             <button
               className="btn-primary"
               onClick={() => fileInput.current?.click()}
@@ -545,6 +578,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
               >
                 <div className="flex items-center gap-3">
                   <span
+                    aria-live="polite"
                     className={`min-w-0 text-sm transition-colors duration-200 ${
                       barEmpty
                         ? `text-[13px] font-semibold ${showSelectHint ? "text-indigo-700" : "text-indigo-900"}`
@@ -571,6 +605,15 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
                       </>
                     )}
                   </span>
+                  {!generating && canSelectAll && (
+                    <button
+                      className="whitespace-nowrap text-[13px] font-medium text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
+                      onClick={selectAllUnassigned}
+                      data-testid="select-all-receipts"
+                    >
+                      {t("selectAll")}
+                    </button>
+                  )}
                   {!barEmpty && !generating && (
                     <button
                       className="text-[13px] text-stone-500 underline underline-offset-2 hover:text-stone-700"
@@ -780,7 +823,9 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
 
       <ConfirmDialog
         open={deletingId !== null}
-        message={t("deleteConfirm")}
+        message={t("deleteConfirm", {
+          name: receipts?.find((r) => r.id === deletingId)?.originalName ?? "",
+        })}
         confirmLabel={t("deleteConfirmButton")}
         busy={deleteBusy}
         onConfirm={confirmDeleteReceipt}

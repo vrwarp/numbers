@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
+import { completeProfile, makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
 
 test("unauthenticated visitors are redirected to sign-in and APIs return 401", async ({ page }) => {
   await page.goto("/");
@@ -150,6 +150,7 @@ test("removing a receipt from a draft claim returns it to the shoebox", async ({
 
 test("receipt notes are visible everywhere and receipts can go on multiple claims", async ({ page }, testInfo) => {
   await signInAs(page, `reuse-${testInfo.project.name}@example.com`, "Reuser");
+  await completeProfile(page);
 
   // Picking a file opens the prepare dialog BEFORE anything uploads, with the
   // rotate/crop editor embedded in place of the preview. (Driven manually here
@@ -227,6 +228,7 @@ test("receipt notes are visible everywhere and receipts can go on multiple claim
 test("revert to draft unfreezes a generated claim and its receipts", async ({ page }, testInfo) => {
   page.on("dialog", (d) => d.accept());
   await signInAs(page, `reverter-${testInfo.project.name}@example.com`, "Reverter");
+  await completeProfile(page);
   await page.goto("/");
   await uploadReceipts(page, [await makeReceiptFixture("revert-me.jpg")]);
   await page.locator('[data-testid^="receipt-card-"]').first().click();

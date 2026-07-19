@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import fs from "fs/promises";
-import { makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
+import { completeProfile, makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
 
 /**
  * Single-ministry mode + the "Suggest" flow. New claims default to one
@@ -33,6 +33,7 @@ test("describe → Suggest → apply fans the ministry onto every row and unlock
     `suggest-${testInfo.project.name}-r${testInfo.retry}@example.com`,
     "Sue Jest"
   );
+  await completeProfile(page);
   const claimId = await makeClaim(page, ["sm-a.jpg", "sm-b.jpg", "sm-c.jpg"]);
 
   // Default is single-ministry mode: the claim panel is up, the per-row

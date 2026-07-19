@@ -1,7 +1,8 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
+import { useModalDismiss } from "@/lib/use-modal-dismiss";
 
 /**
  * Bottom-sheet-on-mobile / centered-on-desktop confirm modal (matches the
@@ -28,8 +29,13 @@ export default function ConfirmDialog({
   children: ReactNode;
 }) {
   const tCommon = useTranslations("Common");
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalDismiss(dialogRef, () => {
+    if (!busy) onCancel();
+  });
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6"
       role="dialog"
       aria-modal="true"

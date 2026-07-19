@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useOpenParam } from "@/lib/use-open-param";
+import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { useTranslations } from "next-intl";
 import { formatCents } from "@/lib/money";
 import ClaimSummaryRow from "./ClaimSummaryRow";
@@ -51,17 +52,20 @@ interface InboxMe {
 export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoint?: string }) {
   const t = useTranslations("Approvals");
   const tEsign = useTranslations("Esign");
+  const tCommon = useTranslations("Common");
   const apiError = useApiErrorMessage();
-  const [claims, setClaims] = useState<InboxClaim[]>([]);
+  // null = first load still in flight — don't flash the empty state.
+  const [claims, setClaims] = useState<InboxClaim[] | null>(null);
   const [me, setMe] = useState<InboxMe | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const list = claims ?? [];
   // ?open=<id> deep link from search results (shared contract,
   // src/lib/use-open-param.ts): expand a submitted row, pulse a decided one.
   useOpenParam({
-    ready: claims.length > 0,
-    exists: (id) => claims.some((c) => c.id === id),
+    ready: list.length > 0,
+    exists: (id) => list.some((c) => c.id === id),
     beforeScroll: (id) => {
-      if (claims.find((c) => c.id === id)?.status === "submitted") setOpenId(id);
+      if (list.find((c) => c.id === id)?.status === "submitted") setOpenId(id);
     },
   });
   const [error, setError] = useState<string | null>(null);
@@ -79,9 +83,12 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
   useEffect(() => {
     void load();
   }, [load]);
+  // A submitted claim should appear without a manual reload — but never
+  // refresh under an open decision ceremony.
+  useAutoRefresh(load, { paused: openId !== null });
 
-  const pending = claims.filter((c) => c.status === "submitted");
-  const history = claims.filter((c) => c.status !== "submitted");
+  const pending = list.filter((c) => c.status === "submitted");
+  const history = list.filter((c) => c.status !== "submitted");
 
   return (
     <div className="space-y-6">
@@ -104,7 +111,9 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
         </p>
       )}
 
-      {pending.length === 0 ? (
+      {claims === null ? (
+        <p className="text-sm text-stone-500">{tCommon("loading")}</p>
+      ) : pending.length === 0 ? (
         <div className="card p-8 text-center text-stone-500">
           <div className="text-3xl">🕊️</div>
           <p className="mt-2">{t("empty")}</p>
@@ -227,6 +236,8 @@ function DecisionCeremony({
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<SignaturePlacement | null>(null);
+  const [anchorFailed, setAnchorFailed] = useState(false);
+  const [anchorAttempt, setAnchorAttempt] = useState(0);
   const [nameField, setNameField] = useState<FieldAnchor | null>(null);
   const [dateField, setDateField] = useState<FieldAnchor | null>(null);
   const [placement, setPlacement] = useState<SignaturePlacement | null>(null);
@@ -241,16 +252,22 @@ function DecisionCeremony({
   }, [state, typedName]);
 
   useEffect(() => {
+    setAnchorFailed(false);
     void fetch(`/api/reimbursements/${claim.id}/sign-anchor`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (!d) return;
+        // Without the anchor the stamp surface never renders and Approve
+        // stays disabled — surface the failure instead of hanging forever.
+        if (!d) {
+          setAnchorFailed(true);
+          return;
+        }
         setAnchor(d.anchor as SignaturePlacement);
         setNameField((d.nameField as FieldAnchor | null) ?? null);
         setDateField((d.dateField as FieldAnchor | null) ?? null);
       })
-      .catch(() => {});
-  }, [claim.id]);
+      .catch(() => setAnchorFailed(true));
+  }, [claim.id, anchorAttempt]);
 
   // Printed name + date the approver's signature fills alongside the ink — the
   // same values the certificate route bakes onto the delivery copy.
@@ -360,6 +377,17 @@ function DecisionCeremony({
               onChange={setPlacement}
               textStamps={signStamps}
             />
+          ) : verified && signatureImage && anchorFailed ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">
+              <span>{tEsign("prepFailed")}</span>
+              <button
+                className="font-semibold underline underline-offset-2"
+                onClick={() => setAnchorAttempt((n) => n + 1)}
+                data-testid="anchor-retry"
+              >
+                {tEsign("retryButton")}
+              </button>
+            </div>
           ) : null}
           <AuditDetails state={state} />
           <label className="block text-sm font-medium">
@@ -381,6 +409,13 @@ function DecisionCeremony({
             <span>{tEsign("intentAffirmation")}</span>
           </label>
           {actionError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{actionError}</p>}
+          {/* The commonest reason Approve is greyed out — say it instead of
+              leaving a silently dead button (title tooltips don't exist on touch). */}
+          {verified && !busy && !!signatureImage && !placement && (
+            <p className="text-right text-xs text-stone-500" data-testid="place-signature-hint">
+              {tEsign("placeSignatureHint")}
+            </p>
+          )}
           <div className="flex justify-end gap-2">
             <button
               className="btn-secondary disabled:opacity-50"

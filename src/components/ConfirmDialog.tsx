@@ -1,6 +1,8 @@
 "use client";
 
+import { useRef } from "react";
 import { useTranslations } from "next-intl";
+import { useModalDismiss } from "@/lib/use-modal-dismiss";
 
 /**
  * In-app replacement for window.confirm(). iOS suppresses native JS dialogs in
@@ -13,6 +15,7 @@ export default function ConfirmDialog({
   message,
   confirmLabel,
   busy = false,
+  tone = "danger",
   onConfirm,
   onCancel,
   testId = "confirm-dialog",
@@ -23,14 +26,23 @@ export default function ConfirmDialog({
   confirmLabel: string;
   /** Disables both buttons while the confirmed action is in flight. */
   busy?: boolean;
+  /** "danger" (default) for destructive confirms; "primary" for benign ones —
+   *  a red button on a safe action overstates the stakes. */
+  tone?: "danger" | "primary";
   onConfirm: () => void;
   onCancel: () => void;
   testId?: string;
 }) {
   const tCommon = useTranslations("Common");
+  const dialogRef = useRef<HTMLDivElement>(null);
+  // Escape = Cancel (unless the action is already in flight); Tab stays inside.
+  useModalDismiss(dialogRef, () => {
+    if (!busy) onCancel();
+  }, open);
   if (!open) return null;
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="alertdialog"
       aria-modal
@@ -48,7 +60,7 @@ export default function ConfirmDialog({
             {tCommon("cancel")}
           </button>
           <button
-            className="btn-danger"
+            className={tone === "danger" ? "btn-danger" : "btn-primary"}
             onClick={onConfirm}
             disabled={busy}
             data-testid={`${testId}-confirm`}

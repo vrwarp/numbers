@@ -93,6 +93,14 @@ export default function ProfileForm() {
   const [busy, setBusy] = useState(false);
   const [dutyBusy, setDutyBusy] = useState<DutyFlag | null>(null);
   const [dutyError, setDutyError] = useState<string | null>(null);
+  // "?return=<path>" sends the user back to where the missing profile blocked
+  // them (the claim review banner links here). Same-origin paths only.
+  const [returnTo, setReturnTo] = useState<string | null>(null);
+
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get("return");
+    if (raw && raw.startsWith("/") && !raw.startsWith("//")) setReturnTo(raw);
+  }, []);
 
   useEffect(() => {
     fetch("/api/profile")
@@ -139,6 +147,12 @@ export default function ProfileForm() {
     });
     if (res.ok) {
       setSaved(true);
+      // Close the loop for users sent here mid-task (e.g. the claim review's
+      // profile banner) — but only once the form actually satisfies it.
+      if (returnTo && fullName.trim() && mailingAddress.trim()) {
+        router.push(returnTo);
+        return;
+      }
       // The route also set the locale cookie — re-render in the new language.
       if (locale !== activeLocale) router.refresh();
     } else {
@@ -174,6 +188,9 @@ export default function ProfileForm() {
             placeholder={t("fullNamePlaceholder")}
             data-testid="profile-name"
           />
+          {!fullName.trim() && (
+            <p className="mt-1 text-xs text-amber-700">{t("printedOnForm")}</p>
+          )}
         </div>
         <div>
           <label className="text-sm font-medium" htmlFor="mailingAddress">
@@ -188,6 +205,9 @@ export default function ProfileForm() {
             placeholder={t("mailingAddressPlaceholder")}
             data-testid="profile-address"
           />
+          {!mailingAddress.trim() && (
+            <p className="mt-1 text-xs text-amber-700">{t("printedOnForm")}</p>
+          )}
         </div>
         <div>
           <label className="text-sm font-medium" htmlFor="locale">

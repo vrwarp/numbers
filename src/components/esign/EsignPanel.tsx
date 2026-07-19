@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import {
   loadEnv,
   runSubmitCeremony,
@@ -80,6 +81,17 @@ export default function EsignPanel({
   useEffect(() => {
     void loadEnv().then(setEnv).catch(() => {});
   }, []);
+
+  // "Awaiting approval" should resolve itself on this screen — poll the mirror
+  // (and re-verify the chain) while submitted, so the requester learns of the
+  // decision without hammering "Re-check". Paused during dialogs.
+  useAutoRefresh(
+    () => {
+      void onChanged();
+      refresh();
+    },
+    { paused: claim.status !== "submitted" || dialogOpen || withdrawOpen }
+  );
 
   // Master switch (A5): off ⇒ no e-sign affordances anywhere. Already-signed
   // claims still show their status chip, and /v links keep verifying.
@@ -175,6 +187,7 @@ export default function EsignPanel({
         message={t("withdrawConfirm")}
         confirmLabel={t("withdrawConfirmButton")}
         busy={withdrawBusy}
+        tone="primary"
         onConfirm={async () => {
           // The chain can re-verify while the dialog is up; bail if the
           // submit action is no longer there to withdraw.
@@ -243,13 +256,20 @@ export function SubmitDialog({
   const [bytes, setBytes] = useState<ArrayBuffer | null>(null);
   const [anchor, setAnchor] = useState<SignaturePlacement | null>(null);
   const [placement, setPlacement] = useState<SignaturePlacement | null>(null);
+  // A transient fetch failure must never strand the ceremony on a permanent
+  // "Opening the form…" — track it and offer a retry.
+  const [membersLoaded, setMembersLoaded] = useState(false);
+  const [prepFailed, setPrepFailed] = useState(false);
+  const [prepAttempt, setPrepAttempt] = useState(0);
   const enrolled = env.me.identityStatus === "attested";
   const hasSignature = !!env.me.signatureImage;
 
   useEffect(() => {
     void (async () => {
-      const res = await fetch("/api/esign/members");
-      if (res.ok) {
+      setPrepFailed(false);
+      try {
+        const res = await fetch("/api/esign/members");
+        if (!res.ok) throw new Error("members fetch failed");
         const all = ((await res.json()).members ?? []) as Member[];
         // Approver-or-above, not me, and not paused (A10) — the submit
         // preflight re-checks all three server-side.
@@ -260,6 +280,7 @@ export function SubmitDialog({
             !m.approvalsPaused
         );
         setMembers(eligible);
+        setMembersLoaded(true);
         // Pre-fill the budget-category default approver (Positions) when it is
         // a currently-pickable member — a suggestion the submitter can change.
         if (
@@ -268,17 +289,20 @@ export function SubmitDialog({
         ) {
           setApproverUserId(claim.suggestedApproverUserId);
         }
-      }
-      if (enrolled && hasSignature) {
-        const [pkt, anc] = await Promise.all([
-          fetch(`/api/reimbursements/${claim.id}/packet`),
-          fetch(`/api/reimbursements/${claim.id}/sign-anchor`),
-        ]);
-        if (pkt.ok) setBytes(await pkt.arrayBuffer());
-        if (anc.ok) setAnchor((await anc.json()).anchor as SignaturePlacement);
+        if (enrolled && hasSignature) {
+          const [pkt, anc] = await Promise.all([
+            fetch(`/api/reimbursements/${claim.id}/packet`),
+            fetch(`/api/reimbursements/${claim.id}/sign-anchor`),
+          ]);
+          if (!pkt.ok || !anc.ok) throw new Error("packet/anchor fetch failed");
+          setBytes(await pkt.arrayBuffer());
+          setAnchor((await anc.json()).anchor as SignaturePlacement);
+        }
+      } catch {
+        setPrepFailed(true);
       }
     })();
-  }, [env.me.userId, claim.id, claim.suggestedApproverUserId, enrolled, hasSignature]);
+  }, [env.me.userId, claim.id, claim.suggestedApproverUserId, enrolled, hasSignature, prepAttempt]);
 
   async function sign() {
     setBusy(true);
@@ -336,6 +360,18 @@ export function SubmitDialog({
             <p className="text-sm text-stone-600">
               {t("submitIntro", { amount: formatCents(claim.totalCents) })}
             </p>
+            {prepFailed && (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">
+                <span>{t("prepFailed")}</span>
+                <button
+                  className="font-semibold underline underline-offset-2"
+                  onClick={() => setPrepAttempt((n) => n + 1)}
+                  data-testid="prep-retry"
+                >
+                  {t("retryButton")}
+                </button>
+              </div>
+            )}
             {hasSignature && bytes && anchor && env.me.signatureImage ? (
               <DocumentSignField
                 bytes={bytes}
@@ -343,7 +379,7 @@ export function SubmitDialog({
                 anchor={anchor}
                 onChange={setPlacement}
               />
-            ) : hasSignature ? (
+            ) : hasSignature && !prepFailed ? (
               <div className="flex h-40 items-center justify-center rounded-lg border border-stone-200 text-sm text-stone-400">
                 {t("openingForm")}
               </div>
@@ -366,6 +402,11 @@ export function SubmitDialog({
                 ))}
               </select>
             </label>
+            {membersLoaded && members.length === 0 && (
+              <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="no-approvers-note">
+                {t("noEligibleApprovers")}
+              </p>
+            )}
             {approverUserId &&
               approverUserId === claim.suggestedApproverUserId &&
               claim.suggestedApproverPosition && (
@@ -403,6 +444,12 @@ export function SubmitDialog({
               <span>{t("intentAffirmation")}</span>
             </label>
             {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+            {/* Why the button is greyed out — tooltips don't exist on touch. */}
+            {hasSignature && bytes && anchor && !placement && !busy && (
+              <p className="text-right text-xs text-stone-500" data-testid="submit-place-hint">
+                {t("placeSignatureHint")}
+              </p>
+            )}
             <div className="flex justify-end gap-2">
               <button className="btn-secondary" onClick={onClose}>
                 {tCommon("cancel")}

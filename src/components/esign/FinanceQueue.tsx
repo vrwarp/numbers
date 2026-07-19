@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useOpenParam } from "@/lib/use-open-param";
+import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { useTranslations } from "next-intl";
 import { runPaidCeremony } from "@/lib/esign/client";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
@@ -20,8 +21,10 @@ import ClaimSummaryRow from "./ClaimSummaryRow";
 export default function FinanceQueue() {
   const t = useTranslations("Finance");
   const tEsign = useTranslations("Esign");
+  const tCommon = useTranslations("Common");
   const apiError = useApiErrorMessage();
-  const [claims, setClaims] = useState<InboxClaim[]>([]);
+  // null = first load still in flight — don't flash the empty state.
+  const [claims, setClaims] = useState<InboxClaim[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   // Batch-print selection over the paid section (docs: treasurer prints many
   // filed packets at once). Both toggles default OFF — the lean output is just
@@ -59,11 +62,12 @@ export default function FinanceQueue() {
     }).catch(() => {});
   }, []);
   // ?open=<id> deep link from search results (shared contract).
+  const list = claims ?? [];
   useOpenParam({
-    ready: claims.length > 0,
-    exists: (id) => claims.some((c) => c.id === id),
+    ready: list.length > 0,
+    exists: (id) => list.some((c) => c.id === id),
     beforeScroll: (id) => {
-      if (claims.find((c) => c.id === id)?.status === "approved") setOpenId(id);
+      if (list.find((c) => c.id === id)?.status === "approved") setOpenId(id);
     },
   });
   const [error, setError] = useState<string | null>(null);
@@ -86,9 +90,12 @@ export default function FinanceQueue() {
   useEffect(() => {
     void load();
   }, [load]);
+  // Newly approved claims should appear without a manual reload — but never
+  // refresh under an open paid ceremony or while a print is being built.
+  useAutoRefresh(load, { paused: openId !== null || printing });
 
-  const queue = claims.filter((c) => c.status === "approved");
-  const paid = claims.filter((c) => c.status === "paid");
+  const queue = list.filter((c) => c.status === "approved");
+  const paid = list.filter((c) => c.status === "paid");
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -142,7 +149,9 @@ export default function FinanceQueue() {
       </div>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
-      {queue.length === 0 ? (
+      {claims === null ? (
+        <p className="text-sm text-stone-500">{tCommon("loading")}</p>
+      ) : queue.length === 0 ? (
         <div className="card p-8 text-center text-stone-500">
           <div className="text-3xl">🧮</div>
           <p className="mt-2">{t("empty")}</p>

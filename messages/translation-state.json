@@ -402,6 +402,12 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Profile.printedOnForm": {
+    "source": "Printed on the reimbursement form.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Short hint under the empty Name / Mailing address fields: these values print on the official reimbursement form."
+  },
   "Profile.saved": {
     "source": "Saved ✓",
     "context": "Inline confirmation next to Save; keep the ✓.",
@@ -516,6 +522,12 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "ReceiptGrid.selectReceipt": {
+    "source": "Select {name}",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "aria-label of the selection checkbox on a receipt card; {name} = the receipt's file name. 'Select' = mark for inclusion in a claim."
+  },
   "ReceiptGrid.viewLarger": {
     "source": "View {name} larger",
     "context": "aria-label of the expand button on a card; {name} is the file name.",
@@ -595,16 +607,22 @@
     "zh-Hant": "machine"
   },
   "Shoebox.intro": {
-    "source": "Drop receipts here as you go. Select some when you're ready to file a claim.",
+    "source": "Add receipts as you go — snap a photo or upload a file. Select some when you're ready to file a claim.",
     "context": "Subtitle under the page title.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.upload": {
-    "source": "📷 Upload Receipt",
-    "context": "Primary upload button; keep the 📷. Canonical — the add-receipts dialog auto-copies it.",
+    "source": "Upload Receipt",
+    "context": "Primary upload button (opens the file picker; a separate 📷 Take photo button handles the camera). Canonical — the add-receipts dialog copies it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Shoebox.takePhoto": {
+    "source": "📷 Take photo",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Phone-only camera button beside Upload; opens the camera directly. Keep the 📷."
   },
   "Shoebox.uploading": {
     "source": "Uploading…",
@@ -637,8 +655,8 @@
     "zh-Hant": "machine"
   },
   "Shoebox.deleteConfirm": {
-    "source": "Delete this receipt?",
-    "context": "Message in the in-app dialog asking to confirm deleting a receipt (replaces the old native confirm()).",
+    "source": "Delete “{name}”? This can’t be undone.",
+    "context": "Message in the in-app dialog asking to confirm deleting a receipt; {name} = the receipt's file name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -689,6 +707,12 @@
     "context": "Small link-style button in the claim bar that empties the current receipt selection; one short word, 'clear' as in deselect-all — not delete.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Shoebox.selectAll": {
+    "source": "Select all",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Short link in the claim bar that selects every not-yet-claimed receipt."
   },
   "Shoebox.waitingRateLimit": {
     "source": "Waiting on rate limit…",
@@ -1265,6 +1289,54 @@
     "context": "Progress text next to the bar; keep the '{verified} / {total}' shape.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Review.verifyAll": {
+    "source": "✓ Verify all",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Small button in the verify-progress row that marks every remaining row verified. Keep the ✓; 'verify' = 核对 as in verifiedProgress."
+  },
+  "Review.verifyAllConfirm": {
+    "source": "Mark {count, plural, one {# row} other {# rows}} as verified? Check each description, ministry, and amount against its receipt first.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Body of the verify-all confirmation dialog; 'verified' = 核对 like verifiedProgress."
+  },
+  "Review.verifyAllButton": {
+    "source": "Verify {count, plural, one {# row} other {# rows}}",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Confirm button of the verify-all dialog; {count} = rows about to be marked verified."
+  },
+  "Review.profileIncomplete": {
+    "source": "Your name and mailing address are still missing from your profile — they are printed on the reimbursement form.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Amber banner above the claim action bar; pairs with the 'Add name & address' link (profileIncompleteCta)."
+  },
+  "Review.profileIncompleteCta": {
+    "source": "Add name & address",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Short link label in the profile banner, leads to the profile page."
+  },
+  "Review.profileIncompleteShort": {
+    "source": "Finish your profile first",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Tooltip on the disabled Print/E-sign buttons while the profile is missing name/address."
+  },
+  "Review.amountRestored": {
+    "source": "Couldn't read that amount — restored the previous value.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Inline note after an unreadable amount entry was reverted to the stored value."
+  },
+  "Review.descriptionRestored": {
+    "source": "A description is required — restored the previous text.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Inline note after an emptied row description was reverted (each row needs a description)."
   },
   "Review.generatedFrozen": {
     "source": "Generated — rows are frozen.",
@@ -2069,6 +2141,30 @@
     "context": "Placeholder while the PDF loads into the signing view. Keep the ellipsis.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Esign.prepFailed": {
+    "source": "Couldn’t load the form — check your connection and try again.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Error box in a signing ceremony when loading the PDF/signature anchor failed; paired with the Retry link."
+  },
+  "Esign.retryButton": {
+    "source": "Retry",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "One-word retry link inside the ceremony load-failure box."
+  },
+  "Esign.noEligibleApprovers": {
+    "source": "No approver is available right now — everyone who could approve is paused or unenrolled. Check with your treasurer.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Amber note in the submit-for-approval dialog when the approver dropdown has nobody to list (all paused or unenrolled)."
+  },
+  "Esign.placeSignatureHint": {
+    "source": "Press and hold on the form above to place your signature first.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Hint above the disabled Sign/Approve button until the user press-holds the form preview to stamp their signature."
   },
   "Esign.approverLabel": {
     "source": "Approver",
@@ -3970,6 +4066,12 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Errors.profileIncomplete": {
+    "source": "Add your name and mailing address to your profile first — they are printed on the reimbursement form",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "API error when generating the claim PDF while the profile lacks a name/mailing address (both print on the official form)."
+  },
   "Errors.invalidManualEntry": {
     "source": "Invalid manual-entry fields",
     "context": "API error message: manual line-item entry fields were invalid.",
@@ -4233,7 +4335,7 @@
     "zh-Hant": "machine"
   },
   "AddReceipts.upload": {
-    "source": "📷 Upload Receipt",
+    "source": "Upload Receipt",
     "context": "Auto-copied from Shoebox.upload — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
