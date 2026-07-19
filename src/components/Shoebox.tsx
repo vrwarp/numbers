@@ -472,7 +472,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
       )}
       <div>
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-3xl font-bold short:text-xl">{t("title")}</h1>
+          <h1 className="keyboard-smooth text-3xl font-bold short:text-xl">{t("title")}</h1>
           <div className="shrink-0">
             <input
               ref={fileInput}
@@ -493,7 +493,9 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
             </button>
           </div>
         </div>
-        <p className="mt-1.5 text-sm text-stone-500 short:hidden">{t("intro")}</p>
+        <div className="collapse-short">
+          <p className="pt-1.5 text-sm text-stone-500">{t("intro")}</p>
+        </div>
       </div>
 
       {error && (
