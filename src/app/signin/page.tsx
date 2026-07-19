@@ -19,7 +19,9 @@ export default async function SignInPage() {
           ⛪
         </div>
         <h1 className="keyboard-smooth mt-3 text-2xl font-bold text-indigo-700 short:mt-1 short:text-xl">Numbers</h1>
-        <p className="mt-1 text-sm text-stone-500 short:hidden">{t("tagline")}</p>
+        <div className="collapse-short">
+          <p className="pt-1 text-sm text-stone-500">{t("tagline")}</p>
+        </div>
 
         <SignInCard firebaseConfig={firebaseWebConfig()} testMode={isAuthTestMode()} />
       </div>

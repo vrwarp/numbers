@@ -1006,7 +1006,9 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               : tStatus(STATUS_KEYS.find((k) => k === claim.status) ?? "generated")}
           </span>
         </h1>
-        <p className="text-sm text-stone-500 short:hidden">{t("instruction")}</p>
+        <div className="collapse-short">
+          <p className="text-sm text-stone-500">{t("instruction")}</p>
+        </div>
       </div>
 
       {error && (

@@ -56,6 +56,38 @@ html {
   }
 }
 
+/* Collapse-on-short: secondary text (page intros/subtitles) that `short:` would
+   otherwise display:none — and display can't animate, so it pops. Wrap the text
+   in `.collapse-short` (its single child holds the text) and instead of blinking
+   out it eases its height and fades as the keyboard opens, reclaiming the space
+   smoothly. The grid 1fr→0fr trick animates intrinsic height with no magic
+   numbers and never clips on a tall viewport; the child clips as it shrinks.
+   Under reduced-motion it just collapses instantly (still no layout residue). */
+.collapse-short {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+.collapse-short > * {
+  min-height: 0;
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .collapse-short {
+    transition: grid-template-rows 0.25s ease-out;
+  }
+  .collapse-short > * {
+    transition: opacity 0.2s ease-out;
+  }
+}
+@media (max-height: 500px) {
+  .collapse-short {
+    grid-template-rows: 0fr;
+  }
+  .collapse-short > * {
+    opacity: 0;
+  }
+}
+
 body {
   @apply bg-stone-100 text-stone-900 antialiased;
 }

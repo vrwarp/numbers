@@ -493,7 +493,9 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
             </button>
           </div>
         </div>
-        <p className="mt-1.5 text-sm text-stone-500 short:hidden">{t("intro")}</p>
+        <div className="collapse-short">
+          <p className="pt-1.5 text-sm text-stone-500">{t("intro")}</p>
+        </div>
       </div>
 
       {error && (

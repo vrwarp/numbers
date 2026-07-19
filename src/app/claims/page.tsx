@@ -42,7 +42,9 @@ export default async function ClaimsPage() {
     <div className="space-y-6 short:space-y-3">
       <div>
         <h1 className="keyboard-smooth text-2xl font-bold short:text-lg">{t("title")}</h1>
-        <p className="text-sm text-stone-500 short:hidden">{t("subtitle")}</p>
+        <div className="collapse-short">
+          <p className="text-sm text-stone-500">{t("subtitle")}</p>
+        </div>
       </div>
 
       {searchEnabled && (
