@@ -5461,6 +5461,30 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Ministries.loadDefaults": {
+    "source": "Load defaults",
+    "context": "Button in the treasurer's budget-category editor, beside '+ Add group'. Stages the app's built-in category list into the editor (adds missing categories, fills blank descriptions). 'defaults' = the built-in chart of accounts, not a settings reset. Keep short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.loadDefaultsTitle": {
+    "source": "Add any missing built-in categories and fill blank descriptions with the built-in guidance. Nothing is overwritten, and nothing is saved until you save.",
+    "context": "Tooltip on the 'Load defaults' button explaining what it stages; 'save' refers to the editor's own Save button.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.defaultsLoaded": {
+    "source": "Loaded the built-in defaults — {added, plural, =0 {no new categories} one {# new category} other {# new categories}} added, {filled, plural, =0 {no blank descriptions} one {# blank description} other {# blank descriptions}} filled in. Review the changes, then save.",
+    "context": "Info banner after clicking 'Load defaults': reports the staged (unsaved) changes. {added} = new categories appended, {filled} = blank description fields filled with built-in guidance.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Ministries.defaultsNoop": {
+    "source": "Nothing to load — every built-in category is already in the list, and no blank description matched one.",
+    "context": "Info banner after clicking 'Load defaults' when there was nothing to stage: every built-in category code already exists and no blank description had a built-in match.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "Ministries.newGroup": {
     "source": "New group",
     "zh-Hans": "todo",
