@@ -15,10 +15,10 @@ export default async function SignInPage() {
       <div className="card p-8 text-center short:p-5">
         {/* Sign-in is a once-per-device screen, so the brand hero compresses
             (not disappears) on a short viewport to pull the controls up. */}
-        <div className="text-5xl short:text-3xl" aria-hidden>
+        <div className="keyboard-smooth text-5xl short:text-3xl" aria-hidden>
           ⛪
         </div>
-        <h1 className="mt-3 text-2xl font-bold text-indigo-700 short:mt-1 short:text-xl">Numbers</h1>
+        <h1 className="keyboard-smooth mt-3 text-2xl font-bold text-indigo-700 short:mt-1 short:text-xl">Numbers</h1>
         <p className="mt-1 text-sm text-stone-500 short:hidden">{t("tagline")}</p>
 
         <SignInCard firebaseConfig={firebaseWebConfig()} testMode={isAuthTestMode()} />

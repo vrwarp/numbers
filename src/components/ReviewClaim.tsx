@@ -993,7 +993,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     <MinistryCatalogContext.Provider value={ministryCatalog}>
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-bold short:text-lg">
+        <h1 className="keyboard-smooth text-2xl font-bold short:text-lg">
           {t("title")}{" "}
           <span
             className={`ml-1 align-middle rounded-full px-3 py-1 text-xs font-semibold ${

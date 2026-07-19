@@ -91,3 +91,24 @@ test("profile Save stays pinned in reach with a field focused", async ({ page },
   const hit = await centreIsHittable(page, "profile-save");
   expect(hit.ok, `profile Save covered by ${hit.reason}`).toBe(true);
 });
+
+const navPosition = (page: Page) =>
+  page.evaluate(() => getComputedStyle(document.querySelector("header")!).position);
+
+test("nav only reconfigures for a genuine landscape phone, not a keyboard-shrunk portrait", async ({
+  page,
+}, testInfo) => {
+  await signInAs(page, `short-nav-${testInfo.project.name}-r${testInfo.retry}@example.com`, "Shorty");
+
+  // A portrait phone whose viewport shrank because the keyboard opened is short
+  // but narrow: the nav must stay put (it's `short-wide:`, min-width 640), so
+  // focusing a field never jars the chrome around.
+  await page.setViewportSize({ width: 412, height: 430 });
+  expect(await navPosition(page), "nav should stay sticky on keyboard-shrunk portrait").toBe(
+    "sticky"
+  );
+
+  // A genuine landscape phone (wide + short) un-sticks the nav to reclaim height.
+  await page.setViewportSize({ width: 880, height: 390 });
+  expect(await navPosition(page), "nav should un-stick on a landscape phone").toBe("static");
+});

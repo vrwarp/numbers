@@ -7,9 +7,20 @@
 /* Height-aware variant. Every other breakpoint in the app is width-based, so a
    landscape phone (e.g. 844×390) or a portrait phone with the keyboard up gets
    desktop chrome with almost no vertical room. `short:` lets components reclaim
-   height on cramped viewports: shrink titles, hide intros, un-stick the nav.
+   height on cramped viewports: shrink titles, hide intros, pin footers.
    500px is just above a landscape phone's height and well below any tablet. */
 @custom-variant short (@media (max-height: 500px));
+
+/* `short:` fires in two very different situations: a genuinely short viewport
+   (landscape phone) AND a portrait phone whose viewport shrank because the
+   on-screen keyboard opened (interactiveWidget: resizes-content). The first
+   wants the chrome reconfigured; the second does NOT — repositioning the nav
+   the instant a text field is focused is jarring. `short-wide:` adds a width
+   floor so it only matches the landscape phone (wide + short), never a narrow
+   portrait phone with the keyboard up. Use it for structural changes to the
+   nav; keep `short:` for things that genuinely help when the keyboard is up
+   (pinned footers, tighter forms). */
+@custom-variant short-wide (@media (max-height: 500px) and (min-width: 640px));
 
 /* Per-script CJK stacks (no webfonts — every target OS ships these). The
    point over bare system-ui is the *regional glyph forms*: zh-Hans gets
@@ -32,6 +43,17 @@ html, body {
    claim isn't parked underneath it. */
 html {
   scroll-padding-bottom: 6rem;
+}
+
+/* Ease the `short:` restyles that fire when the keyboard opens and resizes the
+   viewport, so chrome (nav height, titles) glides between states over the
+   keyboard's own animation instead of snapping. Opt-in per element; only the
+   size/spacing properties transition (never layout-mode flips like
+   position/display, which can't tween). Off under reduced-motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .keyboard-smooth {
+    transition: padding 0.2s ease-out, font-size 0.2s ease-out, margin 0.2s ease-out;
+  }
 }
 
 body {
