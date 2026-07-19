@@ -235,6 +235,11 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "NavBar.teams": {
+    "source": "Teams",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "Home.profileNudge": {
     "source": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
     "context": "Warning banner on the home page; <link> wraps the word that opens the profile page.",
@@ -4200,6 +4205,21 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Errors.team.invalid": {
+    "source": "Those teams couldn’t be saved — check the form and try again.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.team.codeFormat": {
+    "source": "Invalid budget category code: “{code}”.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.team.unknownMember": {
+    "source": "One of the selected people couldn’t be found. Refresh and try again.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "AddReceipts.title": {
     "source": "Add receipts to this claim",
     "context": "Dialog heading: add receipts to an existing draft claim.",
@@ -5781,6 +5801,16 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Search.scopeTeam": {
+    "source": "My teams",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Search.scopeTeamHint": {
+    "source": "Receipts and claims under your teams' budget categories. Leave the search empty to list all of them.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "Positions.title": {
     "source": "Positions",
     "zh-Hans": "todo",
@@ -6133,5 +6163,140 @@
     "context": "Confirm-dialog body explaining what revoking the signing key does. Old signatures stay valid.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Teams.title": {
+    "source": "Teams",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.subtitle": {
+    "source": "Groups of members who can view the receipts filed under their budget categories.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.readOnlyNote": {
+    "source": "Team membership is view-only. Members can see, list, and search receipts on filed claims under the team's budget categories — they can't edit anything, and drafts stay private to their owners.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.loading": {
+    "source": "Loading…",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.loadFailed": {
+    "source": "Couldn't load teams.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.saveFailed": {
+    "source": "Couldn't save teams.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.saved": {
+    "source": "Teams saved.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.save": {
+    "source": "Save {count} change(s)",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.saveNone": {
+    "source": "Saved",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.saving": {
+    "source": "Saving…",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.discard": {
+    "source": "Discard changes",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.addTeam": {
+    "source": "New team",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.empty": {
+    "source": "No teams yet — add one to share budget-category receipts with its members.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.namePlaceholder": {
+    "source": "Team name (e.g. Missions team)",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.descriptionPlaceholder": {
+    "source": "What this team looks after (optional)",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.active": {
+    "source": "Active",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.archived": {
+    "source": "Archived",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.ministries": {
+    "source": "Budget categories",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.noMinistries": {
+    "source": "No budget categories yet — members won't see anything until one is added.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.addMinistry": {
+    "source": "Add a budget category",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.chooseMinistry": {
+    "source": "Choose a category…",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.removeMinistryAria": {
+    "source": "Remove category {code}",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.members": {
+    "source": "Members",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.noMembers": {
+    "source": "No members yet.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.addMember": {
+    "source": "Add a member",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.choosePerson": {
+    "source": "Choose a person…",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Teams.removeMember": {
+    "source": "Remove",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
   }
 }

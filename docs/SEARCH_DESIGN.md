@@ -606,6 +606,25 @@ foreign files → 404, and the UI renders no scope control (the capability genui
 went away — not a cosmetic hide). Role loss narrows it the same way. The grant NEVER
 derives from `ADMIN_EMAILS` — only the verified role mirror.
 
+**Team amendment (ratified): `scope="team"` — a membership-derived read grant.**
+Teams (`Team`/`TeamMember`/`TeamMinistry`, managed by Approver-or-above at `/teams`)
+associate members with budget-category **codes**. Membership in an active team with
+≥1 code grants `canTeam`: a fourth scope listing/searching the receipts whose OWN
+non-excluded line item carries a team code on a **non-draft** claim (least-privilege
+grain — a mixed-ministry claim exposes only its matching receipts), plus the claims
+containing any such line item. Drafts never qualify (not yet a request; their
+ministries flap mid-edit). Matching is by `parseMinistryCode` prefix — composed
+strings are never migrated on catalog renames, so codes are the stable join key.
+Unlike the role grant, `canTeam` is **not** role-derived and A10 pauses don't apply
+(team reading is not a role duty); it is re-read from live membership on every
+request and ends the moment membership or the team's active flag goes. Mechanics
+mirror `decided`: `teamPrefetch` fetches the allowed-id Sets (scoring pre-filter),
+hydration re-applies them as a real `id IN` where-clause (per-kind `ScopeWheres`),
+the exact pass takes the same Sets, an empty query browses the team's receipts
+newest-first, and the receipt file/preview routes accept the per-id
+`canReadReceiptViaTeam` check beside the role grant. Non-members get the standard
+404 everywhere; writes stay owner-only.
+
 **This is a new cross-tenant read grant — ratified.** The operator's position:
 approvers and treasurers should have read access across all reimbursements anyway;
 search is simply the first surface built on that principle. ESIGN_DESIGN §6.3

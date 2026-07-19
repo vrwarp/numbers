@@ -24,12 +24,14 @@ export default function AccountMenu({
   isAdmin,
   canManageMinistries,
   canViewMembers,
+  canManageTeams,
   menuTabs = [],
 }: {
   userName: string;
   isAdmin?: boolean;
   canManageMinistries?: boolean;
   canViewMembers?: boolean;
+  canManageTeams?: boolean;
   menuTabs?: Array<NavLink & { hidden?: boolean }>;
 }) {
   const t = useTranslations("NavBar");
@@ -139,6 +141,11 @@ export default function AccountMenu({
           {canManageMinistries ? (
             <Link href="/positions" className={itemClass} data-testid="nav-positions">
               {t("positions")}
+            </Link>
+          ) : null}
+          {canManageTeams ? (
+            <Link href="/teams" className={itemClass} data-testid="nav-teams">
+              {t("teams")}
             </Link>
           ) : null}
           {canViewMembers ? (

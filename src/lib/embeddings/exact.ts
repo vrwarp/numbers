@@ -13,7 +13,9 @@ import { queryTerms, escapeLike, parseQueryMoneyCents } from "./normalize";
 export type ExactScope =
   | { kind: "mine"; userId: string }
   | { kind: "all" }
-  | { kind: "decided"; claimIds: string[]; receiptIds: string[] };
+  // decided/team: pre-fetched allowed-id sets (docs/SEARCH_DESIGN.md §6.3).
+  | { kind: "decided"; claimIds: string[]; receiptIds: string[] }
+  | { kind: "team"; claimIds: string[]; receiptIds: string[] };
 
 export type ExactMatches = { receiptIds: string[]; claimIds: string[] };
 
@@ -48,7 +50,7 @@ export async function exactMatchPass(
     if (scope.kind === "mine") {
       scopeSql = " AND r.userId = ?";
       params.push(scope.userId);
-    } else if (scope.kind === "decided") {
+    } else if (scope.kind === "decided" || scope.kind === "team") {
       if (!scope.receiptIds.length) return { receiptIds: [], claimIds: await exactClaims() };
       scopeSql = ` AND r.id IN (${scope.receiptIds.map(() => "?").join(",")})`;
       params.push(...scope.receiptIds);
@@ -81,7 +83,7 @@ export async function exactMatchPass(
     if (scope.kind === "mine") {
       scopeSql = " AND c.userId = ?";
       params.push(scope.userId);
-    } else if (scope.kind === "decided") {
+    } else if (scope.kind === "decided" || scope.kind === "team") {
       if (!scope.claimIds.length) return [];
       scopeSql = ` AND c.id IN (${scope.claimIds.map(() => "?").join(",")})`;
       params.push(...scope.claimIds);

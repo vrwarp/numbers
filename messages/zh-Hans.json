@@ -49,7 +49,8 @@
     "pendingWork": "有待处理",
     "search": "搜索",
     "positions": "Positions",
-    "members": "成员"
+    "members": "成员",
+    "teams": "Teams"
   },
   "Home": {
     "profileNudge": "您的<link>个人资料</link>需要填写姓名和邮寄地址——两者都会打印在报销表上。",
@@ -775,6 +776,11 @@
     "position": {
       "invalid": "Those positions couldn’t be saved — check the form and try again.",
       "unknownHolder": "One of the selected people couldn’t be found. Refresh and try again."
+    },
+    "team": {
+      "invalid": "Those teams couldn’t be saved — check the form and try again.",
+      "codeFormat": "Invalid budget category code: “{code}”.",
+      "unknownMember": "One of the selected people couldn’t be found. Refresh and try again."
     }
   },
   "AddReceipts": {
@@ -1084,7 +1090,9 @@
     "resultsAnnounce": "{count, plural, =0 {没有结果} other {# 个结果}}",
     "degraded": "目前搜索只能找到包含你输入的确切文字的结果，按描述搜索很快恢复。",
     "dateHint": "搜索匹配的是描述而不是日期——每条结果上都标有日期。",
-    "showMore": "显示更多"
+    "showMore": "显示更多",
+    "scopeTeam": "My teams",
+    "scopeTeamHint": "Receipts and claims under your teams' budget categories. Leave the search empty to list all of them."
   },
   "Positions": {
     "title": "Positions",
@@ -1154,5 +1162,34 @@
     "revokeKey": "吊销密钥",
     "keyDialogTitle": "吊销 {name} 的签名密钥？",
     "keyDialogBody": "仅当能以他身份签名的设备丢失或被盗时才这样做。他已签署的内容依然有效，但该密钥将立即在所有地方失效——他需要重新开通签名，并再次当面获得担保。"
+  },
+  "Teams": {
+    "title": "Teams",
+    "subtitle": "Groups of members who can view the receipts filed under their budget categories.",
+    "readOnlyNote": "Team membership is view-only. Members can see, list, and search receipts on filed claims under the team's budget categories — they can't edit anything, and drafts stay private to their owners.",
+    "loading": "Loading…",
+    "loadFailed": "Couldn't load teams.",
+    "saveFailed": "Couldn't save teams.",
+    "saved": "Teams saved.",
+    "save": "Save {count} change(s)",
+    "saveNone": "Saved",
+    "saving": "Saving…",
+    "discard": "Discard changes",
+    "addTeam": "New team",
+    "empty": "No teams yet — add one to share budget-category receipts with its members.",
+    "namePlaceholder": "Team name (e.g. Missions team)",
+    "descriptionPlaceholder": "What this team looks after (optional)",
+    "active": "Active",
+    "archived": "Archived",
+    "ministries": "Budget categories",
+    "noMinistries": "No budget categories yet — members won't see anything until one is added.",
+    "addMinistry": "Add a budget category",
+    "chooseMinistry": "Choose a category…",
+    "removeMinistryAria": "Remove category {code}",
+    "members": "Members",
+    "noMembers": "No members yet.",
+    "addMember": "Add a member",
+    "choosePerson": "Choose a person…",
+    "removeMember": "Remove"
   }
 }

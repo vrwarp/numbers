@@ -10,6 +10,7 @@ import {
 } from "@/lib/storage";
 import { renderPdfPreviewPages } from "@/lib/pdf/preview";
 import { hasRoleReadGrant } from "@/lib/roles";
+import { canReadReceiptViaTeam } from "@/lib/teams-catalog";
 
 export const runtime = "nodejs";
 
@@ -29,10 +30,14 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   return handleApi(async () => {
     const userId = await requireUserId();
     const { id } = await ctx.params;
-    // Owner, or the ratified role-read grant (docs/SEARCH_DESIGN.md §6.3) —
-    // search results must render foreign PDF thumbnails for role-holders.
+    // Owner, the ratified role-read grant (docs/SEARCH_DESIGN.md §6.3), or the
+    // team read grant (§6.3 team amendment) — search results must render
+    // foreign PDF thumbnails for anyone whose scope shows them.
     let receipt = await prisma.receipt.findFirst({ where: { id, userId } });
-    if (!receipt && (await hasRoleReadGrant(userId))) {
+    if (
+      !receipt &&
+      ((await hasRoleReadGrant(userId)) || (await canReadReceiptViaTeam(userId, id)))
+    ) {
       receipt = await prisma.receipt.findUnique({ where: { id } });
     }
     if (!receipt) throw new ApiError(404, "Receipt not found", "receiptNotFound");

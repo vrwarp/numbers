@@ -5,7 +5,9 @@ import { searchCapabilities, type RoleDutyFlags } from "@/lib/roles";
  * Search capability matrix (docs/SEARCH_DESIGN.md §6.3): the verified role
  * mirror narrowed by the A10 duty pauses. canAll = whole-church read (+ foreign
  * receipt files); canDecided = the "Claims I decided" browse, gated on the
- * Approvals duty specifically. Duty pauses narrow per-duty.
+ * Approvals duty specifically. Duty pauses narrow per-duty. canTeam is
+ * membership-derived (§6.3 team amendment) — the pure role view is ALWAYS
+ * false; only searchCapabilitiesFor resolves live team membership.
  */
 
 const flags = (over: Partial<RoleDutyFlags>): RoleDutyFlags => ({
@@ -18,54 +20,54 @@ const flags = (over: Partial<RoleDutyFlags>): RoleDutyFlags => ({
 
 describe("searchCapabilities", () => {
   it("member: no elevated scopes ever", () => {
-    expect(searchCapabilities(flags({ role: "member" }))).toEqual({ canAll: false, canDecided: false });
+    expect(searchCapabilities(flags({ role: "member" }))).toEqual({ canAll: false, canDecided: false, canTeam: false });
   });
 
   it("chairman/secretary: approver-plus (A11) — approver's read grant, narrowed by the approvals pause", () => {
     for (const role of ["chairman", "secretary"]) {
-      expect(searchCapabilities(flags({ role }))).toEqual({ canAll: true, canDecided: true });
+      expect(searchCapabilities(flags({ role }))).toEqual({ canAll: true, canDecided: true, canTeam: false });
       expect(searchCapabilities(flags({ role, approvalsPaused: true }))).toEqual({
         canAll: false,
-        canDecided: false,
+        canDecided: false, canTeam: false,
       });
     }
   });
 
   it("active approver: whole-church + decided", () => {
-    expect(searchCapabilities(flags({ role: "approver" }))).toEqual({ canAll: true, canDecided: true });
+    expect(searchCapabilities(flags({ role: "approver" }))).toEqual({ canAll: true, canDecided: true, canTeam: false });
   });
 
   it("approver who pauses approvals loses BOTH scopes (no other duty to fall back on)", () => {
     expect(searchCapabilities(flags({ role: "approver", approvalsPaused: true }))).toEqual({
       canAll: false,
-      canDecided: false,
+      canDecided: false, canTeam: false,
     });
   });
 
   it("treasurer who pauses ONLY approvals keeps whole-church (finance active) but loses decided", () => {
     expect(searchCapabilities(flags({ role: "treasurer", approvalsPaused: true }))).toEqual({
       canAll: true,
-      canDecided: false,
+      canDecided: false, canTeam: false,
     });
   });
 
   it("treasurer who pauses ONLY finance keeps everything (approvals still decides)", () => {
     expect(searchCapabilities(flags({ role: "treasurer", financePaused: true }))).toEqual({
       canAll: true,
-      canDecided: true,
+      canDecided: true, canTeam: false,
     });
   });
 
   it("treasurer who pauses BOTH duties reads like a member", () => {
     expect(
       searchCapabilities(flags({ role: "treasurer", approvalsPaused: true, financePaused: true }))
-    ).toEqual({ canAll: false, canDecided: false });
+    ).toEqual({ canAll: false, canDecided: false, canTeam: false });
   });
 
   it("admin keeps whole-church via the admin duty even with approvals+finance paused", () => {
     expect(
       searchCapabilities(flags({ role: "admin", approvalsPaused: true, financePaused: true }))
-    ).toEqual({ canAll: true, canDecided: false });
+    ).toEqual({ canAll: true, canDecided: false, canTeam: false });
   });
 
   it("admin who pauses ALL THREE duties reads like a member", () => {
@@ -73,7 +75,15 @@ describe("searchCapabilities", () => {
       searchCapabilities(
         flags({ role: "admin", approvalsPaused: true, financePaused: true, adminPaused: true })
       )
-    ).toEqual({ canAll: false, canDecided: false });
+    ).toEqual({ canAll: false, canDecided: false, canTeam: false });
+  });
+
+  it("canTeam is never role-derived: false for every role and pause combination", () => {
+    for (const role of ["member", "approver", "secretary", "chairman", "treasurer", "admin"]) {
+      for (const p of [true, false]) {
+        expect(searchCapabilities(flags({ role, approvalsPaused: p })).canTeam).toBe(false);
+      }
+    }
   });
 
   it("canDecided always implies canAll", () => {

@@ -51,6 +51,8 @@ model User {
   auditEvents    AuditEvent[]
   signerIdentity SignerIdentity?
   searchHistory  SearchHistory[]
+  // Team memberships (read-only visibility groups over budget categories).
+  teamMembers    TeamMember[]
 }
 
 model Receipt {
@@ -437,6 +439,60 @@ model PositionHolder {
 
   @@unique([positionId, userId])
   @@index([userId])
+}
+
+// A Team — a named group of members associated with budget categories
+// ("Missions team", "Facilities team"). GLOBAL (no owner): church master data,
+// same scope as the Ministry catalog and Positions, managed by any
+// Approver-or-above (or an app-admin).
+//
+// Membership grants exactly ONE thing: a READ-ONLY visibility expansion
+// (docs/SEARCH_DESIGN.md §6.3 team amendment). A member of an active team may
+// view/list/search the receipts (and containing claims) whose line items carry
+// one of the team's budget-category codes on a NON-DRAFT claim — a real
+// reimbursement request. Least-privilege grain: only the receipts whose OWN
+// line item matches; drafts stay private to their owner. The grant derives
+// from membership re-read on every request — never from roles, ADMIN_EMAILS,
+// or the roster — writes stay owner-only, and non-members get the standard
+// 404. No ledger involvement of any kind.
+model Team {
+  id          String       @id @default(cuid())
+  name        String // "Missions team" — church data, never translated
+  description String       @default("") // optional guidance (never translated)
+  active      Boolean      @default(true)
+  sortOrder   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  members     TeamMember[]
+  ministries  TeamMinistry[]
+
+  @@index([active, sortOrder])
+}
+
+model TeamMember {
+  id     String @id @default(cuid())
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([userId])
+}
+
+// A team's budget-category association, stored as the 3-digit account CODE —
+// the same stable key composed into LineItem.ministry — not a Ministry row id.
+// Codes survive catalog renames (historical composed strings are never
+// migrated), keep matching archived categories' history, and are readable from
+// the ungated catalog GET, which the approver-level teams editor uses.
+model TeamMinistry {
+  id     String @id @default(cuid())
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  code   String // 3-digit account code, e.g. "210"
+
+  @@unique([teamId, code])
+  @@index([code])
 }
 
 // --- Semantic search (docs/SEARCH_DESIGN.md) ---------------------------------

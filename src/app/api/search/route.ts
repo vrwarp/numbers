@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 const BodySchema = z.object({
   query: z.string().max(300).default(""),
   types: z.array(z.enum(["receipt", "claim"])).min(1).max(2).optional(),
-  scope: z.enum(["mine", "all", "decided"]).optional(),
+  scope: z.enum(["mine", "all", "decided", "team"]).optional(),
   cursor: z.string().max(20).optional(),
 });
 
@@ -33,7 +33,11 @@ export async function POST(req: NextRequest) {
     const scope = parsed.data.scope ?? (caps.canAll ? "all" : "mine");
     if (scope === "all" && !caps.canAll) throw new ApiError(404, "Not found");
     if (scope === "decided" && !caps.canDecided) throw new ApiError(404, "Not found");
-    if (!parsed.data.query.trim() && scope !== "decided") {
+    // Team scope (§6.3 team amendment): membership-derived, standard 404 when
+    // the caller holds no team read grant.
+    if (scope === "team" && !caps.canTeam) throw new ApiError(404, "Not found");
+    // decided/team browse their sets on an empty query; other scopes need one.
+    if (!parsed.data.query.trim() && scope !== "decided" && scope !== "team") {
       throw new ApiError(400, "Empty query");
     }
 

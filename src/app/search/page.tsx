@@ -15,5 +15,12 @@ export default async function SearchPage() {
   if (!userId) redirect("/signin");
   if (!(await embeddingEnabled())) notFound();
   const caps = await searchCapabilitiesFor(userId);
-  return <SearchClient userId={userId} canAll={caps.canAll} canDecided={caps.canDecided} />;
+  return (
+    <SearchClient
+      userId={userId}
+      canAll={caps.canAll}
+      canDecided={caps.canDecided}
+      canTeam={caps.canTeam}
+    />
+  );
 }
