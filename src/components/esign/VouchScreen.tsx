@@ -21,6 +21,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { useTranslations } from "next-intl";
 import {
+  custodyFor,
   backendNeedsPopup,
   loadEnv,
   loadRoster,
@@ -108,6 +109,18 @@ function VouchInner() {
     })();
   }, [phase, env]);
 
+  // Whether THIS browser holds the voucher's signing key. Without it the
+  // ceremony fails closed only AFTER the confirm + sign attempt — surface the
+  // new-device state up front instead of at the last step.
+  const [deviceReady, setDeviceReady] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (phase !== "ready" || !env || env.me.identityStatus !== "attested") return;
+    void custodyFor(env)
+      .deviceStatus()
+      .then((d) => setDeviceReady(d === "ready"))
+      .catch(() => setDeviceReady(null));
+  }, [phase, env]);
+
   const canVouch =
     env?.enabled === true && env.allowed !== false && env.me.identityStatus === "attested";
   const mustConnect = !!env && backendNeedsPopup(env) && phase !== "ready";
@@ -144,6 +157,13 @@ function VouchInner() {
     <div className="mx-auto max-w-lg space-y-4">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {/* Fail early, not at the final step: without the signing key on THIS
+          browser the ceremony would only reject after confirm + sign. */}
+      {canVouch && !mustConnect && deviceReady === false && (
+        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="keyless-device-note">
+          {t("keylessDevice")}
+        </p>
+      )}
 
       {!canVouch ? (
         <p className="card p-5 text-sm text-stone-600">

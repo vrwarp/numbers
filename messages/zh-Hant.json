@@ -647,7 +647,8 @@
     "nobodyPending": "目前沒有人等待擔保。",
     "vouchFailed": "擔保失敗",
     "malformedLink": "擔保連結已損壞——請重新掃描",
-    "membersPageHint": "在找成員名冊？角色、簽名金鑰和電子簽名權限都在<link>成員</link>頁面管理。"
+    "membersPageHint": "在找成員名冊？角色、簽名金鑰和電子簽名權限都在<link>成員</link>頁面管理。",
+    "keylessDevice": "此瀏覽器尚未持有您的簽名金鑰，無法在此進行擔保。請先在「個人資料」中新增此裝置，或改用您已能簽名的裝置進行擔保。"
   },
   "VouchScan": {
     "open": "📷 掃描對方的 QR 碼",

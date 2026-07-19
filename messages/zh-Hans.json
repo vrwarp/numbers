@@ -647,7 +647,8 @@
     "nobodyPending": "目前没有人等待担保。",
     "vouchFailed": "担保失败",
     "malformedLink": "担保链接已损坏——请重新扫码",
-    "membersPageHint": "在找成员名册？角色、签名密钥和电子签名权限都在<link>成员</link>页面管理。"
+    "membersPageHint": "在找成员名册？角色、签名密钥和电子签名权限都在<link>成员</link>页面管理。",
+    "keylessDevice": "此浏览器尚未持有您的签名密钥，无法在此进行担保。请先在“个人资料”中添加此设备，或改用您已能签名的设备进行担保。"
   },
   "VouchScan": {
     "open": "📷 扫描对方的二维码",

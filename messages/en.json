@@ -647,7 +647,8 @@
     "nobodyPending": "Nobody is currently awaiting vouches.",
     "vouchFailed": "Vouch failed",
     "malformedLink": "This vouch link is malformed — rescan the QR",
-    "membersPageHint": "Looking for the member roster? Roles, signing keys, and e-sign access are managed on the <link>Members</link> page."
+    "membersPageHint": "Looking for the member roster? Roles, signing keys, and e-sign access are managed on the <link>Members</link> page.",
+    "keylessDevice": "This browser doesn’t hold your signing key yet, so vouching from here will fail. Add this device from your Profile first, or vouch from a device you already sign on."
   },
   "VouchScan": {
     "open": "📷 Scan their QR code",
