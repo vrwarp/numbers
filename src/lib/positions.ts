@@ -59,21 +59,66 @@ export interface PositionEntry {
   sortOrder: number;
 }
 
-/** The built-in default Positions as [i18n key, canonical English name] pairs.
- *  `as const` keeps the keys a literal union (BuiltinPositionKey) so the display
- *  hook can pass them to a typed next-intl `t`. Order matches the church's
- *  roster. */
+/** The built-in default Positions as [i18n key, canonical English name,
+ *  description] triples. `as const` keeps the keys a literal union
+ *  (BuiltinPositionKey) so the display hook can pass them to a typed next-intl
+ *  `t`. Order matches the church's roster. Descriptions are tweet-length
+ *  (≤140 chars) summaries distilled from the church's Deacon Roles &
+ *  Responsibilities document, worded to keep look-alike roles apart
+ *  (Caring vs Evangelism, Evangelism vs Missions/Discipleship, General
+ *  Affairs vs Property); like all Position descriptions they are editor
+ *  guidance, never printed or translated. */
 const BUILTIN_POSITIONS = [
-  ["chineseCaring", "Chinese Caring Deacon"],
-  ["chineseEvangelism", "Chinese Evangelism Deacon"],
-  ["childrensMinistry", "Children's Ministry Deacon"],
-  ["englishDiscipleship", "English Discipleship Deacon"],
-  ["englishEvangelism", "English Evangelism Deacon"],
-  ["finance", "Finance Deacon"],
-  ["generalAffairs", "General Affairs Deacon"],
-  ["missions", "Missions Deacon"],
-  ["property", "Property Deacon"],
-  ["worship", "Worship Deacon"],
+  [
+    "chineseCaring",
+    "Chinese Caring Deacon",
+    "Cares for the Chinese congregation: newcomer calls and visits, rides for elders, ushers, support through illness or crisis.",
+  ],
+  [
+    "chineseEvangelism",
+    "Chinese Evangelism Deacon",
+    "Reaches non-believers through the Chinese congregation: gospel classes, evangelism training, Chinese New Year event; leads Summer Retreat.",
+  ],
+  [
+    "childrensMinistry",
+    "Children's Ministry Deacon",
+    "Oversees children's ministries — nursery, Sunday school, kids' fellowship, VBS — advising the director and managing background checks.",
+  ],
+  [
+    "englishDiscipleship",
+    "English Discipleship Deacon",
+    "Grows believers in the English congregation: Christian Education classes, discipling, leadership training, conferences and retreats.",
+  ],
+  [
+    "englishEvangelism",
+    "English Evangelism Deacon",
+    "Reaches non-believers through the English congregation: Sunday hospitality (welcome and café), newcomer follow-up, neighborhood outreach.",
+  ],
+  [
+    "finance",
+    "Finance Deacon",
+    "Safeguards church finances: offering deposits, bills, bookkeeping, payroll, tax filings, giving receipts, audits, annual budget.",
+  ],
+  [
+    "generalAffairs",
+    "General Affairs Deacon",
+    "Runs daily operations: parking, cleaning, safety drills, kitchen and office equipment, lunch ministry — buildings belong to Property.",
+  ],
+  [
+    "missions",
+    "Missions Deacon",
+    "Mobilizes the church for the Great Commission abroad: budget and support policy, missionary funding and care, visits, short-term trips.",
+  ],
+  [
+    "property",
+    "Property Deacon",
+    "Stewards buildings and grounds: parking lot, landscaping, phone and security systems, upgrades, insurance, exploring nearby land.",
+  ],
+  [
+    "worship",
+    "Worship Deacon",
+    "Leads the church in worship: service planning with pastors, music teams and choir, AV setup and recording, equipment upkeep.",
+  ],
 ] as const;
 
 /** The i18n key of a built-in position — a leaf of `Positions.builtin.*`. */
@@ -86,7 +131,7 @@ export type BuiltinPositionKey = (typeof BUILTIN_POSITIONS)[number][0];
  *  (en/zh-Hans/zh-Hant) at every display site while the canonical English name
  *  is what persists. */
 export const DEFAULT_POSITION_ENTRIES: PositionEntry[] = BUILTIN_POSITIONS.map(
-  ([key, name], i) => ({ key, name, description: "", active: true, sortOrder: i })
+  ([key, name, description], i) => ({ key, name, description, active: true, sortOrder: i })
 );
 
 /** Canonical English name → built-in i18n key, or null for a custom position.

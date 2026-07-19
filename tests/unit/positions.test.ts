@@ -44,10 +44,16 @@ describe("DEFAULT_POSITION_ENTRIES", () => {
     ]);
     DEFAULT_POSITION_ENTRIES.forEach((e, i) => {
       expect(e.active).toBe(true);
-      expect(e.description).toBe("");
       expect(e.sortOrder).toBe(i);
       expect(e.key).toBeTruthy();
     });
+  });
+
+  it("every default carries a tweet-length description (non-empty, ≤140 chars)", () => {
+    for (const e of DEFAULT_POSITION_ENTRIES) {
+      expect(e.description.trim(), e.name).not.toBe("");
+      expect(e.description.length, `${e.name}: ${e.description.length} chars`).toBeLessThanOrEqual(140);
+    }
   });
 
   it("every default has a localized name in every catalog (en/zh-Hans/zh-Hant)", () => {
