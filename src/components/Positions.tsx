@@ -20,6 +20,7 @@ import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { DEFAULT_POSITION_ENTRIES, builtinPositionKey, type ApproverEligibility } from "@/lib/positions";
 import { roleLabelKey } from "@/lib/role-label";
 import { usePositionLabel } from "@/lib/use-position-label";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface Member {
   userId: string;
@@ -71,9 +72,14 @@ const serialize = (r: Row) =>
 export default function Positions() {
   const t = useTranslations("Positions");
   const thrown = useThrownErrorMessage();
+  const positionLabel = usePositionLabel();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [usedBy, setUsedBy] = useState<Map<string, number>>(new Map());
+  // Saved position ids the user removed, staged for hard-delete on Save (a new,
+  // never-saved row is just dropped from `rows`, nothing to delete server-side).
+  const [pendingDelete, setPendingDelete] = useState<Set<string>>(new Set());
+  const [confirmRow, setConfirmRow] = useState<Row | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
@@ -101,6 +107,7 @@ export default function Positions() {
       snapshot.current = new Map(mapped.map((r) => [r.key, serialize(r)]));
       setRows(mapped);
       setMembers(data.members);
+      setPendingDelete(new Set());
       setOk(false);
       // "Used by N budget categories" — best-effort; a failure just hides counts.
       if (minRes.ok) {
@@ -131,8 +138,28 @@ export default function Positions() {
     return bad;
   }, [rows]);
 
-  const changed = (rows ?? []).filter((r) => snapshot.current.get(r.key) !== serialize(r)).length;
+  const edited = (rows ?? []).filter((r) => snapshot.current.get(r.key) !== serialize(r)).length;
+  const changed = edited + pendingDelete.size;
   const canSave = changed > 0 && invalid.size === 0 && !busy;
+
+  // A never-saved row just disappears; a saved one opens a confirm (it may be a
+  // budget-category default) and, once confirmed, is staged for hard-delete.
+  const requestDelete = (row: Row) => {
+    if (!row.id) {
+      setRows((rs) => (rs ?? []).filter((r) => r.key !== row.key));
+      setOk(false);
+      return;
+    }
+    setConfirmRow(row);
+  };
+  const confirmDelete = () => {
+    const row = confirmRow;
+    if (!row) return;
+    setRows((rs) => (rs ?? []).filter((r) => r.key !== row.key));
+    if (row.id) setPendingDelete((s) => new Set(s).add(row.id as string));
+    setConfirmRow(null);
+    setOk(false);
+  };
 
   const patch = (key: string, next: Partial<Row>) => {
     setRows((rs) => (rs ?? []).map((r) => (r.key === key ? { ...r, ...next } : r)));
@@ -186,6 +213,7 @@ export default function Positions() {
             active: r.active,
             holders: r.holderIds.map((userId) => ({ userId })),
           })),
+          deleteIds: [...pendingDelete],
         }),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.error);
@@ -260,6 +288,7 @@ export default function Positions() {
           memberById={memberById}
           usedByCount={r.id ? usedBy.get(r.id) ?? 0 : 0}
           onPatch={patch}
+          onDelete={requestDelete}
         />
       ))}
 
@@ -273,6 +302,28 @@ export default function Positions() {
           </button>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmRow !== null}
+        message={
+          confirmRow
+            ? [
+                t("deleteConfirm", { name: positionLabel(confirmRow) }),
+                (confirmRow.id ? usedBy.get(confirmRow.id) ?? 0 : 0) > 0
+                  ? t("deleteConfirmInUse", {
+                      count: confirmRow.id ? usedBy.get(confirmRow.id) ?? 0 : 0,
+                    })
+                  : "",
+              ]
+                .filter(Boolean)
+                .join("\n\n")
+            : ""
+        }
+        confirmLabel={t("delete")}
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmRow(null)}
+        testId="delete-position-dialog"
+      />
     </div>
   );
 }
@@ -303,6 +354,7 @@ function PositionCard({
   memberById,
   usedByCount,
   onPatch,
+  onDelete,
 }: {
   row: Row;
   bad: boolean;
@@ -310,6 +362,7 @@ function PositionCard({
   memberById: Map<string, Member>;
   usedByCount: number;
   onPatch: (key: string, next: Partial<Row>) => void;
+  onDelete: (row: Row) => void;
 }) {
   const t = useTranslations("Positions");
   const tRole = useTranslations("Common.role");
@@ -386,18 +439,32 @@ function PositionCard({
             {usedByCount === 0 ? t("usedByNone") : t("usedByCategories", { count: usedByCount })}
           </p>
         </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={row.active}
-          onClick={() => onPatch(row.key, { active: !row.active })}
-          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
-            row.active ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-600"
-          }`}
-          data-testid="position-active-toggle"
-        >
-          {row.active ? t("active") : t("archived")}
-        </button>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={row.active}
+            onClick={() => onPatch(row.key, { active: !row.active })}
+            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+              row.active ? "bg-emerald-100 text-emerald-800" : "bg-stone-200 text-stone-600"
+            }`}
+            data-testid="position-active-toggle"
+          >
+            {row.active ? t("active") : t("archived")}
+          </button>
+          {/* Delete is a deliberate second step: archive first (it stops
+              routing), then the Delete affordance appears on the dormant row. */}
+          {!row.active && (
+            <button
+              type="button"
+              onClick={() => onDelete(row)}
+              className="text-xs font-medium text-red-600 hover:underline"
+              data-testid="delete-position"
+            >
+              {t("delete")}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="border-t border-stone-100 pt-3">

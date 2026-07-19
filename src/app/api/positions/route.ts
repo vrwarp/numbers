@@ -14,9 +14,12 @@ export const runtime = "nodejs";
  *
  *   GET   positions (with holders + live eligibility) and the member directory
  *         for the holder picker — editor-gated (treasurer/admin).
- *   PUT   replace the catalog — editor-gated, audited. Dropped positions are
- *         archived (active:false), never hard-deleted, so a Budget Category that
- *         still points at one keeps a valid reference.
+ *   PUT   replace the catalog — editor-gated, audited. Positions merely dropped
+ *         from the payload are archived (active:false), never hard-deleted, so a
+ *         Budget Category that still points at one keeps a valid reference. Ids
+ *         listed in `deleteIds` are the explicit exception: they are hard-deleted
+ *         (holders cascade, any Budget Category default pointing at them is set
+ *         NULL by the FK) — the "remove" the editor's Delete button issues.
  *
  * A Position never grants approval authority (it only pre-fills the picker), so
  * this route touches nothing in the roster/ledger — it is plain app config.
@@ -41,7 +44,12 @@ const RowSchema = z.object({
   active: z.boolean().default(true),
   holders: z.array(HolderSchema).max(50).default([]),
 });
-const PutSchema = z.object({ positions: z.array(RowSchema).max(200) });
+const PutSchema = z.object({
+  positions: z.array(RowSchema).max(200),
+  // Existing position ids to hard-delete (vs. merely archive). Unknown ids are
+  // ignored — deletion is idempotent.
+  deleteIds: z.array(z.string()).max(200).default([]),
+});
 
 export async function GET() {
   return handleApi(async () => {
@@ -60,6 +68,7 @@ export async function PUT(req: Request) {
     const parsed = PutSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) throw new ApiError(400, "Invalid positions payload", "position.invalid");
     const rows = parsed.data.positions;
+    const deleteIds = new Set(parsed.data.deleteIds);
 
     // Every holder must be a real user; de-duplicate holders within a position
     // (the @@unique guards the DB, but a clean payload keeps `order` contiguous).
@@ -118,10 +127,20 @@ export async function PUT(req: Request) {
       }
     });
 
-    // Positions the payload dropped are archived (not deleted) and emptied of
-    // holders, so they stop routing but any category default still resolves to
-    // a real (inactive) row rather than a dangling id.
-    const dropped = existing.filter((e) => !keptIds.has(e.id)).map((e) => e.id);
+    // Explicitly deleted positions are hard-deleted: PositionHolder rows cascade
+    // and any Ministry.defaultPositionId pointing here is set NULL by the FK.
+    const toDelete = existing.filter((e) => deleteIds.has(e.id)).map((e) => e.id);
+    if (toDelete.length) {
+      writes.push(prisma.position.deleteMany({ where: { id: { in: toDelete } } }));
+    }
+
+    // Positions merely dropped from the payload (not explicitly deleted) are
+    // archived (not deleted) and emptied of holders, so they stop routing but
+    // any category default still resolves to a real (inactive) row rather than a
+    // dangling id.
+    const dropped = existing
+      .filter((e) => !keptIds.has(e.id) && !deleteIds.has(e.id))
+      .map((e) => e.id);
     if (dropped.length) {
       writes.push(
         prisma.position.updateMany({ where: { id: { in: dropped } }, data: { active: false } })
@@ -131,7 +150,11 @@ export async function PUT(req: Request) {
 
     writes.push(
       prisma.auditEvent.create({
-        data: { userId, action: "admin-positions", detail: JSON.stringify({ count: rows.length }) },
+        data: {
+          userId,
+          action: "admin-positions",
+          detail: JSON.stringify({ count: rows.length, deleted: toDelete.length }),
+        },
       })
     );
     await prisma.$transaction(writes);

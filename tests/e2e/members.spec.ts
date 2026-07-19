@@ -120,3 +120,57 @@ test("a custom position carries its own name per language, English as fallback",
   await expect(await checkedOption("zh-Hant")).toHaveText("青年事工執事");
   await expect(await checkedOption("zh-Hans")).toHaveText("青年事工执事");
 });
+
+test("a position can be deleted, clearing any budget-category default it held", async ({ page }, testInfo) => {
+  const email = `positions-delete-${testInfo.project.name}@example.org`;
+  await signInAs(page, email, "Positions Delete");
+  const prisma = e2ePrisma();
+  try {
+    await prisma.user.update({ where: { email }, data: { role: "treasurer" } });
+  } finally {
+    await prisma.$disconnect();
+  }
+  await page.reload();
+
+  // Create a throwaway custom position (it lands last, by sortOrder).
+  await page.goto("/positions");
+  await page.getByTestId("add-position").click();
+  await page.getByTestId("position-card").last().getByTestId("position-name").fill("Temp Deacon");
+  await page.getByTestId("positions-save").click();
+  await page.getByTestId("positions-saved").waitFor();
+  const tempId = (await (await page.request.get("/api/positions")).json()).positions.find(
+    (p: { name: string }) => p.name === "Temp Deacon"
+  ).id as string;
+
+  // Point a budget category's default approver at it and persist.
+  await page.goto("/ministries");
+  await page.getByTestId("ministry-default-position").first().selectOption(tempId);
+  await page.getByTestId("ministries-save").click();
+  await page.getByTestId("ministries-saved").waitFor();
+  const usedBefore = (await (await page.request.get("/api/ministries?scope=all")).json()).rows.filter(
+    (m: { defaultPositionId: string | null }) => m.defaultPositionId === tempId
+  );
+  expect(usedBefore.length).toBe(1);
+
+  // Delete is only offered once the position is archived (a deliberate second
+  // step). Archive it, then delete; the confirm names the in-use warning.
+  await page.goto("/positions");
+  const tempCard = page.getByTestId("position-card").last();
+  await expect(tempCard.getByTestId("delete-position")).toHaveCount(0);
+  await tempCard.getByTestId("position-active-toggle").click();
+  await tempCard.getByTestId("delete-position").click();
+  const dialog = page.getByTestId("delete-position-dialog");
+  await expect(dialog).toContainText("Temp Deacon");
+  await expect(dialog).toContainText("budget categor");
+  await page.getByTestId("delete-position-dialog-confirm").click();
+  await page.getByTestId("positions-save").click();
+  await page.getByTestId("positions-saved").waitFor();
+
+  // Gone from the catalog, and the category default it held was cleared.
+  const after = await (await page.request.get("/api/positions")).json();
+  expect(after.positions.some((p: { name: string }) => p.name === "Temp Deacon")).toBe(false);
+  const stillUsed = (await (await page.request.get("/api/ministries?scope=all")).json()).rows.filter(
+    (m: { defaultPositionId: string | null }) => m.defaultPositionId === tempId
+  );
+  expect(stillUsed.length).toBe(0);
+});

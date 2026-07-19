@@ -6002,6 +6002,24 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Positions.delete": {
+    "source": "Delete",
+    "context": "Label for the button that permanently deletes a custom approval role (Position) in the Positions editor; also the confirm button.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.deleteConfirm": {
+    "source": "Delete “{name}”? This permanently removes the position.",
+    "context": "Confirmation prompt shown before permanently deleting a Position. {name} is the position's name.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.deleteConfirmInUse": {
+    "source": "It is the default approver for {count, plural, one {# budget category} other {# budget categories}} — that default will be cleared.",
+    "context": "Extra warning in the delete confirmation when the position is set as the default approver for one or more budget categories; deleting clears that default.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "Positions.usedByCategories": {
     "source": "Default approver for {count} budget category(ies)",
     "zh-Hans": "todo",
