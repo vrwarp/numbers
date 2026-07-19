@@ -36,6 +36,10 @@ html[lang="zh-Hant"] body {
 
 html, body {
   touch-action: pan-x pan-y;
+  /* iOS inflates text on orientation change without this; zoom is already
+     app-controlled (userScalable=false), so keep type stable too. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /* Keep focus-scrolling and scrollIntoView clear of the claim's floating action

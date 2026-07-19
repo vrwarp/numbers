@@ -8,18 +8,20 @@
  * IS the verified bytes (blob URL), never a server re-render.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useOpenParam } from "@/lib/use-open-param";
+import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { useTranslations } from "next-intl";
 import { formatCents } from "@/lib/money";
 import ClaimSummaryRow from "./ClaimSummaryRow";
-import { runDecisionCeremony } from "@/lib/esign/client";
+import { LedgerCommittedError, runDecisionCeremony } from "@/lib/esign/client";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
-import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain } from "./chain";
+import { AuditDetails, ChainAlert, PacketLink, ThreadSignatures, chainLooksGood, useClaimChain } from "./chain";
 import ConfirmDialog from "./ConfirmDialog";
 import { SigningConnectCard } from "./SigningConnect";
 import DocumentSignField, { type TextStamp } from "./DocumentSignField";
+import PdfLink from "@/components/PdfLink";
 import type { FieldAnchor, SignaturePlacement } from "@/lib/esign/placement";
 import type { SubmitAction } from "@/lib/esign/types";
 
@@ -51,18 +53,23 @@ interface InboxMe {
 export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoint?: string }) {
   const t = useTranslations("Approvals");
   const tEsign = useTranslations("Esign");
+  const tCommon = useTranslations("Common");
   const apiError = useApiErrorMessage();
-  const [claims, setClaims] = useState<InboxClaim[]>([]);
+  // null = first load still in flight — don't flash the empty state.
+  const [claims, setClaims] = useState<InboxClaim[] | null>(null);
   const [me, setMe] = useState<InboxMe | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const list = claims ?? [];
   // ?open=<id> deep link from search results (shared contract,
   // src/lib/use-open-param.ts): expand a submitted row, pulse a decided one.
+  const [openGone, setOpenGone] = useState(false);
   useOpenParam({
-    ready: claims.length > 0,
-    exists: (id) => claims.some((c) => c.id === id),
+    ready: claims !== null,
+    exists: (id) => list.some((c) => c.id === id),
     beforeScroll: (id) => {
-      if (claims.find((c) => c.id === id)?.status === "submitted") setOpenId(id);
+      if (list.find((c) => c.id === id)?.status === "submitted") setOpenId(id);
     },
+    onGone: () => setOpenGone(true),
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -79,9 +86,12 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
   useEffect(() => {
     void load();
   }, [load]);
+  // A submitted claim should appear without a manual reload — but never
+  // refresh under an open decision ceremony.
+  useAutoRefresh(load, { paused: openId !== null });
 
-  const pending = claims.filter((c) => c.status === "submitted");
-  const history = claims.filter((c) => c.status !== "submitted");
+  const pending = list.filter((c) => c.status === "submitted");
+  const history = list.filter((c) => c.status !== "submitted");
 
   return (
     <div className="space-y-6">
@@ -90,6 +100,11 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
         <p className="text-sm text-stone-500">{t("subtitle")}</p>
       </div>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {openGone && (
+        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800" role="status" data-testid="open-gone-toast">
+          {t("openGone")}
+        </p>
+      )}
       {/* Grandfathered work while paused (A10): claims assigned before the
           pause stay decidable — say so instead of leaving a silent pile. */}
       {me?.approvalsPaused && me.canApprove && pending.length > 0 && (
@@ -104,7 +119,9 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
         </p>
       )}
 
-      {pending.length === 0 ? (
+      {claims === null ? (
+        <p className="text-sm text-stone-500">{tCommon("loading")}</p>
+      ) : pending.length === 0 ? (
         <div className="card p-8 text-center text-stone-500">
           <div className="text-3xl">🕊️</div>
           <p className="mt-2">{t("empty")}</p>
@@ -139,19 +156,18 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
               const hasCertificate = c.status === "approved" || c.status === "paid";
               return (
                 <li key={c.id} className="card card-lift" data-testid={`decided-${c.id}`} data-open-id={c.id}>
-                  <a
+                  <PdfLink
                     className="pressable block rounded-xl p-4"
                     href={
                       hasCertificate
                         ? `/api/reimbursements/${c.id}/certificate`
                         : `/api/reimbursements/${c.id}/packet`
                     }
-                    target="_blank"
-                    rel="noreferrer"
-                    data-testid={`decided-open-${c.id}`}
+                    filename={`cfcc-${hasCertificate ? "certificate" : "reimbursement"}-${c.id}.pdf`}
+                    testId={`decided-open-${c.id}`}
                   >
                     <ClaimSummaryRow claim={c} trailing={<StatusChip status={c.status} />} />
-                  </a>
+                  </PdfLink>
                 </li>
               );
             })}
@@ -227,6 +243,12 @@ function DecisionCeremony({
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [anchor, setAnchor] = useState<SignaturePlacement | null>(null);
+  const [anchorFailed, setAnchorFailed] = useState(false);
+  const [anchorAttempt, setAnchorAttempt] = useState(0);
+  // Ledger holds the decision but the mirror lagged — lock out a re-sign.
+  const [committed, setCommitted] = useState(false);
+  // Tapping a disabled Approve/Reject reveals the first missing requirement.
+  const [attempted, setAttempted] = useState(false);
   const [nameField, setNameField] = useState<FieldAnchor | null>(null);
   const [dateField, setDateField] = useState<FieldAnchor | null>(null);
   const [placement, setPlacement] = useState<SignaturePlacement | null>(null);
@@ -236,21 +258,34 @@ function DecisionCeremony({
     return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
   });
 
+  const prefilled = useRef(false);
   useEffect(() => {
-    if (state && !typedName) setTypedName(state.env.me.name);
-  }, [state, typedName]);
+    // Prefill once when verification lands — re-filling on every render
+    // would fight a deliberate clear of the field.
+    if (state && !prefilled.current) {
+      prefilled.current = true;
+      if (!typedName) setTypedName(state.env.me.name);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   useEffect(() => {
+    setAnchorFailed(false);
     void fetch(`/api/reimbursements/${claim.id}/sign-anchor`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (!d) return;
+        // Without the anchor the stamp surface never renders and Approve
+        // stays disabled — surface the failure instead of hanging forever.
+        if (!d) {
+          setAnchorFailed(true);
+          return;
+        }
         setAnchor(d.anchor as SignaturePlacement);
         setNameField((d.nameField as FieldAnchor | null) ?? null);
         setDateField((d.dateField as FieldAnchor | null) ?? null);
       })
-      .catch(() => {});
-  }, [claim.id]);
+      .catch(() => setAnchorFailed(true));
+  }, [claim.id, anchorAttempt]);
 
   // Printed name + date the approver's signature fills alongside the ink — the
   // same values the certificate route bakes onto the delivery copy.
@@ -288,7 +323,15 @@ function DecisionCeremony({
       );
       await onChanged();
     } catch (err) {
-      setActionError(thrown(err, tEsign("ceremonyFailed")));
+      if (err instanceof LedgerCommittedError) {
+        // The decision IS signed on the ledger — retrying would double-sign.
+        // Lock the buttons, say so, and refresh (reconciliation catches up).
+        setCommitted(true);
+        setActionError(tEsign("signedButNotSynced"));
+        await onChanged();
+      } else {
+        setActionError(thrown(err, tEsign("ceremonyFailed")));
+      }
       setBusy(false);
     }
   }
@@ -303,9 +346,17 @@ function DecisionCeremony({
       {state && (
         <>
           <ChainAlert state={state} />
-          {!verified && (
+          {/* One warning at a time: when the chain itself is bad, ChainAlert's
+              red banner already says "don't sign" — the amber note would just
+              stack a vaguer duplicate under it. When the chain is FINE but
+              signing is still blocked, name the actual reason if we can. */}
+          {!verified && chainLooksGood(state) && (
             <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="failclosed-note">
-              {tEsign("failClosed")}
+              {thread && thread.state !== "open"
+                ? tEsign("alreadyDecidedNote")
+                : submit && submit.approverUid !== state.env.me.userId
+                  ? tEsign("assignedElsewhereNote")
+                  : tEsign("failClosed")}
             </p>
           )}
           <ThreadSignatures state={state} />
@@ -338,17 +389,15 @@ function DecisionCeremony({
           {/* The stamp surface previews only the first form page; this opens the
               whole packet — every form page plus the appended receipts — so the
               approver can review what they're signing. */}
-          {state.packetUrl && (
-            <a
-              className="btn-secondary inline-block self-start"
-              href={state.packetUrl}
-              target="_blank"
-              rel="noreferrer"
-              data-testid="open-packet"
-            >
-              {tEsign("openPacketButton")}
-            </a>
-          )}
+          <PacketLink
+            className="btn-secondary inline-block self-start"
+            url={state.packetUrl}
+            blob={state.packetBlob}
+            filename={`cfcc-reimbursement-${claim.id}.pdf`}
+            testId="open-packet"
+          >
+            {tEsign("openPacketButton")}
+          </PacketLink>
           {/* Click-to-stamp on the EXACT verified bytes (never a server
               raster) — placing the approval signature where it goes, with the
               printed name + date the certificate stamps alongside it. */}
@@ -360,6 +409,17 @@ function DecisionCeremony({
               onChange={setPlacement}
               textStamps={signStamps}
             />
+          ) : verified && signatureImage && anchorFailed ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">
+              <span>{tEsign("prepFailed")}</span>
+              <button
+                className="font-semibold underline underline-offset-2"
+                onClick={() => setAnchorAttempt((n) => n + 1)}
+                data-testid="anchor-retry"
+              >
+                {tEsign("retryButton")}
+              </button>
+            </div>
           ) : null}
           <AuditDetails state={state} />
           <label className="block text-sm font-medium">
@@ -381,10 +441,44 @@ function DecisionCeremony({
             <span>{tEsign("intentAffirmation")}</span>
           </label>
           {actionError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{actionError}</p>}
-          <div className="flex justify-end gap-2">
+          {/* Why the buttons are greyed out — tooltips don't exist on touch.
+              The signature-placement case shows unprompted; the rest reveal on
+              a tap of a disabled button. */}
+          {(() => {
+            const reason = busy || committed || !verified
+              ? null
+              : !!signatureImage && !placement
+                ? tEsign("placeSignatureHint")
+                : !typedName.trim()
+                  ? tEsign("hintTypeName")
+                  : !affirmed
+                    ? tEsign("hintAffirm")
+                    : !comment.trim() && !canApprove
+                      ? t("rejectNeedsComment")
+                      : null;
+            const unprompted = !!signatureImage && !placement;
+            return reason && (attempted || unprompted) ? (
+              <p className="text-right text-xs text-stone-500" data-testid="place-signature-hint">
+                {reason}
+              </p>
+            ) : null;
+          })()}
+          {attempted && !busy && !committed && verified && affirmed && typedName.trim() && !comment.trim() && (
+            <p className="text-right text-xs text-stone-500" data-testid="reject-comment-hint">
+              {t("rejectNeedsComment")}
+            </p>
+          )}
+          <div
+            className="flex justify-end gap-2"
+            onClick={() => {
+              if (!busy && !committed) setAttempted(true);
+            }}
+          >
             <button
-              className="btn-secondary disabled:opacity-50"
-              disabled={!verified || busy || !comment.trim()}
+              className="btn-secondary disabled:pointer-events-none disabled:opacity-50"
+              // A REJECT is signed into the ledger exactly like an APPROVE —
+              // it carries the same intent affirmation.
+              disabled={!verified || busy || committed || !comment.trim() || !affirmed || !typedName.trim()}
               onClick={() => setConfirmReject(true)}
               data-testid="reject-button"
               title={!comment.trim() ? t("rejectNeedsComment") : undefined}
@@ -392,13 +486,14 @@ function DecisionCeremony({
               {t("reject")}
             </button>
             <button
-              className="btn-primary disabled:opacity-50"
+              className="btn-primary disabled:pointer-events-none disabled:opacity-50"
               // canApprove: role-at-exercise (A9) — a demoted approver may
               // still reject above, and the server/ledger refuse regardless.
               disabled={
                 !verified ||
                 !canApprove ||
                 busy ||
+                committed ||
                 !typedName.trim() ||
                 !affirmed ||
                 (!!signatureImage && !placement)

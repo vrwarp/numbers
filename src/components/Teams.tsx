@@ -70,7 +70,11 @@ export default function Teams() {
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/teams");
-      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        // Attach the payload so useThrownErrorMessage can translate the code.
+        throw Object.assign(new Error((body as { error?: string } | null)?.error ?? "request failed"), { payload: body });
+      }
       const data = (await res.json()) as { teams: ApiTeam[]; members: MemberOption[] };
       const mapped: Row[] = data.teams.map((tm) => ({
         key: tm.id,
@@ -150,9 +154,15 @@ export default function Teams() {
             members: r.memberIds.map((userId) => ({ userId })),
             codes: r.codes,
           })),
+          // Stale-editor guard: only ids we loaded may be archived by our save.
+          knownIds: rows.filter((r) => r.id).map((r) => r.id as string),
         }),
       });
-      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        // Attach the payload so useThrownErrorMessage can translate the code.
+        throw Object.assign(new Error((body as { error?: string } | null)?.error ?? "request failed"), { payload: body });
+      }
       await load();
       setOk(true);
     } catch (err) {
@@ -205,7 +215,7 @@ export default function Teams() {
         />
       ))}
 
-      <div className="sticky bottom-0 -mx-4 -mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-stone-200 bg-white/90 px-4 py-3 backdrop-blur">
+      <div className="sticky bottom-0 -mx-4 -mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-stone-200 bg-white/90 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
         <button className="btn-primary" disabled={!canSave} onClick={save} data-testid="teams-save">
           {busy ? t("saving") : changed > 0 ? t("save", { count: changed }) : t("saveNone")}
         </button>
@@ -291,6 +301,13 @@ function TeamCard({
           {row.active ? t("active") : t("archived")}
         </button>
       </div>
+      {/* Archiving isn't just tidying — on save it ends every member's read
+          access. Surface that at the moment the toggle flips. */}
+      {!row.active && row.memberIds.length > 0 && (
+        <p className="text-xs text-amber-700" data-testid="team-archive-note">
+          {t("archiveEndsAccess")}
+        </p>
+      )}
 
       {/* Budget categories: chips + picker. Stored as codes; a chip whose code
           left the active catalog renders the raw code so it's never hidden. */}
@@ -329,10 +346,16 @@ function TeamCard({
               data-testid="add-team-ministry"
             >
               <option value="">{t("chooseMinistry")}</option>
-              {availableCodes.map((e) => (
-                <option key={e.code} value={`${e.code} ${e.name}`}>
-                  {e.code} {e.name}
-                </option>
+              {[...new Set(availableCodes.map((e) => e.group))].map((group) => (
+                <optgroup key={group} label={group}>
+                  {availableCodes
+                    .filter((e) => e.group === group)
+                    .map((e) => (
+                      <option key={e.code} value={`${e.code} ${e.name}`}>
+                        {e.code} {e.name}
+                      </option>
+                    ))}
+                </optgroup>
               ))}
             </select>
           </label>
@@ -350,6 +373,7 @@ function TeamCard({
             return (
               <div key={userId} className="flex flex-wrap items-center gap-2" data-testid="team-member">
                 <span className="text-sm font-semibold">{m?.name ?? userId}</span>
+                {m?.email && <span className="text-xs text-stone-400">{m.email}</span>}
                 {m && (
                   <span
                     className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${ROLE_STYLE[m.role] ?? ROLE_STYLE.member}`}
@@ -381,7 +405,7 @@ function TeamCard({
               <option value="">{t("choosePerson")}</option>
               {availableMembers.map((m) => (
                 <option key={m.userId} value={m.userId}>
-                  {m.name} ({roleLabel(m.role)})
+                  {m.name} — {m.email} ({roleLabel(m.role)})
                 </option>
               ))}
             </select>

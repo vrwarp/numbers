@@ -20,6 +20,7 @@ import {
   type EsignEnv,
 } from "@/lib/esign/client";
 import { fingerprintDisplay, keyFingerprint, sha256Hex } from "@/lib/esign/canonical";
+import { downloadBlob, isStandalonePwa, shareBlob } from "@/lib/pdf-delivery";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { connectErrorMessage } from "./SigningConnect";
 import type { Thread } from "@/lib/esign/validity";
@@ -46,6 +47,56 @@ export interface ChainState {
    *  when its bytes hash to the APPROVE payload's approvedPacketSha256 —
    *  verified-or-absent, like everything else here. */
   approvedPacketUrl: string | null;
+  /** Same bytes as the URLs above, kept for standalone-PWA delivery — a
+   *  blob: URL in a new tab silently fails there, so links share instead. */
+  packetBlob: Blob | null;
+  approvedPacketBlob: Blob | null;
+}
+
+/**
+ * "Open packet"-style link over client-verified bytes. Normal browsers get a
+ * blob-URL anchor in a new tab; a standalone (home-screen) PWA gets a button
+ * that hands the SAME bytes to the OS share sheet — blob tabs silently fail
+ * there, and the bytes are already in memory so the share keeps the tap's
+ * user activation.
+ */
+export function PacketLink({
+  url,
+  blob,
+  filename,
+  className,
+  children,
+  testId,
+}: {
+  url: string | null;
+  blob: Blob | null;
+  filename: string;
+  className?: string;
+  children: React.ReactNode;
+  testId?: string;
+}) {
+  if (isStandalonePwa() && blob) {
+    return (
+      <button
+        type="button"
+        className={className}
+        onClick={() => {
+          void shareBlob(blob, filename).then((outcome) => {
+            if (outcome !== "shared") downloadBlob(blob, filename);
+          });
+        }}
+        data-testid={testId}
+      >
+        {children}
+      </button>
+    );
+  }
+  if (!url) return null;
+  return (
+    <a className={className} href={url} target="_blank" rel="noreferrer" data-testid={testId}>
+      {children}
+    </a>
+  );
 }
 
 export function useClaimChain(claim: ClaimRef | null) {
@@ -89,12 +140,14 @@ export function useClaimChain(claim: ClaimRef | null) {
         !!chain.packetSha256 &&
         chain.packetSha256 === claim.packetSha256 &&
         (!submitSha || submitSha === chain.packetSha256);
-      const packetUrl = chain.packetBytes
-        ? URL.createObjectURL(new Blob([chain.packetBytes], { type: "application/pdf" }))
+      const packetBlob = chain.packetBytes
+        ? new Blob([chain.packetBytes], { type: "application/pdf" })
         : null;
+      const packetUrl = packetBlob ? URL.createObjectURL(packetBlob) : null;
       // Approved copy: fetch by the hash the signed APPROVE carries and
       // re-hash the bytes ourselves — shown only when they agree.
       let approvedPacketUrl: string | null = null;
+      let approvedPacketBlob: Blob | null = null;
       const decisionAction = thread?.decision?.action;
       const approvedSha =
         decisionAction?.t === "APPROVE" ? decisionAction.approvedPacketSha256 : undefined;
@@ -103,13 +156,21 @@ export function useClaimChain(claim: ClaimRef | null) {
         if (copyRes.ok) {
           const copyBytes = await copyRes.arrayBuffer();
           if ((await sha256Hex(new Uint8Array(copyBytes))) === approvedSha) {
-            approvedPacketUrl = URL.createObjectURL(
-              new Blob([copyBytes], { type: "application/pdf" })
-            );
+            approvedPacketBlob = new Blob([copyBytes], { type: "application/pdf" });
+            approvedPacketUrl = URL.createObjectURL(approvedPacketBlob);
           }
         }
       }
-      setState({ env, chain, thread, packetOk, packetUrl, approvedPacketUrl });
+      setState({
+        env,
+        chain,
+        thread,
+        packetOk,
+        packetUrl,
+        approvedPacketUrl,
+        packetBlob,
+        approvedPacketBlob,
+      });
       // Opportunistic reconciliation (§5.5): fill mirror gaps we can see.
       void reconcileClaim(claim.id, chain.claimDocs).catch(() => {});
     } catch (err) {

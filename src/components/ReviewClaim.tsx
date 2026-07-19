@@ -24,6 +24,8 @@ import EsignPanel, { SubmitDialog } from "@/components/esign/EsignPanel";
 import { loadEnv, type EsignEnv } from "@/lib/esign/client";
 import type { PositionNameSet } from "@/lib/positions";
 import { useApiErrorMessage } from "@/lib/use-api-error";
+import { useModalDismiss } from "@/lib/use-modal-dismiss";
+import { deliverPdf, pdfFile, sharePdf, downloadBlob } from "@/lib/pdf-delivery";
 
 /** Statuses in which the packet is under signature — the stored bytes are
  *  frozen, downloads must NOT regenerate, and only paid blocks revert. */
@@ -31,7 +33,7 @@ const SIGNED_STATUSES = ["submitted", "rejected", "approved", "paid"] as const;
 // Chip labels live in Common.status; the review chip shows draft as "Draft".
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-amber-100 text-amber-800",
-  generated: "bg-emerald-100 text-emerald-800",
+  generated: "bg-teal-100 text-teal-800",
   submitted: "bg-sky-100 text-sky-800",
   rejected: "bg-red-100 text-red-800",
   approved: "bg-emerald-100 text-emerald-800",
@@ -133,12 +135,15 @@ interface MinistryCatalog {
   groups: { label: string; options: string[] }[];
   entries: MinistryEntry[];
   isKnown: (value: string) => boolean;
+  /** Known but archived: renderable as itself, not offered for new picks. */
+  isRetired: (value: string) => boolean;
   describe: (value: string) => string | null;
 }
 const DEFAULT_MINISTRY_CATALOG: MinistryCatalog = {
   groups: MINISTRY_GROUPS.map((g) => ({ label: g.label, options: [...g.options] })),
   entries: [],
   isKnown: isKnownMinistry,
+  isRetired: () => false,
   describe: () => null,
 };
 const MinistryCatalogContext = createContext<MinistryCatalog>(DEFAULT_MINISTRY_CATALOG);
@@ -194,6 +199,8 @@ function CategoryGuide({
 }) {
   const t = useTranslations("Review");
   const catalog = useMinistryCatalog();
+  const guideRef = useRef<HTMLDivElement>(null);
+  useModalDismiss(guideRef, onClose);
   const [q, setQ] = useState("");
   const items = useMemo(() => {
     if (catalog.entries.length) {
@@ -232,6 +239,7 @@ function CategoryGuide({
   // matter its z-index.
   return createPortal(
     <div
+      ref={guideRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="dialog"
       aria-modal="true"
@@ -347,7 +355,14 @@ function GuideButton({
   );
 }
 
-export default function ReviewClaim({ claimId }: { claimId: string }) {
+export default function ReviewClaim({
+  claimId,
+  profileComplete = true,
+}: {
+  claimId: string;
+  /** Server-checked: profile carries the name + mailing address the form prints. */
+  profileComplete?: boolean;
+}) {
   const t = useTranslations("Review");
   const tStatus = useTranslations("Common.status");
   const apiError = useApiErrorMessage();
@@ -361,7 +376,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   useEffect(() => {
     void fetch("/api/ministries")
       .then((r) => (r.ok ? r.json() : null))
-      .then((data: { groups?: { label: string; options: string[] }[]; entries?: MinistryEntry[] } | null) => {
+      .then((data: { groups?: { label: string; options: string[] }[]; entries?: MinistryEntry[]; retired?: string[] } | null) => {
         if (!data?.entries) return;
         const values = new Set<string>();
         const desc = new Map<string, string>();
@@ -370,10 +385,15 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           values.add(v);
           if (e.description) desc.set(v, e.description);
         }
+        // Archived categories still on open claims render as themselves (with
+        // a "retired" marker), never as free-text "Other…" — archiving must
+        // not strip an existing row of its code chip and group context.
+        const retired = new Set(data.retired ?? []);
         setMinistryCatalog({
           groups: data.groups ?? DEFAULT_MINISTRY_CATALOG.groups,
           entries: data.entries,
-          isKnown: (v) => values.has(v),
+          isKnown: (v) => values.has(v) || retired.has(v),
+          isRetired: (v) => retired.has(v),
           describe: (v) => desc.get(v) ?? null,
         });
       })
@@ -400,6 +420,12 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const [fileVersions, setFileVersions] = useState<Record<string, number>>({});
   // Row whose confirm button is pulsing after a click on the gated PDF button.
   const [nudgedItemId, setNudgedItemId] = useState<string | null>(null);
+  // Pulses the profile-incomplete banner after a click on the gated finish
+  // buttons while the payee lines are still blank.
+  const [profileNudged, setProfileNudged] = useState(false);
+  // Built PDF waiting for a fresh-gesture share (standalone iOS only —
+  // navigator.share can't run off the spent click, see src/lib/pdf-delivery).
+  const [pdfReady, setPdfReady] = useState<{ blob: Blob; filename: string } | null>(null);
   // Single-ministry mode state: the AI's ranked candidates (never applied
   // until the user taps one), whether we're on the terminal follow-up turn
   // (escape hatch becomes "pick manually"), the candidate just applied (drives
@@ -416,18 +442,30 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     unverify: number;
   } | null>(null);
   const [fanOutUndo, setFanOutUndo] = useState<FanOutUndo | null>(null);
+  const modeSwitchRef = useRef<HTMLDivElement>(null);
   // Destructive action awaiting ConfirmDialog approval (revert / remove a
   // receipt / discard the draft) — only one can be pending at a time.
   const [pendingConfirm, setPendingConfirm] = useState<
-    { kind: "revert" } | { kind: "remove"; receiptId: string } | { kind: "discard" } | null
+    | { kind: "revert" }
+    | { kind: "remove"; receiptId: string }
+    | { kind: "discard" }
+    | { kind: "verifyAll" }
+    | null
   >(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
+  useModalDismiss(modeSwitchRef, () => setModeSwitchPrompt(null), modeSwitchPrompt !== null);
 
   useEffect(() => {
     if (!nudgedItemId) return;
     const timer = setTimeout(() => setNudgedItemId(null), 3500);
     return () => clearTimeout(timer);
   }, [nudgedItemId]);
+
+  useEffect(() => {
+    if (!profileNudged) return;
+    const timer = setTimeout(() => setProfileNudged(false), 3500);
+    return () => clearTimeout(timer);
+  }, [profileNudged]);
 
   useEffect(() => {
     if (!fanOutUndo || fanOutUndo.source !== "manual") return;
@@ -701,7 +739,11 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const verifiedCount = activeItems.filter((it) => it.isVerified).length;
   const allVerified = activeItems.length > 0 && verifiedCount === activeItems.length;
   const isDraft = claim.status === "draft";
-  const pdfButtonEnabled = !isDraft || allVerified;
+  // Draft + generated both (re)generate the packet, so the profile gate
+  // applies to them; signed statuses download the archived bytes untouched.
+  const profileBlocked =
+    !profileComplete && (isDraft || claim.status === "generated");
+  const pdfButtonEnabled = (!isDraft || allVerified) && !profileBlocked;
   // E-sign master switch resolved for this user (A5/A8). When on, the action
   // bar's primary in draft/generated becomes "Submit for approval" and the
   // download drops to a secondary; post-submission states stay with <EsignPanel>.
@@ -715,6 +757,12 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
   const firstUnverified = groups
     .flatMap((g) => g.items)
     .find((it) => !it.isExcluded && !it.isVerified);
+  // "Verify all" accelerant: only once every remaining row has a ministry
+  // (the same per-row gate as Confirm) and there's real repetition to save —
+  // the confirm dialog keeps the attestation deliberate.
+  const unverifiedRows = activeItems.filter((it) => !it.isVerified);
+  const bulkVerifiable =
+    unverifiedRows.length >= 2 && unverifiedRows.every((it) => it.ministry);
 
   function nudgeFirstUnverified() {
     if (!firstUnverified) return;
@@ -722,6 +770,18 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     document
       .querySelector(`[data-testid="row-${firstUnverified.id}"]`)
       ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  /** Point a click on the gated finish buttons at what's actually blocking. */
+  function nudgeBlocked() {
+    if (profileBlocked) {
+      setProfileNudged(true);
+      document
+        .querySelector('[data-testid="profile-incomplete-banner"]')
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    nudgeFirstUnverified();
   }
 
   /**
@@ -894,14 +954,13 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         : await fetch(`/api/reimbursements/${claim!.id}/pdf`, { method: "POST" });
       if (!res.ok) throw new Error(apiError(await res.json().catch(() => null), t("pdfFailed")));
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `cfcc-reimbursement-${claim!.id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      const filename = `cfcc-reimbursement-${claim!.id}.pdf`;
+      // Standalone iOS: the share sheet is the delivery channel, and it may
+      // demand a fresh tap (the click's activation was spent on the fetch) —
+      // in that case park the bytes behind a "Save / Share" button.
+      if (!(await deliverPdf(blob, filename))) {
+        setPdfReady({ blob, filename });
+      }
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : t("pdfFailed"));
@@ -983,11 +1042,44 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     try {
       if (pendingConfirm.kind === "revert") await doRevertClaim();
       else if (pendingConfirm.kind === "remove") await doRemoveReceipt(pendingConfirm.receiptId);
+      else if (pendingConfirm.kind === "verifyAll") await doVerifyAll();
       else await doDeleteClaim();
     } finally {
       setConfirmBusy(false);
       setPendingConfirm(null);
     }
+  }
+
+  /** Confirm every remaining ministry-complete row in one request (the bulk
+   *  route mirrors the per-row gates + audit trail). Optimistic like
+   *  patchItem, and enqueued on the same mutation chain so a following PDF
+   *  generation drains one roundtrip, not N. */
+  async function doVerifyAll() {
+    const id = claim!.id;
+    setClaim((prev) =>
+      prev
+        ? {
+            ...prev,
+            lineItems: prev.lineItems.map((it) =>
+              !it.isExcluded && !it.isVerified && it.ministry ? { ...it, isVerified: true } : it
+            ),
+          }
+        : prev
+    );
+    await enqueue(async () => {
+      try {
+        const res = await fetch(`/api/reimbursements/${id}/verify-all`, { method: "POST" });
+        if (!res.ok) {
+          setError(apiError(await res.json().catch(() => null), t("updateFailed")));
+          await load();
+          return;
+        }
+        const { lineItems, totalCents } = await res.json();
+        setClaim((prev) => (prev ? { ...prev, totalCents, lineItems } : prev));
+      } catch {
+        setError(t("updateFailed"));
+      }
+    });
   }
 
   return (
@@ -1137,7 +1229,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                     keyboard) a tall receipt photo would fill the screen before
                     the first editable row, so cap it hard; portrait phones and
                     desktops keep the roomy 75vh. */}
-                <div className="max-h-[75vh] overflow-y-auto bg-stone-50/50 short:max-h-[min(55dvh,240px)]">
+                <div className="max-h-[75dvh] overflow-y-auto overscroll-contain bg-stone-50/50 short:max-h-[min(55dvh,240px)]">
                   {/* Keep the PDF arm separate from the image path: a PDF stays a
                       PDF (packet append, "open original", no crop/rotate) — this
                       shows a raster preview inline, it does not reclassify it. */}
@@ -1148,6 +1240,8 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
                     <img
                       src={fileUrl(group.receipt.id)}
                       alt={group.receipt.originalName}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full"
                     />
                   )}
@@ -1239,6 +1333,27 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         )}
       </div>
 
+      {/* The PDF prints the payee name + mailing address from the profile —
+          surface the missing-profile block as a fix-it banner with a direct
+          path there (and back), not just a dead disabled button. */}
+      {profileBlocked && (
+        <div
+          className={`card flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 ${
+            profileNudged ? "nudge-ring" : ""
+          }`}
+          data-testid="profile-incomplete-banner"
+        >
+          <span className="min-w-0 flex-1 basis-52">{t("profileIncomplete")}</span>
+          <Link
+            href={`/profile?return=/claims/${claim.id}`}
+            className="whitespace-nowrap font-semibold text-amber-800 underline hover:text-amber-950"
+            data-testid="profile-incomplete-link"
+          >
+            {t("profileIncompleteCta")}
+          </Link>
+        </div>
+      )}
+
       {/* Floating action bar: verify progress and the claim actions stay in
           reach while scrolling a long claim. One structure for every case —
           edit utilities (soft-red Discard, Add receipts) on the left, the
@@ -1251,17 +1366,26 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           a short viewport. On short viewports the bar drops its bottom gap and
           goes full-bleed so no in-flow content peeks through beneath it. */}
       <div
-        className={`card sticky bottom-4 z-20 flex flex-col gap-3 bg-white/95 p-3 shadow-lg backdrop-blur short:-mx-4 short:rounded-none short:bottom-0 short:flex-row short:flex-wrap short:items-center short:gap-x-3 short:gap-y-2 short:pl-[calc(0.75rem+env(safe-area-inset-left))] short:pr-[calc(0.75rem+env(safe-area-inset-right))] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-2 ${
+        className={`card sticky bottom-4 z-20 flex flex-col gap-3 bg-white/95 p-3 shadow-lg backdrop-blur short:-mx-4 short:rounded-none short:bottom-0 short:flex-row short:flex-wrap short:items-center short:gap-x-3 short:gap-y-2 short:pb-[calc(0.75rem+env(safe-area-inset-bottom))] short:pl-[calc(0.75rem+env(safe-area-inset-left))] short:pr-[calc(0.75rem+env(safe-area-inset-right))] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-4 sm:gap-y-2 ${
           splitOpenId ? "hidden" : ""
         }`}
         data-testid="claim-action-bar"
       >
-        {isDraft && claim.receipts.length > 1 ? (
+        {isDraft && activeItems.length > 1 ? (
+          // Progress tracks ROWS, not receipts — a single receipt split across
+          // ministries earns the same "how much is left" feedback as a batch.
           <div
             className="flex w-full min-w-0 items-center gap-3 sm:w-auto sm:min-w-48 sm:flex-1"
             data-testid="verify-progress"
           >
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-stone-200">
+            <div
+              className="h-2 flex-1 overflow-hidden rounded-full bg-stone-200"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={activeItems.length}
+              aria-valuenow={verifiedCount}
+              aria-label={t("verifiedProgress", { verified: verifiedCount, total: activeItems.length })}
+            >
               <div
                 className="h-full rounded-full bg-indigo-600 transition-all"
                 style={{
@@ -1272,6 +1396,15 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             <span className="whitespace-nowrap text-sm font-medium text-stone-600">
               {t("verifiedProgress", { verified: verifiedCount, total: activeItems.length })}
             </span>
+            {bulkVerifiable && (
+              <button
+                className="whitespace-nowrap rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                onClick={() => setPendingConfirm({ kind: "verifyAll" })}
+                data-testid="verify-all"
+              >
+                {t("verifyAll")}
+              </button>
+            )}
           </div>
         ) : isDraft ? (
           // Single-receipt e-sign draft has no progress bar; a one-line hint
@@ -1332,9 +1465,15 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           <div className="flex items-center gap-2 sm:gap-3 sm:border-l sm:border-stone-200 sm:pl-3">
             <span
               onClick={() => {
-                if (isDraft && !pdfButtonEnabled && !downloading) nudgeFirstUnverified();
+                if (!pdfButtonEnabled && !downloading) nudgeBlocked();
               }}
-              title={isDraft && !pdfButtonEnabled ? t("chooseMinistryFirst") : undefined}
+              title={
+                profileBlocked
+                  ? t("profileIncompleteShort")
+                  : isDraft && !pdfButtonEnabled
+                    ? t("chooseMinistryFirst")
+                    : undefined
+              }
             >
               <button
                 className={`${esignActions ? "btn-secondary" : "btn-primary"} !px-3 disabled:pointer-events-none sm:!px-4`}
@@ -1348,9 +1487,15 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
             {esignActions && (
               <span
                 onClick={() => {
-                  if (isDraft && !pdfButtonEnabled && !downloading) nudgeFirstUnverified();
+                  if (!pdfButtonEnabled && !downloading) nudgeBlocked();
                 }}
-                title={isDraft && !pdfButtonEnabled ? t("chooseMinistryFirst") : undefined}
+                title={
+                  profileBlocked
+                    ? t("profileIncompleteShort")
+                    : isDraft && !pdfButtonEnabled
+                      ? t("chooseMinistryFirst")
+                      : undefined
+                }
               >
                 <button
                   className="btn-primary !px-3 disabled:pointer-events-none sm:!px-4"
@@ -1447,6 +1592,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
           ministries get overwritten with the adopted value. Spell that out. */}
       {modeSwitchPrompt && (
         <div
+          ref={modeSwitchRef}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           role="dialog"
           aria-modal
@@ -1510,20 +1656,57 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
               : t("revertConfirm")
             : pendingConfirm?.kind === "remove"
               ? t("removeConfirm")
-              : t("discardConfirm")
+              : pendingConfirm?.kind === "verifyAll"
+                ? t("verifyAllConfirm", { count: unverifiedRows.length })
+                : t("discardConfirm")
         }
         confirmLabel={
           pendingConfirm?.kind === "revert"
             ? t("revertConfirmButton")
             : pendingConfirm?.kind === "remove"
               ? t("removeConfirmButton")
-              : t("discard")
+              : pendingConfirm?.kind === "verifyAll"
+                ? t("verifyAllButton", { count: unverifiedRows.length })
+                : t("discard")
         }
         busy={confirmBusy}
+        tone={pendingConfirm?.kind === "verifyAll" ? "primary" : "danger"}
         onConfirm={runPendingConfirm}
         onCancel={() => setPendingConfirm(null)}
         testId="claim-confirm"
       />
+
+      {/* Fresh-gesture share fallback (standalone iOS): the built PDF waits
+          here for a tap that still owns its user activation. */}
+      {pdfReady && (
+        <div
+          className="fixed bottom-24 left-1/2 z-30 -translate-x-1/2"
+          role="status"
+          data-testid="pdf-ready-toast"
+        >
+          <div className="flex items-center gap-3 rounded-lg bg-stone-900 px-4 py-2 text-sm text-white shadow-xl">
+            <span>{tCommon("pdfReady")}</span>
+            <button
+              className="font-semibold text-emerald-300 hover:text-emerald-200"
+              onClick={async () => {
+                const outcome = await sharePdf(pdfFile(pdfReady.blob, pdfReady.filename));
+                if (outcome === "unavailable") downloadBlob(pdfReady.blob, pdfReady.filename);
+                if (outcome !== "blocked") setPdfReady(null);
+              }}
+              data-testid="pdf-ready-share"
+            >
+              {tCommon("pdfReadyAction")}
+            </button>
+            <button
+              className="text-stone-400 hover:text-white"
+              onClick={() => setPdfReady(null)}
+              aria-label={t("dismissAria")}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* A fan-out can un-verify rows wholesale, so it's always one click to
           take back while the toast is up. */}
@@ -1531,6 +1714,7 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
         <div
           className="fixed bottom-24 left-1/2 z-30 -translate-x-1/2"
           data-testid="fanout-toast"
+          role="status"
         >
           <div className="flex items-center gap-3 rounded-lg bg-stone-900 px-4 py-2 text-sm text-white shadow-xl">
             <span>{fanOutUndo.message}</span>
@@ -1906,6 +2090,11 @@ function ClaimMinistryPanel({
                       ))}
                     </optgroup>
                   ))}
+                  {/* Archived category still on this row: keep it displayable
+                      (and re-selectable as itself) instead of blanking the select. */}
+                  {catalog.isRetired(claim.claimMinistry) && (
+                    <option value={claim.claimMinistry}>{t("retiredOption", { value: claim.claimMinistry })}</option>
+                  )}
                   <option value={OTHER_MINISTRY}>{t("otherOption")}</option>
                 </select>
                 <GuideButton
@@ -2003,6 +2192,10 @@ function LineItemRow({
   // value that isn't in the budget list (custom or legacy) also renders as Other.
   const [otherPicked, setOtherPicked] = useState(false);
   const showOtherInput = otherPicked || (!!item.ministry && !catalog.isKnown(item.ministry));
+  // Inline feedback when a blur silently restores the stored value — an
+  // unparseable amount or an emptied description would otherwise just vanish.
+  const [amountReverted, setAmountReverted] = useState(false);
+  const [descReverted, setDescReverted] = useState(false);
 
   return (
     <li
@@ -2028,14 +2221,26 @@ function LineItemRow({
             defaultValue={item.description}
             placeholder={t("rowDescPlaceholder")}
             disabled={excluded || readOnly}
+            onFocus={() => setDescReverted(false)}
             onBlur={(e) => {
               const v = e.target.value.trim();
               if (v && v !== item.description) onPatch(item.id, { description: v });
+              else if (!v && item.description) {
+                // The form needs a description per row — restore and say so
+                // instead of silently keeping a value the field no longer shows.
+                e.target.value = item.description;
+                setDescReverted(true);
+              }
             }}
             aria-label={t("rowDescAria")}
             data-testid={`desc-${item.id}`}
           />
         </div>
+        {descReverted && (
+          <p className="text-xs text-amber-700" role="status">
+            {t("descriptionRestored")}
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           {excluded ? (
             // Excluded rows stay visible (faded, struck through) but drop out of
@@ -2101,6 +2306,11 @@ function LineItemRow({
                     ))}
                   </optgroup>
                 ))}
+                {/* Archived category still on this row: keep it displayable
+                    (and re-selectable as itself) instead of blanking the select. */}
+                {catalog.isRetired(item.ministry) && (
+                  <option value={item.ministry}>{t("retiredOption", { value: item.ministry })}</option>
+                )}
                 <option value={OTHER_MINISTRY}>{t("otherOption")}</option>
               </select>
               <GuideButton
@@ -2148,24 +2358,37 @@ function LineItemRow({
               className={`input w-24 font-semibold ${negative ? "text-red-700" : ""} ${excluded ? "line-through" : ""}`}
               defaultValue={centsToDollarString(item.amountCents)}
               disabled={excluded || readOnly}
+              onFocus={() => setAmountReverted(false)}
               onBlur={(e) => {
                 try {
                   const cents = parseDollarsToCents(e.target.value);
                   if (cents !== item.amountCents) onPatch(item.id, { amountCents: cents });
+                  setAmountReverted(false);
                 } catch {
+                  // Not a readable amount — restore the stored value and say
+                  // so; a silent reset reads as "my edit vanished".
                   e.target.value = centsToDollarString(item.amountCents);
+                  setAmountReverted(true);
                 }
               }}
               aria-label={t("amountAria")}
               data-testid={`amount-${item.id}`}
             />
           </label>
+          {amountReverted && (
+            <span className="text-xs text-amber-700" role="status">
+              {t("amountRestored")}
+            </span>
+          )}
           {negative && (
             <span className="rounded bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-700">
               {t("refundBadge")}
             </span>
           )}
         </div>
+        {/* The treasurer's category description reaches the per-row picker too —
+            row-by-row categorization is where the guidance matters most. */}
+        {!excluded && !singleMode && <MinistryHelp value={item.ministry} />}
         {/* Action line: row operations on the left, confirm on the right —
             always the last line of the row. While a split is open the inline
             editor takes the row's place so the receipt image stays in view. */}
@@ -2488,6 +2711,11 @@ function InlineSplit({
                   ))}
                 </optgroup>
               ))}
+              {/* Archived category still on this row: keep it displayable
+                  (and re-selectable as itself) instead of blanking the select. */}
+              {catalog.isRetired(ministry) && (
+                <option value={ministry}>{t("retiredOption", { value: ministry })}</option>
+              )}
               <option value={OTHER_MINISTRY}>{t("otherOption")}</option>
             </select>
             <GuideButton

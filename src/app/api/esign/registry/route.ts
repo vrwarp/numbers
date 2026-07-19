@@ -4,7 +4,12 @@ import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { currentUser } from "@/auth";
 import { esignRootEmail, esignRootFingerprint, isEsignMock, isAppAdmin } from "@/lib/config";
 import { firebaseWebConfig } from "@/lib/firebase-admin";
-import { esignAccessAllowed, getRegistry, reportRosterEvents } from "@/lib/esign/server";
+import {
+  esignAccessAllowed,
+  getRegistry,
+  invalidateRegistryCache,
+  reportRosterEvents,
+} from "@/lib/esign/server";
 import { openLedger } from "@/lib/esign/envelope";
 import { replayRoster } from "@/lib/esign/roster";
 import { keyFingerprint } from "@/lib/esign/canonical";
@@ -106,6 +111,7 @@ export async function PATCH(req: Request) {
         },
       }),
     ]);
+    invalidateRegistryCache();
     return NextResponse.json({
       ok: true,
       enabled: patch.enabled ?? registry.enabled,
@@ -179,6 +185,7 @@ export async function POST(req: Request) {
         },
       }),
     ]);
+    invalidateRegistryCache();
     const registry = (await getRegistry())!;
     await reportRosterEvents(registry, [body.genesisDoc]);
     return NextResponse.json({ ok: true });

@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
-import { makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
+import { completeProfile, makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
 
 /** Basenames of files stored for a receipt id anywhere under the e2e upload dir. */
 async function storedFilesFor(receiptId: string): Promise<string[]> {
@@ -19,6 +19,7 @@ async function storedImageMeta(page: import("@playwright/test").Page, receiptId:
 
 test("rotate and crop a receipt image from the claim review screen", async ({ page }, testInfo) => {
   await signInAs(page, `cropper-${testInfo.project.name}@example.com`, "Cropper");
+  await completeProfile(page);
   await page.goto("/");
   await uploadReceipts(page, [await makeReceiptFixture("edit-me.jpg")]);
   await page.locator('[data-testid^="receipt-card-"]').first().click();

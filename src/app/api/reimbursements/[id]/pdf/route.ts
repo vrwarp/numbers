@@ -52,6 +52,16 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     if (missingMinistry.length > 0) {
       throw new ApiError(400, `${missingMinistry.length} row(s) still need a ministry before the PDF can be generated`, "rowsMissingMinistry", { count: missingMinistry.length });
     }
+    // The form's payee lines come from the profile — a packet with a blank
+    // "Make check payable to" defeats the whole output, so refuse until the
+    // profile carries both (the UI banner links straight to /profile).
+    if (!reimbursement.user.fullName?.trim() || !reimbursement.user.mailingAddress?.trim()) {
+      throw new ApiError(
+        400,
+        "Add your name and mailing address to your profile first — they are printed on the reimbursement form",
+        "profileIncomplete"
+      );
+    }
 
     // Mint the capability token on first generation; it survives revert /
     // re-generate cycles so a QR printed from any version keeps resolving to

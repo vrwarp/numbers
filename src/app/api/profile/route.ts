@@ -49,9 +49,22 @@ function profilePayload(user: {
 export async function GET() {
   return handleApi(async () => {
     const userId = await requireUserId();
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: userSelect });
+    const [user, memberships] = await Promise.all([
+      prisma.user.findUnique({ where: { id: userId }, select: userSelect }),
+      // Team memberships (§6.3 team amendment): named here so a member can
+      // DISCOVER their read grant — otherwise the only signal is a scope
+      // segment quietly appearing on the Search page.
+      prisma.teamMember.findMany({
+        where: { userId, team: { active: true } },
+        select: { team: { select: { name: true } } },
+        orderBy: { team: { sortOrder: "asc" } },
+      }),
+    ]);
     if (!user) throw new ApiError(404, "User not found", "userNotFound");
-    return NextResponse.json(profilePayload(user));
+    return NextResponse.json({
+      ...profilePayload(user),
+      teams: memberships.map((m) => m.team.name),
+    });
   });
 }
 

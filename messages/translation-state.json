@@ -24,8 +24,8 @@
     "zh-Hant": "machine"
   },
   "Common.status.generated": {
-    "source": "Generated",
-    "context": "Status pill: PDF has been generated, rows frozen. Pairs with 'Draft'. Keep short.",
+    "source": "Ready to submit",
+    "context": "Claim status chip: the packet is built and the claim is frozen, ready to print or send for approval. Short; shown on lists and the review screen.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -95,6 +95,18 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Common.pdfReady": {
+    "source": "Your PDF is ready.",
+    "context": "Toast/button text when a built PDF is waiting for a tap to open the iOS share sheet; pairs with pdfReadyAction.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.pdfReadyAction": {
+    "source": "Save / Share",
+    "context": "Button label opening the OS share sheet for the ready PDF (Save to Files / Print / AirDrop). Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Common.language": {
     "source": "Language",
     "context": "Label for the language selectors (NavBar switcher aria + profile field).",
@@ -146,6 +158,12 @@
   "Common.role.admin": {
     "source": "Admin",
     "context": "Church role: the administrator who anchors electronic signing.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Common.close": {
+    "source": "Close",
+    "context": "Button label closing a dialog whose action already completed (replaces Cancel). One word.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -331,7 +349,7 @@
     "zh-Hant": "machine"
   },
   "Claims.subtitle": {
-    "source": "Draft claims need review; generated claims are ready to print and sign.",
+    "source": "Draft claims need review; claims marked “Ready to submit” can be printed or sent for approval.",
     "context": "One-liner under the title explaining draft vs generated.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -399,6 +417,12 @@
   "Profile.mailingAddressPlaceholder": {
     "source": "123 Main St, San Jose, CA 95110",
     "context": "Example US postal address; typically kept as-is.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Profile.printedOnForm": {
+    "source": "Printed on the reimbursement form.",
+    "context": "Short hint under the empty Name / Mailing address fields: these values print on the official reimbursement form.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -498,6 +522,18 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Profile.teamsTitle": {
+    "source": "Your teams",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Heading of the profile card listing the member's teams. Short."
+  },
+  "Profile.teamsBody": {
+    "source": "Team membership lets you view receipts filed under the team’s budget categories. Find them under <link>Search → My teams</link>.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Body under the team list: what membership grants; <link> wraps the pointer to the Search page's My-teams scope."
+  },
   "ReceiptGrid.pdfChip": {
     "source": "PDF",
     "context": "Tiny chip on a card when a PDF thumbnail can't render; 'PDF' acronym stays.",
@@ -513,6 +549,12 @@
   "ReceiptGrid.deleteReceipt": {
     "source": "Delete {name}",
     "context": "aria-label of the ✕ delete button on a receipt card; {name} is the uploaded file name.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ReceiptGrid.selectReceipt": {
+    "source": "Select {name}",
+    "context": "aria-label of the selection checkbox on a receipt card; {name} = the receipt's file name. 'Select' = mark for inclusion in a claim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -595,14 +637,26 @@
     "zh-Hant": "machine"
   },
   "Shoebox.intro": {
-    "source": "Drop receipts here as you go. Select some when you're ready to file a claim.",
+    "source": "Add receipts as you go — snap a photo or upload a file. Select some when you're ready to file a claim.",
     "context": "Subtitle under the page title.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.upload": {
-    "source": "📷 Upload Receipt",
-    "context": "Primary upload button; keep the 📷. Canonical — the add-receipts dialog auto-copies it.",
+    "source": "Upload Receipt",
+    "context": "Primary upload button (opens the file picker; a separate 📷 Take photo button handles the camera). Canonical — the add-receipts dialog copies it.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.takePhoto": {
+    "source": "📷 Take photo",
+    "context": "Phone-only camera button beside Upload; opens the camera directly. Keep the 📷.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.restoredPhoto": {
+    "source": "Recovered from your last visit — this photo hadn't been saved yet.",
+    "context": "Amber note in the photo prepare dialog when a photo was recovered from an interrupted previous visit (saved locally, not yet uploaded).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -637,8 +691,8 @@
     "zh-Hant": "machine"
   },
   "Shoebox.deleteConfirm": {
-    "source": "Delete this receipt?",
-    "context": "Message in the in-app dialog asking to confirm deleting a receipt (replaces the old native confirm()).",
+    "source": "Delete “{name}”? This can’t be undone.",
+    "context": "Message in the in-app dialog asking to confirm deleting a receipt; {name} = the receipt's file name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -687,6 +741,12 @@
   "Shoebox.clearSelection": {
     "source": "Clear",
     "context": "Small link-style button in the claim bar that empties the current receipt selection; one short word, 'clear' as in deselect-all — not delete.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.selectAll": {
+    "source": "Select all",
+    "context": "Short link in the claim bar that selects every not-yet-claimed receipt.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1263,6 +1323,54 @@
   "Review.verifiedProgress": {
     "source": "{verified} / {total} verified",
     "context": "Progress text next to the bar; keep the '{verified} / {total}' shape.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.verifyAll": {
+    "source": "✓ Verify all",
+    "context": "Small button in the verify-progress row that marks every remaining row verified. Keep the ✓; 'verify' = 核对 as in verifiedProgress.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.verifyAllConfirm": {
+    "source": "Mark {count, plural, one {# row} other {# rows}} as verified? Check each description, ministry, and amount against its receipt first.",
+    "context": "Body of the verify-all confirmation dialog; 'verified' = 核对 like verifiedProgress.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.verifyAllButton": {
+    "source": "Verify {count, plural, one {# row} other {# rows}}",
+    "context": "Confirm button of the verify-all dialog; {count} = rows about to be marked verified.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.profileIncomplete": {
+    "source": "Your name and mailing address are still missing from your profile — they are printed on the reimbursement form.",
+    "context": "Amber banner above the claim action bar; pairs with the 'Add name & address' link (profileIncompleteCta).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.profileIncompleteCta": {
+    "source": "Add name & address",
+    "context": "Short link label in the profile banner, leads to the profile page.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.profileIncompleteShort": {
+    "source": "Finish your profile first",
+    "context": "Tooltip on the disabled Print/E-sign buttons while the profile is missing name/address.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.amountRestored": {
+    "source": "Couldn't read that amount — restored the previous value.",
+    "context": "Inline note after an unreadable amount entry was reverted to the stored value.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.descriptionRestored": {
+    "source": "A description is required — restored the previous text.",
+    "context": "Inline note after an emptied row description was reverted (each row needs a description).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1939,6 +2047,12 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Review.retiredOption": {
+    "source": "{value} (retired)",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Select option label for a row's stored category whose catalog entry was archived; {value} = the composed code+name. 'retired' = archived, not deleted."
+  },
   "Esign.submitForApproval": {
     "source": "✍️ Submit for approval",
     "context": "Primary button opening the submit-for-approval signing dialog. Keep the ✍️ prefix.",
@@ -1988,7 +2102,7 @@
     "zh-Hant": "machine"
   },
   "Esign.withdrawConfirm": {
-    "source": "Withdraw this submission so you can pick a different approver?",
+    "source": "Withdraw this submission so you can pick a different approver? You can submit again right after from the claim’s E-sign button.",
     "context": "in-app confirmation dialog before withdrawing a submission to pick a different approver.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -2067,6 +2181,30 @@
   "Esign.openingForm": {
     "source": "Opening the form…",
     "context": "Placeholder while the PDF loads into the signing view. Keep the ellipsis.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.prepFailed": {
+    "source": "Couldn’t load the form — check your connection and try again.",
+    "context": "Error box in a signing ceremony when loading the PDF/signature anchor failed; paired with the Retry link.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.retryButton": {
+    "source": "Retry",
+    "context": "One-word retry link inside the ceremony load-failure box.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.noEligibleApprovers": {
+    "source": "No approver is available right now — everyone who could approve is paused or unenrolled. Check with your treasurer.",
+    "context": "Amber note in the submit-for-approval dialog when the approver dropdown has nobody to list (all paused or unenrolled).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.placeSignatureHint": {
+    "source": "Press and hold on the form above to place your signature first.",
+    "context": "Hint above the disabled Sign/Approve button until the user press-holds the form preview to stamp their signature.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -2419,6 +2557,90 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Esign.signedButNotSynced": {
+    "source": "Your signature was recorded. The page couldn’t refresh the claim’s status — it will catch up on its own. Do not sign again.",
+    "context": "Shown when a ceremony's signature IS committed to the ledger but the status display failed to update; warns against signing again.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.hintPickApprover": {
+    "source": "Pick an approver first.",
+    "context": "Inline hint under a disabled sign button: an approver must be selected first.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.hintTypeName": {
+    "source": "Type your name first.",
+    "context": "Inline hint under a disabled sign button: the typed-name field is empty.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.hintAffirm": {
+    "source": "Tick the agreement box first.",
+    "context": "Inline hint under a disabled sign button: the intent-affirmation checkbox is unticked.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.consentGloss": {
+    "source": "In short: you agree that signing in this app counts as your real, legally binding signature — the same as ink on paper. (This is a summary; the binding text is the English document below.)",
+    "context": "Plain-language SUMMARY of the legally binding English consent text, shown above it; must say it is only a summary.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.withdrawFailed": {
+    "source": "Could not withdraw the submission — nothing changed. Try again.",
+    "context": "Error in the withdraw-submission dialog when nothing was withdrawn.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.makeChanges": {
+    "source": "✏️ Make changes",
+    "context": "Primary button on a rejected claim: reopen it for editing (revert to draft). Keep the ✏️.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.reviseConfirm": {
+    "source": "Reopen this claim for editing? Every signature collected so far becomes void, and approval starts over when you resubmit.",
+    "context": "Confirmation body before reopening a rejected claim for editing; signatures become void.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.reviseConfirmButton": {
+    "source": "Reopen for editing",
+    "context": "Confirm button of the reopen-for-editing dialog. Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.reviseFailed": {
+    "source": "Could not reopen the claim",
+    "context": "Error when the reopen-for-editing (revert) call fails.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.waitingDays": {
+    "source": "· waiting {days, plural, one {# day} other {# days}}",
+    "context": "Aging cue appended to a queue row's date line, amber; leading dot separates it from the dates.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.alreadyDecidedNote": {
+    "source": "This claim has already been decided — the list will update in a moment.",
+    "context": "Amber note in a ceremony when the claim was decided elsewhere while it was open.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.assignedElsewhereNote": {
+    "source": "This claim is assigned to a different approver.",
+    "context": "Amber note in the approver ceremony when the open claim is assigned to a different approver.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.undoStroke": {
+    "source": "Undo stroke",
+    "context": "Small link under the signature pad removing only the last drawn stroke (vs Clear which wipes all). Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Approvals.title": {
     "source": "Approvals",
     "context": "Page title of the approver's inbox; also the nav link.",
@@ -2494,6 +2716,12 @@
   "Approvals.rejectConfirmAction": {
     "source": "✗ Reject claim",
     "context": "Confirm button inside the reject-confirmation dialog — the committing, irreversible action. Keep the ✗.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Approvals.openGone": {
+    "source": "That claim isn’t in this list anymore — it may already have been decided.",
+    "context": "Toast when a deep-linked claim is no longer in the approvals list.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -2587,6 +2815,24 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Finance.openGone": {
+    "source": "That claim isn’t in this list anymore — it may already have been paid.",
+    "context": "Toast when a deep-linked claim is no longer in the finance queue.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Finance.noCheckNumberNote": {
+    "source": "No check number — that’s fine for non-check payments; add one if a check was written.",
+    "context": "Small note under the empty check-number field in the mark-paid ceremony: blank is a valid choice.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Finance.selectAllPaid": {
+    "source": "Select all",
+    "context": "Link beside the Paid section header selecting every paid claim for batch printing. Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Identity.title": {
     "source": "Electronic signing",
     "context": "Heading of the profile-page card for electronic signing.",
@@ -2600,7 +2846,7 @@
     "zh-Hant": "machine"
   },
   "Identity.chipPending": {
-    "source": "Almost there",
+    "source": "Waiting for vouches",
     "context": "Status chip: enrolled, still needs vouches. Encouraging tone.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -2899,6 +3145,30 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Identity.scanFromVouchTab": {
+    "source": "Important: they should scan this from the Vouch tab inside this app — not with their phone’s camera app.",
+    "context": "Warning under the candidate's vouch QR: the voucher must scan from the app's Vouch tab, not the phone camera app (which opens a logged-out browser).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.whoCanVouch": {
+    "source": "Members who can vouch for you: {names}{more, plural, =0 {} other { and # more}}.",
+    "context": "List under the pending-vouch QR naming attested members who can vouch; {names} = comma-joined names, {more} = count beyond the first 8.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.revokedBody": {
+    "source": "Your signing key was retired by an administrator. Everything you signed before stays valid, but to sign again you’ll need to set up signing afresh and be vouched in person again.",
+    "context": "Explanation on the identity card when the member's signing key was revoked; pairs with the set-up-again button.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.reEnrollButton": {
+    "source": "Set up signing again",
+    "context": "Button re-starting enrollment after a key revocation. Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Devices.newDeviceTitle": {
     "source": "This looks like a new device.",
     "context": "Amber card title when a signed-in member opens the app on a browser that doesn't hold their keys.",
@@ -3110,7 +3380,7 @@
     "zh-Hant": "machine"
   },
   "Devices.recoveryNudge": {
-    "source": "One more safety net: print a recovery sheet and you can sign from a new device even if this one is lost.",
+    "source": "One more safety net: print a recovery sheet and you can sign from a new device even if this one is lost. Without one, losing your devices means starting over and being vouched in person again.",
     "context": "Dismissible amber nudge for members: print a recovery sheet as a safety net.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -3184,6 +3454,24 @@
   "Devices.couldNotBuildSheet": {
     "source": "Could not build the sheet",
     "context": "Error when building the PDF fails.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.waitingCancel": {
+    "source": "Cancel and start over",
+    "context": "Link under the 6-digit device-approval code aborting the wait and returning to the options. Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.rejectFailed": {
+    "source": "Could not reject the request — it may still be pending. Try again.",
+    "context": "Error when rejecting a device request fails — the request may still be pending.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Devices.freshPhraseNote": {
+    "source": "Opening this creates a brand-new phrase — any sheet you printed earlier stops working.",
+    "context": "Amber warning in the recovery-phrase dialog: each open mints a new phrase, old printed sheets stop working.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3312,6 +3600,12 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Vouch.keylessDevice": {
+    "source": "This browser doesn’t hold your signing key yet, so vouching from here will fail. Add this device from your Profile first, or vouch from a device you already sign on.",
+    "context": "Amber warning on the Vouch screen when this browser has no signing key (new device): vouching would fail at the last step; points to adding the device via Profile.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "VouchScan.open": {
     "source": "📷 Scan their QR code",
     "zh-Hans": "machine",
@@ -3339,7 +3633,7 @@
     "zh-Hant": "machine"
   },
   "VouchScan.denied": {
-    "source": "Camera access was blocked. Allow it in your browser settings, or use the list below.",
+    "source": "Camera access was blocked. Allow the camera for this app in your device settings, or use the list below.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3361,7 +3655,7 @@
     "zh-Hant": "machine"
   },
   "Verify.linkInvalid": {
-    "source": "This verification link is not valid ({part})",
+    "source": "This verification link is not valid or has expired",
     "context": "Error for a bad/expired verification link; {part} is a technical endpoint name (leave as-is).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -3750,6 +4044,12 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Verify.orgHeader": {
+    "source": "CFCC · Reimbursement verification",
+    "context": "Small header above the public verification verdict naming the organization; 'CFCC' is never translated.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Errors.notSignedIn": {
     "source": "Not signed in",
     "context": "401 body when the session is missing/expired.",
@@ -3967,6 +4267,12 @@
   "Errors.rowsMissingMinistry": {
     "source": "{count} row(s) still need a ministry before the PDF can be generated",
     "context": "PDF gate message; {count} rows lack a ministry.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.profileIncomplete": {
+    "source": "Add your name and mailing address to your profile first — they are printed on the reimbursement form",
+    "context": "API error when generating the claim PDF while the profile lacks a name/mailing address (both print on the official form).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4220,6 +4526,24 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Errors.searchInvalid": {
+    "source": "That search couldn’t be understood — adjust it and try again",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "API error when the search request body fails validation."
+  },
+  "Errors.searchEmptyQuery": {
+    "source": "Type something to search for first",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "API error when a scope that needs a query got an empty one."
+  },
+  "Errors.admin.selfLockout": {
+    "source": "This change would remove your own admin access — keep your email in the list",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "API error when an admin's settings change would drop their own email from ADMIN_EMAILS."
+  },
   "AddReceipts.title": {
     "source": "Add receipts to this claim",
     "context": "Dialog heading: add receipts to an existing draft claim.",
@@ -4233,7 +4557,7 @@
     "zh-Hant": "machine"
   },
   "AddReceipts.upload": {
-    "source": "📷 Upload Receipt",
+    "source": "Upload Receipt",
     "context": "Auto-copied from Shoebox.upload — translate that key.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -5426,6 +5750,96 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Admin.search.confirmModelChange": {
+    "source": "Changing the model erases every stored embedding and re-reads all receipts and claims against the AI endpoint — search stays degraded for several hours. Continue?",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Confirm-dialog body before saving a changed embedding model (wipes the index, hours-long rebuild)."
+  },
+  "Admin.search.confirmModelChangeButton": {
+    "source": "Change model & rebuild",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Confirm button of that dialog. Short."
+  },
+  "Admin.search.confirmRebuild": {
+    "source": "Rebuild the whole search index? Every receipt and claim is re-read against the AI endpoint — this takes hours and uses AI calls.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Confirm-dialog body before a manual full index rebuild."
+  },
+  "Admin.allowAction": {
+    "source": "Allow",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Allowlist button VERB (grants access on click). One word."
+  },
+  "Admin.blockAction": {
+    "source": "Block",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Allowlist button VERB (removes access on click). One word."
+  },
+  "Admin.detailToggle": {
+    "source": "Details",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Disclosure summary hiding an audit event's raw JSON. One word."
+  },
+  "Admin.kind_embedding": {
+    "source": "Search indexing",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Label chip for AI calls of kind 'embedding' (search indexing) in the logs tab. Short."
+  },
+  "Admin.action_admin_config": {
+    "source": "Changed app settings",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: app settings were changed. Past tense."
+  },
+  "Admin.action_admin_ministries": {
+    "source": "Edited budget categories",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: the budget-category catalog was edited. Past tense."
+  },
+  "Admin.action_admin_teams": {
+    "source": "Edited teams",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: the teams catalog was edited. Past tense."
+  },
+  "Admin.action_admin_positions": {
+    "source": "Edited positions",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: positions were edited. Past tense."
+  },
+  "Admin.action_admin_church_context": {
+    "source": "Edited church context",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: the church context doc was edited. Past tense."
+  },
+  "Admin.action_update_embedding_config": {
+    "source": "Changed search settings",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: search backend settings changed. Past tense."
+  },
+  "Admin.action_rebuild_embeddings": {
+    "source": "Rebuilt the search index",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: full index rebuild started. Past tense."
+  },
+  "Admin.action_retry_embedding": {
+    "source": "Retried failed indexing",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: failed indexing jobs were retried. Past tense."
+  },
   "Ministries.title": {
     "source": "Budget categories",
     "zh-Hans": "todo",
@@ -5511,7 +5925,7 @@
     "zh-Hant": "todo"
   },
   "Ministries.descriptionPlaceholder": {
-    "source": "Add a hint for requesters…",
+    "source": "Add a hint for requesters — it also guides the AI’s category suggestions…",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
@@ -5615,6 +6029,18 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Ministries.removeUnsavedAria": {
+    "source": "Remove the unsaved category {name}",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "aria-label of the ✕ removing a never-saved category row; {name} = its name/code or the newCategoryFallback."
+  },
+  "Ministries.newCategoryFallback": {
+    "source": "new category",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Fallback noun used in removeUnsavedAria when a brand-new row has no name yet."
+  },
   "Search.title": {
     "source": "Search",
     "context": "Page title of the search screen and (via SAME_VALUE_GROUPS) the nav tab + submit button. One word. Use 搜索 (Hans) / 搜尋 (Hant) per glossary.",
@@ -5676,7 +6102,7 @@
     "zh-Hant": "reviewed"
   },
   "Search.scopeDecidedHint": {
-    "source": "approved or rejected by me — not ones still waiting",
+    "source": "Claims you approved or rejected — not ones still waiting on you. Leave the search box empty to list them all.",
     "context": "Helper text under the decided scope, lowercase fragment: clarifies it excludes claims still waiting for a decision.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -5834,6 +6260,36 @@
     "source": "Receipts and claims under your teams' budget categories. Leave the search empty to list all of them.",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
+  },
+  "Search.viewOnlyCard": {
+    "source": "View only — you don’t have access to open this claim.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Caption on a search result card the viewer cannot open (team read grant covers the receipt, not the claim page)."
+  },
+  "Search.emptyDegradedBody": {
+    "source": "Descriptive search is temporarily unavailable and nothing matched the exact wording — try again shortly.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Empty-state body when the embedding backend is down AND nothing matched exactly — must not read as a plain 'no matches'."
+  },
+  "Search.emptyTeamBrowse": {
+    "source": "Your teams have no receipts on submitted claims yet — new ones will appear here.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Empty-state body when browsing the team scope with an empty query and no team receipts exist yet."
+  },
+  "Search.unavailableTitle": {
+    "source": "Search isn’t set up yet",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Title of the friendly card shown at /search while the backend is unconfigured. Short."
+  },
+  "Search.unavailableBody": {
+    "source": "An administrator needs to configure the search backend before this page works. Everything else in the app is unaffected.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Body of that card: an administrator must configure search; the rest of the app works."
   },
   "Positions.title": {
     "source": "Positions",
@@ -6116,6 +6572,18 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Positions.routingNote": {
+    "source": "A claim that spans several budget categories pre-fills the approver from its largest-dollar category’s default; unavailable holders are skipped.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Info line in the Positions editor explaining how multi-category claims pick their pre-filled approver."
+  },
+  "Positions.localizedNamesHint": {
+    "source": "Chinese names are optional — the English name is used where one is blank.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Tooltip on the Chinese name inputs: optional, English used when blank."
+  },
   "Members.title": {
     "source": "Members",
     "context": "Page title of the Members administration page (the church directory: roles, positions, e-sign). Also the account-menu link and the button on the Positions page (same-value group). One word.",
@@ -6304,6 +6772,24 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Members.attestedSince": {
+    "source": "Attested {date}",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Small line on an attested member row; {date} = when they were vouched in. 'Attested' = fully vouched signer."
+  },
+  "Members.statusRevokedHint": {
+    "source": "Their signing key was retired. To sign again they must set up signing afresh on their Profile and be vouched in person.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Tooltip on the 'Key revoked' chip: what the member must do to sign again."
+  },
+  "Members.statusNoneHint": {
+    "source": "They haven’t set up electronic signing. It starts from their own Profile page.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Tooltip on the 'No e-sign yet' chip: enrollment starts from their own Profile."
+  },
   "Teams.title": {
     "source": "Teams",
     "zh-Hans": "todo",
@@ -6438,5 +6924,11 @@
     "source": "Remove",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
+  },
+  "Teams.archiveEndsAccess": {
+    "source": "Archiving ends every member’s read access when you save.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Amber note under a team's Archived toggle: saving the archive ends members' read access."
   }
 }

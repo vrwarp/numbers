@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 import { PrismaClient } from "@prisma/client";
-import { signInAs, uploadReceipts } from "./helpers";
+import { completeProfile, signInAs, uploadReceipts } from "./helpers";
 
 /**
  * Search user journeys on RECORDED REAL EMBEDDINGS (docs/SEARCH_DESIGN.md §11):
@@ -88,6 +88,7 @@ function rankOf(items: Item[], id: string): number {
 test("bilingual corpus: en→en, zh→en, en→zh, zh→zh queries all rank the right receipt (real geometry)", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   await signInAs(page, `journeys-${testInfo.project.name}-r${testInfo.retry}@example.com`, "Journey Member");
+  await completeProfile(page);
   await page.goto("/");
   const byNote = await seedCorpus(page);
   const starbucks = byNote.get(RECEIPT_NOTES["starbucks-coffee"])!;
@@ -178,6 +179,7 @@ test("amount journeys: exact cents match for $ and full-width IME input", async 
 test("zh claim journey: draft indexes after idle, survives freezing, found by a Chinese query", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   await signInAs(page, `zhclaim-${testInfo.project.name}-r${testInfo.retry}@example.com`, "Banquet Member");
+  await completeProfile(page);
   await page.goto("/");
   await uploadReceipts(page, [path.join(FIXTURES, "zh-restaurant.png")], RECEIPT_NOTES["zh-restaurant"]);
   const receiptId = (await (await page.request.get("/api/receipts")).json()).receipts[0].id;
@@ -222,6 +224,7 @@ test("decided journey: an approver browses the claims they decided, newest first
   // A member freezes a claim…
   const member = await (await browser.newContext()).newPage();
   await signInAs(member, `decided-member-${suffix}@example.com`, "Decided Member");
+  await completeProfile(member);
   await member.goto("/");
   await uploadReceipts(member, [path.join(FIXTURES, "zh-grocery.png")], RECEIPT_NOTES["zh-grocery"]);
   const receiptId = (await (await member.request.get("/api/receipts")).json()).receipts[0].id;

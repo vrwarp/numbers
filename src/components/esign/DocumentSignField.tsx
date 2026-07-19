@@ -56,7 +56,10 @@ const SIG_MAX_HEIGHT_PT = 18;
 /** How long the sign tab must be held before the signature stamps. */
 const HOLD_MS = 550;
 /** Pointer travel (px) that aborts an in-progress hold — it was a pan, not a press. */
-const HOLD_CANCEL_PX = 10;
+// Tremor tolerance: a genuine pan drags far past this almost immediately,
+// while a shaky-but-intentional hold rarely drifts more than ~20px — the old
+// 10px threshold locked out users with unsteady hands entirely.
+const HOLD_CANCEL_PX = 22;
 
 type Gesture = "none" | "hold" | "dragSig" | "pan" | "pinch";
 

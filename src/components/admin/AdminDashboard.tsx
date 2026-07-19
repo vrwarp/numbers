@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Admin dashboard shell (docs/ADMIN.md): six tabs. Church Context is the main
+ * Admin dashboard shell (docs/ADMIN.md): seven tabs. Church Context is the main
  * job; the rest (settings, usage, logs, members/roster) round out the
  * comprehensive admin surface. Church Context / Settings / Usage / Logs work
  * with e-sign off; only Members leans on the roster.

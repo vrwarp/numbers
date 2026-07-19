@@ -82,7 +82,7 @@ export default function VerificationView({ token }: { token: string }) {
     try {
       const get = async (part: string) => {
         const res = await fetch(`/api/v/${token}/${part}`);
-        if (!res.ok) throw new Error(t("linkInvalid", { part }));
+        if (!res.ok) throw new Error(t("linkInvalid"));
         return res;
       };
       const summary = await (await get("summary")).json();
@@ -217,6 +217,12 @@ export default function VerificationView({ token }: { token: string }) {
 
   return (
     <div className="mx-auto max-w-xl space-y-4" data-testid="verification-view">
+      {/* Who stands behind this page — an outside verifier (bank, auditor)
+          lands here cold from a QR and needs the org named before the verdict.
+          "CFCC" is the organization on the official form; never translated. */}
+      <p className="text-center text-xs font-semibold uppercase tracking-wide text-stone-400">
+        {t("orgHeader")}
+      </p>
       {/* VERDICT */}
       <div
         className={`card p-6 text-center ${allGreen ? "border-emerald-300 bg-emerald-50" : "border-amber-300 bg-amber-50"}`}

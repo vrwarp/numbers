@@ -35,6 +35,7 @@ import {
   type PendingDeviceRequest,
 } from "@/lib/esign/devices";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
+import { deliverPdf } from "@/lib/pdf-delivery";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 // --- M2: the new-device gate ---------------------------------------------------
@@ -122,6 +123,21 @@ export function NewDeviceCard({
         <p className="text-xs text-indigo-800/70">
           {t("waitingNote")}
         </p>
+        {/* Codes expire, subscriptions can drop — without an exit this screen
+            could hold the member hostage until a full reload. Cancel stops the
+            watch and returns to the options; a fresh attempt mints a new code. */}
+        <button
+          className="text-xs font-medium text-indigo-700 underline underline-offset-2"
+          onClick={() => {
+            unsubRef.current?.();
+            unsubRef.current = null;
+            setCode(null);
+            setMode("idle");
+          }}
+          data-testid="waiting-cancel"
+        >
+          {t("waitingCancel")}
+        </button>
       </div>
     );
   }
@@ -231,6 +247,9 @@ export function PendingRequestPrompt({
       onSettled();
     } catch (err) {
       setError(thrown(err, t("approvalFailed")));
+      // Clean slate for the retry — a wrong (or expired) code should not
+      // linger in the field looking half-entered.
+      setTyped("");
       setBusy(false);
     }
   }
@@ -271,8 +290,17 @@ export function PendingRequestPrompt({
             className="btn-secondary"
             disabled={busy}
             onClick={async () => {
-              await rejectDevice(env, request.deviceId).catch(() => {});
-              onSettled();
+              setBusy(true);
+              setError(null);
+              try {
+                await rejectDevice(env, request.deviceId);
+                onSettled();
+              } catch (err) {
+                // Swallowing this made a still-pending request LOOK denied —
+                // for a security prompt that's the wrong direction to fail.
+                setError(thrown(err, t("rejectFailed")));
+                setBusy(false);
+              }
             }}
             data-testid="reject-device"
           >
@@ -480,13 +508,13 @@ function PhraseDialog({
         email: env.me.email,
       });
       const blob = new Blob([bytes as BlobPart], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "signing-recovery-sheet.pdf";
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 30_000);
-      setDownloaded(true);
+      // Standalone PWA: a.download silently no-ops, so the share sheet
+      // delivers instead (Save to Files / Print / AirDrop). No server GET can
+      // exist for this file — the words never touch the server — so a second
+      // tap of the same button re-shares if activation was already spent.
+      if (await deliverPdf(blob, "signing-recovery-sheet.pdf")) {
+        setDownloaded(true);
+      }
     } catch (err) {
       setError(thrown(err, t("couldNotBuildSheet")));
     }
@@ -494,7 +522,7 @@ function PhraseDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">
-      <div className="max-h-[92vh] w-full max-w-lg space-y-4 overflow-y-auto rounded-t-2xl bg-white p-6 sm:rounded-2xl">
+      <div className="max-h-[92dvh] w-full max-w-lg space-y-4 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:rounded-2xl sm:pb-6">
         <h3 className="text-lg font-bold">{t("phraseDialogTitle")}</h3>
         {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         {!words ? (
@@ -502,6 +530,10 @@ function PhraseDialog({
         ) : (
           <>
             <p className="text-sm text-stone-600">{t("sheetBody")}</p>
+            {/* Every open of this dialog mints a FRESH phrase — a sheet from a
+                previous open no longer works. Say so, or a member who reopens
+                "just to double-check" silently invalidates their printout. */}
+            <p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-900">{t("freshPhraseNote")}</p>
             <button className="btn-primary w-full" onClick={downloadSheet} data-testid="download-recovery-pdf">
               {downloaded ? t("downloadedPrint") : t("downloadSheet")}
             </button>

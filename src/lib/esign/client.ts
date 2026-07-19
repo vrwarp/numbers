@@ -525,13 +525,33 @@ export async function runSubmitCeremony(
   }
   const doc = await appendToLedger(env, payload.ledger, ledgerKey, identity, payload);
   await custody.saveLedgerKey(payload.ledger, ledgerKey);
-  await jsonOrThrow(
-    await fetch(`/api/reimbursements/${claim.id}/submit`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...doc, ledgerKey: preflight.needLedgerKey ? ledgerKey : undefined }),
-    })
-  );
+  try {
+    await jsonOrThrow(
+      await fetch(`/api/reimbursements/${claim.id}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...doc, ledgerKey: preflight.needLedgerKey ? ledgerKey : undefined }),
+      })
+    );
+  } catch (err) {
+    // The ledger holds the signature; try to reconcile the mirror, then tell
+    // the UI this is a lag, not a failure (a retry would double-sign).
+    await reconcileClaim(claim.id, [doc]).catch(() => {});
+    throw new LedgerCommittedError(err);
+  }
+}
+
+/**
+ * Thrown when the signature IS committed to the append-only ledger but the
+ * follow-up server mirror update failed. The signed action itself succeeded —
+ * retrying the whole ceremony would attempt a SECOND signature — so UIs must
+ * treat this as "done, but the page may lag" and refresh, never re-run.
+ */
+export class LedgerCommittedError extends Error {
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : "mirror update failed after ledger commit");
+    this.name = "LedgerCommittedError";
+  }
 }
 
 export async function runDecisionCeremony(
@@ -583,13 +603,18 @@ export async function runDecisionCeremony(
   }
   await assertConsentHash(payload);
   const doc = await appendToLedger(env, claim.signatureLedgerId, claim.signatureLedgerKey, identity, payload);
-  await jsonOrThrow(
-    await fetch(`/api/reimbursements/${claim.id}/decision`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(doc),
-    })
-  );
+  try {
+    await jsonOrThrow(
+      await fetch(`/api/reimbursements/${claim.id}/decision`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(doc),
+      })
+    );
+  } catch (err) {
+    await reconcileClaim(claim.id, [doc]).catch(() => {});
+    throw new LedgerCommittedError(err);
+  }
 }
 
 export async function runPaidCeremony(
@@ -613,13 +638,18 @@ export async function runPaidCeremony(
   }
   await assertConsentHash(payload);
   const doc = await appendToLedger(env, claim.signatureLedgerId, claim.signatureLedgerKey, identity, payload);
-  await jsonOrThrow(
-    await fetch(`/api/reimbursements/${claim.id}/paid`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(doc),
-    })
-  );
+  try {
+    await jsonOrThrow(
+      await fetch(`/api/reimbursements/${claim.id}/paid`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(doc),
+      })
+    );
+  } catch (err) {
+    await reconcileClaim(claim.id, [doc]).catch(() => {});
+    throw new LedgerCommittedError(err);
+  }
 }
 
 /** Close the open submission (reassignment / pre-revert honesty marker). */
@@ -638,5 +668,9 @@ export async function withdrawSubmission(
     submitRef: submitActionHash,
   };
   const doc = await appendToLedger(env, claim.signatureLedgerId, claim.signatureLedgerKey, identity, action);
-  await reconcileClaim(claim.id, [doc]);
+  try {
+    await reconcileClaim(claim.id, [doc]);
+  } catch (err) {
+    throw new LedgerCommittedError(err);
+  }
 }

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
+import { completeProfile, makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
 
 test("single receipt review page displays simplified layout, row controls, and top suggestions", async ({ page }, testInfo) => {
   await signInAs(
@@ -7,6 +7,7 @@ test("single receipt review page displays simplified layout, row controls, and t
     `single-rec-${testInfo.project.name}-r${testInfo.retry}@example.com`,
     "Sing Lereceipt"
   );
+  await completeProfile(page);
 
   // Upload exactly 1 receipt and generate a claim
   await page.goto("/");

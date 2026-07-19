@@ -7,7 +7,7 @@
   "Common": {
     "status": {
       "draft": "Draft",
-      "generated": "Generated",
+      "generated": "Ready to submit",
       "needsReview": "Needs review",
       "processed": "processed",
       "submitted": "Awaiting approval",
@@ -20,6 +20,8 @@
     "save": "Save",
     "saving": "Saving…",
     "loading": "Loading…",
+    "pdfReady": "Your PDF is ready.",
+    "pdfReadyAction": "Save / Share",
     "language": "Language",
     "date": {
       "today": "Today",
@@ -32,7 +34,8 @@
       "chairman": "Chairman",
       "treasurer": "Treasurer",
       "admin": "Admin"
-    }
+    },
+    "close": "Close"
   },
   "NavBar": {
     "shoebox": "Receipts",
@@ -72,7 +75,7 @@
   },
   "Claims": {
     "title": "Claims",
-    "subtitle": "Draft claims need review; generated claims are ready to print and sign.",
+    "subtitle": "Draft claims need review; claims marked “Ready to submit” can be printed or sent for approval.",
     "emptyTitle": "No claims yet",
     "emptyBody": "Select receipts on the <link>Receipts</link> page and hit “New Claim”.",
     "counts": "{items} items · {receipts, plural, one {# receipt} other {# receipts}}",
@@ -86,6 +89,7 @@
     "fullNamePlaceholder": "e.g. Grace Chen",
     "mailingAddress": "Mailing address",
     "mailingAddressPlaceholder": "123 Main St, San Jose, CA 95110",
+    "printedOnForm": "Printed on the reimbursement form.",
     "saved": "Saved ✓",
     "loadFailed": "Failed to load profile",
     "saveFailed": "Save failed",
@@ -101,12 +105,15 @@
     "dutyAdminOn": "You can change members' roles, and admins can also manage settings and electronic signing.",
     "dutyAdminOff": "Role controls and admin pages are hidden until you turn this back on.",
     "dutyTurnOn": "Turn on",
-    "dutyTurnOff": "Turn off"
+    "dutyTurnOff": "Turn off",
+    "teamsTitle": "Your teams",
+    "teamsBody": "Team membership lets you view receipts filed under the team’s budget categories. Find them under <link>Search → My teams</link>."
   },
   "ReceiptGrid": {
     "pdfChip": "PDF",
     "pdfThumbAlt": "PDF receipt",
     "deleteReceipt": "Delete {name}",
+    "selectReceipt": "Select {name}",
     "viewLarger": "View {name} larger",
     "viewLargerTitle": "View larger",
     "notePlaceholder": "Add description…",
@@ -124,14 +131,16 @@
   },
   "Shoebox": {
     "title": "Receipts",
-    "intro": "Drop receipts here as you go. Select some when you're ready to file a claim.",
-    "upload": "📷 Upload Receipt",
+    "intro": "Add receipts as you go — snap a photo or upload a file. Select some when you're ready to file a claim.",
+    "upload": "Upload Receipt",
+    "takePhoto": "📷 Take photo",
+    "restoredPhoto": "Recovered from your last visit — this photo hadn't been saved yet.",
     "uploading": "Uploading…",
     "uploadFailed": "Upload failed",
     "dropTitle": "Drop receipts to upload",
     "dropBody": "Images or PDFs",
     "noteSaveFailed": "Could not save the description",
-    "deleteConfirm": "Delete this receipt?",
+    "deleteConfirm": "Delete “{name}”? This can’t be undone.",
     "deleteConfirmButton": "Delete",
     "deleteFailed": "Delete failed",
     "selectedCount": "{count, plural, one {# receipt} other {# receipts}} selected",
@@ -140,6 +149,7 @@
     "selectPromptShort": "Select receipts to start",
     "newClaim": "✨ New Claim",
     "clearSelection": "Clear",
+    "selectAll": "Select all",
     "waitingRateLimit": "Waiting on rate limit…",
     "readingShort": "Reading receipts…",
     "selectHint": "Select a receipt first — click a ✓ below",
@@ -244,6 +254,14 @@
     "subtotal": "Subtotal:",
     "claimTotal": "Claim total",
     "verifiedProgress": "{verified} / {total} verified",
+    "verifyAll": "✓ Verify all",
+    "verifyAllConfirm": "Mark {count, plural, one {# row} other {# rows}} as verified? Check each description, ministry, and amount against its receipt first.",
+    "verifyAllButton": "Verify {count, plural, one {# row} other {# rows}}",
+    "profileIncomplete": "Your name and mailing address are still missing from your profile — they are printed on the reimbursement form.",
+    "profileIncompleteCta": "Add name & address",
+    "profileIncompleteShort": "Finish your profile first",
+    "amountRestored": "Couldn't read that amount — restored the previous value.",
+    "descriptionRestored": "A description is required — restored the previous text.",
     "generatedFrozen": "Generated — rows are frozen.",
     "addReceipts": "＋ Add receipts",
     "discard": "Discard",
@@ -360,7 +378,8 @@
     "splitConfirm": "Split",
     "underSignatureFrozen": "Under signature — packet and rows are frozen.",
     "downloadSigned": "⬇ Download signed packet",
-    "revertConfirmSigned": "Revert this claim to draft? Every signature collected so far becomes void, and approval starts over."
+    "revertConfirmSigned": "Revert this claim to draft? Every signature collected so far becomes void, and approval starts over.",
+    "retiredOption": "{value} (retired)"
   },
   "Esign": {
     "submitForApproval": "✍️ Submit for approval",
@@ -371,7 +390,7 @@
     "panelPaidWithCheck": "Paid — check #{checkNumber}",
     "approverComment": "Approver's comment: “{comment}”",
     "certificateLink": "📜 Approval certificate",
-    "withdrawConfirm": "Withdraw this submission so you can pick a different approver?",
+    "withdrawConfirm": "Withdraw this submission so you can pick a different approver? You can submit again right after from the claim’s E-sign button.",
     "withdrawConfirmButton": "Withdraw",
     "withdrawButton": "↪ Withdraw / change approver",
     "resubmit": "✍️ Resubmit",
@@ -385,6 +404,10 @@
     "notAttested": "You can't sign yet — turn on signing on your <link>profile</link>, then get vouched.",
     "submitIntro": "You're asking for approval of this claim ({amount}). Place your signature on the form, pick who should approve it, and sign. If the claim changes later, your signature stops counting and approval starts over.",
     "openingForm": "Opening the form…",
+    "prepFailed": "Couldn’t load the form — check your connection and try again.",
+    "retryButton": "Retry",
+    "noEligibleApprovers": "No approver is available right now — everyone who could approve is paused or unenrolled. Check with your treasurer.",
+    "placeSignatureHint": "Press and hold on the form above to place your signature first.",
     "approverLabel": "Approver",
     "approverPlaceholder": "Choose an approver…",
     "typedNameLabel": "Type your full name to sign",
@@ -443,7 +466,21 @@
     "waitingFor": "Waiting for {name} to review this claim.",
     "approverPausedNote": "{name} isn't taking new approval requests right now. They can still decide this claim, or you can withdraw it and pick a different approver.",
     "approverIneligibleNote": "{name} can no longer approve claims. Withdraw this submission and pick a different approver.",
-    "approverPrefilledFrom": "Pre-filled from the {position} default. Change it below if needed."
+    "approverPrefilledFrom": "Pre-filled from the {position} default. Change it below if needed.",
+    "signedButNotSynced": "Your signature was recorded. The page couldn’t refresh the claim’s status — it will catch up on its own. Do not sign again.",
+    "hintPickApprover": "Pick an approver first.",
+    "hintTypeName": "Type your name first.",
+    "hintAffirm": "Tick the agreement box first.",
+    "consentGloss": "In short: you agree that signing in this app counts as your real, legally binding signature — the same as ink on paper. (This is a summary; the binding text is the English document below.)",
+    "withdrawFailed": "Could not withdraw the submission — nothing changed. Try again.",
+    "makeChanges": "✏️ Make changes",
+    "reviseConfirm": "Reopen this claim for editing? Every signature collected so far becomes void, and approval starts over when you resubmit.",
+    "reviseConfirmButton": "Reopen for editing",
+    "reviseFailed": "Could not reopen the claim",
+    "waitingDays": "· waiting {days, plural, one {# day} other {# days}}",
+    "alreadyDecidedNote": "This claim has already been decided — the list will update in a moment.",
+    "assignedElsewhereNote": "This claim is assigned to a different approver.",
+    "undoStroke": "Undo stroke"
   },
   "Approvals": {
     "title": "Approvals",
@@ -458,7 +495,8 @@
     "roleLostNotice": "Your approver role has been removed. You can decline these claims so their owners can reassign them, but you can't approve them.",
     "rejectConfirmTitle": "Reject this claim?",
     "rejectConfirmBody": "Rejecting is final — you won't be able to undo it or approve this claim later. {name} will have to revise and resubmit the claim for a new approval.",
-    "rejectConfirmAction": "✗ Reject claim"
+    "rejectConfirmAction": "✗ Reject claim",
+    "openGone": "That claim isn’t in this list anymore — it may already have been decided."
   },
   "Finance": {
     "title": "Finance",
@@ -475,12 +513,15 @@
     "clearSelection": "Clear",
     "printAll": "Print all",
     "printing": "Preparing…",
-    "printFailed": "Couldn't build the packets. Please try again."
+    "printFailed": "Couldn't build the packets. Please try again.",
+    "openGone": "That claim isn’t in this list anymore — it may already have been paid.",
+    "noCheckNumberNote": "No check number — that’s fine for non-check payments; add one if a check was written.",
+    "selectAllPaid": "Select all"
   },
   "Identity": {
     "title": "Electronic signing",
     "chipReady": "Ready to sign",
-    "chipPending": "Almost there",
+    "chipPending": "Waiting for vouches",
     "chipRevoked": "Turned off",
     "chipNone": "Not set up",
     "loadFailed": "Could not load signing status",
@@ -529,7 +570,11 @@
     "scopeTitle": "Who can sign electronically",
     "scopeAllowlist": "Only members I choose",
     "scopeEveryone": "Everyone",
-    "allowlistOnMembersPage": "Choose who can use electronic signing on the <link>Members</link> page. Removing someone hides signing from them; anything they already signed stays valid."
+    "allowlistOnMembersPage": "Choose who can use electronic signing on the <link>Members</link> page. Removing someone hides signing from them; anything they already signed stays valid.",
+    "scanFromVouchTab": "Important: they should scan this from the Vouch tab inside this app — not with their phone’s camera app.",
+    "whoCanVouch": "Members who can vouch for you: {names}{more, plural, =0 {} other { and # more}}.",
+    "revokedBody": "Your signing key was retired by an administrator. Everything you signed before stays valid, but to sign again you’ll need to set up signing afresh and be vouched in person again.",
+    "reEnrollButton": "Set up signing again"
   },
   "Devices": {
     "newDeviceTitle": "This looks like a new device.",
@@ -567,7 +612,7 @@
     "couldNotRemove": "Could not remove the device",
     "lostHint": "Lost one? Remove it here, then tell your administrator in person if someone else might have it — they can revoke the signing key itself.",
     "recoveryRoot": "Protect the church's signing anchor. If this device is lost with no recovery sheet, electronic signing has to be rebuilt from scratch for everyone.",
-    "recoveryNudge": "One more safety net: print a recovery sheet and you can sign from a new device even if this one is lost.",
+    "recoveryNudge": "One more safety net: print a recovery sheet and you can sign from a new device even if this one is lost. Without one, losing your devices means starting over and being vouched in person again.",
     "printSheet": "Print my recovery sheet",
     "later": "Later",
     "phraseDialogTitle": "Print your recovery sheet",
@@ -579,7 +624,10 @@
     "savedCheckbox": "The sheet is printed (or written out) and stored somewhere safe.",
     "done": "Done",
     "couldNotCreatePhrase": "Could not create a phrase",
-    "couldNotBuildSheet": "Could not build the sheet"
+    "couldNotBuildSheet": "Could not build the sheet",
+    "waitingCancel": "Cancel and start over",
+    "rejectFailed": "Could not reject the request — it may still be pending. Try again.",
+    "freshPhraseNote": "Opening this creates a brand-new phrase — any sheet you printed earlier stops working."
   },
   "Vouch": {
     "title": "Vouch for a member",
@@ -602,7 +650,8 @@
     "nobodyPending": "Nobody is currently awaiting vouches.",
     "vouchFailed": "Vouch failed",
     "malformedLink": "This vouch link is malformed — rescan the QR",
-    "membersPageHint": "Looking for the member roster? Roles, signing keys, and e-sign access are managed on the <link>Members</link> page."
+    "membersPageHint": "Looking for the member roster? Roles, signing keys, and e-sign access are managed on the <link>Members</link> page.",
+    "keylessDevice": "This browser doesn’t hold your signing key yet, so vouching from here will fail. Add this device from your Profile first, or vouch from a device you already sign on."
   },
   "VouchScan": {
     "open": "📷 Scan their QR code",
@@ -610,13 +659,13 @@
     "aim": "Point at the candidate's QR code",
     "notVouch": "That's not a vouch code — line up the candidate's QR code.",
     "insecure": "This device can't open the camera here. Use the list below instead.",
-    "denied": "Camera access was blocked. Allow it in your browser settings, or use the list below.",
+    "denied": "Camera access was blocked. Allow the camera for this app in your device settings, or use the list below.",
     "startFailed": "Couldn't start the camera. Use the list below instead."
   },
   "Verify": {
     "verifying": "Verifying signatures in your browser…",
     "failedTitle": "Verification failed",
-    "linkInvalid": "This verification link is not valid ({part})",
+    "linkInvalid": "This verification link is not valid or has expired",
     "confirmedTitle": "Confirmed genuine",
     "warningsTitle": "Needs a closer look",
     "storyGeneric": "This paperwork was cryptographically checked in your browser — see the details below.",
@@ -684,7 +733,8 @@
     "rosterOddities": "{count, plural, one {# roster oddity} other {# roster oddities}}",
     "invalidEvents": "Invalid events (kept visible):",
     "independentCheckCert": "Independent check: run <code>scripts/verify-bundle.mjs</code> against the certificate's embedded bundle with the church's published root fingerprint.",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "orgHeader": "CFCC · Reimbursement verification"
   },
   "Errors": {
     "notSignedIn": "Not signed in",
@@ -727,6 +777,7 @@
     "claimEmpty": "Claim has no line items to reimburse",
     "rowsUnverified": "{count} row(s) still need verification before the PDF can be generated",
     "rowsMissingMinistry": "{count} row(s) still need a ministry before the PDF can be generated",
+    "profileIncomplete": "Add your name and mailing address to your profile first — they are printed on the reimbursement form",
     "invalidManualEntry": "Invalid manual-entry fields",
     "receiptNotOnClaim": "Receipt not found in this claim",
     "rowAlreadyEdited": "This receipt's row has already been edited — adjust it directly",
@@ -781,12 +832,15 @@
       "invalid": "Those teams couldn’t be saved — check the form and try again.",
       "codeFormat": "Invalid budget category code: “{code}”.",
       "unknownMember": "One of the selected people couldn’t be found. Refresh and try again."
-    }
+    },
+    "searchInvalid": "That search couldn’t be understood — adjust it and try again",
+    "searchEmptyQuery": "Type something to search for first",
+    "admin.selfLockout": "This change would remove your own admin access — keep your email in the list"
   },
   "AddReceipts": {
     "title": "Add receipts to this claim",
     "intro": "Pick from your existing receipts or upload new ones — each is read with AI and gets its own row to verify.",
-    "upload": "📷 Upload Receipt",
+    "upload": "Upload Receipt",
     "uploading": "Uploading…",
     "emptyTitle": "No other receipts to add",
     "emptyBody": "Upload a photo or PDF of a receipt to add it.",
@@ -1017,8 +1071,23 @@
       "scoreExact": "exact",
       "rebuildTitle": "Rebuild index",
       "rebuildHint": "Re-reads everything on the current model — use if the search server was changed out from under this app.",
-      "rebuild": "Rebuild"
-    }
+      "rebuild": "Rebuild",
+      "confirmModelChange": "Changing the model erases every stored embedding and re-reads all receipts and claims against the AI endpoint — search stays degraded for several hours. Continue?",
+      "confirmModelChangeButton": "Change model & rebuild",
+      "confirmRebuild": "Rebuild the whole search index? Every receipt and claim is re-read against the AI endpoint — this takes hours and uses AI calls."
+    },
+    "allowAction": "Allow",
+    "blockAction": "Block",
+    "detailToggle": "Details",
+    "kind_embedding": "Search indexing",
+    "action_admin_config": "Changed app settings",
+    "action_admin_ministries": "Edited budget categories",
+    "action_admin_teams": "Edited teams",
+    "action_admin_positions": "Edited positions",
+    "action_admin_church_context": "Edited church context",
+    "action_update_embedding_config": "Changed search settings",
+    "action_rebuild_embeddings": "Rebuilt the search index",
+    "action_retry_embedding": "Retried failed indexing"
   },
   "Ministries": {
     "title": "Budget categories",
@@ -1037,7 +1106,7 @@
     "code": "Code",
     "name": "Name",
     "description": "Description (optional)",
-    "descriptionPlaceholder": "Add a hint for requesters…",
+    "descriptionPlaceholder": "Add a hint for requesters — it also guides the AI’s category suggestions…",
     "codeAria": "Account code",
     "nameAria": "Category name",
     "active": "Active",
@@ -1057,7 +1126,9 @@
     "positionArchivedOption": "{name} (archived)",
     "routesTo": "Routes to {name}",
     "routesNobody": "No holder here can approve yet — claims won't be pre-filled.",
-    "routesNoHolder": "This position has no holder yet."
+    "routesNoHolder": "This position has no holder yet.",
+    "removeUnsavedAria": "Remove the unsaved category {name}",
+    "newCategoryFallback": "new category"
   },
   "Search": {
     "title": "Search",
@@ -1070,7 +1141,7 @@
     "scopeMine": "My items",
     "scopeAll": "Whole church",
     "scopeDecided": "Claims I decided",
-    "scopeDecidedHint": "approved or rejected by me — not ones still waiting",
+    "scopeDecidedHint": "Claims you approved or rejected — not ones still waiting on you. Leave the search box empty to list them all.",
     "typeFilterLabel": "Show",
     "scopeFilterLabel": "Where",
     "typeAll": "Both",
@@ -1096,7 +1167,12 @@
     "dateHint": "Search matches descriptions, not dates — dates are shown on each result.",
     "showMore": "Show more",
     "scopeTeam": "My teams",
-    "scopeTeamHint": "Receipts and claims under your teams' budget categories. Leave the search empty to list all of them."
+    "scopeTeamHint": "Receipts and claims under your teams' budget categories. Leave the search empty to list all of them.",
+    "viewOnlyCard": "View only — you don’t have access to open this claim.",
+    "emptyDegradedBody": "Descriptive search is temporarily unavailable and nothing matched the exact wording — try again shortly.",
+    "emptyTeamBrowse": "Your teams have no receipts on submitted claims yet — new ones will appear here.",
+    "unavailableTitle": "Search isn’t set up yet",
+    "unavailableBody": "An administrator needs to configure the search backend before this page works. Everything else in the app is unaffected."
   },
   "Positions": {
     "title": "Positions",
@@ -1152,7 +1228,9 @@
     "eligibilityPaused": "Approvals paused",
     "eligibilityCannot": "Needs Approver grant",
     "holderPausedWarn": "{name} has paused approvals, so claims won't pre-fill to them until they resume.",
-    "holderCannotWarn": "{name} can't approve until an executive officer or admin grants them the Approver role on the <link>Members</link> page."
+    "holderCannotWarn": "{name} can't approve until an executive officer or admin grants them the Approver role on the <link>Members</link> page.",
+    "routingNote": "A claim that spans several budget categories pre-fills the approver from its largest-dollar category’s default; unavailable holders are skipped.",
+    "localizedNamesHint": "Chinese names are optional — the English name is used where one is blank."
   },
   "Members": {
     "title": "Members",
@@ -1186,7 +1264,10 @@
     "roleDialogConfirm": "Update role",
     "revokeKey": "Revoke key",
     "keyDialogTitle": "Revoke {name}'s signing key?",
-    "keyDialogBody": "Do this only when a device that could sign as them was lost or stolen. Everything they've already signed stays valid, but the key stops working everywhere — they'll set up signing again and get vouched back in person."
+    "keyDialogBody": "Do this only when a device that could sign as them was lost or stolen. Everything they've already signed stays valid, but the key stops working everywhere — they'll set up signing again and get vouched back in person.",
+    "attestedSince": "Attested {date}",
+    "statusRevokedHint": "Their signing key was retired. To sign again they must set up signing afresh on their Profile and be vouched in person.",
+    "statusNoneHint": "They haven’t set up electronic signing. It starts from their own Profile page."
   },
   "Teams": {
     "title": "Teams",
@@ -1215,6 +1296,7 @@
     "noMembers": "No members yet.",
     "addMember": "Add a member",
     "choosePerson": "Choose a person…",
-    "removeMember": "Remove"
+    "removeMember": "Remove",
+    "archiveEndsAccess": "Archiving ends every member’s read access when you save."
   }
 }

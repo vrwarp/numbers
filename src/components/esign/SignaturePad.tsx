@@ -5,6 +5,10 @@
  * signature that gets stamped on the PDF's signature lines. Pointer events
  * cover finger, stylus, and mouse alike; the export is a transparent PNG
  * data URL trimmed to the inked area so it sits cleanly on the form line.
+ *
+ * Strokes are kept as data (not just pixels) so one stray mark can be
+ * UNDONE — on a phone a signature takes several strokes, and "Clear and
+ * start over" as the only correction forced a full redraw.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -17,6 +21,9 @@ import { useTranslations } from "next-intl";
 // map without distortion; the fractions below place it on the backdrop.
 const W = 720;
 const H = 163;
+// Supersample the buffer so ink stays crisp on high-DPI phone screens (the
+// visual element is often wider than 720 CSS px on a Retina display).
+const SCALE = 2;
 /** Drawable zone within the backdrop, measured from the template: it starts just
  *  under the "Requested by" bar and runs past the signature line down over the
  *  "(Signature)" caption, so a signature can cross the line — and overlap the
@@ -25,6 +32,8 @@ const H = 163;
 const CELL_TOP = 28; // % from the top of the backdrop (bar bottom)
 const CELL_HEIGHT = 60; // % (down over the "(Signature)" caption)
 const CELL_INSET = 1.2; // % horizontal inset to clear the box's side borders
+
+type Stroke = { x: number; y: number }[];
 
 export default function SignaturePad({
   onChange,
@@ -36,19 +45,34 @@ export default function SignaturePad({
   const t = useTranslations("Esign");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
+  const strokes = useRef<Stroke[]>([]);
+  // A previously saved signature loads as a base layer beneath new strokes;
+  // Undo only removes strokes, never the restored base.
+  const baseImage = useRef<HTMLImageElement | null>(null);
   const [hasInk, setHasInk] = useState(false);
+  const [strokeCount, setStrokeCount] = useState(0);
 
-  useEffect(() => {
-    const canvas = canvasRef.current!;
-    const ctx = canvas.getContext("2d")!;
+  function ctx2d() {
+    return canvasRef.current!.getContext("2d")!;
+  }
+
+  function applyPen(ctx: CanvasRenderingContext2D) {
     ctx.lineWidth = 3.2;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.strokeStyle = "#1e2a78"; // pen-ink blue, reads as a real signature on paper
+  }
+
+  useEffect(() => {
+    const ctx = ctx2d();
+    // All drawing happens in logical W×H coordinates on the supersampled buffer.
+    ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+    applyPen(ctx);
     if (initial) {
       const img = new Image();
       img.onload = () => {
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        baseImage.current = img;
+        ctx.drawImage(img, 0, 0, W, H);
         setHasInk(true);
       };
       img.src = initial;
@@ -63,15 +87,31 @@ export default function SignaturePad({
     };
   }
 
+  /** Clear and replay the base layer + every remaining stroke. */
+  function redraw() {
+    const ctx = ctx2d();
+    ctx.clearRect(0, 0, W, H);
+    if (baseImage.current) ctx.drawImage(baseImage.current, 0, 0, W, H);
+    for (const stroke of strokes.current) {
+      ctx.beginPath();
+      ctx.moveTo(stroke[0].x, stroke[0].y);
+      if (stroke.length === 1) ctx.lineTo(stroke[0].x + 0.1, stroke[0].y + 0.1);
+      for (const p of stroke.slice(1)) ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    }
+  }
+
   function exportInk() {
     const canvas = canvasRef.current!;
-    const ctx = canvas.getContext("2d")!;
+    const ctx = ctx2d();
+    const BW = W * SCALE;
+    const BH = H * SCALE;
     // Trim to the inked bounding box (with padding) so stamping scales nicely.
-    const data = ctx.getImageData(0, 0, W, H).data;
-    let minX = W, minY = H, maxX = 0, maxY = 0, found = false;
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
-        if (data[(y * W + x) * 4 + 3] > 10) {
+    const data = ctx.getImageData(0, 0, BW, BH).data;
+    let minX = BW, minY = BH, maxX = 0, maxY = 0, found = false;
+    for (let y = 0; y < BH; y++) {
+      for (let x = 0; x < BW; x++) {
+        if (data[(y * BW + x) * 4 + 3] > 10) {
           found = true;
           if (x < minX) minX = x;
           if (x > maxX) maxX = x;
@@ -81,18 +121,20 @@ export default function SignaturePad({
       }
     }
     if (!found) {
+      setHasInk(false);
       onChange(null);
       return;
     }
-    const pad = 6;
+    const pad = 6 * SCALE;
     minX = Math.max(0, minX - pad);
     minY = Math.max(0, minY - pad);
-    maxX = Math.min(W, maxX + pad);
-    maxY = Math.min(H, maxY + pad);
+    maxX = Math.min(BW, maxX + pad);
+    maxY = Math.min(BH, maxY + pad);
     const out = document.createElement("canvas");
     out.width = maxX - minX;
     out.height = maxY - minY;
     out.getContext("2d")!.drawImage(canvas, minX, minY, out.width, out.height, 0, 0, out.width, out.height);
+    setHasInk(true);
     onChange(out.toDataURL("image/png"));
   }
 
@@ -113,8 +155,8 @@ export default function SignaturePad({
         />
         <canvas
           ref={canvasRef}
-          width={W}
-          height={H}
+          width={W * SCALE}
+          height={H * SCALE}
           data-testid="signature-pad"
           className="absolute cursor-crosshair touch-none"
           style={{
@@ -127,7 +169,9 @@ export default function SignaturePad({
             e.currentTarget.setPointerCapture(e.pointerId);
             drawing.current = true;
             const { x, y } = pos(e);
-            const ctx = canvasRef.current!.getContext("2d")!;
+            strokes.current.push([{ x, y }]);
+            setStrokeCount(strokes.current.length);
+            const ctx = ctx2d();
             ctx.beginPath();
             ctx.moveTo(x, y);
             // A dot for taps, so single touches leave a mark too.
@@ -138,7 +182,8 @@ export default function SignaturePad({
           onPointerMove={(e) => {
             if (!drawing.current) return;
             const { x, y } = pos(e);
-            const ctx = canvasRef.current!.getContext("2d")!;
+            strokes.current[strokes.current.length - 1]?.push({ x, y });
+            const ctx = ctx2d();
             ctx.lineTo(x, y);
             ctx.stroke();
           }}
@@ -154,22 +199,40 @@ export default function SignaturePad({
           }}
         />
       </div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-stone-400">{t("signAbove")}</p>
-        <button
-          type="button"
-          className="text-xs text-indigo-600 underline disabled:opacity-40"
-          disabled={!hasInk}
-          data-testid="signature-clear"
-          onClick={() => {
-            const canvas = canvasRef.current!;
-            canvas.getContext("2d")!.clearRect(0, 0, W, H);
-            setHasInk(false);
-            onChange(null);
-          }}
-        >
-          {t("clearPad")}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="text-xs text-indigo-600 underline disabled:opacity-40"
+            disabled={strokeCount === 0}
+            data-testid="signature-undo"
+            onClick={() => {
+              strokes.current.pop();
+              setStrokeCount(strokes.current.length);
+              redraw();
+              exportInk();
+            }}
+          >
+            {t("undoStroke")}
+          </button>
+          <button
+            type="button"
+            className="text-xs text-indigo-600 underline disabled:opacity-40"
+            disabled={!hasInk}
+            data-testid="signature-clear"
+            onClick={() => {
+              strokes.current = [];
+              setStrokeCount(0);
+              baseImage.current = null;
+              ctx2d().clearRect(0, 0, W, H);
+              setHasInk(false);
+              onChange(null);
+            }}
+          >
+            {t("clearPad")}
+          </button>
+        </div>
       </div>
     </div>
   );

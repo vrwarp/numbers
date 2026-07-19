@@ -28,12 +28,25 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const wantOriginal = new URL(req.url).searchParams.get("original") === "1";
     const relPath =
       wantOriginal && receipt.originalFilePath ? receipt.originalFilePath : receipt.filePath;
+    // fileSha256 tracks the current bytes (edits rewrite it), so it's a valid
+    // strong ETag: after max-age the browser revalidates for a 304 instead of
+    // re-downloading ~100 KB per thumbnail. The `original` sidecar is untracked
+    // — it just keeps the plain max-age. In-session edits stay instant via the
+    // client's ?v= cache-buster.
+    const etag = !wantOriginal && receipt.fileSha256 ? `"${receipt.fileSha256}"` : null;
+    const cacheHeaders: Record<string, string> = {
+      "Cache-Control": "private, max-age=3600",
+      ...(etag ? { ETag: etag } : {}),
+    };
+    if (etag && req.headers.get("if-none-match") === etag) {
+      return new NextResponse(null, { status: 304, headers: cacheHeaders });
+    }
     const data = await readStoredFile(relPath);
     return new NextResponse(new Uint8Array(data), {
       headers: {
         "Content-Type": receipt.mimeType,
         "Content-Disposition": contentDisposition(receipt.originalName),
-        "Cache-Control": "private, max-age=3600",
+        ...cacheHeaders,
       },
     });
   });

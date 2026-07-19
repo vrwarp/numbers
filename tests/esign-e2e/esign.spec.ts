@@ -127,6 +127,16 @@ async function grantRole(page: Page, name: string, role: "approver" | "treasurer
 /** Seed a fully verified single-ministry claim via the API; returns its id. */
 async function seedClaim(persona: Persona, event: string): Promise<string> {
   const api = persona.context.request;
+  // The PDF gate refuses a blank payee — make sure the seeding persona's
+  // profile carries the mailing address the form prints (name comes from
+  // the dev login).
+  expect(
+    (
+      await api.patch(`${BASE}/api/profile`, {
+        data: { mailingAddress: "123 Main St, San Jose, CA 95110" },
+      })
+    ).ok()
+  ).toBe(true);
   const receiptIds: string[] = [];
   for (const name of ["receipt-a.jpg", "receipt-b.jpg"]) {
     const res = await api.post(`${BASE}/api/receipts`, {
@@ -363,9 +373,10 @@ test("submit → approve → pay, fail-closed ceremonies throughout", async () =
     timeout: 30_000,
   });
   await bob.page.click('[data-testid="approve-button"]');
-  await expect(bob.page.getByText("Approved", { exact: false }).first()).toBeVisible({
-    timeout: 30_000,
-  });
+  // The paid history's "Approved {date}" meta line satisfies a bare
+  // getByText("Approved") instantly — wait for THIS claim's decided row, or
+  // the in-flight ceremony can be abandoned by the next navigation.
+  await bob.page.waitForSelector(`[data-testid="decided-${claimId}"]`, { timeout: 30_000 });
 
   // Carol marks paid with a check number.
   await carol.page.goto(`${BASE}/finance`);
@@ -501,9 +512,10 @@ test("duty pause: a paused approver leaves the picker; assigned work stays decid
     timeout: 30_000,
   });
   await bob.page.click('[data-testid="approve-button"]');
-  await expect(bob.page.getByText("Approved", { exact: false }).first()).toBeVisible({
-    timeout: 30_000,
-  });
+  // Same hardening as the first approve: the bare "Approved" text is already
+  // on the page (paid history meta line), so it never proved this ceremony
+  // committed — the paused-approver decision went untested for that reason.
+  await bob.page.waitForSelector(`[data-testid="decided-${pausedClaim}"]`, { timeout: 30_000 });
 
   // Back on duty for the later scenes (the phone story routes to Bob again).
   await bob.page.goto(`${BASE}/profile`);

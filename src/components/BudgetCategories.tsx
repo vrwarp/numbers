@@ -65,7 +65,11 @@ export default function BudgetCategories() {
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/ministries?scope=all");
-      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        // Attach the payload so useThrownErrorMessage can translate the code.
+        throw Object.assign(new Error((body as { error?: string } | null)?.error ?? "request failed"), { payload: body });
+      }
       const data = (await res.json()) as { rows: ApiRow[] };
       const mapped = data.rows.map((r, i) => ({ ...r, key: r.id ?? `new-${i}` }));
       snapshot.current = new Map(mapped.map((r) => [r.key, serialize(r)]));
@@ -135,6 +139,12 @@ export default function BudgetCategories() {
     setRows((rs) => (rs ?? []).map((r) => (r.group === from ? { ...r, group: to } : r)));
     setOk(false);
   };
+  const removeUnsaved = (key: string) => {
+    // Only rows that never existed server-side may be removed outright —
+    // saved rows retire via the Active toggle (archive-don't-delete).
+    setRows((rs) => (rs ?? []).filter((r) => !(r.key === key && r.id === null)));
+    setOk(false);
+  };
   const addCategory = (group: string) => {
     const key = `add-${newKey.current++}`;
     setRows((rs) => [
@@ -192,9 +202,15 @@ export default function BudgetCategories() {
             active: r.active,
             defaultPositionId: r.defaultPositionId,
           })),
+          // Stale-editor guard: only ids we loaded may be archived by our save.
+          knownIds: rows.filter((r) => r.id).map((r) => r.id as string),
         }),
       });
-      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        // Attach the payload so useThrownErrorMessage can translate the code.
+        throw Object.assign(new Error((body as { error?: string } | null)?.error ?? "request failed"), { payload: body });
+      }
       await load();
       setOk(true);
     } catch (err) {
@@ -257,11 +273,12 @@ export default function BudgetCategories() {
           positionsById={positionsById}
           onRenameGroup={renameGroup}
           onPatch={patch}
+          onRemove={removeUnsaved}
           onAddCategory={addCategory}
         />
       ))}
 
-      <div className="sticky bottom-0 -mx-4 -mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-stone-200 bg-white/90 px-4 py-3 backdrop-blur">
+      <div className="sticky bottom-0 -mx-4 -mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-stone-200 bg-white/90 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
         <button className="btn-primary" disabled={!canSave} onClick={save} data-testid="ministries-save">
           {busy ? t("saving") : changed > 0 ? t("save", { count: changed }) : t("saveNone")}
         </button>
@@ -284,6 +301,7 @@ function GroupCard({
   positionsById,
   onRenameGroup,
   onPatch,
+  onRemove,
   onAddCategory,
 }: {
   group: string;
@@ -293,6 +311,7 @@ function GroupCard({
   positionsById: Map<string, PositionOption>;
   onRenameGroup: (from: string, to: string) => void;
   onPatch: (key: string, next: Partial<ApiRow>) => void;
+  onRemove: (key: string) => void;
   onAddCategory: (group: string) => void;
 }) {
   const t = useTranslations("Ministries");
@@ -362,6 +381,17 @@ function GroupCard({
               data-testid="ministry-description"
               onChange={(e) => onPatch(r.key, { description: e.target.value })}
             />
+            {r.id === null && (
+              <button
+                type="button"
+                className="justify-self-end rounded-full px-2 py-1 text-xs font-semibold text-stone-400 hover:bg-red-50 hover:text-red-600"
+                onClick={() => onRemove(r.key)}
+                aria-label={t("removeUnsavedAria", { name: r.name || r.code || t("newCategoryFallback") })}
+                data-testid="ministry-remove-unsaved"
+              >
+                ✕
+              </button>
+            )}
             <button
               type="button"
               role="switch"

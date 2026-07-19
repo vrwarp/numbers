@@ -7,7 +7,7 @@
   "Common": {
     "status": {
       "draft": "草稿",
-      "generated": "已生成",
+      "generated": "可提交",
       "needsReview": "待核对",
       "processed": "已处理",
       "submitted": "待审批",
@@ -20,6 +20,8 @@
     "save": "保存",
     "saving": "保存中…",
     "loading": "加载中…",
+    "pdfReady": "您的 PDF 已就绪。",
+    "pdfReadyAction": "保存 / 分享",
     "language": "语言",
     "date": {
       "today": "今天",
@@ -32,7 +34,8 @@
       "chairman": "主席",
       "treasurer": "财务同工",
       "admin": "管理员"
-    }
+    },
+    "close": "关闭"
   },
   "NavBar": {
     "shoebox": "收据",
@@ -72,7 +75,7 @@
   },
   "Claims": {
     "title": "报销单",
-    "subtitle": "草稿需要核对；已生成的报销单可以打印签字。",
+    "subtitle": "草稿需要核对；标为“可提交”的报销单可以打印或送审。",
     "emptyTitle": "还没有报销单",
     "emptyBody": "在<link>收据</link>页面选择收据，然后点“新建报销单”。",
     "counts": "{items} 个项目 · {receipts, plural, other {# 张收据}}",
@@ -86,6 +89,7 @@
     "fullNamePlaceholder": "例如：陈恩典",
     "mailingAddress": "邮寄地址",
     "mailingAddressPlaceholder": "123 Main St, San Jose, CA 95110",
+    "printedOnForm": "将打印在报销表上。",
     "saved": "已保存 ✓",
     "loadFailed": "个人资料加载失败",
     "saveFailed": "保存失败",
@@ -101,12 +105,15 @@
     "dutyAdminOn": "您可以更改会友的角色；管理员还可以管理设置和电子签名。",
     "dutyAdminOff": "角色控制和管理页面已隐藏，重新开启后即可恢复。",
     "dutyTurnOn": "开启",
-    "dutyTurnOff": "关闭"
+    "dutyTurnOff": "关闭",
+    "teamsTitle": "您的团队",
+    "teamsBody": "团队成员可以查看归入团队预算类别的收据。请在<link>搜索 → 我的团队</link>中查看。"
   },
   "ReceiptGrid": {
     "pdfChip": "PDF",
     "pdfThumbAlt": "PDF 收据",
     "deleteReceipt": "删除 {name}",
+    "selectReceipt": "选择 {name}",
     "viewLarger": "放大查看 {name}",
     "viewLargerTitle": "放大查看",
     "notePlaceholder": "添加说明…",
@@ -124,14 +131,16 @@
   },
   "Shoebox": {
     "title": "收据",
-    "intro": "随时把收据放进来，准备报销时再选择它们提交。",
-    "upload": "📷 上传收据",
+    "intro": "随时添加收据——拍照或上传文件都可以。准备报销时再选择它们提交。",
+    "upload": "上传收据",
+    "takePhoto": "📷 拍照",
+    "restoredPhoto": "已从上次访问中恢复——这张照片当时尚未保存。",
     "uploading": "上传中…",
     "uploadFailed": "上传失败",
     "dropTitle": "松开以上传收据",
     "dropBody": "图片或 PDF",
     "noteSaveFailed": "说明保存失败",
-    "deleteConfirm": "删除这张收据？",
+    "deleteConfirm": "删除“{name}”？此操作无法撤销。",
     "deleteConfirmButton": "删除",
     "deleteFailed": "删除失败",
     "selectedCount": "已选择 {count, plural, other {# 张收据}}",
@@ -140,6 +149,7 @@
     "selectPromptShort": "选择收据以开始",
     "newClaim": "✨ 新建报销单",
     "clearSelection": "清除",
+    "selectAll": "全选",
     "waitingRateLimit": "正在等待限额恢复…",
     "readingShort": "正在读取收据…",
     "selectHint": "请先选择一张收据——点击下方的 ✓",
@@ -244,6 +254,14 @@
     "subtotal": "小计：",
     "claimTotal": "报销总额",
     "verifiedProgress": "已核对 {verified} / {total}",
+    "verifyAll": "✓ 全部核对",
+    "verifyAllConfirm": "将 {count, plural, other {# 行}}标记为已核对？请先对照收据检查每行的描述、事工和金额。",
+    "verifyAllButton": "核对 {count, plural, other {# 行}}",
+    "profileIncomplete": "您的个人资料还缺少姓名和邮寄地址——两者都会打印在报销表上。",
+    "profileIncompleteCta": "填写姓名和地址",
+    "profileIncompleteShort": "请先完成个人资料",
+    "amountRestored": "无法识别该金额——已恢复原来的数值。",
+    "descriptionRestored": "描述不能为空——已恢复原来的文字。",
     "generatedFrozen": "已生成——各行已锁定。",
     "addReceipts": "＋ 添加收据",
     "discard": "放弃",
@@ -360,7 +378,8 @@
     "splitConfirm": "拆分",
     "underSignatureFrozen": "签署中——报销文件与明细已冻结。",
     "downloadSigned": "⬇ 下载已签署文件",
-    "revertConfirmSigned": "要将这张报销单退回草稿吗？目前已收集的签名将全部作废，审批需要重新开始。"
+    "revertConfirmSigned": "要将这张报销单退回草稿吗？目前已收集的签名将全部作废，审批需要重新开始。",
+    "retiredOption": "{value}（已停用）"
   },
   "Esign": {
     "submitForApproval": "✍️ 提交审批",
@@ -371,7 +390,7 @@
     "panelPaidWithCheck": "已支付——支票号 {checkNumber}",
     "approverComment": "审批人留言：“{comment}”",
     "certificateLink": "📜 批准证书",
-    "withdrawConfirm": "要撤回本次提交、改选其他审批人吗？",
+    "withdrawConfirm": "要撤回本次提交、改选其他审批人吗？撤回后可立即从报销单的电子签名按钮重新提交。",
     "withdrawConfirmButton": "撤回",
     "withdrawButton": "↪ 撤回／更换审批人",
     "resubmit": "✍️ 重新提交",
@@ -385,6 +404,10 @@
     "notAttested": "你还不能签名——请先在<link>个人资料</link>中开通签名，然后获得担保。",
     "submitIntro": "你正在为这张报销单（{amount}）申请批准。请把签名放到表单上，选择审批人，然后签署。若之后报销单有改动，你的签名即告失效，审批需重新开始。",
     "openingForm": "正在打开表单…",
+    "prepFailed": "无法加载表单——请检查网络后重试。",
+    "retryButton": "重试",
+    "noEligibleApprovers": "目前没有可用的审批人——所有可审批的成员都已暂停或未注册。请与财务负责人联系。",
+    "placeSignatureHint": "请先在上方表单上按住以放置您的签名。",
     "approverLabel": "审批人",
     "approverPlaceholder": "请选择审批人…",
     "typedNameLabel": "输入你的全名以签署",
@@ -443,7 +466,21 @@
     "waitingFor": "正在等待 {name} 审阅这张报销单。",
     "approverPausedNote": "{name} 目前不接收新的审批请求。对方仍可以处理这张报销单；您也可以撤回并改选其他审批人。",
     "approverIneligibleNote": "{name} 已无法再审批报销单。请撤回本次提交并改选其他审批人。",
-    "approverPrefilledFrom": "Pre-filled from the {position} default. Change it below if needed."
+    "approverPrefilledFrom": "Pre-filled from the {position} default. Change it below if needed.",
+    "signedButNotSynced": "您的签名已记录。页面暂时无法刷新报销单状态——稍后会自动更新。请勿再次签署。",
+    "hintPickApprover": "请先选择审批人。",
+    "hintTypeName": "请先输入您的姓名。",
+    "hintAffirm": "请先勾选同意框。",
+    "consentGloss": "简要说明：您同意在本应用中的签署等同于您本人具有法律效力的亲笔签名，与纸面签字效力相同。（本段仅为摘要，具法律效力的是下方英文文本。）",
+    "withdrawFailed": "无法撤回本次提交——未做任何更改。请重试。",
+    "makeChanges": "✏️ 修改内容",
+    "reviseConfirm": "要重新打开这张报销单进行编辑吗？已收集的所有签名将作废，重新提交后审批将重新开始。",
+    "reviseConfirmButton": "重新打开编辑",
+    "reviseFailed": "无法重新打开报销单",
+    "waitingDays": "· 已等待 {days, plural, other {# 天}}",
+    "alreadyDecidedNote": "这张报销单已有审批结果——列表稍后会更新。",
+    "assignedElsewhereNote": "这张报销单已指派给其他审批人。",
+    "undoStroke": "撤销一笔"
   },
   "Approvals": {
     "title": "审批",
@@ -458,7 +495,8 @@
     "roleLostNotice": "您的审批人角色已被移除。您可以拒绝这些报销单，让提交人改选其他审批人，但无法批准。",
     "rejectConfirmTitle": "拒绝这份报销单？",
     "rejectConfirmBody": "拒绝后无法撤销，你之后也无法再批准这份报销单。{name} 需要修改并重新提交，才能重新进入审批。",
-    "rejectConfirmAction": "✗ 拒绝报销单"
+    "rejectConfirmAction": "✗ 拒绝报销单",
+    "openGone": "该报销单已不在此列表中——可能已有审批结果。"
   },
   "Finance": {
     "title": "财务",
@@ -475,12 +513,15 @@
     "clearSelection": "清除",
     "printAll": "全部打印",
     "printing": "正在准备…",
-    "printFailed": "无法生成单据包，请重试。"
+    "printFailed": "无法生成单据包，请重试。",
+    "openGone": "该报销单已不在此列表中——可能已完成付款。",
+    "noCheckNumberNote": "未填写支票号——非支票付款可留空；若开了支票请填写。",
+    "selectAllPaid": "全选"
   },
   "Identity": {
     "title": "电子签名",
     "chipReady": "可以签署",
-    "chipPending": "就差一步",
+    "chipPending": "等待担保",
     "chipRevoked": "已停用",
     "chipNone": "未开通",
     "loadFailed": "无法加载签名状态",
@@ -529,7 +570,11 @@
     "scopeTitle": "谁可以电子签名",
     "scopeAllowlist": "仅限我选择的成员",
     "scopeEveryone": "所有人",
-    "allowlistOnMembersPage": "请在<link>成员</link>页面选择谁可以使用电子签名。移除某人会对其隐藏签名功能；其已签署的内容仍然有效。"
+    "allowlistOnMembersPage": "请在<link>成员</link>页面选择谁可以使用电子签名。移除某人会对其隐藏签名功能；其已签署的内容仍然有效。",
+    "scanFromVouchTab": "重要提示：请对方在本应用的“担保”标签页中扫描此码——不要用手机相机应用扫描。",
+    "whoCanVouch": "可以为您担保的成员：{names}{more, plural, =0 {} other { 等，还有 # 人}}。",
+    "revokedBody": "您的签名密钥已被管理员停用。您之前签署的内容仍然有效，但若要再次签署，需要重新设置签名并再次当面获得担保。",
+    "reEnrollButton": "重新设置签名"
   },
   "Devices": {
     "newDeviceTitle": "这似乎是一台新设备。",
@@ -567,7 +612,7 @@
     "couldNotRemove": "无法移除该设备",
     "lostHint": "设备丢了？先在这里移除；若可能已落入他人之手，请当面告知管理员——他们可以直接吊销签名密钥。",
     "recoveryRoot": "请保护好教会的签名锚点。若此设备丢失且没有恢复单，全教会的电子签名将不得不推倒重建。",
-    "recoveryNudge": "再加一道保险：打印一张恢复单，即使这台设备丢失，你也能在新设备上签名。",
+    "recoveryNudge": "再加一道保险：打印一张恢复单，即使这台设备丢失，你也能在新设备上签名。没有恢复单的话，设备全部丢失就需要重新注册并再次当面获得担保。",
     "printSheet": "打印我的恢复单",
     "later": "以后再说",
     "phraseDialogTitle": "打印你的恢复单",
@@ -579,7 +624,10 @@
     "savedCheckbox": "恢复单已打印（或已抄写），并已妥善保存。",
     "done": "完成",
     "couldNotCreatePhrase": "无法生成恢复短语",
-    "couldNotBuildSheet": "无法生成恢复单"
+    "couldNotBuildSheet": "无法生成恢复单",
+    "waitingCancel": "取消并重新开始",
+    "rejectFailed": "无法拒绝该请求——它可能仍在等待中。请重试。",
+    "freshPhraseNote": "每次打开都会生成全新的助记词——之前打印的恢复单将立即失效。"
   },
   "Vouch": {
     "title": "为会友担保",
@@ -602,7 +650,8 @@
     "nobodyPending": "目前没有人等待担保。",
     "vouchFailed": "担保失败",
     "malformedLink": "担保链接已损坏——请重新扫码",
-    "membersPageHint": "在找成员名册？角色、签名密钥和电子签名权限都在<link>成员</link>页面管理。"
+    "membersPageHint": "在找成员名册？角色、签名密钥和电子签名权限都在<link>成员</link>页面管理。",
+    "keylessDevice": "此浏览器尚未持有您的签名密钥，无法在此进行担保。请先在“个人资料”中添加此设备，或改用您已能签名的设备进行担保。"
   },
   "VouchScan": {
     "open": "📷 扫描对方的二维码",
@@ -610,13 +659,13 @@
     "aim": "对准对方的二维码",
     "notVouch": "这不是担保二维码——请对准对方的二维码。",
     "insecure": "此设备无法在此打开相机。请改用下方的列表。",
-    "denied": "相机权限被拒。请在浏览器设置中允许，或改用下方的列表。",
+    "denied": "相机权限被拒。请在设备设置中为本应用允许相机权限，或改用下方的列表。",
     "startFailed": "无法启动相机。请改用下方的列表。"
   },
   "Verify": {
     "verifying": "正在你的浏览器中验证签名…",
     "failedTitle": "验证失败",
-    "linkInvalid": "此验证链接无效（{part}）",
+    "linkInvalid": "此验证链接无效或已过期",
     "confirmedTitle": "确认属实",
     "warningsTitle": "需要进一步核对",
     "storyGeneric": "这份文件已在你的浏览器中完成密码学核对——详见下方。",
@@ -684,7 +733,8 @@
     "rosterOddities": "名册中有 {count} 处异常",
     "invalidEvents": "无效事件（保持可见）：",
     "independentCheckCert": "独立核验：用教会公布的根指纹，对证书内嵌的数据包运行 <code>scripts/verify-bundle.mjs</code>。",
-    "unknown": "未知"
+    "unknown": "未知",
+    "orgHeader": "CFCC · 报销单验证"
   },
   "Errors": {
     "notSignedIn": "尚未登录",
@@ -727,6 +777,7 @@
     "claimEmpty": "报销单没有可报销的行项目",
     "rowsUnverified": "还有 {count} 行需要核对后才能生成 PDF",
     "rowsMissingMinistry": "还有 {count} 行需要选择事工后才能生成 PDF",
+    "profileIncomplete": "请先在个人资料中填写姓名和邮寄地址——两者都会打印在报销表上",
     "invalidManualEntry": "无效的手动输入字段",
     "receiptNotOnClaim": "这张报销单上没有该收据",
     "rowAlreadyEdited": "该收据的行已被编辑过——请直接调整该行",
@@ -765,7 +816,8 @@
       "contentString": "内容必须为文本。",
       "contextTooLong": "教会背景过长（上限 {max} 字节）。",
       "unknownField": "该设置无法在此编辑。",
-      "nothingToChange": "没有可更改的内容。"
+      "nothingToChange": "没有可更改的内容。",
+      "selfLockout": "此更改会移除您自己的管理员权限——请保留您的邮箱"
     },
     "ministry": {
       "invalid": "Those budget categories couldn’t be saved — check the form and try again.",
@@ -781,12 +833,14 @@
       "invalid": "Those teams couldn’t be saved — check the form and try again.",
       "codeFormat": "Invalid budget category code: “{code}”.",
       "unknownMember": "One of the selected people couldn’t be found. Refresh and try again."
-    }
+    },
+    "searchInvalid": "无法理解该搜索——请调整后重试",
+    "searchEmptyQuery": "请先输入要搜索的内容"
   },
   "AddReceipts": {
     "title": "向这张报销单添加收据",
     "intro": "从已有收据中选择，或直接上传新收据——每张都会由 AI 读取并生成待核对的一行。",
-    "upload": "📷 上传收据",
+    "upload": "上传收据",
     "uploading": "上传中…",
     "emptyTitle": "没有其他可添加的收据",
     "emptyBody": "上传收据的照片或 PDF 即可添加。",
@@ -1017,8 +1071,23 @@
       "scoreExact": "精确",
       "rebuildTitle": "重建索引",
       "rebuildHint": "在当前模型上重新读取全部内容——当搜索服务器被悄悄更换时使用。",
-      "rebuild": "重建"
-    }
+      "rebuild": "重建",
+      "confirmModelChange": "更改模型会清除所有已存储的向量，并针对 AI 端点重新读取全部收据和报销单——搜索将降级数小时。确定继续吗？",
+      "confirmModelChangeButton": "更改模型并重建",
+      "confirmRebuild": "要重建整个搜索索引吗？所有收据和报销单都会针对 AI 端点重新读取——需要数小时并消耗 AI 调用。"
+    },
+    "allowAction": "允许",
+    "blockAction": "禁用",
+    "detailToggle": "详情",
+    "kind_embedding": "搜索索引",
+    "action_admin_config": "更改了应用设置",
+    "action_admin_ministries": "编辑了预算类别",
+    "action_admin_teams": "编辑了团队",
+    "action_admin_positions": "编辑了职位",
+    "action_admin_church_context": "编辑了教会背景资料",
+    "action_update_embedding_config": "更改了搜索设置",
+    "action_rebuild_embeddings": "重建了搜索索引",
+    "action_retry_embedding": "重试了失败的索引"
   },
   "Ministries": {
     "title": "Budget categories",
@@ -1037,7 +1106,7 @@
     "code": "Code",
     "name": "Name",
     "description": "Description (optional)",
-    "descriptionPlaceholder": "Add a hint for requesters…",
+    "descriptionPlaceholder": "为报销人添加提示——它同时会引导 AI 的类别建议…",
     "codeAria": "Account code",
     "nameAria": "Category name",
     "active": "Active",
@@ -1057,7 +1126,9 @@
     "positionArchivedOption": "{name} (archived)",
     "routesTo": "Routes to {name}",
     "routesNobody": "No holder here can approve yet — claims won't be pre-filled.",
-    "routesNoHolder": "This position has no holder yet."
+    "routesNoHolder": "This position has no holder yet.",
+    "removeUnsavedAria": "移除未保存的类别 {name}",
+    "newCategoryFallback": "新类别"
   },
   "Search": {
     "title": "搜索",
@@ -1070,7 +1141,7 @@
     "scopeMine": "我的",
     "scopeAll": "全教会",
     "scopeDecided": "我审批过的",
-    "scopeDecidedHint": "我批准或拒绝过的——不含仍在等待审批的",
+    "scopeDecidedHint": "您批准或拒绝过的报销单——不含仍在等待您处理的。搜索框留空可列出全部。",
     "typeFilterLabel": "显示",
     "scopeFilterLabel": "范围",
     "typeAll": "全部",
@@ -1096,7 +1167,12 @@
     "dateHint": "搜索匹配的是描述而不是日期——每条结果上都标有日期。",
     "showMore": "显示更多",
     "scopeTeam": "My teams",
-    "scopeTeamHint": "Receipts and claims under your teams' budget categories. Leave the search empty to list all of them."
+    "scopeTeamHint": "Receipts and claims under your teams' budget categories. Leave the search empty to list all of them.",
+    "viewOnlyCard": "仅供查看——您无权打开这张报销单。",
+    "emptyDegradedBody": "描述搜索暂时不可用，且没有完全匹配的结果——请稍后再试。",
+    "emptyTeamBrowse": "您的团队暂时没有已提交报销单上的收据——新的收据会显示在这里。",
+    "unavailableTitle": "搜索尚未设置",
+    "unavailableBody": "管理员需要先配置搜索后端，此页面才能使用。应用的其他功能不受影响。"
   },
   "Positions": {
     "title": "Positions",
@@ -1152,7 +1228,9 @@
     "eligibilityPaused": "Approvals paused",
     "eligibilityCannot": "Needs Approver grant",
     "holderPausedWarn": "{name} has paused approvals, so claims won't pre-fill to them until they resume.",
-    "holderCannotWarn": "{name} 需要执行同工或管理员在<link>成员</link>页面授予“审批人”角色后才能审批。"
+    "holderCannotWarn": "{name} 需要执行同工或管理员在<link>成员</link>页面授予“审批人”角色后才能审批。",
+    "routingNote": "跨多个预算类别的报销单会按金额最大的类别的默认审批人预填；不可用的担任者会被跳过。",
+    "localizedNamesHint": "中文名称为可选项——留空时使用英文名称。"
   },
   "Members": {
     "title": "成员",
@@ -1186,7 +1264,10 @@
     "roleDialogConfirm": "更新角色",
     "revokeKey": "吊销密钥",
     "keyDialogTitle": "吊销 {name} 的签名密钥？",
-    "keyDialogBody": "仅当能以他身份签名的设备丢失或被盗时才这样做。他已签署的内容依然有效，但该密钥将立即在所有地方失效——他需要重新开通签名，并再次当面获得担保。"
+    "keyDialogBody": "仅当能以他身份签名的设备丢失或被盗时才这样做。他已签署的内容依然有效，但该密钥将立即在所有地方失效——他需要重新开通签名，并再次当面获得担保。",
+    "attestedSince": "认证于 {date}",
+    "statusRevokedHint": "其签名密钥已停用。若要再次签署，需在其个人资料页重新设置签名并再次当面获得担保。",
+    "statusNoneHint": "尚未设置电子签名。可从其个人资料页开始设置。"
   },
   "Teams": {
     "title": "Teams",
@@ -1215,6 +1296,7 @@
     "noMembers": "No members yet.",
     "addMember": "Add a member",
     "choosePerson": "Choose a person…",
-    "removeMember": "Remove"
+    "removeMember": "Remove",
+    "archiveEndsAccess": "归档后，保存时将结束所有成员的查看权限。"
   }
 }

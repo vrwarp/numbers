@@ -39,10 +39,12 @@ export default function VouchQrScanner({
 
   // Always release the camera when this component leaves the screen (unmount
   // happens the instant a scan resolves and the parent swaps in the subject).
+  const notVouchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     return () => {
       scannerRef.current?.destroy();
       scannerRef.current = null;
+      if (notVouchTimer.current) clearTimeout(notVouchTimer.current);
     };
   }, []);
 
@@ -66,8 +68,12 @@ export default function VouchQrScanner({
         (result: { data: string }) => {
           const subject = subjectFromScan(result.data);
           if (!subject) {
-            // A QR that isn't a vouch code — keep the camera running.
+            // A QR that isn't a vouch code — keep the camera running, but
+            // let the warning clear itself: pinned forever, it reads as
+            // "the RIGHT code is being rejected" once they re-aim.
             setNotVouch(true);
+            if (notVouchTimer.current) clearTimeout(notVouchTimer.current);
+            notVouchTimer.current = setTimeout(() => setNotVouch(false), 2500);
             return;
           }
           scanner.stop();

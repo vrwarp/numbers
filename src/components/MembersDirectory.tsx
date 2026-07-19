@@ -26,6 +26,8 @@ import {
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { ROLE_MANAGER_ROLES } from "@/lib/esign/types";
 import { roleLabelKey } from "@/lib/role-label";
+import { fingerprintDisplay } from "@/lib/esign/canonical";
+import { useDateLabel } from "@/lib/use-date-label";
 import { usePositionLabel } from "@/lib/use-position-label";
 import type { PositionNameSet } from "@/lib/positions";
 import RoleControls from "./esign/RoleControls";
@@ -57,6 +59,7 @@ export default function MembersDirectory() {
   const t = useTranslations("Members");
   const tRole = useTranslations("Common.role");
   const positionLabel = usePositionLabel();
+  const dateLabel = useDateLabel();
   const thrown = useThrownErrorMessage();
   const [members, setMembers] = useState<DirectoryMember[] | null>(null);
   const [env, setEnv] = useState<EsignEnv | null>(null);
@@ -125,11 +128,17 @@ export default function MembersDirectory() {
         {t("statusPending")}
       </span>
     ) : m.identityStatus === "revoked" ? (
-      <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-800">
+      <span
+        className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-semibold text-red-800"
+        title={t("statusRevokedHint")}
+      >
         {t("statusRevoked")}
       </span>
     ) : (
-      <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-semibold text-stone-500">
+      <span
+        className="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-semibold text-stone-500"
+        title={t("statusNoneHint")}
+      >
         {t("statusNone")}
       </span>
     );
@@ -230,6 +239,18 @@ export default function MembersDirectory() {
               >
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   {memberIdentity(m)}
+                  {/* The API computes these for every attested member — show
+                      them: the fingerprint is what an admin verifies against a
+                      member's Profile card, and "attested since" answers the
+                      basic "is this person set up?" question positively. */}
+                  <p className="text-[11px] text-stone-400">
+                    {m.fingerprint && (
+                      <code className="mr-2 font-mono" data-testid={`member-fp-${m.userId}`}>
+                        {fingerprintDisplay(m.fingerprint)}
+                      </code>
+                    )}
+                    {m.attestedAt && t("attestedSince", { date: dateLabel(m.attestedAt) })}
+                  </p>
                   {allowlistActive && <div>{accessButton(m)}</div>}
                 </div>
                 {canManageRoles && env && m.userId !== env.me.userId && m.publicKey && (
