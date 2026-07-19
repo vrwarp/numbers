@@ -127,6 +127,16 @@ async function grantRole(page: Page, name: string, role: "approver" | "treasurer
 /** Seed a fully verified single-ministry claim via the API; returns its id. */
 async function seedClaim(persona: Persona, event: string): Promise<string> {
   const api = persona.context.request;
+  // The PDF gate refuses a blank payee — make sure the seeding persona's
+  // profile carries the mailing address the form prints (name comes from
+  // the dev login).
+  expect(
+    (
+      await api.patch(`${BASE}/api/profile`, {
+        data: { mailingAddress: "123 Main St, San Jose, CA 95110" },
+      })
+    ).ok()
+  ).toBe(true);
   const receiptIds: string[] = [];
   for (const name of ["receipt-a.jpg", "receipt-b.jpg"]) {
     const res = await api.post(`${BASE}/api/receipts`, {
