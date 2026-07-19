@@ -135,12 +135,15 @@ interface MinistryCatalog {
   groups: { label: string; options: string[] }[];
   entries: MinistryEntry[];
   isKnown: (value: string) => boolean;
+  /** Known but archived: renderable as itself, not offered for new picks. */
+  isRetired: (value: string) => boolean;
   describe: (value: string) => string | null;
 }
 const DEFAULT_MINISTRY_CATALOG: MinistryCatalog = {
   groups: MINISTRY_GROUPS.map((g) => ({ label: g.label, options: [...g.options] })),
   entries: [],
   isKnown: isKnownMinistry,
+  isRetired: () => false,
   describe: () => null,
 };
 const MinistryCatalogContext = createContext<MinistryCatalog>(DEFAULT_MINISTRY_CATALOG);
@@ -373,7 +376,7 @@ export default function ReviewClaim({
   useEffect(() => {
     void fetch("/api/ministries")
       .then((r) => (r.ok ? r.json() : null))
-      .then((data: { groups?: { label: string; options: string[] }[]; entries?: MinistryEntry[] } | null) => {
+      .then((data: { groups?: { label: string; options: string[] }[]; entries?: MinistryEntry[]; retired?: string[] } | null) => {
         if (!data?.entries) return;
         const values = new Set<string>();
         const desc = new Map<string, string>();
@@ -382,10 +385,15 @@ export default function ReviewClaim({
           values.add(v);
           if (e.description) desc.set(v, e.description);
         }
+        // Archived categories still on open claims render as themselves (with
+        // a "retired" marker), never as free-text "Other…" — archiving must
+        // not strip an existing row of its code chip and group context.
+        const retired = new Set(data.retired ?? []);
         setMinistryCatalog({
           groups: data.groups ?? DEFAULT_MINISTRY_CATALOG.groups,
           entries: data.entries,
-          isKnown: (v) => values.has(v),
+          isKnown: (v) => values.has(v) || retired.has(v),
+          isRetired: (v) => retired.has(v),
           describe: (v) => desc.get(v) ?? null,
         });
       })
@@ -2057,6 +2065,11 @@ function ClaimMinistryPanel({
                       ))}
                     </optgroup>
                   ))}
+                  {/* Archived category still on this row: keep it displayable
+                      (and re-selectable as itself) instead of blanking the select. */}
+                  {catalog.isRetired(claim.claimMinistry) && (
+                    <option value={claim.claimMinistry}>{t("retiredOption", { value: claim.claimMinistry })}</option>
+                  )}
                   <option value={OTHER_MINISTRY}>{t("otherOption")}</option>
                 </select>
                 <GuideButton
@@ -2268,6 +2281,11 @@ function LineItemRow({
                     ))}
                   </optgroup>
                 ))}
+                {/* Archived category still on this row: keep it displayable
+                    (and re-selectable as itself) instead of blanking the select. */}
+                {catalog.isRetired(item.ministry) && (
+                  <option value={item.ministry}>{t("retiredOption", { value: item.ministry })}</option>
+                )}
                 <option value={OTHER_MINISTRY}>{t("otherOption")}</option>
               </select>
               <GuideButton
@@ -2343,6 +2361,9 @@ function LineItemRow({
             </span>
           )}
         </div>
+        {/* The treasurer's category description reaches the per-row picker too —
+            row-by-row categorization is where the guidance matters most. */}
+        {!excluded && !singleMode && <MinistryHelp value={item.ministry} />}
         {/* Action line: row operations on the left, confirm on the right —
             always the last line of the row. While a split is open the inline
             editor takes the row's place so the receipt image stays in view. */}
@@ -2665,6 +2686,11 @@ function InlineSplit({
                   ))}
                 </optgroup>
               ))}
+              {/* Archived category still on this row: keep it displayable
+                  (and re-selectable as itself) instead of blanking the select. */}
+              {catalog.isRetired(ministry) && (
+                <option value={ministry}>{t("retiredOption", { value: ministry })}</option>
+              )}
               <option value={OTHER_MINISTRY}>{t("otherOption")}</option>
             </select>
             <GuideButton

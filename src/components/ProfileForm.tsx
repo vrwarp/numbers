@@ -85,6 +85,9 @@ export default function ProfileForm() {
   const apiError = useApiErrorMessage();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [duties, setDuties] = useState<Duties | null>(null);
+  // Active teams this member belongs to — surfacing the read grant they'd
+  // otherwise never learn about (it only manifests as a Search scope).
+  const [teams, setTeams] = useState<string[]>([]);
   const [fullName, setFullName] = useState("");
   const [mailingAddress, setMailingAddress] = useState("");
   const [locale, setLocale] = useState<string>(activeLocale);
@@ -105,9 +108,10 @@ export default function ProfileForm() {
   useEffect(() => {
     fetch("/api/profile")
       .then((r) => r.json())
-      .then(({ user, duties }) => {
+      .then(({ user, duties, teams }) => {
         setProfile(user);
         setDuties(duties ?? null);
+        setTeams(Array.isArray(teams) ? teams : []);
         setFullName(user.fullName ?? "");
         setMailingAddress(user.mailingAddress ?? "");
         setLocale(user.locale ?? "en");
@@ -283,6 +287,22 @@ export default function ProfileForm() {
             />
           )}
           {dutyError && <p className="text-sm text-red-700">{dutyError}</p>}
+        </div>
+      )}
+
+      {teams.length > 0 && (
+        <div className="card space-y-1 p-6" data-testid="profile-teams-card">
+          <h2 className="font-semibold">{t("teamsTitle")}</h2>
+          <p className="text-sm text-stone-600">{teams.join(", ")}</p>
+          <p className="text-sm text-stone-500">
+            {t.rich("teamsBody", {
+              link: (chunks) => (
+                <a href="/search?scope=team" className="text-indigo-600 underline">
+                  {chunks}
+                </a>
+              ),
+            })}
+          </p>
         </div>
       )}
 

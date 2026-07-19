@@ -103,7 +103,7 @@ export default function SettingsTab() {
     <div className="space-y-4" data-testid="settings-tab">
       <p className="text-sm text-stone-600">{t("settingsIntro")}</p>
       <p className="break-all text-xs text-stone-400">{t("fileAt", { path: filePath })}</p>
-      {error && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
       {ok && (
         <p className="rounded-lg bg-emerald-50 p-2 text-sm text-emerald-800" data-testid="settings-saved">
           {t("settingsSaved")}

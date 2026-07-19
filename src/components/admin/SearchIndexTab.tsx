@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { useApiErrorMessage } from "@/lib/use-api-error";
 import { formatCents } from "@/lib/money";
 
@@ -85,6 +86,10 @@ export default function SearchIndexTab() {
 
   const [testQuery, setTestQuery] = useState("");
   const [testResult, setTestResult] = useState<TestResult | null>(null);
+  // The model the server currently runs — changing it wipes every embedding
+  // and starts an hours-long rebuild, so that save must confirm first.
+  const loadedModel = useRef<string | null>(null);
+  const [pendingDanger, setPendingDanger] = useState<"modelChange" | "rebuild" | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/admin/embeddings");
@@ -97,6 +102,7 @@ export default function SearchIndexTab() {
     if (data.settings) {
       setEndpoint(data.settings.endpoint);
       setModel(data.settings.model);
+      loadedModel.current = data.settings.model;
       setQueryPrefix(data.settings.queryPrefix);
       setMinScore(String(data.settings.minScore));
       setEnabled(data.settings.enabled);
@@ -135,6 +141,15 @@ export default function SearchIndexTab() {
     },
     [errorMessage, t]
   );
+
+  const saveClicked = useCallback(() => {
+    if (loadedModel.current && model.trim() && model.trim() !== loadedModel.current) {
+      setPendingDanger("modelChange");
+      return;
+    }
+    void save();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [model]);
 
   const save = useCallback(async () => {
     setBusy("save");
@@ -270,7 +285,11 @@ export default function SearchIndexTab() {
             </label>
             <label className="block text-sm">
               {t("minScoreLabel")}
-              <input className="input mt-1 w-28" value={minScore} onChange={(e) => setMinScore(e.target.value)} inputMode="decimal" />
+              <input className="input mt-1 w-28" value={minScore}
+              type="number"
+              step="0.05"
+              min="0"
+              max="1" onChange={(e) => setMinScore(e.target.value)} inputMode="decimal" />
             </label>
           </>
         )}
@@ -292,7 +311,7 @@ export default function SearchIndexTab() {
           <button className="btn-secondary" onClick={() => void probe()} disabled={busy !== null} data-testid="embedding-test-connection">
             {busy === "probe" ? t("probing") : t("testConnection")}
           </button>
-          <button className="btn-primary" onClick={() => void save()} disabled={busy !== null} data-testid="embedding-save">
+          <button className="btn-primary" onClick={saveClicked} disabled={busy !== null} data-testid="embedding-save">
             {busy === "save" ? t("saving") : t("save")}
           </button>
           {probeResult && <span className="text-sm text-emerald-700">{probeResult}</span>}
@@ -382,13 +401,28 @@ export default function SearchIndexTab() {
           <button
             className="btn-secondary"
             data-testid="embedding-rebuild"
-            onClick={() => void call("rebuild", "/api/admin/embeddings/rebuild").then(() => load())}
+            onClick={() => setPendingDanger("rebuild")}
             disabled={busy !== null}
           >
             {busy === "rebuild" ? t("probing") : t("rebuild")}
           </button>
         </div>
       )}
+      {/* Both actions wipe/rebuild the whole index — hours of AI calls from a
+          single (possibly mis-)click, so they confirm with the consequence. */}
+      <ConfirmDialog
+        open={pendingDanger !== null}
+        message={pendingDanger === "modelChange" ? t("confirmModelChange") : t("confirmRebuild")}
+        confirmLabel={pendingDanger === "modelChange" ? t("confirmModelChangeButton") : t("rebuild")}
+        onConfirm={() => {
+          const which = pendingDanger;
+          setPendingDanger(null);
+          if (which === "modelChange") void save();
+          else void call("rebuild", "/api/admin/embeddings/rebuild").then(() => load());
+        }}
+        onCancel={() => setPendingDanger(null)}
+        testId="embedding-danger-confirm"
+      />
     </div>
   );
 }

@@ -9,7 +9,7 @@ import {
   loadActiveMinistryGroups,
   loadAllMinistryRows,
 } from "@/lib/ministries-catalog";
-import { isValidMinistryCode, RESERVED_UNCATEGORIZED_CODE } from "@/lib/ministries";
+import { isValidMinistryCode, RESERVED_UNCATEGORIZED_CODE, composeMinistry } from "@/lib/ministries";
 
 export const runtime = "nodejs";
 
@@ -34,7 +34,12 @@ const RowSchema = z.object({
   // Optional default-approver Position (custom approval role). "" / null = none.
   defaultPositionId: z.string().nullish(),
 });
-const PutSchema = z.object({ ministries: z.array(RowSchema).max(500) });
+// knownIds: same stale-editor guard as /api/teams — never archive a category
+// this client never loaded (a concurrent editor may have just added it).
+const PutSchema = z.object({
+  ministries: z.array(RowSchema).max(500),
+  knownIds: z.array(z.string()).max(1000).optional(),
+});
 
 export async function GET(req: Request) {
   return handleApi(async () => {
@@ -43,11 +48,21 @@ export async function GET(req: Request) {
       return NextResponse.json({ rows: await loadAllMinistryRows() });
     }
     await requireUserId();
-    const [groups, entries] = await Promise.all([
+    const [groups, entries, allRows] = await Promise.all([
       loadActiveMinistryGroups(),
       loadActiveMinistryEntries(),
+      loadAllMinistryRows(),
     ]);
-    return NextResponse.json({ groups, entries });
+    // Retired (archived) composed values: consumers keep rendering a stored
+    // value with its code chip and group context instead of demoting it to a
+    // free-text "Other…" the moment its category is archived. Names only —
+    // nothing sensitive — and they are NOT offered for new picks.
+    const active = new Set(entries.map((e) => composeMinistry(e.code, e.name)));
+    const retired = allRows
+      .filter((r) => !r.active)
+      .map((r) => composeMinistry(r.code, r.name))
+      .filter((v) => !active.has(v));
+    return NextResponse.json({ groups, entries, retired });
   });
 }
 
@@ -113,7 +128,10 @@ export async function PUT(req: Request) {
     // Rows the payload dropped entirely are archived, never hard-deleted, so a
     // historical composed value keeps a catalog match. The editor archives via
     // the toggle rather than dropping, so this is a safety net.
-    const dropped = existing.filter((e) => !keptIds.has(e.id)).map((e) => e.id);
+    const seen = parsed.data.knownIds ? new Set(parsed.data.knownIds) : null;
+    const dropped = existing
+      .filter((e) => !keptIds.has(e.id) && (!seen || seen.has(e.id)))
+      .map((e) => e.id);
     if (dropped.length) {
       writes.push(
         prisma.ministry.updateMany({ where: { id: { in: dropped } }, data: { active: false } })

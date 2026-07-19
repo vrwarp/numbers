@@ -80,6 +80,24 @@ export async function PATCH(req: Request) {
 
     if (changed.length === 0) throw new ApiError(400, "Nothing to change", "admin.nothingToChange");
 
+    // Self-lockout guard: an admin whose access comes only from ADMIN_EMAILS
+    // must not save a value that drops their own email — the change takes
+    // effect immediately and there may be no other admin to undo it.
+    if ("ADMIN_EMAILS" in updates) {
+      const me = await prisma.user.findUnique({
+        where: { id: adminId },
+        select: { email: true, role: true },
+      });
+      const stillListed = (updates.ADMIN_EMAILS ?? "")
+        .split(/[\s,]+/)
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean)
+        .includes(me?.email?.toLowerCase() ?? "");
+      if (!stillListed && me?.role !== "admin") {
+        throw new ApiError(400, "This change would remove your own admin access", "admin.selfLockout");
+      }
+    }
+
     writeConfigValues(updates);
     await prisma.auditEvent.create({
       data: {

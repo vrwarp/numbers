@@ -32,7 +32,13 @@ const RowSchema = z.object({
   members: z.array(z.object({ userId: z.string().min(1) })).max(200).default([]),
   codes: z.array(z.string().trim()).max(100).default([]),
 });
-const PutSchema = z.object({ teams: z.array(RowSchema).max(200) });
+// knownIds: every team id the client had loaded when it built this payload.
+// Archival is limited to ids the editor SAW — a stale editor must never
+// silently archive (and de-grant) a team someone else created meanwhile.
+const PutSchema = z.object({
+  teams: z.array(RowSchema).max(200),
+  knownIds: z.array(z.string()).max(500).optional(),
+});
 
 export async function GET() {
   return handleApi(async () => {
@@ -116,7 +122,10 @@ export async function PUT(req: Request) {
 
     // Dropped teams are archived and emptied so their read grant ends now,
     // while the row survives for the audit trail.
-    const dropped = existing.filter((e) => !keptIds.has(e.id)).map((e) => e.id);
+    const seen = parsed.data.knownIds ? new Set(parsed.data.knownIds) : null;
+    const dropped = existing
+      .filter((e) => !keptIds.has(e.id) && (!seen || seen.has(e.id)))
+      .map((e) => e.id);
     if (dropped.length) {
       writes.push(
         prisma.team.updateMany({ where: { id: { in: dropped } }, data: { active: false } })

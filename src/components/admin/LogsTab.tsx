@@ -34,6 +34,13 @@ function when(iso: string): string {
 
 export default function LogsTab() {
   const t = useTranslations("Admin");
+  // Known audit slugs get plain language; anything unrecognized stays raw so
+  // new actions never render blank.
+  const actionLabel = (a: string) => {
+    const key = `action_${a.replace(/-/g, "_")}`;
+    const dyn = t as unknown as ((k: string) => string) & { has: (k: string) => boolean };
+    return dyn.has(key) ? dyn(key) : a;
+  };
   const tx = t as unknown as (k: string) => string;
   const [audit, setAudit] = useState<AuditRow[]>([]);
   const [extraction, setExtraction] = useState<ExtractionRow[]>([]);
@@ -73,7 +80,7 @@ export default function LogsTab() {
 
   return (
     <div className="space-y-5" data-testid="logs-tab">
-      {error && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
 
       <section className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -133,7 +140,7 @@ export default function LogsTab() {
             <option value="">{t("allActions")}</option>
             {actions.map((a) => (
               <option key={a} value={a}>
-                {a}
+                {actionLabel(a)}
               </option>
             ))}
           </select>
@@ -147,13 +154,19 @@ export default function LogsTab() {
             {audit.map((e) => (
               <li key={e.id} className="rounded-lg border border-stone-200 p-2.5 text-sm" data-testid="audit-row">
                 <div className="flex flex-wrap items-center justify-between gap-1">
-                  <code className="rounded bg-stone-100 px-1.5 py-0.5 text-xs font-semibold text-stone-600">
-                    {e.action}
-                  </code>
+                  <span className="text-xs font-semibold text-stone-700">
+                    {actionLabel(e.action)}
+                  </span>
                   <span className="text-xs text-stone-400">{when(e.createdAt)}</span>
                 </div>
                 <div className="mt-0.5 text-xs text-stone-500">{e.user}</div>
-                <p className="mt-1 break-words font-mono text-[11px] text-stone-500">{e.detail}</p>
+                {/* The raw JSON is for whoever debugs — one tap away, never the
+                    face of the row (the plain-language rule the rest of admin
+                    already follows). */}
+                <details className="mt-1">
+                  <summary className="cursor-pointer text-[11px] text-stone-400">{t("detailToggle")}</summary>
+                  <p className="mt-1 break-words font-mono text-[11px] text-stone-500">{e.detail}</p>
+                </details>
               </li>
             ))}
           </ul>

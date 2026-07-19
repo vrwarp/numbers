@@ -105,7 +105,9 @@
     "dutyAdminOn": "您可以更改會友的角色；管理員還可以管理設定和電子簽名。",
     "dutyAdminOff": "角色控制和管理頁面已隱藏，重新開啟後即可恢復。",
     "dutyTurnOn": "開啟",
-    "dutyTurnOff": "關閉"
+    "dutyTurnOff": "關閉",
+    "teamsTitle": "您的團隊",
+    "teamsBody": "團隊成員可以檢視歸入團隊預算類別的收據。請在<link>搜尋 → 我的團隊</link>中檢視。"
   },
   "ReceiptGrid": {
     "pdfChip": "PDF",
@@ -376,7 +378,8 @@
     "splitConfirm": "拆分",
     "underSignatureFrozen": "簽署中——報銷文件與明細已凍結。",
     "downloadSigned": "⬇ 下載已簽署文件",
-    "revertConfirmSigned": "要將這張報銷單退回草稿嗎？目前已收集的簽名將全部作廢，審批需要重新開始。"
+    "revertConfirmSigned": "要將這張報銷單退回草稿嗎？目前已收集的簽名將全部作廢，審批需要重新開始。",
+    "retiredOption": "{value}（已停用）"
   },
   "Esign": {
     "submitForApproval": "✍️ 提交審批",
@@ -813,7 +816,8 @@
       "contentString": "內容必須為文字。",
       "contextTooLong": "教會背景過長（上限 {max} 位元組）。",
       "unknownField": "該設定無法在此編輯。",
-      "nothingToChange": "沒有可變更的內容。"
+      "nothingToChange": "沒有可變更的內容。",
+      "selfLockout": "此變更會移除您自己的管理員權限——請保留您的電子郵件"
     },
     "ministry": {
       "invalid": "Those budget categories couldn’t be saved — check the form and try again.",
@@ -829,7 +833,9 @@
       "invalid": "Those teams couldn’t be saved — check the form and try again.",
       "codeFormat": "Invalid budget category code: “{code}”.",
       "unknownMember": "One of the selected people couldn’t be found. Refresh and try again."
-    }
+    },
+    "searchInvalid": "無法理解該搜尋——請調整後重試",
+    "searchEmptyQuery": "請先輸入要搜尋的內容"
   },
   "AddReceipts": {
     "title": "向這張報銷單新增收據",
@@ -1065,8 +1071,23 @@
       "scoreExact": "精確",
       "rebuildTitle": "重建索引",
       "rebuildHint": "在目前模型上重新讀取全部內容——當搜尋伺服器被悄悄更換時使用。",
-      "rebuild": "重建"
-    }
+      "rebuild": "重建",
+      "confirmModelChange": "變更模型會清除所有已儲存的向量，並針對 AI 端點重新讀取全部收據和報銷單——搜尋將降級數小時。確定繼續嗎？",
+      "confirmModelChangeButton": "變更模型並重建",
+      "confirmRebuild": "要重建整個搜尋索引嗎？所有收據和報銷單都會針對 AI 端點重新讀取——需要數小時並消耗 AI 呼叫。"
+    },
+    "allowAction": "允許",
+    "blockAction": "停用",
+    "detailToggle": "詳情",
+    "kind_embedding": "搜尋索引",
+    "action_admin_config": "變更了應用程式設定",
+    "action_admin_ministries": "編輯了預算類別",
+    "action_admin_teams": "編輯了團隊",
+    "action_admin_positions": "編輯了職位",
+    "action_admin_church_context": "編輯了教會背景資料",
+    "action_update_embedding_config": "變更了搜尋設定",
+    "action_rebuild_embeddings": "重建了搜尋索引",
+    "action_retry_embedding": "重試了失敗的索引"
   },
   "Ministries": {
     "title": "Budget categories",
@@ -1085,7 +1106,7 @@
     "code": "Code",
     "name": "Name",
     "description": "Description (optional)",
-    "descriptionPlaceholder": "Add a hint for requesters…",
+    "descriptionPlaceholder": "為報銷人新增提示——它同時會引導 AI 的類別建議…",
     "codeAria": "Account code",
     "nameAria": "Category name",
     "active": "Active",
@@ -1105,7 +1126,9 @@
     "positionArchivedOption": "{name} (archived)",
     "routesTo": "Routes to {name}",
     "routesNobody": "No holder here can approve yet — claims won't be pre-filled.",
-    "routesNoHolder": "This position has no holder yet."
+    "routesNoHolder": "This position has no holder yet.",
+    "removeUnsavedAria": "移除未儲存的類別 {name}",
+    "newCategoryFallback": "新類別"
   },
   "Search": {
     "title": "搜尋",
@@ -1118,7 +1141,7 @@
     "scopeMine": "我的",
     "scopeAll": "全教會",
     "scopeDecided": "我審批過的",
-    "scopeDecidedHint": "我批准或拒絕過的——不含仍在等待審批的",
+    "scopeDecidedHint": "您批准或拒絕過的報銷單——不含仍在等待您處理的。搜尋框留空可列出全部。",
     "typeFilterLabel": "顯示",
     "scopeFilterLabel": "範圍",
     "typeAll": "全部",
@@ -1144,7 +1167,12 @@
     "dateHint": "搜尋比對的是描述而不是日期——每筆結果上都標有日期。",
     "showMore": "顯示更多",
     "scopeTeam": "My teams",
-    "scopeTeamHint": "Receipts and claims under your teams' budget categories. Leave the search empty to list all of them."
+    "scopeTeamHint": "Receipts and claims under your teams' budget categories. Leave the search empty to list all of them.",
+    "viewOnlyCard": "僅供檢視——您無權開啟這張報銷單。",
+    "emptyDegradedBody": "描述搜尋暫時無法使用，且沒有完全符合的結果——請稍後再試。",
+    "emptyTeamBrowse": "您的團隊暫時沒有已提交報銷單上的收據——新的收據會顯示在這裡。",
+    "unavailableTitle": "搜尋尚未設定",
+    "unavailableBody": "管理員需要先設定搜尋後端，此頁面才能使用。應用程式的其他功能不受影響。"
   },
   "Positions": {
     "title": "Positions",
@@ -1200,7 +1228,9 @@
     "eligibilityPaused": "Approvals paused",
     "eligibilityCannot": "Needs Approver grant",
     "holderPausedWarn": "{name} has paused approvals, so claims won't pre-fill to them until they resume.",
-    "holderCannotWarn": "{name} 需要執行同工或管理員在<link>成員</link>頁面授予「審批人」角色後才能審批。"
+    "holderCannotWarn": "{name} 需要執行同工或管理員在<link>成員</link>頁面授予「審批人」角色後才能審批。",
+    "routingNote": "跨多個預算類別的報銷單會按金額最大的類別的預設審批人預填；不可用的擔任者會被跳過。",
+    "localizedNamesHint": "中文名稱為選填——留空時使用英文名稱。"
   },
   "Members": {
     "title": "成員",
@@ -1234,7 +1264,10 @@
     "roleDialogConfirm": "更新角色",
     "revokeKey": "吊銷金鑰",
     "keyDialogTitle": "吊銷 {name} 的簽名金鑰？",
-    "keyDialogBody": "僅當能以他身分簽名的裝置遺失或被盜時才這樣做。他已簽署的內容依然有效，但該金鑰將立即在所有地方失效——他需要重新開通簽名，並再次當面獲得擔保。"
+    "keyDialogBody": "僅當能以他身分簽名的裝置遺失或被盜時才這樣做。他已簽署的內容依然有效，但該金鑰將立即在所有地方失效——他需要重新開通簽名，並再次當面獲得擔保。",
+    "attestedSince": "認證於 {date}",
+    "statusRevokedHint": "其簽名金鑰已停用。若要再次簽署，需在其個人資料頁重新設定簽名並再次當面獲得擔保。",
+    "statusNoneHint": "尚未設定電子簽名。可從其個人資料頁開始設定。"
   },
   "Teams": {
     "title": "Teams",
@@ -1263,6 +1296,7 @@
     "noMembers": "No members yet.",
     "addMember": "Add a member",
     "choosePerson": "Choose a person…",
-    "removeMember": "Remove"
+    "removeMember": "Remove",
+    "archiveEndsAccess": "封存後，儲存時將結束所有成員的檢視權限。"
   }
 }

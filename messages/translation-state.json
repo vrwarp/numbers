@@ -522,6 +522,18 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Profile.teamsTitle": {
+    "source": "Your teams",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Heading of the profile card listing the member's teams. Short."
+  },
+  "Profile.teamsBody": {
+    "source": "Team membership lets you view receipts filed under the team’s budget categories. Find them under <link>Search → My teams</link>.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Body under the team list: what membership grants; <link> wraps the pointer to the Search page's My-teams scope."
+  },
   "ReceiptGrid.pdfChip": {
     "source": "PDF",
     "context": "Tiny chip on a card when a PDF thumbnail can't render; 'PDF' acronym stays.",
@@ -2034,6 +2046,12 @@
     "context": "in-app confirmation dialog before reverting a claim that has e-signatures: warns that collected signatures become void and approval restarts.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Review.retiredOption": {
+    "source": "{value} (retired)",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Select option label for a row's stored category whose catalog entry was archived; {value} = the composed code+name. 'retired' = archived, not deleted."
   },
   "Esign.submitForApproval": {
     "source": "✍️ Submit for approval",
@@ -3584,9 +3602,9 @@
   },
   "Vouch.keylessDevice": {
     "source": "This browser doesn’t hold your signing key yet, so vouching from here will fail. Add this device from your Profile first, or vouch from a device you already sign on.",
+    "context": "Amber warning on the Vouch screen when this browser has no signing key (new device): vouching would fail at the last step; points to adding the device via Profile.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Amber warning on the Vouch screen when this browser has no signing key (new device): vouching would fail at the last step; points to adding the device via Profile."
+    "zh-Hant": "machine"
   },
   "VouchScan.open": {
     "source": "📷 Scan their QR code",
@@ -4507,6 +4525,24 @@
     "source": "One of the selected people couldn’t be found. Refresh and try again.",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
+  },
+  "Errors.searchInvalid": {
+    "source": "That search couldn’t be understood — adjust it and try again",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "API error when the search request body fails validation."
+  },
+  "Errors.searchEmptyQuery": {
+    "source": "Type something to search for first",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "API error when a scope that needs a query got an empty one."
+  },
+  "Errors.admin.selfLockout": {
+    "source": "This change would remove your own admin access — keep your email in the list",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "API error when an admin's settings change would drop their own email from ADMIN_EMAILS."
   },
   "AddReceipts.title": {
     "source": "Add receipts to this claim",
@@ -5714,6 +5750,96 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Admin.search.confirmModelChange": {
+    "source": "Changing the model erases every stored embedding and re-reads all receipts and claims against the AI endpoint — search stays degraded for several hours. Continue?",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Confirm-dialog body before saving a changed embedding model (wipes the index, hours-long rebuild)."
+  },
+  "Admin.search.confirmModelChangeButton": {
+    "source": "Change model & rebuild",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Confirm button of that dialog. Short."
+  },
+  "Admin.search.confirmRebuild": {
+    "source": "Rebuild the whole search index? Every receipt and claim is re-read against the AI endpoint — this takes hours and uses AI calls.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Confirm-dialog body before a manual full index rebuild."
+  },
+  "Admin.allowAction": {
+    "source": "Allow",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Allowlist button VERB (grants access on click). One word."
+  },
+  "Admin.blockAction": {
+    "source": "Block",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Allowlist button VERB (removes access on click). One word."
+  },
+  "Admin.detailToggle": {
+    "source": "Details",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Disclosure summary hiding an audit event's raw JSON. One word."
+  },
+  "Admin.kind_embedding": {
+    "source": "Search indexing",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Label chip for AI calls of kind 'embedding' (search indexing) in the logs tab. Short."
+  },
+  "Admin.action_admin_config": {
+    "source": "Changed app settings",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: app settings were changed. Past tense."
+  },
+  "Admin.action_admin_ministries": {
+    "source": "Edited budget categories",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: the budget-category catalog was edited. Past tense."
+  },
+  "Admin.action_admin_teams": {
+    "source": "Edited teams",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: the teams catalog was edited. Past tense."
+  },
+  "Admin.action_admin_positions": {
+    "source": "Edited positions",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: positions were edited. Past tense."
+  },
+  "Admin.action_admin_church_context": {
+    "source": "Edited church context",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: the church context doc was edited. Past tense."
+  },
+  "Admin.action_update_embedding_config": {
+    "source": "Changed search settings",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: search backend settings changed. Past tense."
+  },
+  "Admin.action_rebuild_embeddings": {
+    "source": "Rebuilt the search index",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: full index rebuild started. Past tense."
+  },
+  "Admin.action_retry_embedding": {
+    "source": "Retried failed indexing",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Humanized audit action: failed indexing jobs were retried. Past tense."
+  },
   "Ministries.title": {
     "source": "Budget categories",
     "zh-Hans": "todo",
@@ -5799,7 +5925,7 @@
     "zh-Hant": "todo"
   },
   "Ministries.descriptionPlaceholder": {
-    "source": "Add a hint for requesters…",
+    "source": "Add a hint for requesters — it also guides the AI’s category suggestions…",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
@@ -5903,6 +6029,18 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Ministries.removeUnsavedAria": {
+    "source": "Remove the unsaved category {name}",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "aria-label of the ✕ removing a never-saved category row; {name} = its name/code or the newCategoryFallback."
+  },
+  "Ministries.newCategoryFallback": {
+    "source": "new category",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Fallback noun used in removeUnsavedAria when a brand-new row has no name yet."
+  },
   "Search.title": {
     "source": "Search",
     "context": "Page title of the search screen and (via SAME_VALUE_GROUPS) the nav tab + submit button. One word. Use 搜索 (Hans) / 搜尋 (Hant) per glossary.",
@@ -5964,7 +6102,7 @@
     "zh-Hant": "reviewed"
   },
   "Search.scopeDecidedHint": {
-    "source": "approved or rejected by me — not ones still waiting",
+    "source": "Claims you approved or rejected — not ones still waiting on you. Leave the search box empty to list them all.",
     "context": "Helper text under the decided scope, lowercase fragment: clarifies it excludes claims still waiting for a decision.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -6122,6 +6260,36 @@
     "source": "Receipts and claims under your teams' budget categories. Leave the search empty to list all of them.",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
+  },
+  "Search.viewOnlyCard": {
+    "source": "View only — you don’t have access to open this claim.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Caption on a search result card the viewer cannot open (team read grant covers the receipt, not the claim page)."
+  },
+  "Search.emptyDegradedBody": {
+    "source": "Descriptive search is temporarily unavailable and nothing matched the exact wording — try again shortly.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Empty-state body when the embedding backend is down AND nothing matched exactly — must not read as a plain 'no matches'."
+  },
+  "Search.emptyTeamBrowse": {
+    "source": "Your teams have no receipts on submitted claims yet — new ones will appear here.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Empty-state body when browsing the team scope with an empty query and no team receipts exist yet."
+  },
+  "Search.unavailableTitle": {
+    "source": "Search isn’t set up yet",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Title of the friendly card shown at /search while the backend is unconfigured. Short."
+  },
+  "Search.unavailableBody": {
+    "source": "An administrator needs to configure the search backend before this page works. Everything else in the app is unaffected.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Body of that card: an administrator must configure search; the rest of the app works."
   },
   "Positions.title": {
     "source": "Positions",
@@ -6404,6 +6572,18 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Positions.routingNote": {
+    "source": "A claim that spans several budget categories pre-fills the approver from its largest-dollar category’s default; unavailable holders are skipped.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Info line in the Positions editor explaining how multi-category claims pick their pre-filled approver."
+  },
+  "Positions.localizedNamesHint": {
+    "source": "Chinese names are optional — the English name is used where one is blank.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Tooltip on the Chinese name inputs: optional, English used when blank."
+  },
   "Members.title": {
     "source": "Members",
     "context": "Page title of the Members administration page (the church directory: roles, positions, e-sign). Also the account-menu link and the button on the Positions page (same-value group). One word.",
@@ -6592,6 +6772,24 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Members.attestedSince": {
+    "source": "Attested {date}",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Small line on an attested member row; {date} = when they were vouched in. 'Attested' = fully vouched signer."
+  },
+  "Members.statusRevokedHint": {
+    "source": "Their signing key was retired. To sign again they must set up signing afresh on their Profile and be vouched in person.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Tooltip on the 'Key revoked' chip: what the member must do to sign again."
+  },
+  "Members.statusNoneHint": {
+    "source": "They haven’t set up electronic signing. It starts from their own Profile page.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Tooltip on the 'No e-sign yet' chip: enrollment starts from their own Profile."
+  },
   "Teams.title": {
     "source": "Teams",
     "zh-Hans": "todo",
@@ -6726,5 +6924,11 @@
     "source": "Remove",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
+  },
+  "Teams.archiveEndsAccess": {
+    "source": "Archiving ends every member’s read access when you save.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Amber note under a team's Archived toggle: saving the archive ends members' read access."
   }
 }

@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { useDateLabel } from "@/lib/use-date-label";
 import { formatCents } from "@/lib/money";
 import { useApiErrorMessage } from "@/lib/use-api-error";
+import ReceiptViewer from "@/components/ReceiptViewer";
 
 /**
  * The /search screen (docs/SEARCH_DESIGN.md §7): explicit-submit search with
@@ -107,7 +108,7 @@ export default function SearchClient({
   const errorMessage = useApiErrorMessage();
 
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<Scope>("mine");
+  const [scope, setScope] = useState<Scope>(canAll ? "all" : "mine");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(null);
   const [result, setResult] = useState<SearchResponse | null>(null);
   const [searching, setSearching] = useState(false);
@@ -123,6 +124,9 @@ export default function SearchClient({
   const [recentsOpen, setRecentsOpen] = useState(false);
   const [activeRecent, setActiveRecent] = useState(-1);
   const [announce, setAnnounce] = useState("");
+  // Foreign/multi-claim receipts open in the in-app viewer (§7.3) — a raw
+  // file in a new tab loses zoom/pan and, in a standalone PWA, the session.
+  const [viewingReceipt, setViewingReceipt] = useState<ReceiptItem | null>(null);
   const submitSeq = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -145,8 +149,11 @@ export default function SearchClient({
     const urlQ = params.get("q") ?? "";
     const urlType = params.get("type");
     const urlScope = params.get("scope");
-    let initScope: Scope = "mine";
-    if (urlScope === "all" && canAll) initScope = "all";
+    // Role-holders default to the whole-church scope (§6.1 — their canonical
+    // lookup is someone else's claim); an explicit ?scope=mine still wins.
+    let initScope: Scope = canAll ? "all" : "mine";
+    if (urlScope === "mine") initScope = "mine";
+    else if (urlScope === "all" && canAll) initScope = "all";
     else if (urlScope === "decided" && canDecided) initScope = "decided";
     else if (urlScope === "team" && canTeam) initScope = "team";
     const initType: TypeFilter =
@@ -269,6 +276,10 @@ export default function SearchClient({
   // highlight, Enter on a highlighted row runs it, Escape closes.
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.nativeEvent.isComposing || e.keyCode === 229) {
+        if (e.key !== "Enter") return; // arrows steer the IME, not the recents
+        return;
+      }
       if (recentsVisible && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
         e.preventDefault();
         setActiveRecent((i) =>
@@ -282,7 +293,6 @@ export default function SearchClient({
         return;
       }
       if (e.key !== "Enter") return;
-      if (e.nativeEvent.isComposing || e.keyCode === 229) return;
       if (recentsVisible && activeRecent >= 0) {
         e.preventDefault();
         pickRecent(recents[activeRecent]);
@@ -292,6 +302,21 @@ export default function SearchClient({
     },
     [recentsVisible, recents, activeRecent, onSubmit, pickRecent]
   );
+
+  // ARIA radiogroup contract: one tab stop, arrows move (and activate) the
+  // selection. Both segmented controls share this handler.
+  const segmentKeyNav = useCallback((e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (!["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"].includes(e.key)) return;
+    e.preventDefault();
+    const btns = Array.from(
+      e.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('button[role="radio"]') ?? []
+    );
+    const i = btns.indexOf(e.currentTarget);
+    const delta = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1;
+    const next = btns[(i + delta + btns.length) % btns.length];
+    next?.focus();
+    next?.click();
+  }, []);
 
   const changeScope = useCallback(
     (next: Scope) => {
@@ -361,6 +386,8 @@ export default function SearchClient({
                 key={ty ?? "all"}
                 role="radio"
                 aria-checked={typeFilter === ty}
+                tabIndex={typeFilter === ty ? 0 : -1}
+                onKeyDown={segmentKeyNav}
                 className={`px-3 py-1.5 ${typeFilter === ty ? "bg-indigo-600 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
                 onClick={() => changeType(ty)}
               >
@@ -400,6 +427,8 @@ export default function SearchClient({
                   key={s}
                   role="radio"
                   aria-checked={scope === s}
+                  tabIndex={scope === s ? 0 : -1}
+                  onKeyDown={segmentKeyNav}
                   className={`px-3 py-1.5 ${scope === s ? "bg-indigo-600 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
                   onClick={() => changeScope(s)}
                 >
@@ -442,6 +471,9 @@ export default function SearchClient({
             aria-expanded={recentsVisible}
             aria-controls="search-recents-list"
             aria-autocomplete="list"
+            aria-activedescendant={
+              recentsVisible && activeRecent >= 0 ? `search-recent-opt-${activeRecent}` : undefined
+            }
             maxLength={300}
             enterKeyHint="search"
           />
@@ -477,7 +509,7 @@ export default function SearchClient({
                 aria-label={t("recentSearches")}
               >
                 {recents.map((q, i) => (
-                  <li key={i} role="option" aria-selected={i === activeRecent}>
+                  <li key={i} id={`search-recent-opt-${i}`} role="option" aria-selected={i === activeRecent}>
                     <button
                       type="button"
                       data-testid={`search-recent-${i + 1}`}
@@ -530,7 +562,13 @@ export default function SearchClient({
                 ? t("emptyPendingTitle")
                 : t("emptyTitle")}
             </p>
-            <p className="text-sm">{pendingNote ?? t("emptyBody")}</p>
+            <p className="text-sm">
+              {result.degraded
+                ? t("emptyDegradedBody")
+                : scope === "team" && !query.trim()
+                  ? t("emptyTeamBrowse")
+                  : (pendingNote ?? t("emptyBody"))}
+            </p>
           </div>
         )}
 
@@ -552,7 +590,7 @@ export default function SearchClient({
                 <SectionHeader label={t("exactMatches")} />
                 <ul className="space-y-2">
                   {(showAllExact ? result.exact : result.exact.slice(0, 3)).map((item) => (
-                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} formatDate={formatDate} />
+                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} formatDate={formatDate} onViewReceipt={setViewingReceipt} />
                   ))}
                 </ul>
                 {result.exact.length > 3 && !showAllExact && (
@@ -571,7 +609,7 @@ export default function SearchClient({
               <section data-testid="search-best-match">
                 <SectionHeader label={t("bestMatch")} />
                 <ul>
-                  <ResultCard item={result.best} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} formatDate={formatDate} />
+                  <ResultCard item={result.best} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} formatDate={formatDate} onViewReceipt={setViewingReceipt} />
                 </ul>
               </section>
             )}
@@ -579,13 +617,13 @@ export default function SearchClient({
             {result.groups.map((group) => (
               <section key={group.year} data-testid={`search-group-${group.year}`}>
                 {!suppressYears && (
-                  <div className="sticky top-14 z-10 -mx-1 bg-stone-50/95 px-1 py-1 backdrop-blur">
+                  <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 -mx-1 bg-stone-50/95 px-1 py-1 backdrop-blur">
                     <SectionHeader label={String(group.year)} />
                   </div>
                 )}
                 <ul className="space-y-2">
                   {group.items.map((item) => (
-                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} formatDate={formatDate} />
+                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} formatDate={formatDate} onViewReceipt={setViewingReceipt} />
                   ))}
                 </ul>
               </section>
@@ -603,6 +641,19 @@ export default function SearchClient({
           </div>
         )}
       </div>
+      {viewingReceipt && (
+        <ReceiptViewer
+          receipt={{
+            id: viewingReceipt.id,
+            originalName: viewingReceipt.merchant || t("receiptFallbackTitle"),
+            mimeType: viewingReceipt.mimeType,
+            // Never editable from search — foreign/processed receipts must
+            // re-download unchanged, and the viewer only edits `unassigned`.
+            status: "processed",
+          }}
+          onClose={() => setViewingReceipt(null)}
+        />
+      )}
     </div>
   );
 }
@@ -650,7 +701,9 @@ function ResultCard({
   t,
   tStatus,
   formatDate,
+  onViewReceipt,
 }: {
+  onViewReceipt: (item: ReceiptItem) => void;
   item: Item;
   viewer: { userId: string; isRoleHolder: boolean };
   scope: Scope;
@@ -727,9 +780,15 @@ function ResultCard({
     return (
       <li data-testid={`search-result-receipt-${item.id}`}>
         {external ? (
-          <a href={href} target="_blank" rel="noreferrer" className="card card-lift pressable flex items-start gap-3 p-3">
+          // §7.3: foreign or multi-claim receipt → the in-app viewer, not a
+          // raw file in a new tab (chips stay informational either way).
+          <button
+            type="button"
+            onClick={() => onViewReceipt(item)}
+            className="card card-lift pressable flex w-full items-start gap-3 p-3 text-left"
+          >
             {body}
-          </a>
+          </button>
         ) : (
           <Link href={href} className="card card-lift pressable flex items-start gap-3 p-3">
             {body}
@@ -782,7 +841,12 @@ function ResultCard({
           {inner}
         </Link>
       ) : (
-        <div className="card block p-3">{inner}</div>
+        // Not openable by this viewer (e.g. team-scope info card) — visually
+        // identical cards that silently do nothing read as broken on touch.
+        <div className="card block p-3">
+          {inner}
+          <p className="mt-1 text-xs text-stone-400">{t("viewOnlyCard")}</p>
+        </div>
       )}
     </li>
   );
