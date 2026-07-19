@@ -552,14 +552,19 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
               data-testid="camera-input"
               onChange={(e) => onFilesPicked(e.target.files)}
             />
-            <button
-              className="btn-secondary sm:hidden"
-              onClick={() => cameraInput.current?.click()}
-              disabled={uploading}
-              data-testid="camera-button"
-            >
-              {t("takePhoto")}
-            </button>
+            {/* The responsive hiding lives on a plain wrapper: .btn-secondary is
+                unlayered CSS, so a same-element `sm:hidden` (layered utility)
+                loses the cascade and the button would show on desktop too. */}
+            <div className="sm:hidden">
+              <button
+                className="btn-secondary"
+                onClick={() => cameraInput.current?.click()}
+                disabled={uploading}
+                data-testid="camera-button"
+              >
+                {t("takePhoto")}
+              </button>
+            </div>
             <button
               className="btn-primary"
               onClick={() => fileInput.current?.click()}
