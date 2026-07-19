@@ -1126,6 +1126,9 @@
       "worship": "Worship Deacon"
     },
     "namePlaceholder": "Position name (e.g. Deacon of Missions)",
+    "nameEnLabel": "English name",
+    "nameZhHansPlaceholder": "Simplified Chinese name (optional)",
+    "nameZhHantPlaceholder": "Traditional Chinese name (optional)",
     "descriptionPlaceholder": "What this position approves (optional)",
     "active": "Active",
     "archived": "Archived",

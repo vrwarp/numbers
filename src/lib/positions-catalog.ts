@@ -4,6 +4,7 @@ import {
   pickSuggestedApprover,
   type ApproverEligibility,
   type PositionForSuggest,
+  type PositionNameSet,
   type SuggestedApprover,
 } from "@/lib/positions";
 
@@ -28,6 +29,8 @@ export interface PositionHolderRow {
 export interface PositionRow {
   id: string;
   name: string;
+  nameZhHans: string | null;
+  nameZhHant: string | null;
   description: string;
   active: boolean;
   sortOrder: number;
@@ -89,6 +92,8 @@ export async function loadPositionsWithHolders(): Promise<PositionRow[]> {
   return positions.map((p) => ({
     id: p.id,
     name: p.name,
+    nameZhHans: p.nameZhHans,
+    nameZhHant: p.nameZhHant,
     description: p.description,
     active: p.active,
     sortOrder: p.sortOrder,
@@ -102,19 +107,22 @@ export async function loadPositionsWithHolders(): Promise<PositionRow[]> {
   }));
 }
 
-/** userId → the name of the first active Position they hold (by catalog
+/** userId → the name set of the first active Position they hold (by catalog
  *  sortOrder). Used to label a member by their custom approval role (Position)
- *  in the approver picker, falling back to the system role when absent. Members
- *  with no active position are simply not in the map. */
-export async function loadMemberPositionNames(): Promise<Map<string, string>> {
+ *  in the approver picker, falling back to the system role when absent. The
+ *  full set (not a resolved string) is returned so the client localizes a custom
+ *  name in the reader's language. Members with no active position are omitted. */
+export async function loadMemberPositionNames(): Promise<Map<string, PositionNameSet>> {
   const positions = await prisma.position.findMany({
     where: { active: true },
     orderBy: { sortOrder: "asc" },
-    include: { holders: { select: { userId: true } } },
+    select: { name: true, nameZhHans: true, nameZhHant: true, holders: { select: { userId: true } } },
   });
-  const byUser = new Map<string, string>();
+  const byUser = new Map<string, PositionNameSet>();
   for (const p of positions) {
-    for (const h of p.holders) if (!byUser.has(h.userId)) byUser.set(h.userId, p.name);
+    for (const h of p.holders)
+      if (!byUser.has(h.userId))
+        byUser.set(h.userId, { name: p.name, nameZhHans: p.nameZhHans, nameZhHant: p.nameZhHant });
   }
   return byUser;
 }
@@ -168,7 +176,13 @@ export async function resolveSuggestedApprover(claim: {
     const positionMap = new Map<string, PositionForSuggest>(
       positions.map((p) => [
         p.id,
-        { name: p.name, active: p.active, holderUserIds: p.holders.map((h) => h.userId) },
+        {
+          name: p.name,
+          nameZhHans: p.nameZhHans,
+          nameZhHant: p.nameZhHant,
+          active: p.active,
+          holderUserIds: p.holders.map((h) => h.userId),
+        },
       ])
     );
 

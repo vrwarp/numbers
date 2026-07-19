@@ -23,6 +23,7 @@ import type { SignaturePlacement } from "@/lib/esign/placement";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { roleLabelKey } from "@/lib/role-label";
 import { usePositionLabel } from "@/lib/use-position-label";
+import type { PositionNameSet } from "@/lib/positions";
 import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain, type ClaimRef } from "./chain";
@@ -41,7 +42,7 @@ export interface EsignClaim extends ClaimRef {
    *  (server-resolved; null when nothing routes). A suggestion only — the
    *  submitter still picks and signs the approver themselves. */
   suggestedApproverUserId?: string | null;
-  suggestedApproverPosition?: string | null;
+  suggestedApproverPosition?: PositionNameSet | null;
 }
 
 interface Member {
@@ -51,7 +52,7 @@ interface Member {
   role: string;
   // The member's custom approval role (Position), when they hold one; the
   // approver picker labels by this, falling back to `role`. null = none.
-  position: string | null;
+  position: PositionNameSet | null;
   approvalsPaused: boolean;
 }
 

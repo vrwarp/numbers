@@ -27,6 +27,7 @@ import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { ROLE_MANAGER_ROLES } from "@/lib/esign/types";
 import { roleLabelKey } from "@/lib/role-label";
 import { usePositionLabel } from "@/lib/use-position-label";
+import type { PositionNameSet } from "@/lib/positions";
 import RoleControls from "./esign/RoleControls";
 import { SigningConnectCard, useSigningSession } from "./esign/SigningConnect";
 
@@ -35,7 +36,7 @@ interface DirectoryMember {
   name: string;
   email: string;
   role: string;
-  position: string | null;
+  position: PositionNameSet | null;
   allowed: boolean;
   identityStatus: string | null;
   attestedAt: string | null;

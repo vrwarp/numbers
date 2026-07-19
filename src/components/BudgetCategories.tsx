@@ -36,6 +36,8 @@ interface Row extends ApiRow {
 interface PositionOption {
   id: string;
   name: string;
+  nameZhHans: string | null;
+  nameZhHant: string | null;
   active: boolean;
   holders: { name: string; eligibility: ApproverEligibility }[];
 }
@@ -377,8 +379,8 @@ function DefaultApproverRow({
         {options.map((p) => (
           <option key={p.id} value={p.id}>
             {p.active
-              ? positionLabel(p.name)
-              : t("positionArchivedOption", { name: positionLabel(p.name) })}
+              ? positionLabel(p)
+              : t("positionArchivedOption", { name: positionLabel(p) })}
           </option>
         ))}
       </select>
