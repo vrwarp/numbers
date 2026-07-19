@@ -68,6 +68,59 @@ test("a paused admin loses the admin area until they turn the duty back on", asy
   await expect(page.getByTestId("admin-dashboard")).toBeVisible();
 });
 
+test("a fully stepped-back treasurer loses the master-data surfaces (Members, Positions, Budget Categories)", async ({
+  page,
+}, testInfo) => {
+  // Unique per project — desktop chromium and webkit share one server+db.
+  const email = `duty-treasurer-${testInfo.project.name}@example.org`;
+  await signInAs(page, email, "Duty Treasurer");
+  async function setState(data: Record<string, unknown>) {
+    const prisma = e2ePrisma();
+    try {
+      await prisma.user.update({ where: { email }, data });
+    } finally {
+      await prisma.$disconnect();
+    }
+  }
+  await setState({ role: "treasurer" });
+
+  // Un-paused: all three master-data links are present in the account menu.
+  await page.reload();
+  await page.getByTestId("account-menu").click();
+  await expect(page.getByTestId("nav-budget-categories")).toBeVisible();
+  await expect(page.getByTestId("nav-positions")).toBeVisible();
+  await expect(page.getByTestId("nav-members")).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  // Step back from every duty a treasurer holds (approvals + finance) — the
+  // A10 "fully paused reads like a member" state, same as the search grant.
+  await setState({ approvalsPaused: true, financePaused: true });
+
+  // Nav entries gone, pages bounce home, APIs 404 — a member's view.
+  await page.reload();
+  await page.getByTestId("account-menu").click();
+  await expect(page.getByTestId("nav-budget-categories")).toHaveCount(0);
+  await expect(page.getByTestId("nav-positions")).toHaveCount(0);
+  await expect(page.getByTestId("nav-members")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  for (const dest of ["/ministries", "/positions", "/members"]) {
+    await page.goto(dest);
+    await page.waitForURL("/");
+  }
+  expect((await page.request.get("/api/ministries?scope=all")).status()).toBe(404);
+  expect((await page.request.get("/api/positions")).status()).toBe(404);
+  expect((await page.request.get("/api/members")).status()).toBe(404);
+
+  // Un-pausing a single duty restores the whole cluster (any active duty).
+  await setState({ financePaused: false });
+  await page.reload();
+  await page.getByTestId("account-menu").click();
+  await expect(page.getByTestId("nav-members")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.goto("/members");
+  await expect(page.getByTestId("members-directory")).toBeVisible();
+});
+
 test("an admin edits and saves the church context", async ({ page }) => {
   const email = "church-admin@example.org";
   await signInAs(page, email, "Church Admin");
