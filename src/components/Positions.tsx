@@ -35,7 +35,7 @@ interface ApiHolder {
   order: number;
 }
 interface ApiPosition {
-  id: string;
+  id: string | null;
   name: string;
   description: string;
   active: boolean;
@@ -82,8 +82,8 @@ export default function Positions() {
       ]);
       if (!posRes.ok) throw new Error((await posRes.json().catch(() => null))?.error);
       const data = (await posRes.json()) as { positions: ApiPosition[]; members: Member[] };
-      const mapped: Row[] = data.positions.map((p) => ({
-        key: p.id,
+      const mapped: Row[] = data.positions.map((p, i) => ({
+        key: p.id ?? `new-${i}`,
         id: p.id,
         name: p.name,
         description: p.description,

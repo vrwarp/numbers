@@ -2,9 +2,32 @@ import { describe, expect, it } from "vitest";
 import {
   approverEligibility,
   pickSuggestedApprover,
+  DEFAULT_POSITION_ENTRIES,
   type ApproverEligibility,
   type PositionForSuggest,
 } from "@/lib/positions";
+
+describe("DEFAULT_POSITION_ENTRIES", () => {
+  it("is the standing deacon roster, active and in a stable order", () => {
+    expect(DEFAULT_POSITION_ENTRIES.map((e) => e.name)).toEqual([
+      "English Discipleship Deacon",
+      "English Evangelism Deacon",
+      "Chinese Caring Deacon",
+      "Chinese Evangelism Deacon",
+      "Children's Deacon",
+      "General Affairs Deacon",
+      "Missions Deacon",
+      "Worship Deacon",
+      "Property Deacon",
+      "Finance Deacon",
+    ]);
+    DEFAULT_POSITION_ENTRIES.forEach((e, i) => {
+      expect(e.active).toBe(true);
+      expect(e.description).toBe("");
+      expect(e.sortOrder).toBe(i);
+    });
+  });
+});
 
 describe("approverEligibility", () => {
   it("is ok only for an attested Approver+ with approvals active", () => {

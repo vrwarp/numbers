@@ -77,7 +77,14 @@ export default function BudgetCategories() {
     void (async () => {
       try {
         const res = await fetch("/api/positions");
-        if (res.ok) setPositions(((await res.json()) as { positions: PositionOption[] }).positions);
+        if (res.ok) {
+          // A category can only route to a persisted Position — built-in
+          // defaults served while the table is empty carry a null id and can't
+          // be stored as a defaultPositionId yet, so drop them from the picker.
+          const list = ((await res.json()) as { positions: (PositionOption & { id: string | null })[] })
+            .positions;
+          setPositions(list.filter((p): p is PositionOption => Boolean(p.id)));
+        }
       } catch {
         /* leave positions empty */
       }
