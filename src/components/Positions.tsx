@@ -9,17 +9,18 @@
  * editor surfaces each holder's live eligibility and warns the moment a holder
  * who can't approve is assigned: they still need a signature-verified Approver+
  * grant before a claim can route to them. Reads/writes /api/positions
- * (editor-gated + audited); the "used by" count comes from the budget-category
- * catalog so archiving a position in use is a visible decision.
+ * (editor-gated + audited); the "used by" category list comes from the
+ * budget-category catalog so archiving a position in use is a visible decision.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { DEFAULT_POSITION_ENTRIES, builtinPositionKey, type ApproverEligibility } from "@/lib/positions";
 import { roleLabelKey } from "@/lib/role-label";
 import { usePositionLabel } from "@/lib/use-position-label";
+import { composeMinistry } from "@/lib/ministries";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface Member {
@@ -75,7 +76,7 @@ export default function Positions() {
   const positionLabel = usePositionLabel();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
-  const [usedBy, setUsedBy] = useState<Map<string, number>>(new Map());
+  const [usedBy, setUsedBy] = useState<Map<string, string[]>>(new Map());
   // Saved position ids the user removed, staged for hard-delete on Save (a new,
   // never-saved row is just dropped from `rows`, nothing to delete server-side).
   const [pendingDelete, setPendingDelete] = useState<Set<string>>(new Set());
@@ -109,17 +110,19 @@ export default function Positions() {
       setMembers(data.members);
       setPendingDelete(new Set());
       setOk(false);
-      // "Used by N budget categories" — best-effort; a failure just hides counts.
+      // "Used by <categories>" — best-effort; a failure just hides the list.
       if (minRes.ok) {
         const min = (await minRes.json()) as {
-          rows: { defaultPositionId: string | null }[];
+          rows: { defaultPositionId: string | null; code: string; name: string }[];
         };
-        const counts = new Map<string, number>();
+        const byPosition = new Map<string, string[]>();
         for (const m of min.rows) {
-          if (m.defaultPositionId)
-            counts.set(m.defaultPositionId, (counts.get(m.defaultPositionId) ?? 0) + 1);
+          if (!m.defaultPositionId) continue;
+          const list = byPosition.get(m.defaultPositionId) ?? [];
+          list.push(composeMinistry(m.code, m.name));
+          byPosition.set(m.defaultPositionId, list);
         }
-        setUsedBy(counts);
+        setUsedBy(byPosition);
       }
     } catch (err) {
       setError(thrown(err, t("loadFailed")));
@@ -286,7 +289,7 @@ export default function Positions() {
           bad={invalid.has(r.key)}
           members={members}
           memberById={memberById}
-          usedByCount={r.id ? usedBy.get(r.id) ?? 0 : 0}
+          usedByCategories={r.id ? usedBy.get(r.id) ?? [] : []}
           onPatch={patch}
           onDelete={requestDelete}
         />
@@ -309,9 +312,9 @@ export default function Positions() {
           confirmRow
             ? [
                 t("deleteConfirm", { name: positionLabel(confirmRow) }),
-                (confirmRow.id ? usedBy.get(confirmRow.id) ?? 0 : 0) > 0
+                (confirmRow.id ? usedBy.get(confirmRow.id)?.length ?? 0 : 0) > 0
                   ? t("deleteConfirmInUse", {
-                      count: confirmRow.id ? usedBy.get(confirmRow.id) ?? 0 : 0,
+                      count: confirmRow.id ? usedBy.get(confirmRow.id)?.length ?? 0 : 0,
                     })
                   : "",
               ]
@@ -352,7 +355,7 @@ function PositionCard({
   bad,
   members,
   memberById,
-  usedByCount,
+  usedByCategories,
   onPatch,
   onDelete,
 }: {
@@ -360,12 +363,13 @@ function PositionCard({
   bad: boolean;
   members: Member[];
   memberById: Map<string, Member>;
-  usedByCount: number;
+  usedByCategories: string[];
   onPatch: (key: string, next: Partial<Row>) => void;
   onDelete: (row: Row) => void;
 }) {
   const t = useTranslations("Positions");
   const tRole = useTranslations("Common.role");
+  const locale = useLocale();
   const positionLabel = usePositionLabel();
   const roleLabel = (r: string) => {
     const key = roleLabelKey(r);
@@ -436,7 +440,13 @@ function PositionCard({
             onChange={(e) => onPatch(row.key, { description: e.target.value })}
           />
           <p className="text-xs text-stone-400">
-            {usedByCount === 0 ? t("usedByNone") : t("usedByCategories", { count: usedByCount })}
+            {usedByCategories.length === 0
+              ? t("usedByNone")
+              : t("usedByCategories", {
+                  list: new Intl.ListFormat(locale, { style: "long", type: "conjunction" }).format(
+                    usedByCategories
+                  ),
+                })}
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
