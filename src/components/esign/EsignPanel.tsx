@@ -22,6 +22,7 @@ import { formatCents } from "@/lib/money";
 import type { SignaturePlacement } from "@/lib/esign/placement";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { roleLabelKey } from "@/lib/role-label";
+import { usePositionLabel } from "@/lib/use-position-label";
 import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain, type ClaimRef } from "./chain";
@@ -229,6 +230,7 @@ export function SubmitDialog({
   const t = useTranslations("Esign");
   const tCommon = useTranslations("Common");
   const tRole = useTranslations("Common.role");
+  const positionLabel = usePositionLabel();
   const thrown = useThrownErrorMessage();
   const { phase, connect, connecting, error: connectError } = useSigningSession(env);
   const [members, setMembers] = useState<Member[]>([]);
@@ -358,7 +360,7 @@ export function SubmitDialog({
                   <option key={m.userId} value={m.userId}>
                     {/* Label by the member's Position (custom approval role);
                         fall back to the system role when they hold none. */}
-                    {m.name} ({m.position ?? roleLabel(m.role)})
+                    {m.name} ({m.position ? positionLabel(m.position) : roleLabel(m.role)})
                   </option>
                 ))}
               </select>
@@ -370,7 +372,7 @@ export function SubmitDialog({
                   className="rounded-lg bg-indigo-50 p-2 text-xs text-indigo-900"
                   data-testid="approver-prefill-note"
                 >
-                  {t("approverPrefilledFrom", { position: claim.suggestedApproverPosition })}
+                  {t("approverPrefilledFrom", { position: positionLabel(claim.suggestedApproverPosition) })}
                 </p>
               )}
             <label className="block text-sm font-medium">

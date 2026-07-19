@@ -17,8 +17,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
-import { DEFAULT_POSITION_ENTRIES, type ApproverEligibility } from "@/lib/positions";
+import { DEFAULT_POSITION_ENTRIES, builtinPositionKey, type ApproverEligibility } from "@/lib/positions";
 import { roleLabelKey } from "@/lib/role-label";
+import { usePositionLabel } from "@/lib/use-position-label";
 
 interface Member {
   userId: string;
@@ -297,10 +298,15 @@ function PositionCard({
 }) {
   const t = useTranslations("Positions");
   const tRole = useTranslations("Common.role");
+  const positionLabel = usePositionLabel();
   const roleLabel = (r: string) => {
     const key = roleLabelKey(r);
     return key ? tRole(key) : r;
   };
+  // A built-in role's name is a localized, canonical value — show it read-only
+  // (in the active locale) so saving never overwrites the English handle the
+  // localization keys off. Custom, treasurer-authored roles stay editable.
+  const isBuiltin = builtinPositionKey(row.name) !== null;
 
   const available = members.filter((m) => !row.holderIds.includes(m.userId));
   const addHolder = (userId: string) => {
@@ -315,14 +321,23 @@ function PositionCard({
     <div className={`card space-y-3 p-4 ${row.active ? "" : "opacity-70"}`} data-testid="position-card">
       <div className="flex flex-wrap items-start gap-2">
         <div className="min-w-0 flex-1 space-y-2">
-          <input
-            className={`input font-semibold ${bad ? "border-red-400 ring-1 ring-red-300" : ""}`}
-            value={row.name}
-            placeholder={t("namePlaceholder")}
-            aria-label={t("namePlaceholder")}
-            onChange={(e) => onPatch(row.key, { name: e.target.value })}
-            data-testid="position-name"
-          />
+          {isBuiltin ? (
+            <div className="flex flex-wrap items-center gap-2" data-testid="position-name">
+              <span className="font-semibold text-stone-800">{positionLabel(row.name)}</span>
+              <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-semibold text-stone-500">
+                {t("builtinBadge")}
+              </span>
+            </div>
+          ) : (
+            <input
+              className={`input font-semibold ${bad ? "border-red-400 ring-1 ring-red-300" : ""}`}
+              value={row.name}
+              placeholder={t("namePlaceholder")}
+              aria-label={t("namePlaceholder")}
+              onChange={(e) => onPatch(row.key, { name: e.target.value })}
+              data-testid="position-name"
+            />
+          )}
           <input
             className="input text-sm text-stone-600"
             value={row.description}

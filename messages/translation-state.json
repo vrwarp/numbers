@@ -6310,5 +6310,71 @@
     "source": "Remove",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
+  },
+  "Positions.builtinBadge": {
+    "source": "Built-in",
+    "context": "Small tag next to a built-in position's name in the Positions editor, marking it a standard role (its name is fixed and can't be renamed).",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Positions.builtin.chineseCaring": {
+    "source": "Chinese Caring Deacon",
+    "context": "Name of a built-in deacon role (a church leadership position) shown in the Positions editor, approver picker, members directory, and budget-category default-approver list. Authoritative church terminology — preserve the provided translation exactly.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Positions.builtin.chineseEvangelism": {
+    "source": "Chinese Evangelism Deacon",
+    "context": "Name of a built-in deacon role (a church leadership position) shown in the Positions editor, approver picker, members directory, and budget-category default-approver list. Authoritative church terminology — preserve the provided translation exactly.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Positions.builtin.childrensMinistry": {
+    "source": "Children's Ministry Deacon",
+    "context": "Name of a built-in deacon role (a church leadership position) shown in the Positions editor, approver picker, members directory, and budget-category default-approver list. Authoritative church terminology — preserve the provided translation exactly.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Positions.builtin.englishDiscipleship": {
+    "source": "English Discipleship Deacon",
+    "context": "Name of a built-in deacon role (a church leadership position) shown in the Positions editor, approver picker, members directory, and budget-category default-approver list. Authoritative church terminology — preserve the provided translation exactly.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Positions.builtin.englishEvangelism": {
+    "source": "English Evangelism Deacon",
+    "context": "Name of a built-in deacon role (a church leadership position) shown in the Positions editor, approver picker, members directory, and budget-category default-approver list. Authoritative church terminology — preserve the provided translation exactly.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Positions.builtin.finance": {
+    "source": "Finance Deacon",
+    "context": "Name of a built-in deacon role (a church leadership position) shown in the Positions editor, approver picker, members directory, and budget-category default-approver list. Authoritative church terminology — preserve the provided translation exactly.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Positions.builtin.generalAffairs": {
+    "source": "General Affairs Deacon",
+    "context": "Name of a built-in deacon role (a church leadership position) shown in the Positions editor, approver picker, members directory, and budget-category default-approver list. Authoritative church terminology — preserve the provided translation exactly.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Positions.builtin.missions": {
+    "source": "Missions Deacon",
+    "context": "Name of a built-in deacon role (a church leadership position) shown in the Positions editor, approver picker, members directory, and budget-category default-approver list. Authoritative church terminology — preserve the provided translation exactly.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Positions.builtin.property": {
+    "source": "Property Deacon",
+    "context": "Name of a built-in deacon role (a church leadership position) shown in the Positions editor, approver picker, members directory, and budget-category default-approver list. Authoritative church terminology — preserve the provided translation exactly.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
+  },
+  "Positions.builtin.worship": {
+    "source": "Worship Deacon",
+    "context": "Name of a built-in deacon role (a church leadership position) shown in the Positions editor, approver picker, members directory, and budget-category default-approver list. Authoritative church terminology — preserve the provided translation exactly.",
+    "zh-Hans": "reviewed",
+    "zh-Hant": "reviewed"
   }
 }

@@ -62,4 +62,21 @@ test("a treasurer reaches the directory alongside Budget categories and Position
   // The Positions page cross-links back to the directory for role grants.
   await page.goto("/positions");
   await expect(page.getByTestId("positions-members-link")).toBeVisible();
+
+  // Seeding the built-in roster renders localizable names + a "Built-in" tag;
+  // switching locale re-labels them from the Positions.builtin catalog while the
+  // canonical English name persists underneath (usePositionLabel).
+  await page.getByTestId("load-default-positions").click();
+  const firstCard = page.getByTestId("position-card").first();
+  await expect(firstCard.getByText("Chinese Caring Deacon", { exact: true })).toBeVisible();
+  await expect(firstCard.getByText("Built-in", { exact: true })).toBeVisible();
+
+  await page.context().addCookies([
+    { name: "numbers_locale", value: "zh-Hant", url: page.url() },
+  ]);
+  await page.goto("/positions");
+  await page.getByTestId("load-default-positions").click();
+  const zhCard = page.getByTestId("position-card").first();
+  await expect(zhCard.getByText("中文部關懷執事", { exact: true })).toBeVisible();
+  await expect(zhCard.getByText("Chinese Caring Deacon", { exact: true })).toHaveCount(0);
 });

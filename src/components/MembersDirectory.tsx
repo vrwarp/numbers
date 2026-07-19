@@ -26,6 +26,7 @@ import {
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { ROLE_MANAGER_ROLES } from "@/lib/esign/types";
 import { roleLabelKey } from "@/lib/role-label";
+import { usePositionLabel } from "@/lib/use-position-label";
 import RoleControls from "./esign/RoleControls";
 import { SigningConnectCard, useSigningSession } from "./esign/SigningConnect";
 
@@ -54,6 +55,7 @@ const ROLE_STYLE: Record<string, string> = {
 export default function MembersDirectory() {
   const t = useTranslations("Members");
   const tRole = useTranslations("Common.role");
+  const positionLabel = usePositionLabel();
   const thrown = useThrownErrorMessage();
   const [members, setMembers] = useState<DirectoryMember[] | null>(null);
   const [env, setEnv] = useState<EsignEnv | null>(null);
@@ -168,7 +170,7 @@ export default function MembersDirectory() {
           )}
           {m.position && (
             <span className="rounded-full border border-stone-200 bg-stone-50 px-2 py-0.5 text-xs text-stone-600">
-              {m.position}
+              {positionLabel(m.position)}
             </span>
           )}
         </div>

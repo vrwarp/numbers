@@ -414,7 +414,7 @@ model Ministry {
 // re-check the real role at signing time regardless.
 model Position {
   id          String   @id @default(cuid())
-  name        String // "Deacon of Missions" — church data, never translated
+  name        String // canonical English name (e.g. "Missions Deacon"); custom names show verbatim, built-in defaults localize on display via Positions.builtin.<key> (usePositionLabel)
   description String   @default("") // optional guidance (never printed / translated)
   active      Boolean  @default(true)
   sortOrder   Int      @default(0)

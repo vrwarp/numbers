@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
+import fs from "fs";
+import path from "path";
 import {
   approverEligibility,
   pickSuggestedApprover,
+  builtinPositionKey,
   DEFAULT_POSITION_ENTRIES,
   type ApproverEligibility,
   type PositionForSuggest,
@@ -10,22 +13,46 @@ import {
 describe("DEFAULT_POSITION_ENTRIES", () => {
   it("is the standing deacon roster, active and in a stable order", () => {
     expect(DEFAULT_POSITION_ENTRIES.map((e) => e.name)).toEqual([
-      "English Discipleship Deacon",
-      "English Evangelism Deacon",
       "Chinese Caring Deacon",
       "Chinese Evangelism Deacon",
-      "Children's Deacon",
+      "Children's Ministry Deacon",
+      "English Discipleship Deacon",
+      "English Evangelism Deacon",
+      "Finance Deacon",
       "General Affairs Deacon",
       "Missions Deacon",
-      "Worship Deacon",
       "Property Deacon",
-      "Finance Deacon",
+      "Worship Deacon",
     ]);
     DEFAULT_POSITION_ENTRIES.forEach((e, i) => {
       expect(e.active).toBe(true);
       expect(e.description).toBe("");
       expect(e.sortOrder).toBe(i);
+      expect(e.key).toBeTruthy();
     });
+  });
+
+  it("every default has a localized name in every catalog (en/zh-Hans/zh-Hant)", () => {
+    const dir = path.join(process.cwd(), "messages");
+    for (const locale of ["en", "zh-Hans", "zh-Hant"]) {
+      const builtin = JSON.parse(fs.readFileSync(path.join(dir, `${locale}.json`), "utf8"))
+        .Positions.builtin as Record<string, string>;
+      for (const e of DEFAULT_POSITION_ENTRIES) {
+        expect(builtin[e.key]?.trim(), `${locale}: Positions.builtin.${e.key}`).toBeTruthy();
+      }
+    }
+  });
+});
+
+describe("builtinPositionKey", () => {
+  it("maps a canonical default name to its i18n key (trimming whitespace)", () => {
+    expect(builtinPositionKey("Chinese Caring Deacon")).toBe("chineseCaring");
+    expect(builtinPositionKey("  Worship Deacon  ")).toBe("worship");
+  });
+  it("returns null for a custom, treasurer-authored name", () => {
+    expect(builtinPositionKey("Office Staff")).toBeNull();
+    expect(builtinPositionKey("Deacon of Missions")).toBeNull();
+    expect(builtinPositionKey("")).toBeNull();
   });
 });
 

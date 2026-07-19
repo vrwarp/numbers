@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
+import { usePositionLabel } from "@/lib/use-position-label";
 import type { ApproverEligibility } from "@/lib/positions";
 
 interface ApiRow {
@@ -355,6 +356,7 @@ function DefaultApproverRow({
   onPatch: (key: string, next: Partial<ApiRow>) => void;
 }) {
   const t = useTranslations("Ministries");
+  const positionLabel = usePositionLabel();
   const selected = row.defaultPositionId ? positionsById.get(row.defaultPositionId) : undefined;
   const primary = selected?.holders.find((h) => h.eligibility === "ok");
   // Keep a now-archived (or unknown) selected position visible so its default
@@ -374,7 +376,9 @@ function DefaultApproverRow({
         <option value="">{t("defaultApproverNone")}</option>
         {options.map((p) => (
           <option key={p.id} value={p.id}>
-            {p.active ? p.name : t("positionArchivedOption", { name: p.name })}
+            {p.active
+              ? positionLabel(p.name)
+              : t("positionArchivedOption", { name: positionLabel(p.name) })}
           </option>
         ))}
       </select>
