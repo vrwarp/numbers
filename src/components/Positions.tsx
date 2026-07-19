@@ -17,7 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
-import type { ApproverEligibility } from "@/lib/positions";
+import { DEFAULT_POSITION_ENTRIES, type ApproverEligibility } from "@/lib/positions";
 import { roleLabelKey } from "@/lib/role-label";
 
 interface Member {
@@ -35,7 +35,7 @@ interface ApiHolder {
   order: number;
 }
 interface ApiPosition {
-  id: string | null;
+  id: string;
   name: string;
   description: string;
   active: boolean;
@@ -82,8 +82,8 @@ export default function Positions() {
       ]);
       if (!posRes.ok) throw new Error((await posRes.json().catch(() => null))?.error);
       const data = (await posRes.json()) as { positions: ApiPosition[]; members: Member[] };
-      const mapped: Row[] = data.positions.map((p, i) => ({
-        key: p.id ?? `new-${i}`,
+      const mapped: Row[] = data.positions.map((p) => ({
+        key: p.id,
         id: p.id,
         name: p.name,
         description: p.description,
@@ -133,6 +133,23 @@ export default function Positions() {
   const addPosition = () => {
     const key = `add-${newKey.current++}`;
     setRows((rs) => [...(rs ?? []), { key, id: null, name: "", description: "", active: true, holderIds: [] }]);
+    setOk(false);
+  };
+  // Seed the editor with the built-in deacon roster as unsaved rows (holders
+  // unassigned) — offered from the empty state so a fresh catalog is one click
+  // and a Save away, without the catalog ever materializing defaults on its own.
+  const loadDefaults = () => {
+    setRows((rs) => [
+      ...(rs ?? []),
+      ...DEFAULT_POSITION_ENTRIES.map((e) => ({
+        key: `add-${newKey.current++}`,
+        id: null,
+        name: e.name,
+        description: e.description,
+        active: e.active,
+        holderIds: [],
+      })),
+    ]);
     setOk(false);
   };
 
@@ -205,9 +222,17 @@ export default function Positions() {
       </div>
 
       {(rows ?? []).length === 0 && (
-        <p className="rounded-xl border border-dashed border-stone-300 p-6 text-center text-sm text-stone-400">
-          {t("empty")}
-        </p>
+        <div className="rounded-xl border border-dashed border-stone-300 p-6 text-center" data-testid="positions-empty">
+          <p className="text-sm text-stone-400">{t("empty")}</p>
+          <button
+            className="btn-secondary mt-3"
+            onClick={loadDefaults}
+            data-testid="load-default-positions"
+          >
+            {t("loadDefaults")}
+          </button>
+          <p className="mt-2 text-xs text-stone-400">{t("loadDefaultsHint")}</p>
+        </div>
       )}
 
       {(rows ?? []).map((r) => (

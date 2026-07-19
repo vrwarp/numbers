@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import {
   approverEligibility,
   pickSuggestedApprover,
-  DEFAULT_POSITION_ENTRIES,
   type ApproverEligibility,
   type PositionForSuggest,
   type SuggestedApprover,
@@ -25,10 +24,9 @@ export interface PositionHolderRow {
 }
 
 /** A position with its holders, for the editor and the Budget Categories
- *  "routes to" display. `id` is null for a built-in default entry served while
- *  the table is empty (mirrors MinistryRow) — it becomes real once saved. */
+ *  "routes to" display. */
 export interface PositionRow {
-  id: string | null;
+  id: string;
   name: string;
   description: string;
   active: boolean;
@@ -63,11 +61,10 @@ function eligibilityOf(u: UserLite): ApproverEligibility {
   });
 }
 
-/** Every position with holders (any active state), for the editor. While the
- *  table is EMPTY the built-in defaults (DEFAULT_POSITION_ENTRIES, no holders,
- *  id:null) are served so a fresh deployment's editor opens pre-filled — the
- *  same contract as loadAllMinistryRows(). Once a single row exists the table is
- *  authoritative (a fully-archived catalog does not resurrect defaults). */
+/** Every position with holders (any active state), for the editor. Empty until
+ *  the treasurer creates positions — the editor offers a one-click "load
+ *  defaults" (DEFAULT_POSITION_ENTRIES) from the empty state rather than the
+ *  catalog silently materializing them. */
 export async function loadPositionsWithHolders(): Promise<PositionRow[]> {
   const positions = await prisma.position.findMany({
     orderBy: { sortOrder: "asc" },
@@ -89,16 +86,6 @@ export async function loadPositionsWithHolders(): Promise<PositionRow[]> {
       },
     },
   });
-  if (positions.length === 0) {
-    return DEFAULT_POSITION_ENTRIES.map((e) => ({
-      id: null,
-      name: e.name,
-      description: e.description,
-      active: e.active,
-      sortOrder: e.sortOrder,
-      holders: [],
-    }));
-  }
   return positions.map((p) => ({
     id: p.id,
     name: p.name,
