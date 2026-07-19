@@ -5886,6 +5886,18 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Positions.loadDefaults": {
+    "source": "Load default positions",
+    "context": "Button in the empty Positions editor. Populates the editor with the standard set of deacon positions (approval roles) so the treasurer can assign people and save. Not a destructive reset — it only appears when no positions exist.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Positions.loadDefaultsHint": {
+    "source": "Adds the standard deacon roles, ready for you to assign people and save.",
+    "context": "Helper text under the Load default positions button, explaining what it does.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "Positions.namePlaceholder": {
     "source": "Position name (e.g. Deacon of Missions)",
     "zh-Hans": "todo",

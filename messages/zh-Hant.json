@@ -1110,6 +1110,8 @@
     "backToCategories": "Budget categories",
     "membersPage": "成員",
     "empty": "No positions yet — add one to set default approvers for your budget categories.",
+    "loadDefaults": "Load default positions",
+    "loadDefaultsHint": "Adds the standard deacon roles, ready for you to assign people and save.",
     "namePlaceholder": "Position name (e.g. Deacon of Missions)",
     "descriptionPlaceholder": "What this position approves (optional)",
     "active": "Active",

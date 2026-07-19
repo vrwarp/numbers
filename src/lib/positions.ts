@@ -41,6 +41,35 @@ export function approverEligibility(u: {
   return "ok";
 }
 
+/** A catalog entry for a Position (a custom approval role), independent of any
+ *  holders. Mirrors the MinistryEntry shape: the built-in defaults are the seed
+ *  the treasurer's editor starts from and the fallback the loader serves while
+ *  the `Position` table is empty. */
+export interface PositionEntry {
+  name: string;
+  description: string;
+  active: boolean;
+  sortOrder: number;
+}
+
+/** The built-in default Positions — the church's standing deacon roster. On a
+ *  fresh deployment the Positions editor opens pre-filled with these (holders
+ *  unassigned) so the treasurer only has to assign people, exactly as the Budget
+ *  Categories editor opens pre-filled with DEFAULT_MINISTRY_ENTRIES. Names are
+ *  catalog values (like ministry names) and are never translated. */
+export const DEFAULT_POSITION_ENTRIES: PositionEntry[] = [
+  "English Discipleship Deacon",
+  "English Evangelism Deacon",
+  "Chinese Caring Deacon",
+  "Chinese Evangelism Deacon",
+  "Children's Deacon",
+  "General Affairs Deacon",
+  "Missions Deacon",
+  "Worship Deacon",
+  "Property Deacon",
+  "Finance Deacon",
+].map((name, i) => ({ name, description: "", active: true, sortOrder: i }));
+
 /** A position as the pre-fill selector needs it: whether it still routes and
  *  the userIds of its holders in assignment order (primary first). */
 export interface PositionForSuggest {

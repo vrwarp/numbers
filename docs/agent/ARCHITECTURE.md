@@ -30,8 +30,10 @@ src/lib/ministries.ts           MINISTRY_GROUPS budget categories (+ flat MINIST
                                 isKnownMinistry, formatMinistryEvent, mostCommonMinistryEvent)
                                 — dependency-free, safe for client components
 src/lib/positions.ts            Positions (custom approval roles): approverEligibility +
-                                pickSuggestedApprover (the default-approver pre-fill selection)
-                                — dependency-free, unit-tested, client-safe
+                                pickSuggestedApprover (the default-approver pre-fill selection) +
+                                DEFAULT_POSITION_ENTRIES (the standing deacon roster the editor's
+                                empty-state "Load default positions" button seeds — never
+                                auto-applied) — dependency-free, unit-tested, client-safe
 src/lib/positions-catalog.ts    Position table reads + resolveSuggestedApprover(claim) (SERVER);
 src/lib/positions-guard.ts      requirePositionEditor (treasurer/admin, same gate as ministries)
 src/lib/teams-catalog.ts        Teams reads + the TEAM READ GRANT (SEARCH_DESIGN §6.3 team

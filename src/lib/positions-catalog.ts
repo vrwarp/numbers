@@ -61,7 +61,10 @@ function eligibilityOf(u: UserLite): ApproverEligibility {
   });
 }
 
-/** Every position with holders (any active state), for the editor. */
+/** Every position with holders (any active state), for the editor. Empty until
+ *  the treasurer creates positions — the editor offers a one-click "load
+ *  defaults" (DEFAULT_POSITION_ENTRIES) from the empty state rather than the
+ *  catalog silently materializing them. */
 export async function loadPositionsWithHolders(): Promise<PositionRow[]> {
   const positions = await prisma.position.findMany({
     orderBy: { sortOrder: "asc" },
