@@ -152,9 +152,13 @@ test("a position can be deleted, clearing any budget-category default it held", 
   );
   expect(usedBefore.length).toBe(1);
 
-  // Delete it: the confirm names the in-use warning; confirming + Save removes it.
+  // Delete is only offered once the position is archived (a deliberate second
+  // step). Archive it, then delete; the confirm names the in-use warning.
   await page.goto("/positions");
-  await page.getByTestId("position-card").last().getByTestId("delete-position").click();
+  const tempCard = page.getByTestId("position-card").last();
+  await expect(tempCard.getByTestId("delete-position")).toHaveCount(0);
+  await tempCard.getByTestId("position-active-toggle").click();
+  await tempCard.getByTestId("delete-position").click();
   const dialog = page.getByTestId("delete-position-dialog");
   await expect(dialog).toContainText("Temp Deacon");
   await expect(dialog).toContainText("budget categor");

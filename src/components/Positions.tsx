@@ -452,14 +452,18 @@ function PositionCard({
           >
             {row.active ? t("active") : t("archived")}
           </button>
-          <button
-            type="button"
-            onClick={() => onDelete(row)}
-            className="text-xs font-medium text-red-600 hover:underline"
-            data-testid="delete-position"
-          >
-            {t("delete")}
-          </button>
+          {/* Delete is a deliberate second step: archive first (it stops
+              routing), then the Delete affordance appears on the dormant row. */}
+          {!row.active && (
+            <button
+              type="button"
+              onClick={() => onDelete(row)}
+              className="text-xs font-medium text-red-600 hover:underline"
+              data-testid="delete-position"
+            >
+              {t("delete")}
+            </button>
+          )}
         </div>
       </div>
 
