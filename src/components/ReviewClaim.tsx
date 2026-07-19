@@ -454,6 +454,19 @@ export default function ReviewClaim({ claimId }: { claimId: string }) {
     load();
   }, [load]);
 
+  // While the claim waits on someone else (approver, then payment), refetch on
+  // return to the tab so "Awaiting approval" can't sit stale for hours. Only
+  // these states: a draft refetch could clobber in-progress edits.
+  const claimStatus = claim?.status;
+  useEffect(() => {
+    if (claimStatus !== "submitted" && claimStatus !== "approved") return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [claimStatus, load]);
+
   useEffect(() => {
     void loadEnv().then(setEsignEnv).catch(() => {});
   }, []);

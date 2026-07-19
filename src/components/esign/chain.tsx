@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import {
   connectSigningSession,
   hasSigningSession,
@@ -53,16 +53,25 @@ export function useClaimChain(claim: ClaimRef | null) {
   const thrown = useThrownErrorMessage();
   const [state, setState] = useState<ChainState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // "network" failures (couldn't reach the ledger/packet) must never render as
+  // the tamper-red integrity alert — they get a neutral retry note instead.
+  // Anything ambiguous stays "protocol": neutral must never swallow a real
+  // integrity failure.
+  const [errorKind, setErrorKind] = useState<"network" | "protocol" | null>(null);
   const [loading, setLoading] = useState(false);
   const [needsConnect, setNeedsConnect] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
   const envForConnect = useRef<EsignEnv | null>(null);
 
-  const refresh = useCallback(async () => {
-    if (!claim?.signatureLedgerId || !claim.signatureLedgerKey) return;
+  // Returns the freshly verified state (null when it couldn't verify) so
+  // callers can act on it immediately — React's `state` is stale inside the
+  // same closure (e.g. the withdraw pre-check).
+  const refresh = useCallback(async (): Promise<ChainState | null> => {
+    if (!claim?.signatureLedgerId || !claim.signatureLedgerKey) return null;
     setLoading(true);
     setError(null);
+    setErrorKind(null);
     try {
       const env = await loadEnv();
       envForConnect.current = env;
@@ -73,7 +82,7 @@ export function useClaimChain(claim: ClaimRef | null) {
       await preloadSigningSession(env);
       if (!(await hasSigningSession(env))) {
         setNeedsConnect(true);
-        return;
+        return null;
       }
       setNeedsConnect(false);
       const chain = await verifyClaimChain(env, {
@@ -109,13 +118,17 @@ export function useClaimChain(claim: ClaimRef | null) {
           }
         }
       }
-      setState({ env, chain, thread, packetOk, packetUrl, approvedPacketUrl });
+      const next: ChainState = { env, chain, thread, packetOk, packetUrl, approvedPacketUrl };
+      setState(next);
       // Opportunistic reconciliation (§5.5): fill mirror gaps we can see.
       void reconcileClaim(claim.id, chain.claimDocs).catch(() => {});
+      return next;
     } catch (err) {
       // Protocol/audit failures keep their English detail on purpose — this
       // text exists for whoever helps debug a broken chain.
       setError(err instanceof Error ? err.message : "Verification failed");
+      setErrorKind(isNetworkError(err) ? "network" : "protocol");
+      return null;
     } finally {
       setLoading(false);
     }
@@ -141,7 +154,16 @@ export function useClaimChain(claim: ClaimRef | null) {
     void refresh();
   }, [refresh]);
 
-  return { state, error, loading, refresh, needsConnect, connect, connecting, connectError };
+  return { state, error, errorKind, loading, refresh, needsConnect, connect, connecting, connectError };
+}
+
+/** Transport-shaped failures only — fetch's TypeError, Firestore "unavailable",
+ *  offline. Signature/hash mismatches never match (they throw typed messages). */
+function isNetworkError(err: unknown): boolean {
+  if (err instanceof TypeError) return true;
+  const message = err instanceof Error ? err.message : "";
+  const code = (err as { code?: string })?.code ?? "";
+  return /unavailable|network|offline|failed to fetch|load failed|timeout/i.test(`${code} ${message}`);
 }
 
 function Pill({ ok, label }: { ok: boolean; label: string }) {
@@ -183,12 +205,23 @@ export function ChainAlert({ state }: { state: ChainState }) {
   );
 }
 
+/** Owner-side manual re-verification, rendered inside AuditDetails — the one
+ *  place a skeptic goes to re-run the chain check on demand. */
+export interface ReverifyControl {
+  run: () => void;
+  busy: boolean;
+  /** Set when a manual re-run finished with a clean chain — an instant pass
+   *  must still visibly acknowledge the press. */
+  verifiedAt: Date | null;
+}
+
 /** The cryptographic detail regular members never need — one tap away for
  *  whoever is auditing (docs/ESIGN_DESIGN.md UX rule: technical material
  *  lives behind a disclosure, never on the main path). Opens with the
  *  plain-language "everything checks out" line, then the technical evidence. */
-export function AuditDetails({ state }: { state: ChainState }) {
+export function AuditDetails({ state, reverify }: { state: ChainState; reverify?: ReverifyControl }) {
   const t = useTranslations("Esign");
+  const format = useFormatter();
   const ok = chainLooksGood(state);
   const anchorOk = state.chain.anchor.ok;
   const threadOk = !!state.thread?.submit;
@@ -232,6 +265,31 @@ export function AuditDetails({ state }: { state: ChainState }) {
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+        {reverify && (
+          <div className="flex flex-wrap items-center gap-2" aria-live="polite">
+            {reverify.busy ? (
+              <p className="text-stone-500">{t("verifyingChain")}</p>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={reverify.run}
+                  data-testid="verify-again"
+                >
+                  {t("verifyAgain")}
+                </button>
+                {reverify.verifiedAt && (
+                  <span className="font-medium text-emerald-700" data-testid="verified-at">
+                    {t("verifiedAtTime", {
+                      time: format.dateTime(reverify.verifiedAt, { timeStyle: "short" }),
+                    })}
+                  </span>
+                )}
+              </>
+            )}
           </div>
         )}
         <p className="text-stone-400">
