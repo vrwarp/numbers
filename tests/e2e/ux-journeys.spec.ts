@@ -279,3 +279,46 @@ test("sign-in rejects a protocol-relative ?return=", async ({ page }, testInfo) 
   await page.waitForURL((u) => u.pathname === "/");
   await expect(page.getByRole("heading", { name: "Receipts" })).toBeVisible();
 });
+
+test("review receipt image zooms and a drag on it still scrolls the page", async ({ page }, testInfo) => {
+  // Narrow-but-tall: single column (image at full width), page long enough
+  // to scroll, viewport not `short:` (max-height 500) so the clamp is roomy.
+  await page.setViewportSize({ width: 700, height: 900 });
+  await signInAs(page, email("panzoom", testInfo));
+  await uploadReceipts(page, [await makeReceiptFixture("uxj-panzoom.jpg")]);
+  await createClaimFromAllReceipts(page);
+
+  const img = page.locator('[data-testid^="receipt-image-"]');
+  await expect(img).toBeVisible();
+  const box = (await page.getByTestId("pan-zoom-stage").boundingBox())!;
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+
+  // At 100%, the surface owns touch — a drag must chain into the page scroll
+  // (this was dead on mobile: the nested overscroll-contain scroller ate it).
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx, cy - 220, { steps: 8 });
+  await page.mouse.up();
+  await expect
+    .poll(() => page.evaluate(() => document.scrollingElement!.scrollTop))
+    .toBeGreaterThan(100);
+  await page.evaluate(() => document.scrollingElement!.scrollTo(0, 0));
+
+  // Double-click zooms about the point; the transform reflects it.
+  await page.getByTestId("pan-zoom-stage").dblclick({ position: { x: box.width / 2, y: box.height / 2 } });
+  await expect(img).toHaveCSS("transform", /matrix\(2\.5,/);
+
+  // Zoomed drag pans the image (translate changes) instead of scrolling.
+  const before = await img.evaluate((el) => getComputedStyle(el).transform);
+  await page.mouse.move(cx, cy);
+  await page.mouse.down();
+  await page.mouse.move(cx + 60, cy + 60, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(() => img.evaluate((el) => getComputedStyle(el).transform)).not.toBe(before);
+
+  // Reset returns to identity and re-hides itself.
+  await page.getByTestId("pan-zoom-reset").click();
+  await expect(img).toHaveCSS("transform", /matrix\(1, 0, 0, 1, 0, 0\)|none/);
+  await expect(page.getByTestId("pan-zoom-reset")).toHaveCount(0);
+});

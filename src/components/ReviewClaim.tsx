@@ -19,6 +19,7 @@ import ReceiptImageEditor from "@/components/ReceiptImageEditor";
 import AddReceiptsDialog from "@/components/AddReceiptsDialog";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ManualEntryDialog from "@/components/ManualEntryDialog";
+import PanZoomImage from "@/components/PanZoomImage";
 import PdfReceiptPreview from "@/components/PdfReceiptPreview";
 import EsignPanel, { SubmitDialog } from "@/components/esign/EsignPanel";
 import { loadEnv, type EsignEnv } from "@/lib/esign/client";
@@ -1229,20 +1230,23 @@ export default function ReviewClaim({
                     keyboard) a tall receipt photo would fill the screen before
                     the first editable row, so cap it hard; portrait phones and
                     desktops keep the roomy 75vh. */}
-                <div className="max-h-[75dvh] overflow-y-auto overscroll-contain bg-stone-50/50 short:max-h-[min(55dvh,240px)]">
+                {/* No overscroll-contain here: a drag that saturates this
+                    clamped viewport must keep scrolling the page (images chain
+                    programmatically via PanZoomImage; the PDF column relies on
+                    native chaining). */}
+                <div className="max-h-[75dvh] overflow-y-auto bg-stone-50/50 short:max-h-[min(55dvh,240px)]">
                   {/* Keep the PDF arm separate from the image path: a PDF stays a
                       PDF (packet append, "open original", no crop/rotate) — this
                       shows a raster preview inline, it does not reclassify it. */}
                   {group.receipt.mimeType === "application/pdf" ? (
                     <PdfReceiptPreview receiptId={group.receipt.id} />
                   ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    // key: an image edit bumps the URL — reset the zoom with it.
+                    <PanZoomImage
+                      key={fileUrl(group.receipt.id)}
                       src={fileUrl(group.receipt.id)}
                       alt={group.receipt.originalName}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full"
+                      imgTestId={`receipt-image-${group.receipt.id}`}
                     />
                   )}
                 </div>
