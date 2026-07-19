@@ -21,6 +21,21 @@ export interface StoredPendingPhoto {
   addedAt: number;
 }
 
+// Photos are stored as raw bytes + metadata, NOT as the File itself: WebKit
+// rejects Blob/File values in IndexedDB puts ("Error preparing Blob/File
+// data") — precisely the engine this safety net exists for. ArrayBuffers
+// store everywhere; the File is rebuilt on load.
+interface StoredRow {
+  id: string;
+  name: string;
+  type: string;
+  lastModified: number;
+  data: ArrayBuffer;
+  addedAt: number;
+  /** Legacy shape (pre-bytes rows written by engines that allowed it). */
+  file?: File;
+}
+
 function openDb(): Promise<IDBDatabase | null> {
   return new Promise((resolve) => {
     try {
@@ -61,8 +76,21 @@ async function withStore<T>(
 }
 
 export async function stashPendingPhoto(id: string, file: File): Promise<void> {
+  let data: ArrayBuffer;
+  try {
+    data = await file.arrayBuffer();
+  } catch {
+    return; // best-effort: an unreadable pick just skips the safety net
+  }
   await withStore("readwrite", (s) =>
-    s.put({ id, file, addedAt: Date.now() } satisfies StoredPendingPhoto)
+    s.put({
+      id,
+      name: file.name,
+      type: file.type,
+      lastModified: file.lastModified,
+      data,
+      addedAt: Date.now(),
+    } satisfies StoredRow)
   );
 }
 
@@ -71,10 +99,23 @@ export async function removePendingPhoto(id: string): Promise<void> {
 }
 
 export async function loadPendingPhotos(): Promise<StoredPendingPhoto[]> {
-  const rows = (await withStore("readonly", (s) => s.getAll())) as StoredPendingPhoto[] | null;
+  const rows = (await withStore("readonly", (s) => s.getAll())) as StoredRow[] | null;
   // Oldest first so the restored queue keeps its original order; drop
-  // malformed rows defensively (a File that didn't survive the clone).
+  // malformed rows defensively (bytes that didn't survive the clone).
   return (rows ?? [])
-    .filter((r) => r && typeof r.id === "string" && r.file instanceof File)
+    .filter((r): r is StoredRow => !!r && typeof r.id === "string")
+    .map((r) => {
+      if (r.file instanceof File) return { id: r.id, file: r.file, addedAt: r.addedAt }; // legacy row
+      if (!(r.data instanceof ArrayBuffer)) return null;
+      return {
+        id: r.id,
+        file: new File([r.data], r.name || "photo.jpg", {
+          type: r.type || "image/jpeg",
+          lastModified: r.lastModified || r.addedAt,
+        }),
+        addedAt: r.addedAt,
+      };
+    })
+    .filter((r): r is StoredPendingPhoto => r !== null)
     .sort((a, b) => a.addedAt - b.addedAt);
 }
