@@ -151,17 +151,116 @@ export function ministryGroupsFromEntries(
   return order.map((label) => ({ label, options: byGroup.get(label)! }));
 }
 
+/**
+ * Default per-category guidance, keyed by account code. Fed to the AI-suggest
+ * prompt (and pre-filled into the treasurer's editor) to disambiguate
+ * look-alike categories; inferred from the church's 2020–2021 QuickBooks
+ * transaction history. Plain data, never printed on the form or translated.
+ * Codes absent from the transaction history carry a best-guess note inferred
+ * from the category name and its neighbors.
+ */
+export const DEFAULT_MINISTRY_DESCRIPTIONS: Record<string, string> = {
+  // Administration & General Expense
+  "210":
+    "Honoraria for guest preachers at Sunday worship services (English or Chinese), typically a flat per-Sunday check to the visiting pastor. Pulpit supply only — speakers for classes, workshops, or retreats belong to the hosting program's category.",
+  "212":
+    "Registration fees and membership dues for conferences, conventions, and training events church workers attend (e.g. a church workers convention). Retreat registrations go under Retreats Expense instead.",
+  "215":
+    "Gifts and appreciation for staff and volunteers: Christmas/year-end gift cards for pastoral and office staff, ordination gifts, retiring-deacon appreciation. Funeral or bereavement flowers belong under Caring; food for church-wide celebrations under 400.",
+  "237":
+    "Consumable office supplies: printer paper, ink and toner, envelopes, stationery, small software licenses (e.g. Microsoft 365), key copies. Durable machines are 239 Office Equipment; the copier lease and per-copy billing are 260.",
+  "239":
+    "Durable office hardware: printers, computers, monitors, shredders, office furniture and similar equipment purchases. Consumables like paper and ink are 237 Office Supplies.",
+  "245":
+    "Bottled drinking-water delivery for the church building (5-gallon bottles / fountain service), typically a small monthly invoice from the water vendor.",
+  "250":
+    "Catering and food for church luncheons and served meals: celebration or Chinese New Year luncheons, lunches for volunteer work crews. Refreshments bought as supplies for a specific ministry's event usually follow that event's own category.",
+  "253":
+    "Kitchen consumables and equipment for the church kitchen: paper goods, cookware, cleaning supplies, and kitchen equipment service such as range-hood maintenance.",
+  "255": "Communion elements and supplies (bread, juice, cups) for both English and Chinese services.",
+  "260":
+    "Copier lease and reproduction: the monthly copier lease invoice and per-copy/maintenance billing from the copier vendor. Printer ink and paper are 237 Office Supplies.",
+  "265": "Contracted janitorial and cleaning service for the church buildings, usually a fixed monthly invoice.",
+  "266":
+    "Routine gardening and lawn-care service, billed per visit or monthly, plus small yard clean-up extras. Larger one-time landscape projects are 525 Landscape Improvement.",
+  "270":
+    "Security and alarm system: quarterly alarm-monitoring fees, alarm repairs and battery service, and city/county alarm permits.",
+  "283":
+    "Worship media and audio/visual: sound gear (microphones, mixers, monitors), projection and streaming equipment, video/music licensing (e.g. CVLI, CCLI), and media subscriptions used to produce or broadcast services.",
+  // Education
+  "300":
+    "Sunday-morning children's ministry (e.g. \"The Rock\"): curriculum and teaching materials, snacks, children's books, graduation gifts, kids' class Zoom licenses, parent-workshop speaker honoraria. The Friday-night kids program is 315; one-off seasonal kids events are 330.",
+  "311":
+    "English adult Christian-education classes: teaching subscriptions (e.g. RightNow Media), study guides and class materials for the English congregation's adult classes.",
+  "315":
+    "The Friday-night children's program (e.g. \"Shining Stars\"): weekly curriculum, goodie bags, family fun nights, care packages, Christmas stockings. Sunday children's classes are 300; VBS is 320.",
+  "320": "Vacation Bible School: VBS curriculum, decorations, crafts, snacks, and supplies for the annual VBS week.",
+  "330":
+    "One-off and seasonal children's events outside the weekly programs: Harvest Festival candy and materials for kids, holiday goodie-bag drop-offs, summer program supplies.",
+  "340": "Sunday nursery / toddler care: paid hourly nursery workers during services, and nursery supplies.",
+  "355":
+    "Chinese-language books for the church library, including pastoral and preaching reference books that return to the library after use.",
+  "356": "English-language books and materials for the church library.",
+  "371":
+    "Leadership training and development for the English congregation: leaders' retreats and workshops — refreshments, materials, training resources.",
+  "375":
+    "Annual subscriptions to Christian magazines and devotionals distributed to the congregation (e.g. mission-organization magazines, Daily Bread, Walk Thru The Bible). Library book purchases are 355/356.",
+  // Fellowships & Ministries
+  "400":
+    "Church-wide celebrations and outreach spanning congregations: Chinese New Year celebration, ordination receptions, Harvest Festival, Thanksgiving feast, anniversary publications, baptism and baby-dedication supplies.",
+  "410":
+    "Mandarin choir/worship team: instruments and sound gear (e.g. in-ear monitors), sheet music, and music licensing for the Chinese congregation's worship.",
+  "425":
+    "Caring ministry for the Mandarin congregation: funeral and bereavement flowers, hospital visits, member care. English-side caring is 439.",
+  "431":
+    "English family & intergenerational small groups: group gatherings and supplies (e.g. baby-dedication receptions, family events).",
+  "432":
+    "English congregation evangelistic and caring outreach events: Christmas cookie outreach, coffee/café hospitality, neighborhood Harvest Festival outreach, Thanksgiving outreach.",
+  "433":
+    "Ongoing English-led service to the surrounding neighborhood and community (community-service projects and partnerships). Event-style outreach such as cookie or festival outreach is 432.",
+  "434": "MERGE, an English fellowship group: gatherings, food, and activity supplies (e.g. dumpling night).",
+  "435":
+    "TRANSPARENT, the English young-adult fellowship: meeting costs, Zoom licenses, activity supplies (e.g. secret-santa shipping). Its dedicated retreat is 481.",
+  "439":
+    "Caring ministry for the English congregation: flowers, care packages, meals and support for members in grief, illness, or need. Mandarin-side caring is 425.",
+  "440":
+    "Footprint(s), the youth fellowship: Friday-night food and snacks, study books, program materials, care packages, senior send-off, volunteer background checks. Youth retreats are 471.",
+  "450": "Joshua Fellowship, a Mandarin-speaking fellowship group: gatherings, food, and study materials.",
+  // Retreats Expense
+  "470":
+    "The church-wide summer retreat: venue deposits and rental, speakers, food, and materials. Youth-specific retreats are 471; the young-adult TRANSPARENT retreat is 481.",
+  "471":
+    "Youth retreats and conferences: venue and registration fees, bus or van rental, and shared costs with partner churches (e.g. a winter youth conference).",
+  "481": "The TRANSPARENT young-adult retreat: venue deposits (camp / conference center), food, and retreat supplies.",
+  // Property Rental & Maintenance
+  "525":
+    "One-time landscape improvement projects: paving, tree work, new plantings, irrigation. Routine mowing and gardening service is 266.",
+  "530":
+    "Building repairs and upkeep: plumbing (e.g. restroom leaks), electrical, HVAC, roof, and general handyman work on church properties. Renovation projects are 540; janitorial service is 265.",
+  "535":
+    "Rent the church pays for space it uses: school facility rental for worship services, overflow parking-lot rental.",
+  "540":
+    "Capital renovation and construction on church buildings — contractor work that upgrades or remodels rather than repairs (repairs are 530).",
+  // Missions
+  "811":
+    "A designated short-term mission trip (trip slot 2): team travel, trip materials, and donations to host churches or ministries (e.g. VBS materials and gifts for children at the destination).",
+  "813": "A designated short-term mission trip (trip slot 4): team travel, trip materials, and donations to the hosts.",
+  "850":
+    "Regular budgeted support to mission organizations and missionaries, usually semiannual checks to each organization. One-time or surplus-designated mission gifts and short-term trip costs are separate.",
+};
+
 /** The built-in list as catalog entries — the seed the treasurer's editor
  *  starts from and the fallback the loader serves while the table is empty.
  *  Every default option carries a 3-digit code, so the parse always succeeds. */
 export const DEFAULT_MINISTRY_ENTRIES: MinistryEntry[] = MINISTRY_GROUPS.flatMap((g, gi) =>
   g.options.map((opt, oi) => {
     const m = opt.match(/^(\d{3})\s+(.*)$/);
+    const code = m ? m[1] : "";
     return {
-      code: m ? m[1] : "",
+      code,
       name: m ? m[2] : opt,
       group: g.label,
-      description: "",
+      description: DEFAULT_MINISTRY_DESCRIPTIONS[code] ?? "",
       active: true,
       sortOrder: gi * 100 + oi,
     };

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEFAULT_MINISTRY_DESCRIPTIONS,
   DEFAULT_MINISTRY_ENTRIES,
   MINISTRIES,
   MINISTRY_GROUPS,
@@ -64,6 +65,18 @@ describe("split code + name", () => {
     // The regrouped composed options equal the original hard-coded groups.
     const regrouped = ministryGroupsFromEntries(DEFAULT_MINISTRY_ENTRIES);
     expect(regrouped).toEqual(MINISTRY_GROUPS.map((g) => ({ label: g.label, options: [...g.options] })));
+  });
+
+  it("every default entry carries guidance within the editor's 500-char cap", () => {
+    for (const e of DEFAULT_MINISTRY_ENTRIES) {
+      expect(e.description.length, `description for ${e.code} ${e.name}`).toBeGreaterThan(0);
+      expect(e.description.length, `description for ${e.code} ${e.name}`).toBeLessThanOrEqual(500);
+    }
+    // No orphaned guidance: every described code exists in the default list.
+    const codes = new Set(DEFAULT_MINISTRY_ENTRIES.map((e) => e.code));
+    for (const code of Object.keys(DEFAULT_MINISTRY_DESCRIPTIONS)) {
+      expect(codes.has(code), `description for unknown code ${code}`).toBe(true);
+    }
   });
 
   it("ministryGroupsFromEntries drops archived rows and keeps group order", () => {
