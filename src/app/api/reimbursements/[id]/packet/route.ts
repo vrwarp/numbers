@@ -47,7 +47,12 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="cfcc-reimbursement-${id}.pdf"`,
-        "Cache-Control": "no-store",
+        // A ?sha= request is content-addressed into the immutable signed
+        // archive (never regenerated or overwritten), so the browser may
+        // keep it: ceremony re-fetches of the same bytes then skip a
+        // multi-megabyte download. The default selection is status-dependent
+        // and `generated` bytes are mutable — those stay uncacheable.
+        "Cache-Control": shaParam ? "private, max-age=31536000, immutable" : "no-store",
       },
     });
   });

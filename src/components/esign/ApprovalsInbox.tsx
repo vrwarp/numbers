@@ -14,7 +14,7 @@ import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { useTranslations } from "next-intl";
 import { formatCents } from "@/lib/money";
 import ClaimSummaryRow from "./ClaimSummaryRow";
-import { LedgerCommittedError, runDecisionCeremony } from "@/lib/esign/client";
+import { LedgerCommittedError, runDecisionCeremony, warmClaimVerification } from "@/lib/esign/client";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
 import { AuditDetails, ChainAlert, PacketLink, ThreadSignatures, chainLooksGood, useClaimChain } from "./chain";
@@ -86,6 +86,12 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
   useEffect(() => {
     void load();
   }, [load]);
+  // Warm the signing stack (Firebase SDK, restored session, verified roster)
+  // while the approver is still reading the list — opening a claim then only
+  // waits on the claim ledger and the packet bytes.
+  useEffect(() => {
+    void warmClaimVerification();
+  }, []);
   // A submitted claim should appear without a manual reload — but never
   // refresh under an open decision ceremony.
   useAutoRefresh(load, { paused: openId !== null });
@@ -341,7 +347,6 @@ function DecisionCeremony({
       {needsConnect && (
         <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
       )}
-      {loading && <p className="text-sm text-stone-500">{tEsign("verifyingChain")}</p>}
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {state && (
         <>
@@ -360,6 +365,14 @@ function DecisionCeremony({
             </p>
           )}
           <ThreadSignatures state={state} />
+        </>
+      )}
+      {/* From here down the ceremony renders OPTIMISTICALLY from mirror data
+          while the chain verifies: the approver can read the rows and fill in
+          the form during the check. Nothing signable leaks — Approve/Reject
+          stay disabled until `verified`, and a failed check lands as the red
+          error above. */}
+      <>
           <div className="grid gap-2 text-sm sm:gap-1">
             {claim.rows.map((r, i) => (
               // Mobile: stack — the full description wraps on its own line, the
@@ -389,19 +402,21 @@ function DecisionCeremony({
           {/* The stamp surface previews only the first form page; this opens the
               whole packet — every form page plus the appended receipts — so the
               approver can review what they're signing. */}
-          <PacketLink
-            className="btn-secondary inline-block self-start"
-            url={state.packetUrl}
-            blob={state.packetBlob}
-            filename={`cfcc-reimbursement-${claim.id}.pdf`}
-            testId="open-packet"
-          >
-            {tEsign("openPacketButton")}
-          </PacketLink>
+          {state && (
+            <PacketLink
+              className="btn-secondary inline-block self-start"
+              url={state.packetUrl}
+              blob={state.packetBlob}
+              filename={`cfcc-reimbursement-${claim.id}.pdf`}
+              testId="open-packet"
+            >
+              {tEsign("openPacketButton")}
+            </PacketLink>
+          )}
           {/* Click-to-stamp on the EXACT verified bytes (never a server
               raster) — placing the approval signature where it goes, with the
               printed name + date the certificate stamps alongside it. */}
-          {verified && state.chain.packetBytes && signatureImage && anchor ? (
+          {state && verified && state.chain.packetBytes && signatureImage && anchor ? (
             <DocumentSignField
               bytes={state.chain.packetBytes}
               signatureImage={signatureImage}
@@ -420,8 +435,17 @@ function DecisionCeremony({
                 {tEsign("retryButton")}
               </button>
             </div>
+          ) : loading ? (
+            // The paperwork check runs behind this placeholder (where the
+            // stamp surface will appear) instead of blanking the whole form.
+            <div
+              className="flex h-40 items-center justify-center rounded-lg border border-dashed border-stone-200 bg-stone-50 text-sm text-stone-500"
+              data-testid="verify-pending"
+            >
+              {tEsign("verifyingChain")}
+            </div>
           ) : null}
-          <AuditDetails state={state} />
+          {state && <AuditDetails state={state} />}
           <label className="block text-sm font-medium">
             {t("commentLabel")}
             <input className="input mt-1" value={comment} onChange={(e) => setComment(e.target.value)} data-testid="decision-comment" />
@@ -523,8 +547,7 @@ function DecisionCeremony({
               <p>{t("rejectConfirmBody", { name: claim.ownerName })}</p>
             </ConfirmDialog>
           )}
-        </>
-      )}
+      </>
     </div>
   );
 }

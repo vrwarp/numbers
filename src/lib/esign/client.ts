@@ -198,6 +198,37 @@ export async function loadRoster(env: EsignEnv): Promise<RosterLoad> {
   return { roster, rawDocs, rejectedCount: rejected.length };
 }
 
+/**
+ * Short-lived cache of the verified roster. Opening several claims
+ * back-to-back (or the inbox warm-up below) re-lists and re-verifies the
+ * same append-only ledger each time; within this window the already-verified
+ * result is reused. This does not weaken fail-closed: the roster WAS fully
+ * verified on this device seconds ago, staleness is bounded by the TTL, any
+ * roster append from this device invalidates immediately, and the
+ * server/ledger validity rules enforce roles at signing time regardless.
+ */
+const ROSTER_CACHE_MS = 60_000;
+let rosterCache: { ledgerId: string; at: number; load: Promise<RosterLoad> } | null = null;
+
+export function invalidateRosterCache(): void {
+  rosterCache = null;
+}
+
+export async function loadRosterCached(env: EsignEnv): Promise<RosterLoad> {
+  const ledgerId = env.rosterLedgerId;
+  if (!ledgerId) return loadRoster(env); // throws the standard "enroll first" error
+  const now = Date.now();
+  if (!rosterCache || rosterCache.ledgerId !== ledgerId || now - rosterCache.at > ROSTER_CACHE_MS) {
+    const load = loadRoster(env);
+    rosterCache = { ledgerId, at: now, load };
+    // Never cache a failure — the next caller retries fresh.
+    load.catch(() => {
+      if (rosterCache?.load === load) rosterCache = null;
+    });
+  }
+  return rosterCache.load;
+}
+
 /** Live-watch the roster ledger so a vouch (pending → attested), role grant, or
  *  key revocation made on another device surfaces here without a manual reload
  *  (§4.3). `onChange` fires only on changes after subscription — the caller
@@ -240,10 +271,16 @@ export async function verifyClaimChain(
   }
 ): Promise<ClaimChain> {
   const custody = custodyFor(env);
-  const anchor = await checkRootAnchor(env, custody);
-  const { roster } = await loadRoster(env);
   const store = storeFor(env);
-  const claimDocs = await store.list(claim.signatureLedgerId);
+  // The four legs are independent — anchor pin, roster verify, claim-ledger
+  // list, packet download+hash — so they run concurrently: the packet bytes
+  // (often megabytes of appended receipts) download while the crypto runs.
+  const [anchor, { roster }, claimDocs, packet] = await Promise.all([
+    checkRootAnchor(env, custody),
+    loadRosterCached(env),
+    store.list(claim.signatureLedgerId),
+    fetchPacketHashed(claim),
+  ]);
   const { events } = await openLedger(claim.signatureLedgerKey, claimDocs);
   const evaluation = evaluateClaimLedger({
     claimId: claim.id,
@@ -252,16 +289,38 @@ export async function verifyClaimChain(
     roster,
     events: events as VerifiedEvent<ClaimAction>[],
   });
-  let packetSha256: string | null = null;
-  let packetBytes: ArrayBuffer | null = null;
+  return { anchor, roster, evaluation, claimDocs, ...packet };
+}
+
+async function fetchPacketHashed(claim: {
+  id: string;
+  packetSha256?: string | null;
+}): Promise<{ packetSha256: string | null; packetBytes: ArrayBuffer | null }> {
   const res = await fetch(
     `/api/reimbursements/${claim.id}/packet${claim.packetSha256 ? `?sha=${claim.packetSha256}` : ""}`
   );
-  if (res.ok) {
-    packetBytes = await res.arrayBuffer();
-    packetSha256 = await sha256Hex(new Uint8Array(packetBytes));
+  if (!res.ok) return { packetSha256: null, packetBytes: null };
+  const packetBytes = await res.arrayBuffer();
+  return { packetSha256: await sha256Hex(new Uint8Array(packetBytes)), packetBytes };
+}
+
+/**
+ * Best-effort warm-up for the decision/paid ceremonies, called while the
+ * member is still reading the inbox list: load the env, pull the Firebase
+ * SDK + restored session, and pre-verify the roster — so opening a claim
+ * only has the claim ledger and the packet bytes left to wait on. Never
+ * opens the Google popup and never surfaces errors; the ceremony's own
+ * fail-closed verification is authoritative.
+ */
+export async function warmClaimVerification(): Promise<void> {
+  try {
+    const env = await loadEnv();
+    await preloadSigningSession(env);
+    if (!(await hasSigningSession(env))) return;
+    if (env.rosterLedgerId && env.rosterLedgerKey) await loadRosterCached(env);
+  } catch {
+    // Opportunistic only — the real open re-runs everything and reports.
   }
-  return { anchor, roster, evaluation, claimDocs, packetSha256, packetBytes };
 }
 
 /** Reconcile the mirror from a verifying view (§5.5). */
@@ -352,6 +411,9 @@ async function appendToLedger(
   const eventId = eventIdFor(hash);
   const store = storeFor(env);
   await store.append(ledgerId, { eventId, ...sealed });
+  // A roster append (vouch, role change, key revocation) must be visible to
+  // the very next verification — drop the cached verified roster.
+  if (ledgerId === env.rosterLedgerId) invalidateRosterCache();
   const doc = (await store.list(ledgerId)).find((d) => d.eventId === eventId);
   if (!doc) throw new Error("Appended event did not come back from the store");
   return doc;
