@@ -1,7 +1,7 @@
 import { test, expect, Page } from "@playwright/test";
 import fs from "fs/promises";
 import { PDFDocument } from "pdf-lib";
-import { makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
+import { completeProfile, makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
 
 const SHOTS = "screenshots";
 
@@ -249,6 +249,7 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
 
 test("claim with more receipts than the 13-row form paginates onto two form pages", async ({ page }, testInfo) => {
   await signInAs(page, `manyitems-${testInfo.project.name}-r${testInfo.retry}@example.com`);
+  await completeProfile(page);
   await page.goto("/");
   const fixtures = [];
   for (let i = 0; i < 14; i++) fixtures.push(await makeReceiptFixture(`bulk-${i}.jpg`));

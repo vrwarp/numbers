@@ -179,6 +179,7 @@ test("amount journeys: exact cents match for $ and full-width IME input", async 
 test("zh claim journey: draft indexes after idle, survives freezing, found by a Chinese query", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   await signInAs(page, `zhclaim-${testInfo.project.name}-r${testInfo.retry}@example.com`, "Banquet Member");
+  await completeProfile(page);
   await page.goto("/");
   await uploadReceipts(page, [path.join(FIXTURES, "zh-restaurant.png")], RECEIPT_NOTES["zh-restaurant"]);
   const receiptId = (await (await page.request.get("/api/receipts")).json()).receipts[0].id;
