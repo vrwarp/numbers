@@ -5988,7 +5988,8 @@
     "zh-Hant": "todo"
   },
   "Positions.descriptionPlaceholder": {
-    "source": "What this position approves (optional)",
+    "source": "Description of this position (optional)",
+    "context": "Placeholder text in a free-text input on the position editor card, under the position's name — a short note describing the role itself (e.g. its scope or who holds it), not a list of what it approves.",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
@@ -6021,7 +6022,8 @@
     "zh-Hant": "todo"
   },
   "Positions.usedByCategories": {
-    "source": "Default approver for {count} budget category(ies)",
+    "source": "Default approver for: {list}",
+    "context": "Shown under a position's description on the position editor card when it is the default approver for one or more budget categories. {list} is a pre-formatted, locale-aware conjunction list (e.g. \"245 Drinking Water, 101 Missions, and 102 Youth\") of budget-category names — data, passed through as-is, never translated.",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
