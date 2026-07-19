@@ -4,12 +4,13 @@ import { z } from "zod";
 import { handleApi, requireUserId, ApiError } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { requireMinistryEditor } from "@/lib/ministries-guard";
+import { loadAllMinistryRows } from "@/lib/ministries-catalog";
 import {
-  loadActiveMinistryEntries,
-  loadActiveMinistryGroups,
-  loadAllMinistryRows,
-} from "@/lib/ministries-catalog";
-import { isValidMinistryCode, RESERVED_UNCATEGORIZED_CODE, composeMinistry } from "@/lib/ministries";
+  isValidMinistryCode,
+  RESERVED_UNCATEGORIZED_CODE,
+  composeMinistry,
+  ministryGroupsFromEntries,
+} from "@/lib/ministries";
 
 export const runtime = "nodejs";
 
@@ -48,11 +49,11 @@ export async function GET(req: Request) {
       return NextResponse.json({ rows: await loadAllMinistryRows() });
     }
     await requireUserId();
-    const [groups, entries, allRows] = await Promise.all([
-      loadActiveMinistryGroups(),
-      loadActiveMinistryEntries(),
-      loadAllMinistryRows(),
-    ]);
+    // One catalog read; active entries and grouped options derive from it
+    // (each loader would otherwise run its own findMany over the same table).
+    const allRows = await loadAllMinistryRows();
+    const entries = allRows.filter((r) => r.active).map(({ id: _id, defaultPositionId: _p, ...e }) => e);
+    const groups = ministryGroupsFromEntries(entries);
     // Retired (archived) composed values: consumers keep rendering a stored
     // value with its code chip and group context instead of demoting it to a
     // free-text "Other…" the moment its category is archived. Names only —

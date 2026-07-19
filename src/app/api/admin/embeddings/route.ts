@@ -3,7 +3,11 @@ import { z } from "zod";
 import { handleApi, ApiError } from "@/lib/api";
 import { requireAdmin } from "@/lib/admin/guard";
 import { prisma } from "@/lib/prisma";
-import { embeddingSettings, DEFAULT_QUERY_PREFIX } from "@/lib/embeddings/settings";
+import {
+  embeddingSettings,
+  invalidateEmbeddingSettingsCache,
+  DEFAULT_QUERY_PREFIX,
+} from "@/lib/embeddings/settings";
 import { probeEndpoint, EmbedError } from "@/lib/embeddings/provider";
 import { sha256Hex } from "@/lib/embeddings/content";
 import { kickSweep } from "@/lib/embeddings/worker";
@@ -155,6 +159,7 @@ export async function PUT(req: NextRequest) {
     const row = current
       ? await prisma.embeddingSettings.update({ where: { id: current.id }, data: next })
       : await prisma.embeddingSettings.create({ data: next });
+    invalidateEmbeddingSettingsCache();
 
     if (modelChanged) {
       // §3.3: model/dim identity change = wipe + rebuild.

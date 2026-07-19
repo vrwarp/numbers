@@ -1050,13 +1050,36 @@ export default function ReviewClaim({
     }
   }
 
-  /** Confirm every remaining ministry-complete row; each PATCH keeps the
-   *  per-row server gate (and audit trail) intact. */
+  /** Confirm every remaining ministry-complete row in one request (the bulk
+   *  route mirrors the per-row gates + audit trail). Optimistic like
+   *  patchItem, and enqueued on the same mutation chain so a following PDF
+   *  generation drains one roundtrip, not N. */
   async function doVerifyAll() {
-    const rows = claim!.lineItems.filter(
-      (it) => !it.isExcluded && !it.isVerified && it.ministry
+    const id = claim!.id;
+    setClaim((prev) =>
+      prev
+        ? {
+            ...prev,
+            lineItems: prev.lineItems.map((it) =>
+              !it.isExcluded && !it.isVerified && it.ministry ? { ...it, isVerified: true } : it
+            ),
+          }
+        : prev
     );
-    await Promise.all(rows.map((it) => patchItem(it.id, { isVerified: true })));
+    await enqueue(async () => {
+      try {
+        const res = await fetch(`/api/reimbursements/${id}/verify-all`, { method: "POST" });
+        if (!res.ok) {
+          setError(apiError(await res.json().catch(() => null), t("updateFailed")));
+          await load();
+          return;
+        }
+        const { lineItems, totalCents } = await res.json();
+        setClaim((prev) => (prev ? { ...prev, totalCents, lineItems } : prev));
+      } catch {
+        setError(t("updateFailed"));
+      }
+    });
   }
 
   return (
@@ -1217,6 +1240,8 @@ export default function ReviewClaim({
                     <img
                       src={fileUrl(group.receipt.id)}
                       alt={group.receipt.originalName}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full"
                     />
                   )}

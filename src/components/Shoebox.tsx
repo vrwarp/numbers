@@ -348,13 +348,19 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
   }
 
   async function saveNote(id: string, note: string) {
+    // Optimistic: reflect the note locally; a one-field save must not reload
+    // (and briefly flicker) the entire grid.
+    const prev = receipts;
+    setReceipts((rs) => (rs ?? []).map((r) => (r.id === id ? { ...r, note } : r)));
     const res = await fetch(`/api/receipts/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ note }),
     });
-    if (!res.ok) setError(apiError(await res.json().catch(() => null), t("noteSaveFailed")));
-    await load();
+    if (!res.ok) {
+      setError(apiError(await res.json().catch(() => null), t("noteSaveFailed")));
+      setReceipts(prev);
+    }
   }
 
   // Deletion confirms through ConfirmDialog, never window.confirm(): iOS
@@ -369,13 +375,20 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
     const id = deletingId;
     setDeleteBusy(true);
     const res = await fetch(`/api/receipts/${id}`, { method: "DELETE" });
-    if (!res.ok) setError(apiError(await res.json().catch(() => null), t("deleteFailed")));
+    if (!res.ok) {
+      setError(apiError(await res.json().catch(() => null), t("deleteFailed")));
+      // The refusal may carry state we can't see (e.g. joined a claim) —
+      // resync rather than guessing.
+      await load();
+    } else {
+      // Drop the card locally; no need to refetch the whole grid.
+      setReceipts((rs) => (rs ?? []).filter((r) => r.id !== id));
+    }
     setSelected((prev) => {
       const next = new Set(prev);
       next.delete(id);
       return next;
     });
-    await load();
     setDeleteBusy(false);
     setDeletingId(null);
   }

@@ -30,8 +30,23 @@ export interface RegistryRow {
   scope: string; // "allowlist" | "everyone" (A8)
 }
 
+// The registry row is read on nearly every authenticated request (badges,
+// approvals, finance, certificates) but written only from the admin setup/
+// switch route. A short-TTL process cache absorbs that read amplification;
+// the admin route invalidates on write so a switch flip is visible at once
+// in-process (other processes converge within the TTL).
+let registryCache: { row: RegistryRow | null; at: number } | null = null;
+const REGISTRY_TTL_MS = 5_000;
+
+export function invalidateRegistryCache() {
+  registryCache = null;
+}
+
 export async function getRegistry(): Promise<RegistryRow | null> {
-  return prisma.esignRegistry.findFirst();
+  if (registryCache && Date.now() - registryCache.at < REGISTRY_TTL_MS) return registryCache.row;
+  const row = await prisma.esignRegistry.findFirst();
+  registryCache = { row, at: Date.now() };
+  return row;
 }
 
 /** Registry exists — enough for VERIFICATION surfaces (/v, packet,

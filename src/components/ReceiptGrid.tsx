@@ -25,6 +25,7 @@ function PdfThumb({ id }: { id: string }) {
       alt={t("pdfThumbAlt")}
       loading="lazy"
       onError={() => setFailed(true)}
+      decoding="async"
       className="h-full w-full object-cover object-top"
       data-testid={`pdf-thumb-${id}`}
     />
@@ -144,6 +145,8 @@ export default function ReceiptGrid({
                   key={fileUrl?.(r.id)}
                   src={fileUrl ? fileUrl(r.id) : `/api/receipts/${r.id}/file`}
                   alt={r.originalName}
+                  loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover"
                 />
               )}

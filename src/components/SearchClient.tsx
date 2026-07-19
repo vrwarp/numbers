@@ -553,6 +553,23 @@ export default function SearchClient({
         </div>
       )}
 
+      {/* First run has no stale results to dim, so sketch the incoming list —
+          a blank pane reads as "nothing happened". Announcement is handled by
+          the live region above. */}
+      {searching && !result && (
+        <div data-testid="search-skeleton" aria-hidden className="space-y-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="card flex items-center gap-3 p-3">
+              <div className="h-16 w-16 shrink-0 animate-pulse rounded bg-stone-200 motion-reduce:animate-none" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-1/2 animate-pulse rounded bg-stone-200 motion-reduce:animate-none" />
+                <div className="h-3 w-1/3 animate-pulse rounded bg-stone-200 motion-reduce:animate-none" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className={searching && result ? "pointer-events-none opacity-50" : ""}>
         {result && !hasResults && !searching && (
           <div data-testid="search-empty" className="card p-8 text-center text-stone-500">
@@ -740,6 +757,7 @@ function ResultCard({
           alt=""
           className="h-16 w-16 shrink-0 rounded-lg object-cover"
           loading="lazy"
+          decoding="async"
         />
         <div className="min-w-0 flex-1">
           <div className="truncate font-semibold">
