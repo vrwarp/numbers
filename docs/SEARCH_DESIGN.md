@@ -607,8 +607,10 @@ went away — not a cosmetic hide). Role loss narrows it the same way. The grant
 derives from `ADMIN_EMAILS` — only the verified role mirror.
 
 **Team amendment (ratified): `scope="team"` — a membership-derived read grant.**
-Teams (`Team`/`TeamMember`/`TeamMinistry`, managed by Approver-or-above at `/teams`)
-associate members with budget-category **codes**. Membership in an active team with
+Teams (`Team`/`TeamMember`/`TeamMinistry`, managed by Approver-or-above at `/teams` —
+management, like the role-read grant, requires ≥1 active un-paused duty, so a
+fully-paused role-holder loses the editor too) associate members with
+budget-category **codes**. Membership in an active team with
 ≥1 code grants `canTeam`: a fourth scope listing/searching the receipts whose OWN
 non-excluded line item carries a team code on a **non-draft** claim (least-privilege
 grain — a mixed-ministry claim exposes only its matching receipts), plus the claims

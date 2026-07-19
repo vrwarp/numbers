@@ -39,7 +39,9 @@ src/lib/teams-catalog.ts        Teams reads + the TEAM READ GRANT (SEARCH_DESIGN
                                 canReadReceiptViaTeam (file/preview per-id check),
                                 hasTeamReadGrant (canTeam) — membership-derived, SERVER ONLY
 src/lib/teams-guard.ts          canManageTeams/requireTeamEditor (Approver-or-above or
-                                app-admin — wider than ministries on purpose)
+                                app-admin — wider than ministries on purpose; narrowed by
+                                the A10 duty pauses like the role-read grant: needs ≥1
+                                active duty. Pauses never touch the membership READ grant)
 src/components/Teams.tsx        /teams editor: name/description, member picker, budget-category
                                 code chips (stored as codes, not Ministry ids)
 src/lib/members-guard.ts        canViewMembers/requireMemberDirectoryViewer (treasurer/admin

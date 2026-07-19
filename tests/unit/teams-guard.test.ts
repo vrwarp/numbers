@@ -21,7 +21,7 @@ afterEach(() => {
 });
 
 describe("canManageTeams", () => {
-  it("every Approver-or-above role qualifies (teams are opened wider than ministries)", () => {
+  it("every Approver-or-above role qualifies while its duties are active (teams are opened wider than ministries)", () => {
     for (const role of ["approver", "secretary", "chairman", "treasurer", "admin"]) {
       expect(canManageTeams({ role, email: "x@church.org" })).toBe(true);
     }
@@ -32,10 +32,33 @@ describe("canManageTeams", () => {
     expect(canManageTeams({ role: "", email: "x@church.org" })).toBe(false);
   });
 
-  it("the A10 approvals pause does NOT narrow team management (stewardship, not an approval act)", () => {
-    // canManageTeams takes no pause flags for the role path — the signature
-    // itself documents this; adminPaused only narrows the ADMIN_EMAILS path.
-    expect(canManageTeams({ role: "approver", email: "a@church.org", adminPaused: true })).toBe(true);
+  it("A10 pauses narrow team management like the role-read grant: no active duty, no editor", () => {
+    // Approver-tier roles hold only the Approvals duty — pausing it ends it.
+    for (const role of ["approver", "secretary", "chairman"]) {
+      expect(canManageTeams({ role, email: "a@church.org", approvalsPaused: true })).toBe(false);
+    }
+  });
+
+  it("a treasurer keeps the editor while ANY granted duty is active, loses it when all are paused", () => {
+    expect(canManageTeams({ role: "treasurer", email: "t@church.org", approvalsPaused: true })).toBe(true);
+    expect(
+      canManageTeams({ role: "treasurer", email: "t@church.org", approvalsPaused: true, financePaused: true })
+    ).toBe(false);
+  });
+
+  it("an admin keeps it via the admin duty until all three duties are paused", () => {
+    expect(
+      canManageTeams({ role: "admin", email: "a@church.org", approvalsPaused: true, financePaused: true })
+    ).toBe(true);
+    expect(
+      canManageTeams({
+        role: "admin",
+        email: "a@church.org",
+        approvalsPaused: true,
+        financePaused: true,
+        adminPaused: true,
+      })
+    ).toBe(false);
   });
 
   it("an ADMIN_EMAILS address qualifies even as a member (case-insensitive), unless admin-paused", () => {
