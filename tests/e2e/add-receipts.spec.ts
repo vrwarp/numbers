@@ -94,6 +94,6 @@ test("receipts can be added to a draft claim from the review screen", async ({ p
   expect(frozen.status()).toBe(409);
   // The button is gone on a generated claim.
   await page.reload();
-  await expect(page.getByTestId("claim-status")).toHaveText("Generated");
+  await expect(page.getByTestId("claim-status")).toHaveText("Ready to submit");
   await expect(page.getByTestId("add-receipts")).toHaveCount(0);
 });

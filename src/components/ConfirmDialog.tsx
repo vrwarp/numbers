@@ -16,6 +16,7 @@ export default function ConfirmDialog({
   confirmLabel,
   busy = false,
   tone = "danger",
+  errorText = null,
   onConfirm,
   onCancel,
   testId = "confirm-dialog",
@@ -29,6 +30,9 @@ export default function ConfirmDialog({
   /** "danger" (default) for destructive confirms; "primary" for benign ones —
    *  a red button on a safe action overstates the stakes. */
   tone?: "danger" | "primary";
+  /** Failure feedback shown inside the dialog — a confirm that closes on
+   *  error is indistinguishable from success. */
+  errorText?: string | null;
   onConfirm: () => void;
   onCancel: () => void;
   testId?: string;
@@ -50,6 +54,11 @@ export default function ConfirmDialog({
     >
       <div className="card w-full max-w-sm p-6" data-testid={testId}>
         <p className="whitespace-pre-line text-sm">{message}</p>
+        {errorText && (
+          <p className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">
+            {errorText}
+          </p>
+        )}
         <div className="mt-5 flex justify-end gap-2">
           <button
             className="btn-secondary"

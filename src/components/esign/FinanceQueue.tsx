@@ -7,13 +7,13 @@
  * certificate links.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useOpenParam } from "@/lib/use-open-param";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { useTranslations } from "next-intl";
-import { runPaidCeremony } from "@/lib/esign/client";
+import { LedgerCommittedError, runPaidCeremony } from "@/lib/esign/client";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
-import { AuditDetails, ChainAlert, PacketLink, ThreadSignatures, useClaimChain } from "./chain";
+import { AuditDetails, ChainAlert, PacketLink, ThreadSignatures, chainLooksGood, useClaimChain } from "./chain";
 import { SigningConnectCard } from "./SigningConnect";
 import { type InboxClaim } from "./ApprovalsInbox";
 import ClaimSummaryRow from "./ClaimSummaryRow";
@@ -67,12 +67,14 @@ export default function FinanceQueue() {
   }, []);
   // ?open=<id> deep link from search results (shared contract).
   const list = claims ?? [];
+  const [openGone, setOpenGone] = useState(false);
   useOpenParam({
-    ready: list.length > 0,
+    ready: claims !== null,
     exists: (id) => list.some((c) => c.id === id),
     beforeScroll: (id) => {
       if (list.find((c) => c.id === id)?.status === "approved") setOpenId(id);
     },
+    onGone: () => setOpenGone(true),
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -162,6 +164,11 @@ export default function FinanceQueue() {
         <p className="text-sm text-stone-500">{t("subtitle")}</p>
       </div>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {openGone && (
+        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800" role="status" data-testid="open-gone-toast">
+          {t("openGone")}
+        </p>
+      )}
 
       {claims === null ? (
         <p className="text-sm text-stone-500">{tCommon("loading")}</p>
@@ -191,7 +198,18 @@ export default function FinanceQueue() {
 
       {paid.length > 0 && (
         <div>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-stone-400">{t("paidHeader")}</h2>
+          <div className="mb-2 flex items-center gap-3">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-400">{t("paidHeader")}</h2>
+            {paid.some((c) => !selected.has(c.id)) && (
+              <button
+                className="text-[13px] font-medium text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
+                onClick={() => setSelected(new Set(paid.map((c) => c.id)))}
+                data-testid="print-select-all"
+              >
+                {t("selectAllPaid")}
+              </button>
+            )}
+          </div>
           <ul className="space-y-3">
             {paid.map((c) => {
               const isSel = selected.has(c.id);
@@ -324,10 +342,19 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
   const [affirmed, setAffirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [committed, setCommitted] = useState(false);
+  const [attempted, setAttempted] = useState(false);
 
+  const prefilled = useRef(false);
   useEffect(() => {
-    if (state && !typedName) setTypedName(state.env.me.name);
-  }, [state, typedName]);
+    // Prefill once when verification lands — re-filling on every render
+    // would fight a deliberate clear of the field.
+    if (state && !prefilled.current) {
+      prefilled.current = true;
+      if (!typedName) setTypedName(state.env.me.name);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   const thread = state?.thread ?? null;
   const verified =
@@ -357,7 +384,14 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
       );
       await onChanged();
     } catch (err) {
-      setActionError(thrown(err, tEsign("ceremonyFailed")));
+      if (err instanceof LedgerCommittedError) {
+        // Payment IS signed on the ledger — never allow a second signature.
+        setCommitted(true);
+        setActionError(tEsign("signedButNotSynced"));
+        await onChanged();
+      } else {
+        setActionError(thrown(err, tEsign("ceremonyFailed")));
+      }
       setBusy(false);
     }
   }
@@ -372,9 +406,11 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
       {state && (
         <>
           <ChainAlert state={state} />
-          {!verified && (
-            <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
-              {tEsign("failClosed")}
+          {!verified && chainLooksGood(state) && (
+            <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="failclosed-note">
+              {thread && thread.state !== "approved"
+                ? tEsign("alreadyDecidedNote")
+                : tEsign("failClosed")}
             </p>
           )}
           <ThreadSignatures state={state} />
@@ -428,10 +464,36 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
             <span>{tEsign("intentAffirmation")}</span>
           </label>
           {actionError && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{actionError}</p>}
-          <div className="flex justify-end">
+          {/* Blank check number is legitimate (bank transfer, cash) — say so,
+              so an EMPTY field reads as a choice, not an oversight. */}
+          {!checkNumber.trim() && !busy && (
+            <p className="text-right text-xs text-stone-400" data-testid="no-check-note">
+              {t("noCheckNumberNote")}
+            </p>
+          )}
+          {(() => {
+            const reason = busy || committed || !verified
+              ? null
+              : !typedName.trim()
+                ? tEsign("hintTypeName")
+                : !affirmed
+                  ? tEsign("hintAffirm")
+                  : null;
+            return reason && attempted ? (
+              <p className="text-right text-xs text-stone-500" data-testid="paid-hint">
+                {reason}
+              </p>
+            ) : null;
+          })()}
+          <div
+            className="flex justify-end"
+            onClick={() => {
+              if (!busy && !committed) setAttempted(true);
+            }}
+          >
             <button
-              className="btn-primary disabled:opacity-50"
-              disabled={!verified || busy || !typedName.trim() || !affirmed}
+              className="btn-primary disabled:pointer-events-none disabled:opacity-50"
+              disabled={!verified || busy || committed || !typedName.trim() || !affirmed}
               onClick={pay}
               data-testid="mark-paid-button"
             >

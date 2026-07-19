@@ -7,7 +7,7 @@
   "Common": {
     "status": {
       "draft": "Draft",
-      "generated": "Generated",
+      "generated": "Ready to submit",
       "needsReview": "Needs review",
       "processed": "processed",
       "submitted": "Awaiting approval",
@@ -34,7 +34,8 @@
       "chairman": "Chairman",
       "treasurer": "Treasurer",
       "admin": "Admin"
-    }
+    },
+    "close": "Close"
   },
   "NavBar": {
     "shoebox": "Receipts",
@@ -74,7 +75,7 @@
   },
   "Claims": {
     "title": "Claims",
-    "subtitle": "Draft claims need review; generated claims are ready to print and sign.",
+    "subtitle": "Draft claims need review; claims marked “Ready to submit” can be printed or sent for approval.",
     "emptyTitle": "No claims yet",
     "emptyBody": "Select receipts on the <link>Receipts</link> page and hit “New Claim”.",
     "counts": "{items} items · {receipts, plural, one {# receipt} other {# receipts}}",
@@ -386,7 +387,7 @@
     "panelPaidWithCheck": "Paid — check #{checkNumber}",
     "approverComment": "Approver's comment: “{comment}”",
     "certificateLink": "📜 Approval certificate",
-    "withdrawConfirm": "Withdraw this submission so you can pick a different approver?",
+    "withdrawConfirm": "Withdraw this submission so you can pick a different approver? You can submit again right after from the claim’s E-sign button.",
     "withdrawConfirmButton": "Withdraw",
     "withdrawButton": "↪ Withdraw / change approver",
     "resubmit": "✍️ Resubmit",
@@ -462,7 +463,21 @@
     "waitingFor": "Waiting for {name} to review this claim.",
     "approverPausedNote": "{name} isn't taking new approval requests right now. They can still decide this claim, or you can withdraw it and pick a different approver.",
     "approverIneligibleNote": "{name} can no longer approve claims. Withdraw this submission and pick a different approver.",
-    "approverPrefilledFrom": "Pre-filled from the {position} default. Change it below if needed."
+    "approverPrefilledFrom": "Pre-filled from the {position} default. Change it below if needed.",
+    "signedButNotSynced": "Your signature was recorded. The page couldn’t refresh the claim’s status — it will catch up on its own. Do not sign again.",
+    "hintPickApprover": "Pick an approver first.",
+    "hintTypeName": "Type your name first.",
+    "hintAffirm": "Tick the agreement box first.",
+    "consentGloss": "In short: you agree that signing in this app counts as your real, legally binding signature — the same as ink on paper. (This is a summary; the binding text is the English document below.)",
+    "withdrawFailed": "Could not withdraw the submission — nothing changed. Try again.",
+    "makeChanges": "✏️ Make changes",
+    "reviseConfirm": "Reopen this claim for editing? Every signature collected so far becomes void, and approval starts over when you resubmit.",
+    "reviseConfirmButton": "Reopen for editing",
+    "reviseFailed": "Could not reopen the claim",
+    "waitingDays": "· waiting {days, plural, one {# day} other {# days}}",
+    "alreadyDecidedNote": "This claim has already been decided — the list will update in a moment.",
+    "assignedElsewhereNote": "This claim is assigned to a different approver.",
+    "undoStroke": "Undo stroke"
   },
   "Approvals": {
     "title": "Approvals",
@@ -477,7 +492,8 @@
     "roleLostNotice": "Your approver role has been removed. You can decline these claims so their owners can reassign them, but you can't approve them.",
     "rejectConfirmTitle": "Reject this claim?",
     "rejectConfirmBody": "Rejecting is final — you won't be able to undo it or approve this claim later. {name} will have to revise and resubmit the claim for a new approval.",
-    "rejectConfirmAction": "✗ Reject claim"
+    "rejectConfirmAction": "✗ Reject claim",
+    "openGone": "That claim isn’t in this list anymore — it may already have been decided."
   },
   "Finance": {
     "title": "Finance",
@@ -494,12 +510,15 @@
     "clearSelection": "Clear",
     "printAll": "Print all",
     "printing": "Preparing…",
-    "printFailed": "Couldn't build the packets. Please try again."
+    "printFailed": "Couldn't build the packets. Please try again.",
+    "openGone": "That claim isn’t in this list anymore — it may already have been paid.",
+    "noCheckNumberNote": "No check number — that’s fine for non-check payments; add one if a check was written.",
+    "selectAllPaid": "Select all"
   },
   "Identity": {
     "title": "Electronic signing",
     "chipReady": "Ready to sign",
-    "chipPending": "Almost there",
+    "chipPending": "Waiting for vouches",
     "chipRevoked": "Turned off",
     "chipNone": "Not set up",
     "loadFailed": "Could not load signing status",
@@ -548,7 +567,11 @@
     "scopeTitle": "Who can sign electronically",
     "scopeAllowlist": "Only members I choose",
     "scopeEveryone": "Everyone",
-    "allowlistOnMembersPage": "Choose who can use electronic signing on the <link>Members</link> page. Removing someone hides signing from them; anything they already signed stays valid."
+    "allowlistOnMembersPage": "Choose who can use electronic signing on the <link>Members</link> page. Removing someone hides signing from them; anything they already signed stays valid.",
+    "scanFromVouchTab": "Important: they should scan this from the Vouch tab inside this app — not with their phone’s camera app.",
+    "whoCanVouch": "Members who can vouch for you: {names}{more, plural, =0 {} other { and # more}}.",
+    "revokedBody": "Your signing key was retired by an administrator. Everything you signed before stays valid, but to sign again you’ll need to set up signing afresh and be vouched in person again.",
+    "reEnrollButton": "Set up signing again"
   },
   "Devices": {
     "newDeviceTitle": "This looks like a new device.",
@@ -586,7 +609,7 @@
     "couldNotRemove": "Could not remove the device",
     "lostHint": "Lost one? Remove it here, then tell your administrator in person if someone else might have it — they can revoke the signing key itself.",
     "recoveryRoot": "Protect the church's signing anchor. If this device is lost with no recovery sheet, electronic signing has to be rebuilt from scratch for everyone.",
-    "recoveryNudge": "One more safety net: print a recovery sheet and you can sign from a new device even if this one is lost.",
+    "recoveryNudge": "One more safety net: print a recovery sheet and you can sign from a new device even if this one is lost. Without one, losing your devices means starting over and being vouched in person again.",
     "printSheet": "Print my recovery sheet",
     "later": "Later",
     "phraseDialogTitle": "Print your recovery sheet",
@@ -598,7 +621,10 @@
     "savedCheckbox": "The sheet is printed (or written out) and stored somewhere safe.",
     "done": "Done",
     "couldNotCreatePhrase": "Could not create a phrase",
-    "couldNotBuildSheet": "Could not build the sheet"
+    "couldNotBuildSheet": "Could not build the sheet",
+    "waitingCancel": "Cancel and start over",
+    "rejectFailed": "Could not reject the request — it may still be pending. Try again.",
+    "freshPhraseNote": "Opening this creates a brand-new phrase — any sheet you printed earlier stops working."
   },
   "Vouch": {
     "title": "Vouch for a member",
@@ -629,13 +655,13 @@
     "aim": "Point at the candidate's QR code",
     "notVouch": "That's not a vouch code — line up the candidate's QR code.",
     "insecure": "This device can't open the camera here. Use the list below instead.",
-    "denied": "Camera access was blocked. Allow it in your browser settings, or use the list below.",
+    "denied": "Camera access was blocked. Allow the camera for this app in your device settings, or use the list below.",
     "startFailed": "Couldn't start the camera. Use the list below instead."
   },
   "Verify": {
     "verifying": "Verifying signatures in your browser…",
     "failedTitle": "Verification failed",
-    "linkInvalid": "This verification link is not valid ({part})",
+    "linkInvalid": "This verification link is not valid or has expired",
     "confirmedTitle": "Confirmed genuine",
     "warningsTitle": "Needs a closer look",
     "storyGeneric": "This paperwork was cryptographically checked in your browser — see the details below.",
@@ -703,7 +729,8 @@
     "rosterOddities": "{count, plural, one {# roster oddity} other {# roster oddities}}",
     "invalidEvents": "Invalid events (kept visible):",
     "independentCheckCert": "Independent check: run <code>scripts/verify-bundle.mjs</code> against the certificate's embedded bundle with the church's published root fingerprint.",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "orgHeader": "CFCC · Reimbursement verification"
   },
   "Errors": {
     "notSignedIn": "Not signed in",

@@ -123,6 +123,21 @@ export function NewDeviceCard({
         <p className="text-xs text-indigo-800/70">
           {t("waitingNote")}
         </p>
+        {/* Codes expire, subscriptions can drop — without an exit this screen
+            could hold the member hostage until a full reload. Cancel stops the
+            watch and returns to the options; a fresh attempt mints a new code. */}
+        <button
+          className="text-xs font-medium text-indigo-700 underline underline-offset-2"
+          onClick={() => {
+            unsubRef.current?.();
+            unsubRef.current = null;
+            setCode(null);
+            setMode("idle");
+          }}
+          data-testid="waiting-cancel"
+        >
+          {t("waitingCancel")}
+        </button>
       </div>
     );
   }
@@ -232,6 +247,9 @@ export function PendingRequestPrompt({
       onSettled();
     } catch (err) {
       setError(thrown(err, t("approvalFailed")));
+      // Clean slate for the retry — a wrong (or expired) code should not
+      // linger in the field looking half-entered.
+      setTyped("");
       setBusy(false);
     }
   }
@@ -272,8 +290,17 @@ export function PendingRequestPrompt({
             className="btn-secondary"
             disabled={busy}
             onClick={async () => {
-              await rejectDevice(env, request.deviceId).catch(() => {});
-              onSettled();
+              setBusy(true);
+              setError(null);
+              try {
+                await rejectDevice(env, request.deviceId);
+                onSettled();
+              } catch (err) {
+                // Swallowing this made a still-pending request LOOK denied —
+                // for a security prompt that's the wrong direction to fail.
+                setError(thrown(err, t("rejectFailed")));
+                setBusy(false);
+              }
             }}
             data-testid="reject-device"
           >
@@ -503,6 +530,10 @@ function PhraseDialog({
         ) : (
           <>
             <p className="text-sm text-stone-600">{t("sheetBody")}</p>
+            {/* Every open of this dialog mints a FRESH phrase — a sheet from a
+                previous open no longer works. Say so, or a member who reopens
+                "just to double-check" silently invalidates their printout. */}
+            <p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-900">{t("freshPhraseNote")}</p>
             <button className="btn-primary w-full" onClick={downloadSheet} data-testid="download-recovery-pdf">
               {downloaded ? t("downloadedPrint") : t("downloadSheet")}
             </button>

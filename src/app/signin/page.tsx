@@ -6,8 +6,17 @@ import { firebaseWebConfig } from "@/lib/firebase-admin";
 import SignInCard from "@/components/SignInCard";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 
-export default async function SignInPage() {
-  if (await currentUserId()) redirect("/");
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ return?: string }>;
+}) {
+  // "?return=<path>" carries a post-login destination (e.g. a vouch QR opened
+  // logged-out from a camera app). Same-origin relative paths only.
+  const { return: rawReturn } = await searchParams;
+  const returnTo =
+    rawReturn && rawReturn.startsWith("/") && !rawReturn.startsWith("//") ? rawReturn : null;
+  if (await currentUserId()) redirect(returnTo ?? "/");
   const t = await getTranslations("SignIn");
 
   return (
@@ -23,7 +32,7 @@ export default async function SignInPage() {
           <p className="pt-1 text-sm text-stone-500">{t("tagline")}</p>
         </div>
 
-        <SignInCard firebaseConfig={firebaseWebConfig()} testMode={isAuthTestMode()} />
+        <SignInCard firebaseConfig={firebaseWebConfig()} testMode={isAuthTestMode()} returnTo={returnTo} />
       </div>
       <div className="mt-4 flex items-center justify-center gap-1 text-stone-400">
         <span aria-hidden className="text-sm">

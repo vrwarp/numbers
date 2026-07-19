@@ -258,7 +258,7 @@ test("revert to draft unfreezes a generated claim and its receipts", async ({ pa
 
   // Revert through the UI.
   await page.goto(`/claims/${claimId}`);
-  await expect(page.getByTestId("claim-status")).toHaveText("Generated");
+  await expect(page.getByTestId("claim-status")).toHaveText("Ready to submit");
   await page.getByTestId("revert-claim").click();
   await page.getByTestId("claim-confirm-confirm").click();
   await expect(page.getByTestId("claim-status")).toHaveText("Draft");

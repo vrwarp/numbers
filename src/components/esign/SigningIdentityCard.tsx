@@ -382,7 +382,22 @@ export default function SigningIdentityCard() {
                 {t.rich("pendingVouch", { b: (chunks) => <b>{chunks}</b> })}
               </p>
               <IdentityQr url={vouchUrl} />
+              {/* The voucher's instinct is to raise their phone's CAMERA APP at
+                  this QR — which opens a logged-out browser and strands them.
+                  Steer them to the in-app scanner right where they'll look. */}
+              <p className="text-xs text-amber-800" data-testid="scan-hint">
+                {t("scanFromVouchTab")}
+              </p>
+              <VoucherDirectory meUserId={env.me.userId} />
               {fingerprint && <ManualCodeFallback fingerprint={fingerprint} />}
+            </div>
+          )}
+          {status === "revoked" && (
+            <div className="space-y-2 rounded-xl border border-red-200 bg-red-50 p-4" data-testid="revoked-note">
+              <p className="text-sm font-medium text-red-900">{t("revokedBody")}</p>
+              <button className="btn-primary" onClick={() => setWizardOpen(true)} data-testid="re-enroll">
+                {t("reEnrollButton")}
+              </button>
             </div>
           )}
 
@@ -528,7 +543,10 @@ function EnrollWizard({
           <>
             <h3 className="text-lg font-bold">{t("consentTitle")}</h3>
             <p className="text-sm text-stone-600">{t("consentIntro")}</p>
-            {/* Hash-bound English ueta-v1 text — see EsignPanel's note. */}
+            {/* Hash-bound English ueta-v1 text — see EsignPanel's note. The
+                gloss is a labeled plain-language SUMMARY in the UI language so
+                a non-English reader isn't agreeing to a wall they can't read. */}
+            <p className="text-xs text-stone-600">{tEsign("consentGloss")}</p>
             <p className="text-xs text-stone-400">{tEsign("consentEnglishNote")}</p>
             <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-lg bg-stone-50 p-3 text-xs text-stone-700">
               {CONSENT_TEXT}
@@ -579,6 +597,38 @@ function EnrollWizard({
         )}
       </div>
     </div>
+  );
+}
+
+/** "Who can vouch me in": the attested members a pending candidate needs to
+ *  find in person. Without this the wait state is a dead end — a new member
+ *  has no way to know who among the congregation is already a signer. */
+function VoucherDirectory({ meUserId }: { meUserId: string }) {
+  const t = useTranslations("Identity");
+  const [names, setNames] = useState<string[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/esign/members")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d?.members) return;
+        setNames(
+          (d.members as { userId: string; name: string }[])
+            .filter((m) => m.userId !== meUserId)
+            .map((m) => m.name)
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [meUserId]);
+  if (!names || names.length === 0) return null;
+  const shown = names.slice(0, 8);
+  return (
+    <p className="text-xs text-amber-800" data-testid="voucher-directory">
+      {t("whoCanVouch", { names: shown.join(", "), more: names.length - shown.length })}
+    </p>
   );
 }
 

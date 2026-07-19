@@ -7,7 +7,7 @@
   "Common": {
     "status": {
       "draft": "草稿",
-      "generated": "已生成",
+      "generated": "可提交",
       "needsReview": "待核对",
       "processed": "已处理",
       "submitted": "待审批",
@@ -34,7 +34,8 @@
       "chairman": "主席",
       "treasurer": "财务同工",
       "admin": "管理员"
-    }
+    },
+    "close": "关闭"
   },
   "NavBar": {
     "shoebox": "收据",
@@ -74,7 +75,7 @@
   },
   "Claims": {
     "title": "报销单",
-    "subtitle": "草稿需要核对；已生成的报销单可以打印签字。",
+    "subtitle": "草稿需要核对；标为“可提交”的报销单可以打印或送审。",
     "emptyTitle": "还没有报销单",
     "emptyBody": "在<link>收据</link>页面选择收据，然后点“新建报销单”。",
     "counts": "{items} 个项目 · {receipts, plural, other {# 张收据}}",
@@ -386,7 +387,7 @@
     "panelPaidWithCheck": "已支付——支票号 {checkNumber}",
     "approverComment": "审批人留言：“{comment}”",
     "certificateLink": "📜 批准证书",
-    "withdrawConfirm": "要撤回本次提交、改选其他审批人吗？",
+    "withdrawConfirm": "要撤回本次提交、改选其他审批人吗？撤回后可立即从报销单的电子签名按钮重新提交。",
     "withdrawConfirmButton": "撤回",
     "withdrawButton": "↪ 撤回／更换审批人",
     "resubmit": "✍️ 重新提交",
@@ -462,7 +463,21 @@
     "waitingFor": "正在等待 {name} 审阅这张报销单。",
     "approverPausedNote": "{name} 目前不接收新的审批请求。对方仍可以处理这张报销单；您也可以撤回并改选其他审批人。",
     "approverIneligibleNote": "{name} 已无法再审批报销单。请撤回本次提交并改选其他审批人。",
-    "approverPrefilledFrom": "Pre-filled from the {position} default. Change it below if needed."
+    "approverPrefilledFrom": "Pre-filled from the {position} default. Change it below if needed.",
+    "signedButNotSynced": "您的签名已记录。页面暂时无法刷新报销单状态——稍后会自动更新。请勿再次签署。",
+    "hintPickApprover": "请先选择审批人。",
+    "hintTypeName": "请先输入您的姓名。",
+    "hintAffirm": "请先勾选同意框。",
+    "consentGloss": "简要说明：您同意在本应用中的签署等同于您本人具有法律效力的亲笔签名，与纸面签字效力相同。（本段仅为摘要，具法律效力的是下方英文文本。）",
+    "withdrawFailed": "无法撤回本次提交——未做任何更改。请重试。",
+    "makeChanges": "✏️ 修改内容",
+    "reviseConfirm": "要重新打开这张报销单进行编辑吗？已收集的所有签名将作废，重新提交后审批将重新开始。",
+    "reviseConfirmButton": "重新打开编辑",
+    "reviseFailed": "无法重新打开报销单",
+    "waitingDays": "· 已等待 {days, plural, other {# 天}}",
+    "alreadyDecidedNote": "这张报销单已有审批结果——列表稍后会更新。",
+    "assignedElsewhereNote": "这张报销单已指派给其他审批人。",
+    "undoStroke": "撤销一笔"
   },
   "Approvals": {
     "title": "审批",
@@ -477,7 +492,8 @@
     "roleLostNotice": "您的审批人角色已被移除。您可以拒绝这些报销单，让提交人改选其他审批人，但无法批准。",
     "rejectConfirmTitle": "拒绝这份报销单？",
     "rejectConfirmBody": "拒绝后无法撤销，你之后也无法再批准这份报销单。{name} 需要修改并重新提交，才能重新进入审批。",
-    "rejectConfirmAction": "✗ 拒绝报销单"
+    "rejectConfirmAction": "✗ 拒绝报销单",
+    "openGone": "该报销单已不在此列表中——可能已有审批结果。"
   },
   "Finance": {
     "title": "财务",
@@ -494,12 +510,15 @@
     "clearSelection": "清除",
     "printAll": "全部打印",
     "printing": "正在准备…",
-    "printFailed": "无法生成单据包，请重试。"
+    "printFailed": "无法生成单据包，请重试。",
+    "openGone": "该报销单已不在此列表中——可能已完成付款。",
+    "noCheckNumberNote": "未填写支票号——非支票付款可留空；若开了支票请填写。",
+    "selectAllPaid": "全选"
   },
   "Identity": {
     "title": "电子签名",
     "chipReady": "可以签署",
-    "chipPending": "就差一步",
+    "chipPending": "等待担保",
     "chipRevoked": "已停用",
     "chipNone": "未开通",
     "loadFailed": "无法加载签名状态",
@@ -548,7 +567,11 @@
     "scopeTitle": "谁可以电子签名",
     "scopeAllowlist": "仅限我选择的成员",
     "scopeEveryone": "所有人",
-    "allowlistOnMembersPage": "请在<link>成员</link>页面选择谁可以使用电子签名。移除某人会对其隐藏签名功能；其已签署的内容仍然有效。"
+    "allowlistOnMembersPage": "请在<link>成员</link>页面选择谁可以使用电子签名。移除某人会对其隐藏签名功能；其已签署的内容仍然有效。",
+    "scanFromVouchTab": "重要提示：请对方在本应用的“担保”标签页中扫描此码——不要用手机相机应用扫描。",
+    "whoCanVouch": "可以为您担保的成员：{names}{more, plural, =0 {} other { 等，还有 # 人}}。",
+    "revokedBody": "您的签名密钥已被管理员停用。您之前签署的内容仍然有效，但若要再次签署，需要重新设置签名并再次当面获得担保。",
+    "reEnrollButton": "重新设置签名"
   },
   "Devices": {
     "newDeviceTitle": "这似乎是一台新设备。",
@@ -586,7 +609,7 @@
     "couldNotRemove": "无法移除该设备",
     "lostHint": "设备丢了？先在这里移除；若可能已落入他人之手，请当面告知管理员——他们可以直接吊销签名密钥。",
     "recoveryRoot": "请保护好教会的签名锚点。若此设备丢失且没有恢复单，全教会的电子签名将不得不推倒重建。",
-    "recoveryNudge": "再加一道保险：打印一张恢复单，即使这台设备丢失，你也能在新设备上签名。",
+    "recoveryNudge": "再加一道保险：打印一张恢复单，即使这台设备丢失，你也能在新设备上签名。没有恢复单的话，设备全部丢失就需要重新注册并再次当面获得担保。",
     "printSheet": "打印我的恢复单",
     "later": "以后再说",
     "phraseDialogTitle": "打印你的恢复单",
@@ -598,7 +621,10 @@
     "savedCheckbox": "恢复单已打印（或已抄写），并已妥善保存。",
     "done": "完成",
     "couldNotCreatePhrase": "无法生成恢复短语",
-    "couldNotBuildSheet": "无法生成恢复单"
+    "couldNotBuildSheet": "无法生成恢复单",
+    "waitingCancel": "取消并重新开始",
+    "rejectFailed": "无法拒绝该请求——它可能仍在等待中。请重试。",
+    "freshPhraseNote": "每次打开都会生成全新的助记词——之前打印的恢复单将立即失效。"
   },
   "Vouch": {
     "title": "为会友担保",
@@ -629,13 +655,13 @@
     "aim": "对准对方的二维码",
     "notVouch": "这不是担保二维码——请对准对方的二维码。",
     "insecure": "此设备无法在此打开相机。请改用下方的列表。",
-    "denied": "相机权限被拒。请在浏览器设置中允许，或改用下方的列表。",
+    "denied": "相机权限被拒。请在设备设置中为本应用允许相机权限，或改用下方的列表。",
     "startFailed": "无法启动相机。请改用下方的列表。"
   },
   "Verify": {
     "verifying": "正在你的浏览器中验证签名…",
     "failedTitle": "验证失败",
-    "linkInvalid": "此验证链接无效（{part}）",
+    "linkInvalid": "此验证链接无效或已过期",
     "confirmedTitle": "确认属实",
     "warningsTitle": "需要进一步核对",
     "storyGeneric": "这份文件已在你的浏览器中完成密码学核对——详见下方。",
@@ -703,7 +729,8 @@
     "rosterOddities": "名册中有 {count} 处异常",
     "invalidEvents": "无效事件（保持可见）：",
     "independentCheckCert": "独立核验：用教会公布的根指纹，对证书内嵌的数据包运行 <code>scripts/verify-bundle.mjs</code>。",
-    "unknown": "未知"
+    "unknown": "未知",
+    "orgHeader": "CFCC · 报销单验证"
   },
   "Errors": {
     "notSignedIn": "尚未登录",

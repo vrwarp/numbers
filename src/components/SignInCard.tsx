@@ -50,9 +50,13 @@ function isEmbeddedBrowser(): boolean {
 export default function SignInCard({
   firebaseConfig,
   testMode,
+  returnTo = null,
 }: {
   firebaseConfig: FirebaseWebConfig | null;
   testMode: boolean;
+  /** Server-validated same-origin path to land on after sign-in (e.g. a
+   *  vouch QR opened from a logged-out camera-app browser). */
+  returnTo?: string | null;
 }) {
   const t = useTranslations("SignIn");
   const apiError = useApiErrorMessage();
@@ -84,7 +88,7 @@ export default function SignInCard({
       const data = await res.json().catch(() => null);
       throw new Error(apiError(data, t("failed")));
     }
-    window.location.assign("/");
+    window.location.assign(returnTo ?? "/");
   }
 
   function showError(err: unknown) {
@@ -177,7 +181,7 @@ export default function SignInCard({
         const data = await res.json().catch(() => null);
         throw new Error(apiError(data, t("failed")));
       }
-      window.location.assign("/");
+      window.location.assign(returnTo ?? "/");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("failed"));
       setBusy(false);

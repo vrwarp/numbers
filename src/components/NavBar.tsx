@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import AccountMenu from "./AccountMenu";
@@ -40,13 +41,20 @@ export default function NavBar({
   const pathname = usePathname();
   const t = useTranslations("NavBar");
   // E-sign work badges (no notification infra — the nav surfaces state).
+  // Refreshed on navigation AND on a visible-tab interval: with no push
+  // notifications anywhere, this badge is the ONLY way an approver parked on
+  // another page learns that work arrived.
   const [badges, setBadges] = useState<Badges>({ enabled: false });
-  useEffect(() => {
+  const loadBadges = useCallback(() => {
     void fetch("/api/esign/badges")
       .then((r) => (r.ok ? r.json() : { enabled: false }))
       .then(setBadges)
       .catch(() => {});
-  }, [pathname]);
+  }, []);
+  useEffect(() => {
+    loadBadges();
+  }, [loadBadges, pathname]);
+  useAutoRefresh(loadBadges, { intervalMs: 90_000 });
 
   // Tabs the row reduced — compressed to icons or overflowed out — which the
   // account menu also lists (with labels). `overflow` is the hidden subset,

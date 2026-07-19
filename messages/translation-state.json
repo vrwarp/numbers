@@ -24,8 +24,8 @@
     "zh-Hant": "machine"
   },
   "Common.status.generated": {
-    "source": "Generated",
-    "context": "Status pill: PDF has been generated, rows frozen. Pairs with 'Draft'. Keep short.",
+    "source": "Ready to submit",
+    "context": "Claim status chip: the packet is built and the claim is frozen, ready to print or send for approval. Short; shown on lists and the review screen.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -97,15 +97,15 @@
   },
   "Common.pdfReady": {
     "source": "Your PDF is ready.",
+    "context": "Toast/button text when a built PDF is waiting for a tap to open the iOS share sheet; pairs with pdfReadyAction.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Toast/button text when a built PDF is waiting for a tap to open the iOS share sheet; pairs with pdfReadyAction."
+    "zh-Hant": "machine"
   },
   "Common.pdfReadyAction": {
     "source": "Save / Share",
+    "context": "Button label opening the OS share sheet for the ready PDF (Save to Files / Print / AirDrop). Short.",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Button label opening the OS share sheet for the ready PDF (Save to Files / Print / AirDrop). Short."
+    "zh-Hant": "machine"
   },
   "Common.language": {
     "source": "Language",
@@ -160,6 +160,12 @@
     "context": "Church role: the administrator who anchors electronic signing.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Common.close": {
+    "source": "Close",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Button label closing a dialog whose action already completed (replaces Cancel). One word."
   },
   "NavBar.shoebox": {
     "source": "Receipts",
@@ -343,7 +349,7 @@
     "zh-Hant": "machine"
   },
   "Claims.subtitle": {
-    "source": "Draft claims need review; generated claims are ready to print and sign.",
+    "source": "Draft claims need review; claims marked “Ready to submit” can be printed or sent for approval.",
     "context": "One-liner under the title explaining draft vs generated.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -638,9 +644,9 @@
   },
   "Shoebox.restoredPhoto": {
     "source": "Recovered from your last visit — this photo hadn't been saved yet.",
+    "context": "Amber note in the photo prepare dialog when a photo was recovered from an interrupted previous visit (saved locally, not yet uploaded).",
     "zh-Hans": "machine",
-    "zh-Hant": "machine",
-    "context": "Amber note in the photo prepare dialog when a photo was recovered from an interrupted previous visit (saved locally, not yet uploaded)."
+    "zh-Hant": "machine"
   },
   "Shoebox.uploading": {
     "source": "Uploading…",
@@ -2078,7 +2084,7 @@
     "zh-Hant": "machine"
   },
   "Esign.withdrawConfirm": {
-    "source": "Withdraw this submission so you can pick a different approver?",
+    "source": "Withdraw this submission so you can pick a different approver? You can submit again right after from the claim’s E-sign button.",
     "context": "in-app confirmation dialog before withdrawing a submission to pick a different approver.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -2533,6 +2539,90 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Esign.signedButNotSynced": {
+    "source": "Your signature was recorded. The page couldn’t refresh the claim’s status — it will catch up on its own. Do not sign again.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Shown when a ceremony's signature IS committed to the ledger but the status display failed to update; warns against signing again."
+  },
+  "Esign.hintPickApprover": {
+    "source": "Pick an approver first.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Inline hint under a disabled sign button: an approver must be selected first."
+  },
+  "Esign.hintTypeName": {
+    "source": "Type your name first.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Inline hint under a disabled sign button: the typed-name field is empty."
+  },
+  "Esign.hintAffirm": {
+    "source": "Tick the agreement box first.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Inline hint under a disabled sign button: the intent-affirmation checkbox is unticked."
+  },
+  "Esign.consentGloss": {
+    "source": "In short: you agree that signing in this app counts as your real, legally binding signature — the same as ink on paper. (This is a summary; the binding text is the English document below.)",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Plain-language SUMMARY of the legally binding English consent text, shown above it; must say it is only a summary."
+  },
+  "Esign.withdrawFailed": {
+    "source": "Could not withdraw the submission — nothing changed. Try again.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Error in the withdraw-submission dialog when nothing was withdrawn."
+  },
+  "Esign.makeChanges": {
+    "source": "✏️ Make changes",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Primary button on a rejected claim: reopen it for editing (revert to draft). Keep the ✏️."
+  },
+  "Esign.reviseConfirm": {
+    "source": "Reopen this claim for editing? Every signature collected so far becomes void, and approval starts over when you resubmit.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Confirmation body before reopening a rejected claim for editing; signatures become void."
+  },
+  "Esign.reviseConfirmButton": {
+    "source": "Reopen for editing",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Confirm button of the reopen-for-editing dialog. Short."
+  },
+  "Esign.reviseFailed": {
+    "source": "Could not reopen the claim",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Error when the reopen-for-editing (revert) call fails."
+  },
+  "Esign.waitingDays": {
+    "source": "· waiting {days, plural, one {# day} other {# days}}",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Aging cue appended to a queue row's date line, amber; leading dot separates it from the dates."
+  },
+  "Esign.alreadyDecidedNote": {
+    "source": "This claim has already been decided — the list will update in a moment.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Amber note in a ceremony when the claim was decided elsewhere while it was open."
+  },
+  "Esign.assignedElsewhereNote": {
+    "source": "This claim is assigned to a different approver.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Amber note in the approver ceremony when the open claim is assigned to a different approver."
+  },
+  "Esign.undoStroke": {
+    "source": "Undo stroke",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Small link under the signature pad removing only the last drawn stroke (vs Clear which wipes all). Short."
+  },
   "Approvals.title": {
     "source": "Approvals",
     "context": "Page title of the approver's inbox; also the nav link.",
@@ -2610,6 +2700,12 @@
     "context": "Confirm button inside the reject-confirmation dialog — the committing, irreversible action. Keep the ✗.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Approvals.openGone": {
+    "source": "That claim isn’t in this list anymore — it may already have been decided.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Toast when a deep-linked claim is no longer in the approvals list."
   },
   "Finance.title": {
     "source": "Finance",
@@ -2701,6 +2797,24 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Finance.openGone": {
+    "source": "That claim isn’t in this list anymore — it may already have been paid.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Toast when a deep-linked claim is no longer in the finance queue."
+  },
+  "Finance.noCheckNumberNote": {
+    "source": "No check number — that’s fine for non-check payments; add one if a check was written.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Small note under the empty check-number field in the mark-paid ceremony: blank is a valid choice."
+  },
+  "Finance.selectAllPaid": {
+    "source": "Select all",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Link beside the Paid section header selecting every paid claim for batch printing. Short."
+  },
   "Identity.title": {
     "source": "Electronic signing",
     "context": "Heading of the profile-page card for electronic signing.",
@@ -2714,7 +2828,7 @@
     "zh-Hant": "machine"
   },
   "Identity.chipPending": {
-    "source": "Almost there",
+    "source": "Waiting for vouches",
     "context": "Status chip: enrolled, still needs vouches. Encouraging tone.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -3013,6 +3127,30 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Identity.scanFromVouchTab": {
+    "source": "Important: they should scan this from the Vouch tab inside this app — not with their phone’s camera app.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Warning under the candidate's vouch QR: the voucher must scan from the app's Vouch tab, not the phone camera app (which opens a logged-out browser)."
+  },
+  "Identity.whoCanVouch": {
+    "source": "Members who can vouch for you: {names}{more, plural, =0 {} other { and # more}}.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "List under the pending-vouch QR naming attested members who can vouch; {names} = comma-joined names, {more} = count beyond the first 8."
+  },
+  "Identity.revokedBody": {
+    "source": "Your signing key was retired by an administrator. Everything you signed before stays valid, but to sign again you’ll need to set up signing afresh and be vouched in person again.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Explanation on the identity card when the member's signing key was revoked; pairs with the set-up-again button."
+  },
+  "Identity.reEnrollButton": {
+    "source": "Set up signing again",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Button re-starting enrollment after a key revocation. Short."
+  },
   "Devices.newDeviceTitle": {
     "source": "This looks like a new device.",
     "context": "Amber card title when a signed-in member opens the app on a browser that doesn't hold their keys.",
@@ -3224,7 +3362,7 @@
     "zh-Hant": "machine"
   },
   "Devices.recoveryNudge": {
-    "source": "One more safety net: print a recovery sheet and you can sign from a new device even if this one is lost.",
+    "source": "One more safety net: print a recovery sheet and you can sign from a new device even if this one is lost. Without one, losing your devices means starting over and being vouched in person again.",
     "context": "Dismissible amber nudge for members: print a recovery sheet as a safety net.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -3300,6 +3438,24 @@
     "context": "Error when building the PDF fails.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Devices.waitingCancel": {
+    "source": "Cancel and start over",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Link under the 6-digit device-approval code aborting the wait and returning to the options. Short."
+  },
+  "Devices.rejectFailed": {
+    "source": "Could not reject the request — it may still be pending. Try again.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Error when rejecting a device request fails — the request may still be pending."
+  },
+  "Devices.freshPhraseNote": {
+    "source": "Opening this creates a brand-new phrase — any sheet you printed earlier stops working.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Amber warning in the recovery-phrase dialog: each open mints a new phrase, old printed sheets stop working."
   },
   "Vouch.title": {
     "source": "Vouch for a member",
@@ -3453,7 +3609,7 @@
     "zh-Hant": "machine"
   },
   "VouchScan.denied": {
-    "source": "Camera access was blocked. Allow it in your browser settings, or use the list below.",
+    "source": "Camera access was blocked. Allow the camera for this app in your device settings, or use the list below.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3475,7 +3631,7 @@
     "zh-Hant": "machine"
   },
   "Verify.linkInvalid": {
-    "source": "This verification link is not valid ({part})",
+    "source": "This verification link is not valid or has expired",
     "context": "Error for a bad/expired verification link; {part} is a technical endpoint name (leave as-is).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -3863,6 +4019,12 @@
     "context": "Fallback signer name when the key maps to nobody on the roster.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Verify.orgHeader": {
+    "source": "CFCC · Reimbursement verification",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine",
+    "context": "Small header above the public verification verdict naming the organization; 'CFCC' is never translated."
   },
   "Errors.notSignedIn": {
     "source": "Not signed in",

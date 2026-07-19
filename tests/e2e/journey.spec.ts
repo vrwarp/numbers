@@ -194,7 +194,7 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   // return receipt is left out of the packet.
   expect(doc.getPageCount()).toBe(3);
 
-  await expect(page.getByTestId("claim-status")).toHaveText("Generated", { timeout: 15_000 });
+  await expect(page.getByTestId("claim-status")).toHaveText("Ready to submit", { timeout: 15_000 });
   await shot(page, "07-claim-generated");
 
   // --- Prompt-tuning telemetry: AI calls + human corrections were recorded ---
@@ -243,7 +243,7 @@ test("complete reimbursement journey: capture → batch → verify → PDF", asy
   await page.goto("/");
   await expect(page.getByText("Processed receipts (3)")).toBeVisible();
   await page.goto("/claims");
-  await expect(page.getByText("Generated", { exact: true })).toBeVisible();
+  await expect(page.getByText("Ready to submit", { exact: true })).toBeVisible();
   await shot(page, "08-claims-list");
 });
 

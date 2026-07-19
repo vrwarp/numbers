@@ -33,7 +33,7 @@ const SIGNED_STATUSES = ["submitted", "rejected", "approved", "paid"] as const;
 // Chip labels live in Common.status; the review chip shows draft as "Draft".
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-amber-100 text-amber-800",
-  generated: "bg-emerald-100 text-emerald-800",
+  generated: "bg-teal-100 text-teal-800",
   submitted: "bg-sky-100 text-sky-800",
   rejected: "bg-red-100 text-red-800",
   approved: "bg-emerald-100 text-emerald-800",
