@@ -2114,8 +2114,8 @@
     "zh-Hant": "human"
   },
   "Esign.withdrawButton": {
-    "source": "↪ Withdraw / change approver",
-    "context": "Button to withdraw the pending submission / change approver. Keep the ↪.",
+    "source": "Withdraw / change approver",
+    "context": "Button to withdraw the pending submission / change approver. No icon — the old ↪ was mistaken for a refresh arrow.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -2125,9 +2125,75 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Esign.reverify": {
-    "source": "⟳ Re-check",
-    "context": "Button that re-runs the signature-chain check. Plain wording (not \"verify\") keeps verifiability low-key. Keep the ⟳.",
+  "Esign.checkStatus": {
+    "source": "Check status",
+    "context": "Button on a submitted/approved claim: asks the server whether the approver (or payment) has happened yet. NOT the document-integrity re-verification and NOT a software-update check — use progress/inquiry vocabulary (查詢/查看進度), never 驗證/核對/更新.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.checkStatusBusy": {
+    "source": "Checking status…",
+    "context": "In-flight line while the Check status request runs. Same progress-inquiry vocabulary as the button; keep the ellipsis.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.checkStatusNoChange": {
+    "source": "No changes yet — still waiting for {name}.",
+    "context": "Reassuring inline result (not an error) when Check status finds nothing new on a submitted claim; {name} is the approver's display name. Echo the tone of Esign.waitingFor.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.checkStatusNoChangePayment": {
+    "source": "No changes yet — still waiting for payment.",
+    "context": "Same as checkStatusNoChange but for an approved claim waiting on the treasurer's payment.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.checkStatusNoChangeGeneric": {
+    "source": "No changes yet.",
+    "context": "Fallback no-change result when the approver's name is unavailable. Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.checkStatusCheckedAt": {
+    "source": "(Checked at {time})",
+    "context": "Muted suffix after the no-change result; {time} is a localized clock time. Restates on every press so repeat checks visibly change. Keep the parentheses.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.checkStatusFailed": {
+    "source": "Couldn't check status — please try again.",
+    "context": "Inline error when the Check status request fails (network). Must not sound like a permissions problem (not 无法查看这张报销单); invite a retry.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.verifyAgain": {
+    "source": "Verify again",
+    "context": "Button inside the Audit details disclosure that re-runs cryptographic integrity verification of the packet. Use verification vocabulary (驗證) matching bannerOk/bannerBad — never approval (核准/批准) or line-item checking (核對) vocabulary.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.verifiedAtTime": {
+    "source": "✓ Verified at {time}",
+    "context": "Green confirmation after a manual Verify again pass; {time} is a localized clock time. Integrity result only — must not read as claim approval (驗證無誤-style, never 通過/批准). Keep the ✓.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.verifyUnavailable": {
+    "source": "Couldn't check right now — connection problem. Please try again later.",
+    "context": "Neutral (amber) note when chain verification failed for transport reasons — offline, ledger unreachable. Deliberately NOT the red tamper alert: must read as a connectivity hiccup, not a document problem.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.withdrawRaceApproved": {
+    "source": "{name} already approved this claim, so it can no longer be withdrawn.",
+    "context": "Shown when a withdraw attempt lost the race with the approver approving; {name} is the approver. Explains why withdrawal is refused. Approval verb differs by script: 核准 (Hant) / 批准 (Hans).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.withdrawRaceRejected": {
+    "source": "{name} already returned this claim, so there is nothing to withdraw.",
+    "context": "Shown when a withdraw attempt lost the race with the approver rejecting; {name} is the approver. 'Returned' = sent back for fixes (退回), matching the rejection flow's wording.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

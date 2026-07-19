@@ -24,6 +24,7 @@ import EsignPanel, { SubmitDialog } from "@/components/esign/EsignPanel";
 import { loadEnv, type EsignEnv } from "@/lib/esign/client";
 import type { PositionNameSet } from "@/lib/positions";
 import { useApiErrorMessage } from "@/lib/use-api-error";
+import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { useModalDismiss } from "@/lib/use-modal-dismiss";
 import { deliverPdf, pdfFile, sharePdf, downloadBlob } from "@/lib/pdf-delivery";
 
@@ -491,6 +492,11 @@ export default function ReviewClaim({
   useEffect(() => {
     load();
   }, [load]);
+
+  // Waiting on payment (approved → paid) should also resolve itself, mirroring
+  // EsignPanel's submitted-state auto-refresh. Only these waiting-on-others
+  // states: a draft refetch could clobber in-progress edits.
+  useAutoRefresh(() => void load(), { paused: claim?.status !== "approved" });
 
   useEffect(() => {
     void loadEnv().then(setEsignEnv).catch(() => {});

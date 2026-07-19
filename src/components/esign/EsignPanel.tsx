@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { useModalDismiss } from "@/lib/use-modal-dismiss";
 import {
@@ -30,7 +30,14 @@ import type { PositionNameSet } from "@/lib/positions";
 import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import PdfLink from "@/components/PdfLink";
-import { AuditDetails, ChainAlert, ThreadSignatures, useClaimChain, type ClaimRef } from "./chain";
+import {
+  AuditDetails,
+  ChainAlert,
+  ThreadSignatures,
+  chainLooksGood,
+  useClaimChain,
+  type ClaimRef,
+} from "./chain";
 import { SigningConnectCard, useSigningSession } from "./SigningConnect";
 import DocumentSignField from "./DocumentSignField";
 
@@ -68,12 +75,28 @@ export default function EsignPanel({
   onChanged: () => Promise<void> | void;
 }) {
   const t = useTranslations("Esign");
+  const format = useFormatter();
   const [env, setEnv] = useState<EsignEnv | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   // Withdraw confirms through ConfirmDialog, not window.confirm() — iOS
   // suppresses native dialogs in home-screen (standalone) web apps.
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawBusy, setWithdrawBusy] = useState(false);
+  // "Check status" answers "has anyone acted yet?" — a cheap claim refetch,
+  // NOT chain verification. Every press ends in a visible outcome (change,
+  // explicit "no changes", or an error): a silent press is the exact failure
+  // that got the old ⟳ Re-check button retired.
+  const [checkingStatus, setCheckingStatus] = useState(false);
+  const [statusResult, setStatusResult] = useState<
+    { kind: "nochange" | "failed"; at: Date } | null
+  >(null);
+  // Manual chain re-verification (moved inside Audit details). The extra local
+  // busy flag enforces a minimum visible progress duration — an instant pass
+  // must never look like a no-op.
+  const [verifyBusy, setVerifyBusy] = useState(false);
+  const [verifiedAt, setVerifiedAt] = useState<Date | null>(null);
+  // Set when a withdraw attempt lost the race with the approver's decision.
+  const [withdrawRace, setWithdrawRace] = useState<"approved" | "rejected" | null>(null);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
   // Post-rejection "make the changes" path: revert-to-draft with its own
   // consequence confirm, so the fix-it action lives NEXT TO the rejection
@@ -86,8 +109,17 @@ export default function EsignPanel({
   // On the owner's review screen the claim's ownerUid IS the signed-in user.
   const chainClaim =
     signed && env ? { ...claim, ownerUid: claim.ownerUid || env.me.userId } : null;
-  const { state, error: chainError, refresh, needsConnect, connect, connecting, connectError } =
-    useClaimChain(chainClaim);
+  const {
+    state,
+    error: chainError,
+    errorKind: chainErrorKind,
+    loading: chainLoading,
+    refresh,
+    needsConnect,
+    connect,
+    connecting,
+    connectError,
+  } = useClaimChain(chainClaim);
 
   useEffect(() => {
     void loadEnv().then(setEnv).catch(() => {});
@@ -95,14 +127,53 @@ export default function EsignPanel({
 
   // "Awaiting approval" should resolve itself on this screen — poll the mirror
   // (and re-verify the chain) while submitted, so the requester learns of the
-  // decision without hammering "Re-check". Paused during dialogs.
+  // decision without hammering the buttons. Paused during dialogs.
   useAutoRefresh(
     () => {
       void onChanged();
-      refresh();
+      void refresh();
     },
     { paused: claim.status !== "submitted" || dialogOpen || withdrawOpen }
   );
+
+  const checkStatus = async () => {
+    setCheckingStatus(true);
+    setWithdrawRace(null);
+    try {
+      const res = await fetch(`/api/reimbursements/${claim.id}`);
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const fresh = (await res.json()).reimbursement as {
+        status: string;
+        checkNumber?: string | null;
+      };
+      if (
+        fresh.status !== claim.status ||
+        (fresh.checkNumber ?? null) !== (claim.checkNumber ?? null)
+      ) {
+        setStatusResult(null);
+        await onChanged();
+      } else {
+        setStatusResult({ kind: "nochange", at: new Date() });
+      }
+    } catch {
+      setStatusResult({ kind: "failed", at: new Date() });
+    } finally {
+      setCheckingStatus(false);
+    }
+  };
+
+  const verifyAgain = async () => {
+    setVerifyBusy(true);
+    setVerifiedAt(null);
+    const started = Date.now();
+    const fresh = await refresh();
+    // Short chains verify in milliseconds; keep the progress line up long
+    // enough to register as "it ran".
+    const remaining = 500 - (Date.now() - started);
+    if (remaining > 0) await new Promise((r) => setTimeout(r, remaining));
+    setVerifyBusy(false);
+    if (fresh && chainLooksGood(fresh)) setVerifiedAt(new Date());
+  };
 
   // Master switch (A5): off ⇒ no e-sign affordances anywhere. Already-signed
   // claims still show their status chip, and /v links keep verifying.
@@ -154,16 +225,45 @@ export default function EsignPanel({
         <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
       )}
       {state && <ChainAlert state={state} />}
-      {chainError && <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{chainError}</p>}
+      {chainError &&
+        (chainErrorKind === "network" ? (
+          // Transport failure ≠ integrity failure: a dropped connection must
+          // never wear the tamper-red alert.
+          <p className="rounded-lg bg-amber-50 p-2 text-sm text-amber-900" data-testid="verify-unavailable">
+            {t("verifyUnavailable")}
+          </p>
+        ) : (
+          <p className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{chainError}</p>
+        ))}
       {decision?.t === "REJECT" && decision.comment && (
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="rejection-comment">
           {t("approverComment", { comment: decision.comment })}
         </p>
       )}
       {state && <ThreadSignatures state={state} />}
-      {state && <AuditDetails state={state} />}
+      {state && (
+        <AuditDetails
+          state={state}
+          reverify={{ run: () => void verifyAgain(), busy: verifyBusy || chainLoading, verifiedAt }}
+        />
+      )}
 
       <div className="flex flex-wrap gap-2">
+        {/* "Check status" leads the row: the frequent, free question ("has
+            anyone acted yet?") gets the easy target; the consequential
+            Withdraw stays secondary. Shown while someone else's action is
+            pending — the approver (submitted) or payment (approved). */}
+        {(claim.status === "submitted" || claim.status === "approved") && (
+          <button
+            className={claim.status === "submitted" ? "btn-primary" : "btn-secondary"}
+            onClick={() => void checkStatus()}
+            disabled={checkingStatus}
+            aria-busy={checkingStatus}
+            data-testid="check-status"
+          >
+            {t("checkStatus")}
+          </button>
+        )}
         {(claim.status === "approved" || claim.status === "paid") && (
           <PdfLink
             className="btn-secondary"
@@ -195,10 +295,35 @@ export default function EsignPanel({
             </button>
           </>
         )}
-        {(claim.status === "submitted" || claim.status === "rejected") && (
-          <button className="btn-secondary" onClick={() => refresh()}>
-            {t("reverify")}
-          </button>
+      </div>
+      {/* Every Check-status press resolves here (aria-live announces it); the
+          checked-at time restates on repeat presses so a second identical
+          result still visibly changes. */}
+      <div aria-live="polite">
+        {checkingStatus && <p className="text-sm text-stone-500">{t("checkStatusBusy")}</p>}
+        {!checkingStatus && statusResult?.kind === "nochange" && (
+          <p className="text-sm text-stone-500" data-testid="check-status-nochange">
+            {claim.status === "approved"
+              ? t("checkStatusNoChangePayment")
+              : claim.approverInfo
+                ? t("checkStatusNoChange", { name: claim.approverInfo.name })
+                : t("checkStatusNoChangeGeneric")}{" "}
+            {t("checkStatusCheckedAt", {
+              time: format.dateTime(statusResult.at, { timeStyle: "short" }),
+            })}
+          </p>
+        )}
+        {!checkingStatus && statusResult?.kind === "failed" && (
+          <p className="text-sm text-amber-900" data-testid="check-status-failed">
+            {t("checkStatusFailed")}
+          </p>
+        )}
+        {withdrawRace && claim.approverInfo && (
+          <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="withdraw-race">
+            {t(withdrawRace === "approved" ? "withdrawRaceApproved" : "withdrawRaceRejected", {
+              name: claim.approverInfo.name,
+            })}
+          </p>
         )}
       </div>
       <ConfirmDialog
@@ -208,16 +333,27 @@ export default function EsignPanel({
         busy={withdrawBusy}
         tone="primary"
         onConfirm={async () => {
-          // The chain can re-verify while the dialog is up; bail if the
-          // submit action is no longer there to withdraw.
-          const submit = state?.thread?.submit;
-          if (!submit) {
-            setWithdrawOpen(false);
-            return;
-          }
           setWithdrawBusy(true);
           setWithdrawError(null);
           try {
+            // Re-verify before appending: the approver may have decided while
+            // the dialog was up, and a withdraw after a decision is dead on
+            // arrival — explain the race instead of silently losing it.
+            // (Falls back to the last verified state if re-verify couldn't run.)
+            const fresh = (await refresh()) ?? state;
+            const decided = fresh?.thread?.decision?.action as { t?: string } | undefined;
+            if (decided?.t === "APPROVE" || decided?.t === "REJECT") {
+              setWithdrawRace(decided.t === "APPROVE" ? "approved" : "rejected");
+              setWithdrawOpen(false);
+              await onChanged();
+              return;
+            }
+            // Bail if the submit action is no longer there to withdraw.
+            const submit = fresh?.thread?.submit;
+            if (!submit) {
+              setWithdrawOpen(false);
+              return;
+            }
             await withdrawSubmission(
               {
                 id: claim.id,
