@@ -195,11 +195,16 @@ export async function openLedger(
   const sorted = [...docs].sort(
     (a, b) => a.createdAtMs - b.createdAtMs || (a.eventId < b.eventId ? -1 : 1)
   );
+  // Envelopes open concurrently (decrypt + ECDSA verify interleave in
+  // WebCrypto); dedup walks the results in sorted order below, so the
+  // outcome is identical to opening one at a time.
+  const opened = await Promise.all(sorted.map((doc) => openEnvelope(ledgerKeyB64, doc)));
   const events: VerifiedEvent[] = [];
   const rejected: RejectedEvent[] = [];
   const seen = new Set<string>();
-  for (const doc of sorted) {
-    const result = await openEnvelope(ledgerKeyB64, doc);
+  for (let i = 0; i < sorted.length; i++) {
+    const doc = sorted[i];
+    const result = opened[i];
     if ("rejected" in result) {
       rejected.push(result.rejected);
       continue;

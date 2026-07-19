@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useOpenParam } from "@/lib/use-open-param";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { useTranslations } from "next-intl";
-import { LedgerCommittedError, runPaidCeremony } from "@/lib/esign/client";
+import { LedgerCommittedError, runPaidCeremony, warmClaimVerification } from "@/lib/esign/client";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
 import { AuditDetails, ChainAlert, PacketLink, ThreadSignatures, chainLooksGood, useClaimChain } from "./chain";
 import { SigningConnectCard } from "./SigningConnect";
@@ -96,6 +96,12 @@ export default function FinanceQueue() {
   useEffect(() => {
     void load();
   }, [load]);
+  // Warm the signing stack (Firebase SDK, restored session, verified roster)
+  // while the treasurer is still reading the queue — opening a claim then
+  // only waits on the claim ledger and the packet bytes.
+  useEffect(() => {
+    void warmClaimVerification();
+  }, []);
   // Newly approved claims should appear without a manual reload — but never
   // refresh under an open paid ceremony or while a print is being built.
   useAutoRefresh(load, { paused: openId !== null || printing });
@@ -449,6 +455,13 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
               {tEsign("openPacketButton")}
             </PacketLink>
           )}
+        </>
+      )}
+      {/* From here down the ceremony renders OPTIMISTICALLY from mirror data
+          while the chain verifies: the treasurer can fill the form during the
+          check. Sign-and-mark-paid stays disabled until `verified`, and a
+          failed check lands as the red error above. */}
+      <>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium">
               {t("checkNumberLabel")}
@@ -500,8 +513,7 @@ function PaidCeremony({ claim, onChanged }: { claim: InboxClaim; onChanged: () =
               {busy ? tEsign("signing") : t("signAndMarkPaid")}
             </button>
           </div>
-        </>
-      )}
+      </>
     </div>
   );
 }
