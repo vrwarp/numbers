@@ -105,11 +105,21 @@ export async function completeProfile(
   expect(res.ok()).toBeTruthy();
 }
 
+/** Hydration guard for the Shoebox: the loading placeholder disappears only
+ *  after the client fetch resolves, so React is interactive and the hidden
+ *  file input's onChange is wired. A pick dispatched before that is silently
+ *  dropped — the prepare dialog never opens and the spec dies at its first
+ *  toBeVisible. Call before driving `file-input` directly. */
+export async function shoeboxReady(page: Page): Promise<void> {
+  await expect(page.getByTestId("receipts-loading")).toBeHidden({ timeout: 15_000 });
+}
+
 /** Upload fixture files through the Shoebox file input. Picking files opens a
  *  prepare dialog per file BEFORE anything uploads (client-side edit chance);
  *  Save sends that file — fill the optional note on the first, save through the
  *  rest, then wait for the cards to land. */
 export async function uploadReceipts(page: Page, filePaths: string[], note?: string): Promise<void> {
+  await shoeboxReady(page);
   const before = await page.locator('[data-testid^="receipt-card-"]').count();
   await page.getByTestId("file-input").setInputFiles(filePaths);
   const noteInput = page.getByTestId("upload-note");

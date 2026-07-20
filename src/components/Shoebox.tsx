@@ -808,7 +808,12 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
       )}
 
       {receipts === null ? (
-        <p className="text-sm text-stone-500">{tCommon("loading")}</p>
+        // The testid doubles as the e2e suite's hydration signal: it goes away
+        // only after the client-side fetch resolves, i.e. React is interactive
+        // and the hidden file input's onChange is actually wired.
+        <p className="text-sm text-stone-500" data-testid="receipts-loading">
+          {tCommon("loading")}
+        </p>
       ) : unassigned.length === 0 && processed.length === 0 ? (
         <div className="card p-10 text-center text-stone-500">
           <div className="text-4xl">🧾</div>
