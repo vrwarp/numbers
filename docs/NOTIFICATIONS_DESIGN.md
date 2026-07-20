@@ -38,6 +38,12 @@ congregation that opens this app a few times a month.
 - **Notifications never carry authority.** Tapping one only navigates; every
   screen re-checks session + permissions as it does today. A forged or replayed
   push can annoy, not authorize.
+- **No read-tracking — a non-goal, not a deferral.** Whether a notification
+  reached, was seen, or was tapped is never recorded per-user or shown to
+  anyone. Turning silence into legible refusal ("he was notified — why
+  hasn't he signed?") is the exact social failure §5 guards against; if
+  read-state is ever proposed, it needs its own consent design, not a schema
+  migration.
 - **No native apps.** The installed PWA is the mobile story (manifest already
   ships `display: standalone`).
 
@@ -143,18 +149,30 @@ worth pushing:
 | --- | --- | --- | --- | --- | --- | --- |
 | `signing-request` | SUBMIT lands (`…/[id]/submit`, **and `…/reconcile`** — see §7.1) | The named approver | Signing | "Signature requested — {claim event label}" / "Submitted by {name}" | `/approvals` | 14 d · `signing-request:{claimId}` |
 | `claim-approved` | APPROVE (`…/[id]/decision`, reconcile) | Claim owner | My claims | "Your claim was approved — {label}" | `/claims/{id}` | 7 d · `claim:{claimId}` |
-| `claim-rejected` | REJECT (same routes) | Claim owner | My claims | "Your claim needs changes — {label}" / "The approver left a note" (note text itself never in the payload) | `/claims/{id}` | 14 d · `claim:{claimId}` |
-| `finance-queue` | APPROVE (same routes) | All treasurers/admins with finance duty unpaused, minus the actor | Finance | "A claim is ready for payment — {label}" | `/finance` | 7 d · `finance:{claimId}` |
+| `claim-rejected` | REJECT (same routes) | Claim owner | My claims | "Your claim needs changes — {label}" (the reviewer's note is mandatory in this app, so "there's a note" is filler — the body just invites the tap; note text never in the payload) | `/claims/{id}` | 14 d · `claim:{claimId}` |
+| `finance-queue` | APPROVE (same routes) | All treasurers/admins with finance duty unpaused, minus the actor | Finance | Coalesced **per recipient**: "Ready for payment — {label}", updating to "{count} claims are ready for payment" | `/finance` | 7 d · tray tag `finance:{recipientId}` (dedupe stays per-claim) |
 | `claim-paid` | MARK_PAID (`…/[id]/paid`, reconcile) | Claim owner | My claims | "Your reimbursement was paid — {label}" (no amount, no check number) | `/claims/{id}` | 3 d · `claim:{claimId}` |
 | `device-request` | Client hint from the requesting device (§7.1b) | Same user's **other** devices | Security | "A new device asked to join your signing identity. If this wasn't you, review now." | `/` (the app-wide `DeviceRequestsBanner` takes over) | 30 min · `device:{userId}` |
 
 Notes on the table:
 
-- **Reassignment is free:** withdraw + resubmit to a new approver replays
-  `signing-request` to the new person (a fresh `submitSeq` makes it a new
-  dedupe key, §7.2). The *old* approver gets nothing — the item simply leaves
-  their queue, which matches today's behavior and avoids a "you lost work"
-  guilt notification.
+- **Reassignment sends nothing new — but push already changed its social
+  visibility, and the design must own that.** Withdraw + resubmit replays
+  `signing-request` to the new approver (fresh `submitSeq` ⇒ new dedupe key,
+  §7.2); the old approver gets no new message. Pre-push, a bypassed approver
+  who never opened the app never knew the work existed; now his lock screen
+  *retains the original request* as evidence he was passed over — nothing
+  replaces it (the resubmit's tag targets the new person). So the
+  `/approvals` empty state must be **cause-neutral and normalizing**:
+  "Nothing is waiting for your signature. Owners can withdraw or reassign a
+  request at any time — this is routine." (Never "already handled by someone
+  else": SUBMIT names exactly one approver, so that euphemism decodes to
+  "you were passed over." `/finance`, where any treasurer genuinely may have
+  handled it, keeps the "already handled" wording.) The Signing-category
+  soft-ask carries the same normalization line, so approvers learn *before*
+  their first vanished request that reassignment is workflow, not censure.
+  Translator `context` notes on these keys state why no cause may be
+  implied.
 - **`device-request` is mostly a security alert.** The multi-device plan
   assumes the member is holding both devices during approval, so the happy
   path rarely needs the push — its real value is the *"if this wasn't you"*
@@ -163,10 +181,19 @@ Notes on the table:
   the body invites the tap instead.
 - **Web push cannot be retracted.** A withdrawn request or an item another
   treasurer already handled leaves a stale tray notification for up to its
-  TTL; the tap lands on an empty queue. The landing pages own that moment:
-  `/approvals` and `/finance` empty states must say (localized) "Nothing
-  waiting for you — a request may have been withdrawn or already handled by
-  someone else," so the stale tap reads as resolution, not data loss.
+  TTL; the tap lands on an empty queue. The landing pages own that moment
+  with the split empty-state copy above — cause-neutral on `/approvals`,
+  "may have been already handled" on `/finance` — so the stale tap reads as
+  resolution, not data loss and not censure.
+- **Interruption budget.** Expected volume drives the catalog: a member
+  should see ≲ 2 pushes in a typical week (their own claims only); an
+  approver a handful (only claims naming them); treasurers are the hot spot
+  — every APPROVE fans out to all of them, so retreat season (~20 claims/
+  month church-wide) is ~20 pushes each — hence the per-recipient
+  coalescing above, and the quiet window in §7.3: submissions and foyer
+  approvals cluster around Sunday service, and the approve→finance fan-out
+  must not buzz every treasurer's phone mid-sermon. Any future catalog
+  addition states its expected frequency against this budget.
 
 ### In-app parity — committed alongside v1, because push must not create castes
 
@@ -189,7 +216,10 @@ in-app, none requiring push:
   different approver," turning "that elder is slow" into "you have an option,"
   with no push involved. This subsumes the old `approver-unavailable`
   phase-2 idea (the paused-approver notice already exists on the claim panel;
-  this extends it to plain elapsed time).
+  this extends it to plain elapsed time). The copy **preserves charitable
+  ambiguity** — "notifications are often missed; phones mute, batteries die"
+  — which is simply true (§8.7, §10): delivery dies silently all the time,
+  and the stall state must not teach owners to read silence as refusal.
 - **Aggregate — never individual — visibility for leadership.** The §12 admin
   card gains one trend line: "claims waiting > 7 days" (count over time). It
   never breaks down by person or by who has push enabled; the design must not
@@ -242,6 +272,7 @@ model PushToken {
 model NotificationJob {
   id            String    @id @default(cuid())
   userId        String                    // recipient (NOT the actor)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   kind          String                    // catalog key, e.g. "signing-request"
   category      String                    // preference bucket it obeys (§8.2)
   targetId      String    @default("")    // claimId / deviceRequestId — for collapse + deep link
@@ -356,6 +387,11 @@ is near-instant rather than next-poll). Per job:
   two hours must not resurrect a `device-request` and deliver it "fresh"
   (FCM's TTL bounds time in *FCM's* queue, not time in ours; it cannot do
   this for us).
+- **Quiet window:** an admin-configured overnight/service-hours window (one
+  congregation = one timezone) defers claim-lifecycle sends via
+  `nextAttemptAt` — hold-then-send, not drop. `device-request` is exempt
+  (genuine 30-minute urgency). No conflict with the age gate: claim-kind
+  TTLs are days, holds are hours.
 - Re-check the recipient's master + category switches and role/pause state
   **at send time**; resolve live tokens. **Liveness =
   `max(lastSeenAt, lastSendOkAt)` within 180 d** — a successful send marks
@@ -404,6 +440,10 @@ handler (ahead of the SDK's, keyed off the message's `FCM_MSG` payload):
   instead. A tap must not destroy a multi-minute extraction someone is
   watching.
 - Otherwise `clients.openWindow(route)`.
+- **The route is allowlisted, not trusted:** the handler accepts only
+  same-origin paths matching the catalog's route prefixes (`/approvals`,
+  `/finance`, `/claims/`, `/`). A forged or tampered payload must not be able
+  to deep-link a device anywhere else under the app's provenance (§11.1).
 - iOS PWA is single-window with known foreground-without-navigate quirks —
   §13 carries an explicit acceptance test: *tap while the installed app is
   open on another page lands on the target page.*
@@ -438,6 +478,11 @@ on real queue/dedupe/preference behavior with zero network.
 - Per-category switches (default `true`, only consulted when master is on),
   matching the §5 catalog's category column: `notifySigning`,
   `notifyClaimProgress`, `notifyFinance`, `notifySecurity`.
+- `notifyDiscreet` — **discreet previews** (default `false`): bodies become
+  outcome- and name-neutral ("An update on one of your claims," "A signature
+  request is waiting"), details only after tap. For lock screens that
+  family members see (§11); offered in the soft-ask next to the
+  shared-device lines.
 - **A category is only rendered for users it can ever fire for** — the
   Finance rule generalized: members who can never be named approver don't see
   a "Signing" toggle they must decode. Every rendered toggle carries a
@@ -482,6 +527,16 @@ on real queue/dedupe/preference behavior with zero network.
    rule applies to every OS/browser menu path the copy quotes ("Add to Home
    Screen", "Site settings"); their translator `context` notes state that
    these strings quote OS chrome and must not be naturalized.
+   **The soft-ask also says the quiet parts out loud** — the design's best
+   trust properties are worthless unstated:
+   - "Only you can see your notification settings. No one is told whether a
+     notification reached you, or when." (Without this sentence, folk theory
+     fills the gap: "he was notified in seconds — why hasn't he signed?"
+     Enabling must not feel like joining an SLA.)
+   - Role-holders additionally see: "This doesn't create a duty to respond
+     faster — the badges remain the official queue."
+   - "Is this a shared computer? A family iPad? Don't enable here — or turn
+     on discreet previews" (§8.2, §8.6).
    **The soft-ask's final line teaches the one reliable undo** (delivery is
    the AND of five switches, but users get one sentence): "Turn everything
    off anytime: Profile → Notifications → Off — this works even if your
@@ -670,8 +725,11 @@ existing a11y idiom rather than inventing one:
   label, but `claimEvent` defaults to empty and is never required — the
   *common* case must not render "Signature requested — " with a dangling
   separator as someone's first-ever push. Fallback chain:
-  `claimEvent` → `claimDescription` → localized generic ("a claim"), composed
-  so the empty case reads as a complete sentence.
+  `claimEvent` → localized generic ("a claim"), composed so the empty case
+  reads as a complete sentence. **Never `claimDescription`**: in a church
+  that free-text field names people and pastoral situations ("Funeral
+  flowers — Wang family", benevolence purchases) — the most sensitive text
+  in the system does not belong on a lock screen as a *fallback*.
 - **Action first, label last.** iOS shows roughly one title line
   (~15–18 CJK glyphs); truncation must eat the free-text label, never the
   verb. The fixed part of a title budgets ≤ ~12 CJK glyphs. Every
@@ -714,6 +772,29 @@ existing a11y idiom rather than inventing one:
 - Tokens are opaque credentials-to-annoy: leak of a token lets someone spam
   that device via *our* SA only; still, tokens are never returned by any GET
   (the profile card gets device labels + timestamps, not tokens).
+- **Push copy asserts mirror state — a hint, never a fact.** The verified
+  truth lives in the client-checked ledger, and notification text never uses
+  "verified"/"confirmed" language; a push says the mirror *reports* approval,
+  the claim page and `/v` remain where verification happens. This keeps the
+  app's "verify, don't trust the server" posture culturally intact even
+  though the highest-frequency status surface is now server-composed.
+- **`payloadJson` carries personal free text** (actor names, event labels)
+  frozen at enqueue: owner-only read scope (the recipient's own activity
+  list), same 90-day pruning. `NotificationJob` cascades with its user (§6);
+  when a *claim* is deleted, its jobs degrade — the activity list renders a
+  localized "a deleted claim" label and no dead deep-link (the designed
+  dead-target state), because these rows are residue, not chain-of-custody
+  (the e-sign archive invariant is untouched).
+
+### 11.1 Attack scenarios & defenses (ESIGN §8's discipline, applied here)
+
+| Attack | Defense / honest residual |
+| --- | --- |
+| **Messaging SA key exfiltrated** — attacker gains church-branded push infrastructure to every enrolled device | The SA can *only* send FCM messages (custom role, §4) — no ledger, no data reads. But off-server sends are **invisible to §12's health card**; the doc says so plainly. Defenses: the SA JSON lives in `config.json` on the NAS (§13), rotation guidance in the deploy docs, and §12's scope self-check catches over-granting. Residual: a stolen key means plausible pushes until rotated — mitigated by the next row. |
+| **Forged-outcome push** ("Your claim was approved" when it wasn't) | Notifications carry zero authority; every tap lands behind the session on pages that re-check the mirror, and ceremony UIs re-verify the ledger client-side. Copy discipline above (no "verified" language) keeps users' trust anchored to the verifying surfaces. |
+| **Push-timed ceremony pressure** — attacker files a device-approval request, then uses pushes to rush/normalize the typed-code approval (approval-fatigue) | The `device-request` push says "if this wasn't you, review" and never carries the code or an approve affordance; approval still requires the deliberate typed-code ceremony in-app on the old device. Quiet-window exemption is acceptable because the push adds scrutiny, not authority. |
+| **Tampered/forged payload deep-links a device** under the app's provenance | §7.5's click handler allowlists same-origin catalog route prefixes only. |
+| **Spam-yourself via the hint endpoint** | Server-derived dedupe bucket + hourly cap (§7.1b). |
 
 ## 12. Admin surface
 
@@ -724,6 +805,13 @@ granted, §8.4), and the "claims waiting > 7 days" trend line (§5). Strictly
 aggregate: no per-person adoption status, no access to anyone's preferences
 or tokens — leadership gets "where do people stall," never "who to blame."
 (The self-test button lives on every user's own profile, §8.7.)
+
+At this congregation's scale, "aggregate" deanonymizes: "claims waiting > 7
+days: 2" with three approvers is a named person in every reader's head, and
+the deacon knows exactly who the ten onboarding installs were. Small counts
+render floored ("fewer than 5"), and both metrics are framed as process
+questions ("where does onboarding stall") — the card must never render in a
+way that invites per-person resolution at a council meeting.
 
 The card also **verifies the service account is messaging-only** (self-check
 via `testIamPermissions`-style probe) and shows a plain-language warning when
@@ -917,3 +1005,45 @@ Top findings and responses:
 8. **[MINOR] `/api/notifications/hint` had no dedupe/rate-limit** and its
    `targetId` was client-supplied. → §7.1b: server-derived bucket dedupe
    key, per-user hourly cap, no client ids in the push path.
+
+### Round 4 — lens: trust, privacy, consent, fatigue, social dynamics
+
+Top findings and responses:
+
+1. **[BLOCKER] Push made withdraw-and-reassign visible to the bypassed
+   elder** — his lock screen retains the original "Signature requested" as
+   evidence, and the draft's "matches today's behavior" claim was false; the
+   `/approvals` empty state's "already handled by someone else" decodes to
+   "you were passed over" (SUBMIT names exactly one approver). → §5: the
+   social shift is owned in text; empty-state copy split (cause-neutral,
+   normalizing on `/approvals`; "already handled" only on `/finance`);
+   reassignment-is-routine line added to the Signing soft-ask.
+2. **[MAJOR] No interruption budget** — finance-queue was a per-claim pager
+   for every treasurer (~20 pushes each in retreat season) peaking during
+   Sunday service. → §5: per-recipient coalescing with count-updating body;
+   stated per-persona weekly budget; §7.3: admin-configured quiet window
+   (hold-then-send, `device-request` exempt).
+3. **[MAJOR] Lock screens leaked pastoral content into households** — the
+   §9.1 fallback promoted `claimDescription` (names, benevolence, funerals);
+   "Submitted by {name}" tells a household who claims money; "left a note"
+   was filler. → §9.1: fallback is event-label → generic, never description;
+   §8.2: `notifyDiscreet` outcome/name-neutral previews; soft-ask gains a
+   family-shared-device line; the note line dropped.
+4. **[MAJOR] No attack/defense treatment for the push layer**, whose glance-
+   don't-open success mode culturally inverts "verify, don't trust the
+   server." → New §11.1 attack table (SA exfiltration with honest
+   off-server-sends-are-invisible residual; forged-outcome pushes;
+   push-timed ceremony pressure; deep-link forgery); §7.5 route allowlist;
+   §11 copy discipline: push is a hint, never says "verified."
+5. **[MAJOR] The design's privacy properties were never stated to users** —
+   silence was becoming legible refusal, and "no read-tracking in v1" left
+   the door ajar. → §8.3 soft-ask says the quiet parts ("no one is told
+   whether a notification reached you"; role-holders: "no duty to respond
+   faster"); §5 stall copy preserves charitable ambiguity; read-tracking
+   reclassified as a §2 non-goal requiring its own consent design.
+6. **[MINOR] `NotificationJob` rows outlived their subjects** — no user
+   cascade, no claim-deletion semantics, personal free text frozen 90 days.
+   → §6 cascade added; §11: deleted claims degrade to "a deleted claim" with
+   a designed dead-target state; payloadJson scoped owner-only.
+7. **[MINOR] "Aggregate" metrics deanonymize at N=3.** → §12: floored small
+   counts, process-question framing, explicit no-per-person-resolution rule.
