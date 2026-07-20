@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { fetchAndDeliver, isStandalonePwa } from "@/lib/pdf-delivery";
+import { fetchAndDeliver, isIosStandalonePwa } from "@/lib/pdf-delivery";
 import ReceiptImageEditor from "./ReceiptImageEditor";
 import { usePdfPreviewManifest, pdfPreviewPageUrl } from "./PdfReceiptPreview";
 
@@ -193,10 +193,10 @@ export default function ReceiptViewer({
             title={t("openNewTab")}
             onClick={(e) => {
               e.stopPropagation();
-              // Standalone PWA: the new tab is an overlay browser without the
-              // session cookie (it would show the sign-in page) — fetch the
-              // bytes in-app and hand them to the share sheet instead.
-              if (isStandalonePwa()) {
+              // iOS standalone PWA: the new tab is an overlay browser without
+              // the session cookie (it would show the sign-in page) — fetch
+              // the bytes in-app and hand them to the share sheet instead.
+              if (isIosStandalonePwa()) {
                 e.preventDefault();
                 void fetchAndDeliver(src, receipt.originalName).catch(() => {});
               }

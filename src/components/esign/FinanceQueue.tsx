@@ -18,7 +18,7 @@ import { SigningConnectCard } from "./SigningConnect";
 import { type InboxClaim } from "./ApprovalsInbox";
 import ClaimSummaryRow from "./ClaimSummaryRow";
 import PdfLink from "@/components/PdfLink";
-import { deliverPdf, downloadBlob, isStandalonePwa, pdfFile, sharePdf } from "@/lib/pdf-delivery";
+import { deliverPdf, downloadBlob, isIosStandalonePwa, pdfFile, sharePdf } from "@/lib/pdf-delivery";
 
 export default function FinanceQueue() {
   const t = useTranslations("Finance");
@@ -118,9 +118,9 @@ export default function FinanceQueue() {
     setPrintError(null);
     // Open the tab inside the click gesture so the pop-up isn't blocked; point
     // it at the built PDF, or close it (and fall back to a download) on failure.
-    // Standalone PWA: no tab at all — blob tabs fail there and the overlay
+    // iOS standalone PWA: no tab at all — blob tabs fail there and the overlay
     // browser has no session cookie; the share sheet is the print/save path.
-    const standalone = isStandalonePwa();
+    const standalone = isIosStandalonePwa();
     const win = standalone ? null : window.open("", "_blank");
     try {
       const res = await fetch("/api/finance/print", {

@@ -10,17 +10,26 @@
  * iOS-idiomatic delivery is the OS share sheet (Save to Files / Print /
  * AirDrop / Mail), which `navigator.share({files})` opens.
  *
- * Strategy: in standalone mode share; everywhere else keep the plain
- * download (desktop browsers give it a real filename + download UI).
+ * Strategy: in iOS standalone mode share; everywhere else keep the plain
+ * anchor/download. Both quirks are iOS-WebKit-specific — Android standalone
+ * PWAs download blobs fine and open `target="_blank"` in a Custom Tab that
+ * shares the session cookie, so there the browser still honors the server's
+ * `Content-Disposition: inline` and renders PDFs in-tab.
  * `navigator.share` needs transient user activation — if the triggering tap
  * was spent on a slow fetch, callers get `false` back and must render a
  * fresh-gesture "Save / Share" button wired to `sharePdf`.
  */
 
-export function isStandalonePwa(): boolean {
+export function isIosStandalonePwa(): boolean {
   if (typeof window === "undefined") return false;
   const nav = navigator as Navigator & { standalone?: boolean };
-  return nav.standalone === true || window.matchMedia?.("(display-mode: standalone)")?.matches === true;
+  const standalone =
+    nav.standalone === true || window.matchMedia?.("(display-mode: standalone)")?.matches === true;
+  // iPadOS ≥13 masquerades as macOS in the UA — the touch-point probe tells it apart.
+  const ios =
+    /iP(hone|ad|od)/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  return standalone && ios;
 }
 
 export function pdfFile(bytes: BlobPart, filename: string): File {
@@ -84,7 +93,7 @@ export function downloadBlob(blob: Blob, filename: string) {
  * caller should surface a "Save / Share" button that calls `sharePdf`.
  */
 export async function deliverPdf(blob: Blob, filename: string): Promise<boolean> {
-  if (isStandalonePwa()) {
+  if (isIosStandalonePwa()) {
     const outcome = await sharePdf(pdfFile(blob, filename));
     if (outcome === "shared") return true;
     if (outcome === "blocked") return false;

@@ -20,7 +20,7 @@ import {
   type EsignEnv,
 } from "@/lib/esign/client";
 import { fingerprintDisplay, keyFingerprint, sha256Hex } from "@/lib/esign/canonical";
-import { downloadBlob, isStandalonePwa, shareBlob } from "@/lib/pdf-delivery";
+import { downloadBlob, isIosStandalonePwa, shareBlob } from "@/lib/pdf-delivery";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { connectErrorMessage } from "./SigningConnect";
 import type { Thread } from "@/lib/esign/validity";
@@ -47,7 +47,7 @@ export interface ChainState {
    *  when its bytes hash to the APPROVE payload's approvedPacketSha256 —
    *  verified-or-absent, like everything else here. */
   approvedPacketUrl: string | null;
-  /** Same bytes as the URLs above, kept for standalone-PWA delivery — a
+  /** Same bytes as the URLs above, kept for iOS-standalone-PWA delivery — a
    *  blob: URL in a new tab silently fails there, so links share instead. */
   packetBlob: Blob | null;
   approvedPacketBlob: Blob | null;
@@ -55,10 +55,10 @@ export interface ChainState {
 
 /**
  * "Open packet"-style link over client-verified bytes. Normal browsers get a
- * blob-URL anchor in a new tab; a standalone (home-screen) PWA gets a button
- * that hands the SAME bytes to the OS share sheet — blob tabs silently fail
- * there, and the bytes are already in memory so the share keeps the tap's
- * user activation.
+ * blob-URL anchor in a new tab; an iOS standalone (home-screen) PWA gets a
+ * button that hands the SAME bytes to the OS share sheet — blob tabs silently
+ * fail there, and the bytes are already in memory so the share keeps the
+ * tap's user activation.
  */
 export function PacketLink({
   url,
@@ -75,7 +75,7 @@ export function PacketLink({
   children: React.ReactNode;
   testId?: string;
 }) {
-  if (isStandalonePwa() && blob) {
+  if (isIosStandalonePwa() && blob) {
     return (
       <button
         type="button"
