@@ -151,6 +151,15 @@ body {
   @apply rounded-xl border border-stone-200 bg-white shadow-sm;
 }
 
+/* Horizontal chip rows (the Receipts filter bar) scroll without showing a
+   scrollbar — the clipped chip peeking in from the edge is the scroll cue. */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Makes a card read and behave as one clickable control. Two halves so they
    can sit on different elements when a card expands in place (the clickable
    header is a <button>, the border lives on its <li> wrapper); on a card that

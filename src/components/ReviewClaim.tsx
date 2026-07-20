@@ -1275,34 +1275,36 @@ export default function ReviewClaim({
               </div>
             )}
             <div className="grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-              {/* The relative wrapper matches the clamped scroll viewport, so the
-                  floating edit button stays pinned to the visible part of a
-                  tall receipt photo rather than its full scroll height. */}
+              {/* The relative wrapper matches the visible viewport (the image
+                  stage / the clamped PDF scroller), so the floating edit
+                  button stays pinned to the visible part of a tall receipt. */}
               <div className="relative border-b border-stone-100 md:border-b-0 md:border-r">
-                {/* Height-gated clamp: on a short viewport (landscape phone /
-                    keyboard) a tall receipt photo would fill the screen before
-                    the first editable row, so cap it hard; portrait phones and
-                    desktops keep the roomy 75vh. */}
-                {/* No overscroll-contain here: a drag that saturates this
-                    clamped viewport must keep scrolling the page (images chain
-                    programmatically via PanZoomImage; the PDF column relies on
-                    native chaining). */}
-                <div className="max-h-[75dvh] overflow-y-auto bg-stone-50/50 short:max-h-[min(55dvh,240px)]">
-                  {/* Keep the PDF arm separate from the image path: a PDF stays a
-                      PDF (packet append, "open original", no crop/rotate) — this
-                      shows a raster preview inline, it does not reclassify it. */}
-                  {group.receipt.mimeType === "application/pdf" ? (
+                {/* Height-gated clamp (both arms): on a short viewport
+                    (landscape phone / keyboard) a tall receipt would fill the
+                    screen before the first editable row, so cap it hard;
+                    portrait phones and desktops keep the roomy 75vh. */}
+                {/* Keep the PDF arm separate from the image path: a PDF stays a
+                    PDF (packet append, "open original", no crop/rotate) — this
+                    shows a raster preview inline, it does not reclassify it.
+                    No overscroll-contain on its scroller: a drag that
+                    saturates it must keep scrolling the page. The image arm
+                    doesn't scroll at all — PanZoomImage owns the clamp as a
+                    fixed window, fits the photo inside it, and chains pan
+                    overflow into the page itself. */}
+                {group.receipt.mimeType === "application/pdf" ? (
+                  <div className="max-h-[75dvh] overflow-y-auto bg-stone-50/50 short:max-h-[min(55dvh,240px)]">
                     <PdfReceiptPreview receiptId={group.receipt.id} />
-                  ) : (
-                    // key: an image edit bumps the URL — reset the zoom with it.
-                    <PanZoomImage
-                      key={fileUrl(group.receipt.id)}
-                      src={fileUrl(group.receipt.id)}
-                      alt={group.receipt.originalName}
-                      imgTestId={`receipt-image-${group.receipt.id}`}
-                    />
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  // key: an image edit bumps the URL — reset the zoom with it.
+                  <PanZoomImage
+                    key={fileUrl(group.receipt.id)}
+                    src={fileUrl(group.receipt.id)}
+                    alt={group.receipt.originalName}
+                    imgTestId={`receipt-image-${group.receipt.id}`}
+                    className="max-h-[75dvh] bg-stone-50/50 short:max-h-[min(55dvh,240px)]"
+                  />
+                )}
                 {isDraft && group.receipt.mimeType !== "application/pdf" && (
                   <button
                     className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-stone-900/60 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur-sm transition-colors hover:bg-stone-900/80"

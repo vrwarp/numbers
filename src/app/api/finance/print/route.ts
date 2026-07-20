@@ -5,7 +5,7 @@ import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { requireEsignAccess } from "@/lib/esign/server";
 import { claimAccessRole, signedPacketPath } from "@/lib/esign/claim-server";
 import { readStoredFile } from "@/lib/storage";
-import { FORM_ROWS_PER_PAGE, publicBaseUrl, esignRootFingerprint } from "@/lib/config";
+import { FORM_ROWS_PER_PAGE, appTimeZone, publicBaseUrl, esignRootFingerprint } from "@/lib/config";
 import { drawCertificateCover } from "@/lib/esign/certificate";
 import { signatureAnchor } from "@/lib/pdf/generate";
 import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
@@ -147,7 +147,7 @@ export async function POST(req: Request) {
         };
         await stampApprovalMarks(out, formStart, formPageCount, {
           typedName: approveRecord.typedName || "",
-          dateString: formatApprovalDate(approvePayload.ts ?? approveRecord.createdAt.getTime()),
+          dateString: formatApprovalDate(approvePayload.ts ?? approveRecord.createdAt.getTime(), appTimeZone()),
           signaturePng: pngFromDataUrl(approverIdentity?.signatureImage),
           placement:
             approvePayload.signaturePlacement ??

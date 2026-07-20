@@ -13,6 +13,7 @@ import {
   sha256Hex,
 } from "./content";
 import { enqueueForSweep, draftIdleMs } from "./queue";
+import { appTimeZone } from "@/lib/config";
 import { indexCacheUpsert, indexCacheRemove, invalidateIndexCache } from "./index-cache";
 import type { EmbeddingKind } from "./types";
 
@@ -57,7 +58,7 @@ async function buildReceiptInput(
   return {
     fingerprint: receiptFingerprint(content),
     userId: r.userId,
-    year: receiptYear(content),
+    year: receiptYear(content, appTimeZone()),
     embed: async () => {
       if (r.mimeType === "application/pdf") {
         // Page-1 raster: reuse the preview cache when the route has built it,
@@ -97,11 +98,12 @@ async function buildClaimInput(
     createdAt: c.createdAt,
     submittedAt: c.submittedAt,
   };
-  const composite = buildClaimComposite(content);
+  const timeZone = appTimeZone();
+  const composite = buildClaimComposite(content, timeZone);
   return {
     fingerprint: sha256Hex(composite),
     userId: c.userId,
-    year: claimYear(content),
+    year: claimYear(content, timeZone),
     embed: () => embedText(composite, cfg),
   };
 }
@@ -307,15 +309,18 @@ async function currentFingerprint(kind: EmbeddingKind, targetId: string): Promis
     });
     if (!c) return "";
     return sha256Hex(
-      buildClaimComposite({
-        ownerName: c.user.fullName || c.user.email,
-        claimDescription: c.claimDescription,
-        lineItems: c.lineItems,
-        merchants: c.receipts.map((j) => j.receipt.merchant).filter(Boolean),
-        totalCents: c.totalCents,
-        createdAt: c.createdAt,
-        submittedAt: c.submittedAt,
-      })
+      buildClaimComposite(
+        {
+          ownerName: c.user.fullName || c.user.email,
+          claimDescription: c.claimDescription,
+          lineItems: c.lineItems,
+          merchants: c.receipts.map((j) => j.receipt.merchant).filter(Boolean),
+          totalCents: c.totalCents,
+          createdAt: c.createdAt,
+          submittedAt: c.submittedAt,
+        },
+        appTimeZone()
+      )
     );
   } catch {
     return "";
@@ -359,9 +364,17 @@ export async function runSweep(force = false): Promise<{ enqueued: number }> {
 
   const embeddings = await prisma.embedding.findMany({
     where: { model },
-    select: { kind: true, targetId: true, sourceSha256: true },
+    select: { kind: true, targetId: true, sourceSha256: true, year: true },
   });
-  const bySha = new Map(embeddings.map((e) => [`${e.kind}:${e.targetId}`, e.sourceSha256]));
+  const byKey = new Map(embeddings.map((e) => [`${e.kind}:${e.targetId}`, e]));
+  // A row whose input is unchanged can still carry a stale year bucket (the
+  // upsert only writes year on re-embed): a receipt's fallback year is the
+  // upload instant read in the app zone, which is NOT part of its fingerprint,
+  // so a TIME_ZONE change moves the bucket without moving the hash. Rewrite
+  // the column directly — a plain DB write, no provider call.
+  const reconcileYear = async (kind: EmbeddingKind, targetId: string, year: number) => {
+    await prisma.embedding.updateMany({ where: { kind, targetId, model }, data: { year } });
+  };
   const jobs = await prisma.embeddingJob.findMany({
     select: { kind: true, targetId: true, status: true, failedSourceSha256: true },
   });
@@ -369,6 +382,7 @@ export async function runSweep(force = false): Promise<{ enqueued: number }> {
 
   // Receipts: fingerprint from DB columns only (fileSha256 may be "" on
   // pre-feature rows — they enqueue once; the embed stamps it).
+  const timeZone = appTimeZone();
   const receipts = await prisma.receipt.findMany();
   for (const r of receipts) {
     const fp = receiptFingerprint(r);
@@ -376,7 +390,12 @@ export async function runSweep(force = false): Promise<{ enqueued: number }> {
     const existing = jobState.get(k);
     if (existing?.status === "queued" || existing?.status === "running") continue;
     if (existing?.status === "failed" && existing.failedSourceSha256 === fp && !force) continue;
-    if (!force && bySha.get(k) === fp) continue;
+    const row = byKey.get(k);
+    if (!force && row?.sourceSha256 === fp) {
+      const year = receiptYear(r, timeZone);
+      if (row.year !== year) await reconcileYear("receipt", r.id, year);
+      continue;
+    }
     await enqueueForSweep("receipt", r.id, r.userId);
     enqueued++;
   }
@@ -393,21 +412,31 @@ export async function runSweep(force = false): Promise<{ enqueued: number }> {
   for (const c of claims) {
     if (c.status === "draft" && c.updatedAt > idleCutoff) continue;
     const fp = sha256Hex(
-      buildClaimComposite({
-        ownerName: c.user.fullName || c.user.email,
-        claimDescription: c.claimDescription,
-        lineItems: c.lineItems,
-        merchants: c.receipts.map((j) => j.receipt.merchant).filter(Boolean),
-        totalCents: c.totalCents,
-        createdAt: c.createdAt,
-        submittedAt: c.submittedAt,
-      })
+      buildClaimComposite(
+        {
+          ownerName: c.user.fullName || c.user.email,
+          claimDescription: c.claimDescription,
+          lineItems: c.lineItems,
+          merchants: c.receipts.map((j) => j.receipt.merchant).filter(Boolean),
+          totalCents: c.totalCents,
+          createdAt: c.createdAt,
+          submittedAt: c.submittedAt,
+        },
+        timeZone
+      )
     );
     const k = `claim:${c.id}`;
     const existing = jobState.get(k);
     if (existing?.status === "queued" || existing?.status === "running") continue;
     if (existing?.status === "failed" && existing.failedSourceSha256 === fp && !force) continue;
-    if (!force && bySha.get(k) === fp) continue;
+    const row = byKey.get(k);
+    if (!force && row?.sourceSha256 === fp) {
+      // Belt-and-braces: a claim's year shift always shifts its composite's
+      // MM/YYYY too (→ re-embed above), so this normally never fires.
+      const year = claimYear(c, timeZone);
+      if (row.year !== year) await reconcileYear("claim", c.id, year);
+      continue;
+    }
     await enqueueForSweep("claim", c.id, c.userId);
     enqueued++;
   }

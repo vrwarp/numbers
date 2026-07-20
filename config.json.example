@@ -3,6 +3,8 @@
 
   "PUBLIC_BASE_URL": "",
 
+  "TIME_ZONE": "America/Los_Angeles",
+
   "FIREBASE_API_KEY": "",
   "FIREBASE_AUTH_DOMAIN": "your-project.firebaseapp.com",
   "FIREBASE_PROJECT_ID": "your-project",

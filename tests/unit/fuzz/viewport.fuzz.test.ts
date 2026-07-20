@@ -75,8 +75,13 @@ describe("esign viewport fuzz", () => {
     const before = contentPointUnder(start, boxX, boxY);
     const nextScale = rng.floatIn(1.2, 3.8);
     const zoomed = zoomAbout(start, box, boxX, boxY, nextScale);
-    if (zoomed.scale === nextScale && zoomed.tx < 0 && zoomed.ty < 0 &&
-        zoomed.tx > box.width * (1 - zoomed.scale) && zoomed.ty > box.height * (1 - zoomed.scale)) {
+    // Strictly interior by a 1e-6 margin (same tolerance as expectLegal): a
+    // view within one ulp of a bound may or may not have been clamped
+    // depending on how the bound was computed, so the focal-point property
+    // only holds outside that boundary layer.
+    if (zoomed.scale === nextScale && zoomed.tx < -1e-6 && zoomed.ty < -1e-6 &&
+        zoomed.tx > box.width * (1 - zoomed.scale) + 1e-6 &&
+        zoomed.ty > box.height * (1 - zoomed.scale) + 1e-6) {
       const after = contentPointUnder(zoomed, boxX, boxY);
       expect(after.cx).toBeCloseTo(before.cx, 6);
       expect(after.cy).toBeCloseTo(before.cy, 6);

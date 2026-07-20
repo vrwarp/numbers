@@ -4,30 +4,38 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   beginPinch,
-  isIdentity,
-  panStep,
-  pinchView,
-  zoomAbout,
-  zoomByCenter,
+  clampViewIn,
+  fitScales,
+  MAX_SCALE,
+  panStepIn,
+  pinchViewIn,
+  zoomAboutIn,
+  zoomByCenterIn,
   ZOOM_STEP,
+  type Frame,
   type PinchStart,
   type View,
 } from "@/lib/esign/viewport";
+import { nextPreset, type ZoomPresetKind } from "@/lib/zoom-presets";
 
 /**
  * Inline zoomable receipt image (review screen). Reuses the e-sign signing
  * surface's viewport math (src/lib/esign/viewport.ts) and its gesture
  * contract: the surface owns touch (touch-action: none, required for the
  * custom pinch), so a one-finger drag pans the zoomed image and chains
- * whatever the pan can't absorb into the surrounding scrollers — at 100%
- * the whole drag scrolls through the clamped receipt viewport and on into
- * the page, and a zoomed pan keeps scrolling once it hits the top/bottom
- * edge. Without this, the image's nested overscroll-contain scroller
- * swallowed touch scrolling dead on mobile.
+ * whatever the pan can't absorb into the surrounding scrollers — on a
+ * fully-fitted image the whole drag scrolls the page, and a zoomed pan keeps
+ * scrolling once it hits the top/bottom edge. Without this, a nested
+ * overscroll-contain scroller swallowed touch scrolling dead on mobile.
  *
- * Unlike the signing box, the "box" here is the image's full layout size
- * (often taller than the visible clamp window) — the viewport math is
- * origin-relative, so it holds unchanged.
+ * Unlike the signing box, the stage here is a fixed window — the height clamp
+ * lives on it (via `className`), the image is never taller than the visible
+ * area, and every camera move is this transform (nothing scrolls inside).
+ * The image's layout size (w-full × natural aspect) is what scale 1 means;
+ * the initial view is the contain fit — whichever axis fit shows the whole
+ * photo, below 1 for a tall receipt. The pill is always the same three
+ * buttons (−/+/preset) so nothing shifts as the zoom state changes; the
+ * preset button cycles fit-height → fit-width → 2× fit.
  */
 
 type Gesture = "none" | "pan" | "pinch";
@@ -60,14 +68,24 @@ const FLING_MIN_START = 0.25; // px/ms
 const FLING_MIN_KEEP = 0.02; // px/ms
 const FLING_DECAY_TAU_MS = 325;
 
+const PRESET_GLYPH: Record<ZoomPresetKind, string> = {
+  fitImage: "⤢",
+  fitHeight: "↕",
+  fitWidth: "↔",
+  zoom2x: "2×",
+};
+
 export default function PanZoomImage({
   src,
   alt,
   imgTestId,
+  className,
 }: {
   src: string;
   alt: string;
   imgTestId?: string;
+  /** Sizing/background of the stage — the visible window (height clamp etc.). */
+  className?: string;
 }) {
   // Zoom strings already exist for the full-screen viewer — same verbs here.
   const t = useTranslations("Viewer");
@@ -78,7 +96,23 @@ export default function PanZoomImage({
     setViewState(next);
   };
 
+  // Measured geometry (stage window + image layout + fit bounds); null until
+  // the image has laid out. In state because the buttons, preset glyph, and
+  // cursor derive from it.
+  const [frame, setFrameState] = useState<Frame | null>(null);
+  const frameRef = useRef<Frame | null>(null);
+  const setFrame = (f: Frame) => {
+    frameRef.current = f;
+    setFrameState(f);
+  };
+
+  // After the first zoom action, geometry changes re-clamp the user's view
+  // instead of snapping back to the contain fit.
+  const touched = useRef(false);
+  const [dragging, setDragging] = useState(false);
+
   const boxRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
   const gesture = useRef<Gesture>("none");
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const panLast = useRef({ x: 0, y: 0 });
@@ -86,14 +120,42 @@ export default function PanZoomImage({
   const scrollParents = useRef<Element[]>([]);
   const pinchStart = useRef<PinchStart>({ dist: 0, scale: 1, cx: 0, cy: 0 });
   const lastTap = useRef({ t: 0, x: 0, y: 0 });
-  const downAt = useRef({ x: 0, y: 0 });
   const flingSamples = useRef<{ t: number; x: number; y: number }[]>([]);
   const flingRaf = useRef<number | null>(null);
 
-  const box = () => {
-    const r = boxRef.current?.getBoundingClientRect();
-    return r ? { width: r.width, height: r.height, left: r.left, top: r.top } : null;
+  const stageRect = () => boxRef.current?.getBoundingClientRect() ?? null;
+
+  /** Measure the stage window and the image's untransformed layout size.
+   *  Content height comes from the natural aspect, not offsetHeight — the
+   *  integer-rounded DOM sizes would jitter the fit scales by a pixel. */
+  const measure = (): Frame | null => {
+    const img = imgRef.current;
+    const r = stageRect();
+    if (!img || !r || !r.width || !r.height || !img.naturalWidth || !img.naturalHeight) return null;
+    const box = { width: r.width, height: r.height };
+    const content = { width: r.width, height: (r.width * img.naturalHeight) / img.naturalWidth };
+    const { fitWidth, fitHeight } = fitScales(box, content);
+    return { box, content, minScale: Math.min(1, fitWidth, fitHeight), maxScale: MAX_SCALE };
   };
+
+  /** Re-measure after any geometry change (image load, stage resize): apply
+   *  the contain fit until the user has zoomed, then only re-clamp. */
+  const refit = () => {
+    const f = measure();
+    if (!f) return;
+    setFrame(f);
+    setView(clampViewIn(f, touched.current ? viewRef.current : { scale: f.minScale, tx: 0, ty: 0 }));
+  };
+
+  useEffect(() => {
+    const stage = boxRef.current;
+    if (!stage) return;
+    // Fires on observe too, which covers a cached (already-complete) image.
+    const ro = new ResizeObserver(refit);
+    ro.observe(stage);
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /** Hand pan overflow to the scrollers, nearest first — each consumes what
    *  it can (an edge-pinned scroller consumes nothing) and passes the rest on.
@@ -116,8 +178,8 @@ export default function PanZoomImage({
   useEffect(() => cancelFling, []);
 
   /** Decay a released drag's velocity, feeding the same pan+chain path each
-   *  frame so the fling crosses the image/scroller/page boundaries just like
-   *  the finger did. Stops when it slows down or everything is saturated. */
+   *  frame so the fling crosses the image/page boundary just like the finger
+   *  did. Stops when it slows down or everything is saturated. */
   function startFling(vx0: number, vy0: number) {
     let vx = vx0;
     let vy = vy0;
@@ -126,10 +188,10 @@ export default function PanZoomImage({
       flingRaf.current = null;
       const dt = Math.min(64, now - prev); // clamp over a dropped-frame gap
       prev = now;
-      const b = box();
-      if (!b) return;
+      const f = frameRef.current;
+      if (!f) return;
       const cur = viewRef.current;
-      const { view, overflowY } = panStep(cur, b, vx * dt, vy * dt);
+      const { view, overflowY } = panStepIn(f, cur, vx * dt, vy * dt);
       const moved = view.tx !== cur.tx || view.ty !== cur.ty;
       if (moved) setView(view);
       const unconsumed = overflowY ? chainScroll(overflowY) : 0;
@@ -158,13 +220,19 @@ export default function PanZoomImage({
     gesture.current = "pan";
     panLast.current = { x: clientX, y: clientY };
     scrollParents.current = scrollableAncestors(boxRef.current);
+    setDragging(true);
   }
 
   function toggleZoomAt(clientX: number, clientY: number) {
-    const b = box();
-    if (!b) return;
-    if (viewRef.current.scale > 1) setView({ scale: 1, tx: 0, ty: 0 });
-    else setView(zoomAbout(viewRef.current, b, clientX - b.left, clientY - b.top, DOUBLE_TAP_SCALE));
+    const f = frameRef.current;
+    const r = stageRect();
+    if (!f || !r) return;
+    touched.current = true;
+    if (viewRef.current.scale > f.minScale + 0.001) {
+      setView(clampViewIn(f, { scale: f.minScale, tx: 0, ty: 0 }));
+    } else {
+      setView(zoomAboutIn(f, viewRef.current, clientX - r.left, clientY - r.top, DOUBLE_TAP_SCALE));
+    }
   }
 
   function onPointerDown(e: React.PointerEvent) {
@@ -172,13 +240,14 @@ export default function PanZoomImage({
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     e.currentTarget.setPointerCapture(e.pointerId);
     if (pointers.current.size >= 2) {
-      const b = box();
-      if (!b) return;
+      const f = frameRef.current;
+      const r = stageRect();
+      if (!f || !r) return;
       const m = midpoint();
       gesture.current = "pinch";
-      pinchStart.current = beginPinch(viewRef.current, b, m.x - b.left, m.y - b.top, pointerDist());
+      touched.current = true;
+      pinchStart.current = beginPinch(viewRef.current, f.box, m.x - r.left, m.y - r.top, pointerDist());
     } else {
-      downAt.current = { x: e.clientX, y: e.clientY };
       panMoved.current = 0;
       flingSamples.current = [{ t: performance.now(), x: e.clientX, y: e.clientY }];
       beginPan(e.clientX, e.clientY);
@@ -188,15 +257,15 @@ export default function PanZoomImage({
   function onPointerMove(e: React.PointerEvent) {
     if (!pointers.current.has(e.pointerId)) return;
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const f = frameRef.current;
+    if (!f) return;
     if (gesture.current === "pinch") {
       if (pointers.current.size < 2) return;
-      const b = box();
-      if (!b) return;
+      const r = stageRect();
+      if (!r) return;
       const m = midpoint();
-      setView(pinchView(pinchStart.current, b, m.x - b.left, m.y - b.top, pointerDist()));
+      setView(pinchViewIn(f, pinchStart.current, m.x - r.left, m.y - r.top, pointerDist()));
     } else if (gesture.current === "pan") {
-      const b = box();
-      if (!b) return;
       const cur = viewRef.current;
       const dx = e.clientX - panLast.current.x;
       const dy = e.clientY - panLast.current.y;
@@ -207,8 +276,8 @@ export default function PanZoomImage({
       while (flingSamples.current.length > 1 && now - flingSamples.current[0].t > FLING_SAMPLE_MS) {
         flingSamples.current.shift();
       }
-      const { view, overflowY } = panStep(cur, b, dx, dy);
-      // Skip the render when nothing moved (pure scroll at 100%).
+      const { view, overflowY } = panStepIn(f, cur, dx, dy);
+      // Skip the render when nothing moved (pure scroll-through on a fitted image).
       if (view.tx !== cur.tx || view.ty !== cur.ty || view.scale !== cur.scale) setView(view);
       if (overflowY) chainScroll(overflowY);
     }
@@ -219,6 +288,7 @@ export default function PanZoomImage({
     pointers.current.delete(e.pointerId);
     if (pointers.current.size === 0) {
       gesture.current = "none";
+      setDragging(false);
       // Manual double-tap: with touch-action none, mobile engines don't
       // reliably synthesize dblclick — mouse keeps the native event below.
       if (wasPan && e.pointerType !== "mouse" && panMoved.current < TAP_MOVE_SLOP_PX) {
@@ -236,7 +306,9 @@ export default function PanZoomImage({
         const first = s[0];
         const dt = performance.now() - first.t;
         if (dt > 20) {
-          const vx = viewRef.current.scale > 1 ? (e.clientX - first.x) / dt : 0;
+          const f = frameRef.current;
+          const pannableX = f ? f.content.width * viewRef.current.scale > f.box.width + 0.5 : false;
+          const vx = pannableX ? (e.clientX - first.x) / dt : 0;
           const vy = (e.clientY - first.y) / dt;
           if (Math.hypot(vx, vy) > FLING_MIN_START) startFling(vx, vy);
         }
@@ -251,61 +323,79 @@ export default function PanZoomImage({
 
   const zoomByButton = (factor: number) => {
     cancelFling();
-    const b = box();
-    if (b) setView(zoomByCenter(viewRef.current, b, factor));
+    const f = frameRef.current;
+    if (!f) return;
+    touched.current = true;
+    setView(zoomByCenterIn(f, viewRef.current, factor));
   };
+
+  // The preset a press will apply — also what the button's glyph/label show.
+  const target = frame ? nextPreset(frame.box, frame.content, view.scale) : null;
+
+  const applyPreset = () => {
+    cancelFling();
+    const f = frameRef.current;
+    if (!f) return;
+    touched.current = true;
+    const p = nextPreset(f.box, f.content, viewRef.current.scale);
+    // tx/ty 0 = top/left-aligned on an overflowing axis (a receipt reads from
+    // the top), centered by the clamp on an axis the image fits.
+    setView(clampViewIn(f, { scale: p.scale, tx: 0, ty: 0 }));
+  };
+
+  // Grab cursor only when there is actually something to drag.
+  const pannable =
+    frame != null &&
+    (frame.content.width * view.scale > frame.box.width + 0.5 ||
+      frame.content.height * view.scale > frame.box.height + 0.5);
 
   const ctrlBtn =
     "flex h-8 w-8 items-center justify-center rounded-full text-base leading-none text-white transition-colors hover:bg-white/20 disabled:opacity-40";
 
   return (
     <div className="relative">
-      {/* Sticky inside the clamped receipt scroller, so the controls stay in
-          view while a tall receipt scrolls under them. h-0 keeps them out of
-          the image's layout. */}
-      {/* items-start: the h-0 strip would otherwise stretch the pill to zero
-          height (flex default), collapsing it into a bar. */}
-      <div className="pointer-events-none sticky top-2 z-10 flex h-0 items-start justify-end pr-2">
-        <div className="pointer-events-auto flex items-center gap-0.5 rounded-full bg-stone-900/55 p-0.5 shadow backdrop-blur-sm">
-          <button
-            type="button"
-            className={ctrlBtn}
-            onClick={() => zoomByButton(1 / ZOOM_STEP)}
-            disabled={view.scale <= 1}
-            aria-label={t("zoomOut")}
-            title={t("zoomOut")}
-          >
-            −
-          </button>
-          <button
-            type="button"
-            className={ctrlBtn}
-            onClick={() => zoomByButton(ZOOM_STEP)}
-            aria-label={t("zoomIn")}
-            title={t("zoomIn")}
-          >
-            +
-          </button>
-          {!isIdentity(view) && (
-            <button
-              type="button"
-              className={ctrlBtn}
-              onClick={() => {
-                cancelFling();
-                setView({ scale: 1, tx: 0, ty: 0 });
-              }}
-              aria-label={t("resetZoom")}
-              title={t("resetZoom")}
-              data-testid="pan-zoom-reset"
-            >
-              ⤢
-            </button>
-          )}
-        </div>
+      {/* The stage never scrolls, so the pill just floats over its corner. A
+          fixed three-button layout: the preset button replaces the old
+          appear/disappear reset, so −/+ never shift position. */}
+      <div className="absolute right-2 top-2 z-10 flex items-center gap-0.5 rounded-full bg-stone-900/55 p-0.5 shadow backdrop-blur-sm">
+        <button
+          type="button"
+          className={ctrlBtn}
+          onClick={() => zoomByButton(1 / ZOOM_STEP)}
+          disabled={!frame || view.scale <= frame.minScale + 0.001}
+          aria-label={t("zoomOut")}
+          title={t("zoomOut")}
+        >
+          −
+        </button>
+        <button
+          type="button"
+          className={ctrlBtn}
+          onClick={() => zoomByButton(ZOOM_STEP)}
+          disabled={!frame || view.scale >= frame.maxScale - 0.001}
+          aria-label={t("zoomIn")}
+          title={t("zoomIn")}
+        >
+          +
+        </button>
+        <button
+          type="button"
+          className={`${ctrlBtn} text-sm`}
+          onClick={applyPreset}
+          disabled={!target}
+          aria-label={t(target?.kind ?? "fitImage")}
+          title={t(target?.kind ?? "fitImage")}
+          data-testid="pan-zoom-preset"
+          data-preset={target?.kind}
+        >
+          {target ? PRESET_GLYPH[target.kind] : PRESET_GLYPH.fitImage}
+        </button>
       </div>
       <div
         ref={boxRef}
-        className="touch-none select-none overflow-hidden"
+        className={`touch-none select-none overflow-hidden ${
+          pannable ? (dragging ? "cursor-grabbing" : "cursor-grab") : "cursor-default"
+        } ${className ?? ""}`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endPointer}
@@ -315,15 +405,20 @@ export default function PanZoomImage({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
+          ref={imgRef}
           src={src}
           alt={alt}
           loading="lazy"
           decoding="async"
           draggable={false}
-          className="w-full will-change-transform"
+          onLoad={refit}
+          className="block w-full will-change-transform"
           style={{
             transform: `translate(${view.tx}px, ${view.ty}px) scale(${view.scale})`,
             transformOrigin: "0 0",
+            // Hold the first paint until the contain fit is measured — no
+            // flash of the unfitted image.
+            visibility: frame ? undefined : "hidden",
             // iOS long-press save/copy callout fights the pan gesture.
             WebkitTouchCallout: "none",
           }}

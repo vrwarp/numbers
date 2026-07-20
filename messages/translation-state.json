@@ -582,9 +582,9 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "ReceiptGrid.meta": {
-    "source": "{date} · {kb} KB",
-    "context": "Card meta line: upload date · file size. Keep the ' · ' separators and 'KB'.",
+  "ReceiptGrid.caption": {
+    "source": "{date} · {name}",
+    "context": "Tiny grey caption under each receipt tile: upload-date label (may render as 'Today') then the file name (data, untranslated). Keep the ' · ' separator and both arguments verbatim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -858,15 +858,39 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Shoebox.filterAll": {
+    "source": "All ({count})",
+    "context": "Filter chip above the receipt wall on the Receipts page; shows every receipt. {count} = how many receipts. Keep it chip-short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.filterUnassigned": {
+    "source": "Not yet claimed ({count})",
+    "context": "Filter chip beside 'Processed receipts': receipts not yet on any generated claim (glossary term 'not on a claim'). {count} = how many.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.filterPdf": {
+    "source": "PDFs ({count})",
+    "context": "Filter chip: receipts that were uploaded as PDF files. Keep 'PDF' untranslated. {count} = how many.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Shoebox.processedSummary": {
     "source": "Processed receipts ({count})",
-    "context": "Collapsible section heading for receipts already on generated claims; {count}.",
+    "context": "Filter chip above the receipt wall (doubles as the count of filed receipts): receipts already on a generated claim. {count} = how many.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.processedNote": {
     "source": "Already on a generated claim. You can still pick it if part of the purchase belongs on another claim.",
     "context": "Fine print under that heading: processed receipts stay selectable.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.filterGroupAria": {
+    "source": "Filter receipts",
+    "context": "aria-label of the filter-chip row on the Receipts page (screen readers only). Short verb phrase.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -1011,6 +1035,30 @@
   "Viewer.resetZoom": {
     "source": "Reset zoom",
     "context": "Tooltip + aria of the reset-zoom button.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.fitImage": {
+    "source": "Fit whole image",
+    "context": "Tooltip + aria of the review screen's zoom-preset button when pressing it will shrink the receipt photo so the whole image fits its frame. Short verb phrase.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.fitHeight": {
+    "source": "Fit height",
+    "context": "Tooltip + aria of the zoom-preset button when pressing it will scale the receipt photo so its full height fits the frame (width may overflow). Short verb phrase.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.fitWidth": {
+    "source": "Fit width",
+    "context": "Tooltip + aria of the zoom-preset button when pressing it will scale the receipt photo so its full width fits the frame (height may overflow). Short verb phrase.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.zoom2x": {
+    "source": "Zoom to 2×",
+    "context": "Tooltip + aria of the zoom-preset button when pressing it will zoom to twice the fit scale; '2×' is the multiplier — keep it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -5495,6 +5543,18 @@
   },
   "Admin.fields_ADMIN_EMAILS_help": {
     "source": "Emails that get admin access to this area, comma-separated — the way to add admins without the e-sign roster. It’s app-access only and never changes anyone’s signing role. Takes effect immediately; keep your own email here so you don’t lock yourself out.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_TIME_ZONE_label": {
+    "source": "Time zone",
+    "context": "Admin settings field label (deployment group) for the app-wide display time zone. One or two words.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_TIME_ZONE_help": {
+    "source": "The time zone dates are shown and stamped in: “Today” labels, the date printed on generated and approved claim forms, and the usage chart’s days. An IANA name like America/Los_Angeles. Blank uses America/Los_Angeles (Hayward). Takes effect immediately.",
+    "context": "Help text under the time-zone field in admin deployment settings. “IANA name” is the technical zone-name standard — keep “America/Los_Angeles” verbatim (never translated). Hayward is the church’s city (海沃, see GLOSSARY).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

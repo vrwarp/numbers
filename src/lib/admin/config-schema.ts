@@ -10,6 +10,8 @@
  * env-var name is shown alongside for operators who know it.
  */
 
+import { DEFAULT_TIME_ZONE, isValidTimeZone } from "@/lib/timezone";
+
 export type AdminConfigType = "text" | "number" | "boolean" | "select";
 
 export interface AdminConfigField {
@@ -28,6 +30,9 @@ export interface AdminConfigField {
   max?: number;
   /** Short input hint shown under the field (placeholder-style). */
   placeholder?: string;
+  /** Extra validation for `type: "text"` — returns an error message, or null
+   *  when the value is acceptable. Runs after trimming, never on empty. */
+  validate?: (value: string) => string | null;
 }
 
 export const ADMIN_CONFIG_FIELDS: readonly AdminConfigField[] = [
@@ -44,6 +49,16 @@ export const ADMIN_CONFIG_FIELDS: readonly AdminConfigField[] = [
   // --- Deployment -----------------------------------------------------------
   { key: "PUBLIC_BASE_URL", group: "deployment", type: "text", placeholder: "https://numbers.example.org" },
   { key: "ADMIN_EMAILS", group: "deployment", type: "text", placeholder: "you@example.org, other@example.org" },
+  {
+    key: "TIME_ZONE",
+    group: "deployment",
+    type: "text",
+    placeholder: DEFAULT_TIME_ZONE,
+    validate: (value) =>
+      isValidTimeZone(value)
+        ? null
+        : `TIME_ZONE must be an IANA time zone name like ${DEFAULT_TIME_ZONE}`,
+  },
 
   // --- E-signatures ---------------------------------------------------------
   { key: "ESIGN_ROOT_EMAIL", group: "esign", type: "text", placeholder: "root@example.org" },
@@ -97,7 +112,10 @@ export function normalizeConfigValue(field: AdminConfigField, raw: unknown): str
     case "select":
       if (field.options && !field.options.includes(value)) throw new Error(`${field.key} must be one of ${field.options.join(", ")}`);
       return value;
-    default:
+    default: {
+      const err = field.validate?.(value);
+      if (err) throw new Error(err);
       return value;
+    }
   }
 }
