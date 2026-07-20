@@ -164,7 +164,10 @@ src/lib/image-client.ts         DOM-only canvas helpers for the pre-upload prepa
                                 transformReceiptImage) and prepareImageUpload (downscale to
                                 the 1600px cap; undecodable files fall through untouched)
 src/components/NavBar.tsx       top nav (client); hidden when signed out
-src/components/Shoebox.tsx      upload input, selection bar, generate-claim POST;
+src/components/Shoebox.tsx      upload input, selection bar, generate-claim POST; filter
+                                chips over the wall (All / Not yet claimed / Processed /
+                                PDFs / top AI-stamped merchants — client-side slices of
+                                the one loaded list, single-select, tap-again to clear);
                                 per-card expand button opens ReceiptViewer. Picked images
                                 queue through a PREPARE dialog (local preview + optional
                                 note + client-side rotate/crop on the full-res original);
@@ -173,7 +176,9 @@ src/components/Shoebox.tsx      upload input, selection bar, generate-claim POST
                                 un-uploaded images are queued). Picked PDFs upload
                                 IMMEDIATELY instead (no local thumbnail possible) and
                                 their dialog shows the server raster + note-only
-src/components/ReceiptGrid.tsx  the selectable receipt-card grid (Shoebox + AddReceiptsDialog);
+src/components/ReceiptGrid.tsx  the selectable receipt wall (Shoebox + AddReceiptsDialog): a
+                                masonry of photo-first tiles (CSS columns, container-query
+                                column count, natural image aspect clamped for till-rolls);
                                 exports ReceiptSummary (the GET /api/receipts row shape)
 src/components/AddReceiptsDialog.tsx  review-screen modal: pick Shoebox receipts / upload new
                                 ones → POST /api/reimbursements/[id]/receipts (streamed)
@@ -258,7 +263,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/auth/session` | POST | `{idToken}` → verifyFirebaseIdToken (verified email required) → upsert User by email (stores firebaseUid) → set session cookie. No requireUserId (this IS login) |
 | | DELETE | clear session cookie (sign out) |
 | `/api/auth/test-login` | POST | `{email,name}` → upsert + cookie; 404 unless AUTH_TEST_MODE=1 |
-| `/api/receipts` | GET | list own receipts (+ `claims: {id,status,createdAt}[]` each receipt is on, + `annotation: ready\|pending\|failed` + merchant/extracted*Cents for the card chip); `?status=` filter |
+| `/api/receipts` | GET | list own receipts (+ `claims: {id,status,createdAt}[]` each receipt is on, + `merchant` — feeds the Shoebox merchant filter chips — + `annotation: ready\|pending\|failed` + extracted*Cents for the card's read-status chip); `?status=` filter |
 | | POST | multipart field `files` (+ optional `note` text stored on every receipt in the batch — the Shoebox prepare step uploads one file per POST with its note); images → compressReceiptImage (the Shoebox client already downscaled to the 1600px cap; the route still enforces its own budget), pdf → as-is; creates Receipt(unassigned) + enqueues its background annotation job; 415 unsupported, 400 empty |
 | `/api/receipts/[id]` | PATCH | `{note}` (≤300 chars) — user metadata, editable in any state, no AuditEvent (not part of the claim trail) |
 | | DELETE | only if not in any claim (409 otherwise); removes file + preserved original + any cached PDF preview + embedding rows + annotation job |

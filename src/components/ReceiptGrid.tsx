@@ -7,13 +7,14 @@ import { useDateLabel } from "@/lib/use-date-label";
 import { formatCents } from "@/lib/money";
 
 /** Thumbnail for a PDF receipt: the top slice of the server-rasterized preview
- *  (browsers can't thumbnail a PDF), falling back to a plain chip if it fails. */
+ *  (browsers can't thumbnail a PDF), falling back to a plain chip if it fails.
+ *  Letter aspect keeps the tile's height stable while the raster loads. */
 function PdfThumb({ id }: { id: string }) {
   const t = useTranslations("ReceiptGrid");
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (
-      <div className="text-center text-stone-400">
+      <div className="flex aspect-[17/22] w-full flex-col items-center justify-center text-stone-400">
         <div className="text-4xl">📄</div>
         <div className="text-xs font-semibold">{t("pdfChip")}</div>
       </div>
@@ -27,7 +28,7 @@ function PdfThumb({ id }: { id: string }) {
       loading="lazy"
       onError={() => setFailed(true)}
       decoding="async"
-      className="h-full w-full object-cover object-top"
+      className="aspect-[17/22] w-full object-cover object-top"
       data-testid={`pdf-thumb-${id}`}
     />
   );
@@ -49,19 +50,25 @@ export interface ReceiptSummary {
   sizeBytes: number;
   status: string;
   note: string;
+  /** Merchant transcription from the receipt's annotation (background worker,
+   *  claim-time fallback, or manual entry); "" until annotated. */
+  merchant: string;
   createdAt: string;
   claims: ClaimRef[];
   /** Background AI read state: ready = a claim can use it without an AI call. */
   annotation?: "ready" | "pending" | "failed";
-  merchant?: string;
   extractedTotalCents?: number | null;
   extractedRefundCents?: number | null;
 }
 
 /**
- * The selectable receipt-card grid (Shoebox and the review screen's
- * add-receipts dialog). Cards toggle selection when `selectable`; the delete /
- * note / view affordances appear only when their callbacks are provided.
+ * The selectable receipt wall (Shoebox and the review screen's add-receipts
+ * dialog): a masonry of photo-first tiles — CSS columns, each image at its
+ * natural aspect ratio (clamped for till-roll receipts) so the wall reads like
+ * an image-search results page. Tiles toggle selection when `selectable`; the
+ * delete / note / view affordances appear only when their callbacks are
+ * provided. Column count follows the CONTAINER width (not the viewport) so the
+ * same component packs sensibly on the full page and inside the dialog.
  */
 export default function ReceiptGrid({
   receipts,
@@ -89,179 +96,186 @@ export default function ReceiptGrid({
   const tStatus = useTranslations("Common.status");
   const dateLabel = useDateLabel();
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-      {receipts.map((r, index) => {
-        const isSelected = selected?.has(r.id) ?? false;
-        return (
-          <div
-            key={r.id}
-            data-testid={`receipt-card-${r.id}`}
-      data-open-id={r.id}
-            // Selected cards get a ring in addition to the filled checkmark —
-            // one small glyph alone is easy to read as decoration.
-            className={`card relative overflow-hidden ${
-              selectable ? "card-lift cursor-pointer select-none" : "opacity-70"
-            } ${isSelected ? "ring-2 ring-indigo-500 ring-offset-1" : ""}`}
-            onClick={selectable ? () => onToggle?.(r.id) : undefined}
-          >
-            {selectable && (
-              // The real, focusable selection control (the card's onClick is a
-              // pointer convenience on top). 44px hit target around a 32px
-              // visual circle; Enter/Space toggle for keyboard users.
-              <button
-                type="button"
-                className="group absolute left-0.5 top-0.5 z-10 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                role="checkbox"
-                aria-checked={isSelected}
-                aria-label={t("selectReceipt", { name: r.originalName })}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggle?.(r.id);
-                }}
-                data-testid={`receipt-select-${r.id}`}
-              >
-                <span
-                  aria-hidden
-                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold shadow ${
-                    isSelected
-                      ? "border-indigo-600 bg-indigo-600/80 text-white"
-                      : "border-stone-400 bg-white/90 text-stone-500 group-hover:border-indigo-500 group-hover:text-indigo-600"
-                  } ${nudgeSelect && index < 2 && !isSelected ? "nudge-ring-select border-indigo-600 text-indigo-600" : ""}`}
-                >
-                  ✓
-                </span>
-              </button>
-            )}
-            {onDelete && (
-              <button
-                className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-xs text-stone-500 shadow hover:text-red-600"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(r.id);
-                }}
-                aria-label={t("deleteReceipt", { name: r.originalName })}
-              >
-                🗑
-              </button>
-            )}
-            <div className="relative flex h-36 items-center justify-center bg-stone-50">
-              {r.mimeType === "application/pdf" ? (
-                <PdfThumb id={r.id} />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={fileUrl?.(r.id)}
-                  src={fileUrl ? fileUrl(r.id) : `/api/receipts/${r.id}/file`}
-                  alt={r.originalName}
-                  loading="lazy"
-                  decoding="async"
-                  className="h-full w-full object-cover"
-                />
-              )}
-              {onView && (
+    <div className="@container">
+      <div className="columns-2 gap-3 @md:columns-3 @3xl:columns-4 @5xl:columns-5">
+        {receipts.map((r, index) => {
+          const isSelected = selected?.has(r.id) ?? false;
+          return (
+            <div
+              key={r.id}
+              data-testid={`receipt-card-${r.id}`}
+              data-open-id={r.id}
+              // Selected cards get a ring in addition to the filled checkmark —
+              // one small glyph alone is easy to read as decoration.
+              className={`card relative mb-3 break-inside-avoid overflow-hidden ${
+                selectable ? "card-lift cursor-pointer select-none" : "opacity-70"
+              } ${isSelected ? "ring-2 ring-indigo-500 ring-offset-1" : ""}`}
+              onClick={selectable ? () => onToggle?.(r.id) : undefined}
+            >
+              {selectable && (
+                // The real, focusable selection control (the card's onClick is a
+                // pointer convenience on top). 44px hit target around a 32px
+                // visual circle; Enter/Space toggle for keyboard users.
                 <button
-                  className="absolute bottom-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-stone-600 shadow hover:text-indigo-600"
+                  type="button"
+                  className="group absolute left-0.5 top-0.5 z-10 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                  role="checkbox"
+                  aria-checked={isSelected}
+                  aria-label={t("selectReceipt", { name: r.originalName })}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onView(r);
+                    onToggle?.(r.id);
                   }}
-                  aria-label={t("viewLarger", { name: r.originalName })}
-                  title={t("viewLargerTitle")}
-                  data-testid={`receipt-view-${r.id}`}
+                  data-testid={`receipt-select-${r.id}`}
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="16"
-                    height="16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
+                  <span
+                    aria-hidden
+                    className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-bold shadow ${
+                      isSelected
+                        ? "border-indigo-600 bg-indigo-600/80 text-white"
+                        : "border-stone-400 bg-white/90 text-stone-500 group-hover:border-indigo-500 group-hover:text-indigo-600"
+                    } ${nudgeSelect && index < 2 && !isSelected ? "nudge-ring-select border-indigo-600 text-indigo-600" : ""}`}
                   >
-                    <path d="M15 3h6v6" />
-                    <path d="M9 21H3v-6" />
-                    <path d="M21 3l-7 7" />
-                    <path d="M3 21l7-7" />
-                  </svg>
+                    ✓
+                  </span>
                 </button>
               )}
-            </div>
-            <div className="space-y-1 p-2">
-              <div className="truncate text-xs font-medium">{r.originalName}</div>
-              {onSaveNote ? (
-                <input
-                  key={`note-${r.id}-${r.note}`}
-                  className="w-full rounded border border-transparent bg-transparent px-1 py-0.5 text-[11px] text-stone-600 placeholder:italic hover:border-stone-200 focus:border-stone-300 focus:outline-none"
-                  defaultValue={r.note}
-                  placeholder={t("notePlaceholder")}
-                  maxLength={300}
-                  onClick={(e) => e.stopPropagation()}
-                  onBlur={(e) => {
-                    const v = e.target.value.trim();
-                    if (v !== r.note) onSaveNote(r.id, v);
+              {onDelete && (
+                <button
+                  className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-xs text-stone-500 shadow hover:text-red-600"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(r.id);
                   }}
-                  aria-label={t("noteAria", { name: r.originalName })}
-                  data-testid={`receipt-note-${r.id}`}
-                />
-              ) : (
-                r.note && <div className="truncate text-[11px] text-stone-600">{r.note}</div>
-              )}
-              <div className="text-[11px] text-stone-400">
-                {t("meta", {
-                  date: dateLabel(r.createdAt),
-                  kb: (r.sizeBytes / 1024).toFixed(0),
-                })}
-                {r.status !== "unassigned" && t("processedSuffix")}
-              </div>
-              {/* Background AI read state: what was read (merchant · net), or
-                  that the drip worker hasn't reached / gave up on this one. */}
-              {r.annotation && (
-                <div
-                  className={`truncate text-[11px] ${
-                    r.annotation === "ready"
-                      ? "text-emerald-700"
-                      : r.annotation === "failed"
-                        ? "text-amber-700"
-                        : "text-stone-400 italic"
-                  }`}
-                  title={r.annotation === "ready" ? t("annotationReadyTitle") : undefined}
-                  data-testid={`receipt-annotation-${r.id}`}
-                  data-state={r.annotation}
+                  aria-label={t("deleteReceipt", { name: r.originalName })}
                 >
-                  {r.annotation === "ready"
-                    ? `✓ ${[
-                        r.merchant,
-                        formatCents((r.extractedTotalCents ?? 0) - (r.extractedRefundCents ?? 0)),
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}`
-                    : r.annotation === "failed"
-                      ? t("annotationFailed")
-                      : t("annotationPending")}
-                </div>
+                  🗑
+                </button>
               )}
-              {r.claims.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {r.claims.map((c) => (
-                    <Link
-                      key={c.id}
-                      href={`/claims/${c.id}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] text-indigo-700 hover:bg-indigo-100"
-                      data-testid={`claim-link-${r.id}-${c.id}`}
+              <div className="relative bg-stone-50">
+                {r.mimeType === "application/pdf" ? (
+                  <PdfThumb id={r.id} />
+                ) : (
+                  // Natural aspect ratio is what makes the wall a masonry; the
+                  // max-height clamp keeps a till-roll receipt from swallowing
+                  // its column (top-anchored crop — the merchant header is the
+                  // recognizable part), min-height covers the pre-load frame.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={fileUrl?.(r.id)}
+                    src={fileUrl ? fileUrl(r.id) : `/api/receipts/${r.id}/file`}
+                    alt={r.originalName}
+                    loading="lazy"
+                    decoding="async"
+                    className="max-h-96 min-h-20 w-full bg-stone-100 object-cover object-top"
+                  />
+                )}
+                {onView && (
+                  <button
+                    className="absolute bottom-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-stone-600 shadow hover:text-indigo-600"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onView(r);
+                    }}
+                    aria-label={t("viewLarger", { name: r.originalName })}
+                    title={t("viewLargerTitle")}
+                    data-testid={`receipt-view-${r.id}`}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
                     >
-                      {c.status === "draft" ? tStatus("draft") : t("claimChip")}{" "}
-                      {dateLabel(c.createdAt)}
-                    </Link>
-                  ))}
+                      <path d="M15 3h6v6" />
+                      <path d="M9 21H3v-6" />
+                      <path d="M21 3l-7 7" />
+                      <path d="M3 21l7-7" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1 p-2">
+                {onSaveNote ? (
+                  <input
+                    key={`note-${r.id}-${r.note}`}
+                    className="w-full rounded border border-transparent bg-transparent px-1 py-0.5 text-[11px] text-stone-600 placeholder:italic hover:border-stone-200 focus:border-stone-300 focus:outline-none"
+                    defaultValue={r.note}
+                    placeholder={t("notePlaceholder")}
+                    maxLength={300}
+                    onClick={(e) => e.stopPropagation()}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (v !== r.note) onSaveNote(r.id, v);
+                    }}
+                    aria-label={t("noteAria", { name: r.originalName })}
+                    data-testid={`receipt-note-${r.id}`}
+                  />
+                ) : (
+                  r.note && <div className="truncate text-[11px] text-stone-600">{r.note}</div>
+                )}
+                {/* Background AI read state: what was read (merchant · net),
+                    or that the drip worker hasn't reached / gave up on it. */}
+                {r.annotation && (
+                  <div
+                    className={`truncate text-[11px] ${
+                      r.annotation === "ready"
+                        ? "text-emerald-700"
+                        : r.annotation === "failed"
+                          ? "text-amber-700"
+                          : "text-stone-400 italic"
+                    }`}
+                    title={r.annotation === "ready" ? t("annotationReadyTitle") : undefined}
+                    data-testid={`receipt-annotation-${r.id}`}
+                    data-state={r.annotation}
+                  >
+                    {r.annotation === "ready"
+                      ? `✓ ${[
+                          r.merchant,
+                          formatCents(
+                            (r.extractedTotalCents ?? 0) - (r.extractedRefundCents ?? 0)
+                          ),
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}`
+                      : r.annotation === "failed"
+                        ? t("annotationFailed")
+                        : t("annotationPending")}
+                  </div>
+                )}
+                <div className="truncate text-[11px] text-stone-400">
+                  {t("caption", {
+                    date: dateLabel(r.createdAt),
+                    name: r.originalName,
+                  })}
+                  {r.status !== "unassigned" && t("processedSuffix")}
                 </div>
-              )}
+                {r.claims.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {r.claims.map((c) => (
+                      <Link
+                        key={c.id}
+                        href={`/claims/${c.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] text-indigo-700 hover:bg-indigo-100"
+                        data-testid={`claim-link-${r.id}-${c.id}`}
+                      >
+                        {c.status === "draft" ? tStatus("draft") : t("claimChip")}{" "}
+                        {dateLabel(c.createdAt)}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

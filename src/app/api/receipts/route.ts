@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
       const fileSha256 = createHash("sha256").update(data).digest("hex");
       const receipt = await prisma.receipt.create({
         data: { id, userId, filePath, mimeType, originalName: file.name, sizeBytes: data.length, note, fileSha256 },
-        select: { id: true, originalName: true, mimeType: true, sizeBytes: true, status: true, note: true, createdAt: true },
+        select: { id: true, originalName: true, mimeType: true, sizeBytes: true, status: true, note: true, merchant: true, createdAt: true },
       });
       // Search trigger (docs/SEARCH_DESIGN.md §5.2): index as soon as available.
       enqueueReceiptEmbedding(id, userId);
