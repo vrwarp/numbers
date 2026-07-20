@@ -715,7 +715,7 @@ export default function SearchClient({
             {result.groups.map((group) => (
               <section key={group.year} data-testid={`search-group-${group.year}`}>
                 {!suppressYears && (
-                  <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 -mx-1 bg-stone-50/95 px-1 py-1 backdrop-blur">
+                  <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 -mx-1 bg-stone-100/95 px-1 py-1 backdrop-blur">
                     <SectionHeader label={String(group.year)} />
                   </div>
                 )}
