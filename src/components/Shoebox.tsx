@@ -597,9 +597,13 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
         </div>
       )}
       <div>
-        <div className="flex items-center justify-between gap-3">
+        {/* flex-wrap + ml-auto (not justify-between): title, camera, and
+            Upload can't all fit a phone's width, and the buttons must not
+            shrink — so the group wraps to its own right-aligned line instead
+            of stretching the document sideways and cropping Upload. */}
+        <div className="flex flex-wrap items-center gap-3">
           <h1 className="keyboard-smooth text-3xl font-bold short:text-xl">{t("title")}</h1>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <input
               ref={fileInput}
               type="file"
