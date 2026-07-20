@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 interface AuditRow {
   id: string;
@@ -28,12 +28,12 @@ interface ExtractionRow {
   user: string;
 }
 
-function when(iso: string): string {
-  return new Date(iso).toLocaleString();
-}
-
 export default function LogsTab() {
   const t = useTranslations("Admin");
+  const format = useFormatter();
+  // App-time-zone timestamps (next-intl's global timeZone), not the browser's.
+  const when = (iso: string) =>
+    format.dateTime(new Date(iso), { dateStyle: "short", timeStyle: "medium" });
   // Known audit slugs get plain language; anything unrecognized stays raw so
   // new actions never render blank.
   const actionLabel = (a: string) => {

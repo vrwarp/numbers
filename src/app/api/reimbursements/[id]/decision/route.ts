@@ -22,6 +22,7 @@ import {
   pngFromDataUrl,
 } from "@/lib/esign/approved-packet";
 import { roundPlacement, type SignaturePlacement } from "@/lib/esign/placement";
+import { appTimeZone } from "@/lib/config";
 import { readStoredFile } from "@/lib/storage";
 import { signatureAnchor } from "@/lib/pdf/generate";
 import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
@@ -149,7 +150,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
           activeRowCount,
           marks: {
             typedName: approve.typedName,
-            dateString: formatApprovalDate(approve.ts),
+            dateString: formatApprovalDate(approve.ts, appTimeZone()),
             signaturePng: pngFromDataUrl(identity.signatureImage),
             placement:
               approve.signaturePlacement ??

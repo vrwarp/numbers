@@ -51,6 +51,13 @@ describe("admin config schema", () => {
     expect(normalizeConfigValue(f, "")).toBeNull(); // off clears
   });
 
+  it("validates TIME_ZONE as an IANA zone name", () => {
+    const f = adminConfigField("TIME_ZONE")!;
+    expect(normalizeConfigValue(f, "America/New_York")).toBe("America/New_York");
+    expect(normalizeConfigValue(f, "")).toBeNull(); // blank clears → default zone
+    expect(() => normalizeConfigValue(f, "Hayward Standard Time")).toThrow();
+  });
+
   it("marks the provider keys secret but not the public Firebase key", () => {
     const secrets = ADMIN_CONFIG_FIELDS.filter((f) => f.secret).map((f) => f.key);
     expect(secrets).toContain("OPENROUTER_API_KEY");

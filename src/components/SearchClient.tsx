@@ -831,8 +831,10 @@ function ResultCard({
         ? `/?open=${item.id}`
         : (singleHref ?? `/api/receipts/${item.id}/file`);
     const external = item.claims.length > 0 && !singleHref;
-    const purchaseLabel = /^\d{4}-\d{2}-\d{2}/.test(item.purchaseDate)
-      ? formatDate(item.purchaseDate + "T00:00:00", {
+    // Bare YYYY-MM-DD: useDateLabel treats it as a calendar date (no invented
+    // midnight instant), so the printed receipt date never shifts a day.
+    const purchaseLabel = /^\d{4}-\d{2}-\d{2}$/.test(item.purchaseDate)
+      ? formatDate(item.purchaseDate, {
           year: "numeric",
           month: "long",
           day: "numeric",

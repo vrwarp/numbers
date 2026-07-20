@@ -1,5 +1,6 @@
 import path from "path";
 import { configValue } from "./config-file";
+import { DEFAULT_TIME_ZONE, isValidTimeZone } from "./timezone";
 
 export { MINISTRIES, MINISTRY_GROUPS } from "./ministries";
 
@@ -34,6 +35,18 @@ export function publicBaseUrl(): string | undefined {
   const raw = configValue("PUBLIC_BASE_URL")?.trim();
   if (!raw) return undefined;
   return raw.replace(/\/+$/, "");
+}
+
+/**
+ * The IANA time zone human-facing dates are computed in (TIME_ZONE, admin-
+ * editable — see src/lib/timezone.ts for what it governs). Falls back to
+ * America/Los_Angeles (Hayward, CA) when unset; an invalid zone name also
+ * falls back rather than crashing every date render. Read fresh per call so
+ * config.json edits apply without a restart, like the other knobs.
+ */
+export function appTimeZone(): string {
+  const raw = configValue("TIME_ZONE")?.trim();
+  return raw && isValidTimeZone(raw) ? raw : DEFAULT_TIME_ZONE;
 }
 
 // --- AI rate limiting -------------------------------------------------------

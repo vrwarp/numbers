@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getFormatter, getTimeZone, getTranslations } from "next-intl/server";
 import { currentUserId } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { formatCents } from "@/lib/money";
@@ -35,6 +35,7 @@ export default async function ClaimsPage() {
   const tStatus = await getTranslations("Common.status");
   const tDate = await getTranslations("Common.date");
   const format = await getFormatter();
+  const timeZone = await getTimeZone();
   const now = new Date();
   const dateLabels = { today: tDate("today"), yesterday: tDate("yesterday") };
 
@@ -78,7 +79,7 @@ export default async function ClaimsPage() {
               <Link href={`/claims/${c.id}`} className="card card-lift pressable flex items-center justify-between p-4 short:py-2.5" data-testid={`claim-${c.id}`}>
                 <div>
                   <div className="font-semibold">
-                    {relativeDateLabel(new Date(c.createdAt), now, dateLabels, (d) =>
+                    {relativeDateLabel(new Date(c.createdAt), now, timeZone, dateLabels, (d) =>
                       format.dateTime(d, { year: "numeric", month: "long", day: "numeric" })
                     )}
                   </div>

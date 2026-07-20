@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
-import { publicBaseUrl, esignRootFingerprint, FORM_ROWS_PER_PAGE } from "@/lib/config";
+import { appTimeZone, publicBaseUrl, esignRootFingerprint, FORM_ROWS_PER_PAGE } from "@/lib/config";
 import { readStoredFile } from "@/lib/storage";
 import { claimAccessRole, signedPacketPath } from "@/lib/esign/claim-server";
 import { getRegistry, mirroredRawDocs } from "@/lib/esign/server";
@@ -135,7 +135,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       // Cover page is index 0; packet form pages follow it.
       await stampApprovalMarks(doc, 1, Math.min(formPageCount, pages.length), {
         typedName: approveRecord.typedName || "",
-        dateString: formatApprovalDate(approvePayload.ts ?? approveRecord.createdAt.getTime()),
+        dateString: formatApprovalDate(approvePayload.ts ?? approveRecord.createdAt.getTime(), appTimeZone()),
         signaturePng: pngFromDataUrl(approverIdentity?.signatureImage),
         // The approver's click-placed position; fall back to the signature-
         // line anchor for older approvals with no recorded spot.

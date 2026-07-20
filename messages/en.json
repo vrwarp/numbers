@@ -1026,6 +1026,8 @@
     "fields_FIREBASE_AUTH_UPSTREAM_HOST_help": "Advanced. The host the first-party sign-in proxy forwards to. Blank derives it from the project id (project.firebaseapp.com), which is right for normal projects — set this only for unusual Firebase setups.",
     "fields_ADMIN_EMAILS_label": "Admin emails",
     "fields_ADMIN_EMAILS_help": "Emails that get admin access to this area, comma-separated — the way to add admins without the e-sign roster. It’s app-access only and never changes anyone’s signing role. Takes effect immediately; keep your own email here so you don’t lock yourself out.",
+    "fields_TIME_ZONE_label": "Time zone",
+    "fields_TIME_ZONE_help": "The time zone dates are shown and stamped in: “Today” labels, the date printed on generated and approved claim forms, and the usage chart’s days. An IANA name like America/Los_Angeles. Blank uses America/Los_Angeles (Hayward). Takes effect immediately.",
     "tab_search": "Search",
     "search": {
       "loading": "Loading…",
