@@ -110,6 +110,11 @@ export async function completeProfile(
  *  Save sends that file — fill the optional note on the first, save through the
  *  rest, then wait for the cards to land. */
 export async function uploadReceipts(page: Page, filePaths: string[], note?: string): Promise<void> {
+  // setInputFiles dispatches a native change event; if it lands before React
+  // hydrates the page there is no handler and the prepare dialog never opens
+  // (intermittent under CI load since the Receipts page grew). Wait for the
+  // dropzone's post-mount marker before touching the input.
+  await page.locator('[data-testid="shoebox-dropzone"][data-hydrated]').waitFor({ timeout: 15_000 });
   const before = await page.locator('[data-testid^="receipt-card-"]').count();
   await page.getByTestId("file-input").setInputFiles(filePaths);
   const noteInput = page.getByTestId("upload-note");

@@ -112,6 +112,9 @@ export default function Shoebox({
   const [dragging, setDragging] = useState(false);
   // Depth counter so nested dragenter/dragleave don't flicker the overlay.
   const dragDepth = useRef(0);
+  // Flips after mount — the e2e hydration gate (see the dropzone attribute).
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/receipts");
@@ -594,6 +597,12 @@ export default function Shoebox({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      // A change event fired into the file input BEFORE React hydrates does
+      // nothing — no handler is attached yet, so the prepare dialog never
+      // opens. This attribute flips on after mount so tests (helpers.ts
+      // uploadReceipts) can wait for interactivity instead of racing it; it
+      // went intermittent once the page grew (masonry wall + nudge slot).
+      data-hydrated={hydrated ? "" : undefined}
       data-testid="shoebox-dropzone"
     >
       {dragging && (
