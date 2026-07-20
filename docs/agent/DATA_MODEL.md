@@ -206,6 +206,30 @@ a 90-day window on write and re-filtered on read. Strictly owner-scoped (invaria
 the user's own history shown back to them, NOT telemetry, so it never lands in
 `ExtractionLog` (the queries-are-PII rule for logs is unchanged).
 
+### PushToken / NotificationJob (push notifications — docs/NOTIFICATIONS_DESIGN.md)
+
+- `PushToken`: one FCM registration token = one browser-profile-on-a-device.
+  `token` unique; `locale` is LIVE (re-captured by every §7.7 ping, never a
+  registration snapshot); liveness = `max(lastSeenAt, lastSendOkAt)` within
+  180 d — a successful send counts, because glance-only devices never open the
+  app. Sign-out deletes the row (§8.6); explicit re-registration re-parents a
+  token to the signed-in user, background pings never steal. Tokens are never
+  returned by any GET (device list = labels + timestamps).
+- `NotificationJob`: outbox + the recipient's activity record in one row.
+  Created UNCONDITIONALLY of push preferences (invariant 12 — the activity
+  list is parity for push-less users); preferences/duties are consulted only
+  by the worker at send time. `dedupeKey` unique
+  (`{kind}:{targetId}:{recipient}:{submitSeq}`; server-derived buckets for
+  hints/self-test) makes reconcile replays and route retries no-ops. Statuses
+  `queued|running|sent|failed|skipped`; the §7.3 age gate skips any job whose
+  event (`payloadJson.occurredAt`) outlived its kind's TTL. `payloadJson`
+  carries event params only — localized text is composed at send/render time,
+  never stored. Pruned at 90 d; user-cascade; deleted claims render as "a
+  deleted claim" (never a dead deep link).
+- `User.notify*` columns: master + per-category switches + discreet previews
+  (send-time only) and `notifyUiStateJson` (per-account nudge dismissals +
+  iOS onboarding resume step — deliberately server-side, §8.2/§8.4).
+
 ## Corrections diff (derived, not stored)
 
 `GET /api/extraction-logs/[id]` computes per item: for each non-null `original*` field

@@ -368,6 +368,12 @@ through `configValue()`; add new ones the same way.
 | `EMBEDDING_DEV=1` | dev only: allow the env seed + worker under `next dev` (a laptop .env must not start a backfill against a production GPU) |
 | `EMBEDDING_MOCK=1` | deterministic similarity-meaningful embeddings, no network (tests/dev) |
 | `ADMIN_EMAILS` | comma/space-separated emails granted `/admin` access without a roster GRANT_ROLE — seeds a deployment's first admin. App-surface only (`isAppAdmin` in `src/lib/config.ts`); never writes the verified `User.role` mirror, so e-sign roster validity is untouched. Also gates the e-sign app-surface controls (master switch, rollout allowlist). Empty → admin is the roster role alone |
+| `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_VAPID_PUBLIC_KEY` | push notifications, client-safe half (relayed like the auth config; docs/PUSH_SETUP.md) |
+| `FCM_SERVICE_ACCOUNT_JSON` | push sending credential — the ONE server-held Firebase secret, messaging-only by IAM construction (custom role = `cloudmessaging.messages.create`); lives in `config.json`/admin settings, write-only |
+| `NOTIFY_PAUSED=1` | deployment-level pause: worker stops sending, enqueues/activity continue |
+| `NOTIFY_QUIET` | dormant quiet window (`21:30-08:00,sun:09:00-12:30`, server-local); default off |
+| `NOTIFY_POLL_MS` (15000) | notification worker idle poll |
+| `PUSH_MOCK=1` | mock send adapter (`<DATA_DIR>/push-mock.jsonl`) + synthetic client tokens (tests/dev) |
 | `TEMPLATE_PDF` | optional replacement blank form path |
 | `CJK_FONT_PATH` | optional replacement CJK font for PDF values (default `assets/fonts/NotoSansCJKtc-Regular.otf`; unreadable → warn + bundled) |
 | `E2E_BROWSERS`, `E2E_FORCE_BUILD`, `PLAYWRIGHT_CHROMIUM_PATH` | test harness (see TESTING.md) |
