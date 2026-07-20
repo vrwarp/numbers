@@ -1,14 +1,16 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { fetchAndDeliver, isStandalonePwa } from "@/lib/pdf-delivery";
+import { fetchAndDeliver, isIosStandalonePwa } from "@/lib/pdf-delivery";
 
 /**
  * A link to an AUTHENTICATED file URL (packet, certificate, receipt file).
- * Normal browsers get the plain new-tab anchor. In a standalone (home-screen)
- * PWA the new tab is an overlay browser WITHOUT the session cookie — the user
- * would see a sign-in page — so the click is intercepted and the bytes are
- * fetched in-app and delivered via the OS share sheet instead.
+ * Normal browsers — Android standalone PWAs included — get the plain new-tab
+ * anchor, so the server's `Content-Disposition: inline` renders in-tab. In an
+ * iOS standalone (home-screen) PWA the new tab is an overlay browser WITHOUT
+ * the session cookie — the user would see a sign-in page — so the click is
+ * intercepted and the bytes are fetched in-app and delivered via the OS share
+ * sheet instead.
  */
 export default function PdfLink({
   href,
@@ -30,7 +32,7 @@ export default function PdfLink({
       target="_blank"
       rel="noreferrer"
       onClick={(e) => {
-        if (!isStandalonePwa()) return;
+        if (!isIosStandalonePwa()) return;
         e.preventDefault();
         e.stopPropagation();
         void fetchAndDeliver(href, filename).catch(() => {});
