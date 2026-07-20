@@ -289,13 +289,18 @@ test("review receipt image zooms and a drag on it still scrolls the page", async
   await createClaimFromAllReceipts(page);
 
   const img = page.locator('[data-testid^="receipt-image-"]');
+  const stage = page.getByTestId("pan-zoom-stage");
   await expect(img).toBeVisible();
-  const box = (await page.getByTestId("pan-zoom-stage").boundingBox())!;
+  // The wide fixture fully fits its window, so the initial view is the plain
+  // contain fit — identity transform, and nothing to drag → no grab cursor.
+  await expect(img).toHaveCSS("transform", /matrix\(1, 0, 0, 1, 0, 0\)|none/);
+  await expect(stage).toHaveCSS("cursor", "default");
+  const box = (await stage.boundingBox())!;
   const cx = box.x + box.width / 2;
   const cy = box.y + box.height / 2;
 
-  // At 100%, the surface owns touch — a drag must chain into the page scroll
-  // (this was dead on mobile: the nested overscroll-contain scroller ate it).
+  // On a fitted image, the surface owns touch — a drag must chain into the
+  // page scroll (this was dead on mobile: a nested scroller ate it).
   await page.mouse.move(cx, cy);
   await page.mouse.down();
   await page.mouse.move(cx, cy - 220, { steps: 8 });
@@ -305,9 +310,10 @@ test("review receipt image zooms and a drag on it still scrolls the page", async
     .toBeGreaterThan(100);
   await page.evaluate(() => document.scrollingElement!.scrollTo(0, 0));
 
-  // Double-click zooms about the point; the transform reflects it.
-  await page.getByTestId("pan-zoom-stage").dblclick({ position: { x: box.width / 2, y: box.height / 2 } });
+  // Double-click zooms about the point; now there's something to drag.
+  await stage.dblclick({ position: { x: box.width / 2, y: box.height / 2 } });
   await expect(img).toHaveCSS("transform", /matrix\(2\.5,/);
+  await expect(stage).toHaveCSS("cursor", "grab");
 
   // Zoomed drag pans the image (translate changes) instead of scrolling.
   const before = await img.evaluate((el) => getComputedStyle(el).transform);
@@ -317,8 +323,50 @@ test("review receipt image zooms and a drag on it still scrolls the page", async
   await page.mouse.up();
   await expect.poll(() => img.evaluate((el) => getComputedStyle(el).transform)).not.toBe(before);
 
-  // Reset returns to identity and re-hides itself.
-  await page.getByTestId("pan-zoom-reset").click();
+  // The preset button is always present (−/+ never shift for it): from a
+  // freehand zoom it returns to the whole-image fit, then cycles to 2× fit.
+  await page.getByTestId("pan-zoom-preset").click();
   await expect(img).toHaveCSS("transform", /matrix\(1, 0, 0, 1, 0, 0\)|none/);
-  await expect(page.getByTestId("pan-zoom-reset")).toHaveCount(0);
+  await expect(stage).toHaveCSS("cursor", "default");
+  await page.getByTestId("pan-zoom-preset").click();
+  await expect(img).toHaveCSS("transform", /matrix\(2,/);
+  await expect(stage).toHaveCSS("cursor", "grab");
+});
+
+test("tall receipt opens at the contain fit and the preset button cycles the fits", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 700, height: 900 });
+  await signInAs(page, email("panzoom-tall", testInfo));
+  // Far taller than the 75dvh clamp window at any column width.
+  await uploadReceipts(page, [await makeReceiptFixture("uxj-panzoom-tall.jpg", { heightPx: 3000 })]);
+  await createClaimFromAllReceipts(page);
+
+  const img = page.locator('[data-testid^="receipt-image-"]');
+  const stage = page.getByTestId("pan-zoom-stage");
+  const preset = page.getByTestId("pan-zoom-preset");
+  await expect(img).toBeVisible();
+  const scaleOf = () => img.evaluate((el) => new DOMMatrix(getComputedStyle(el).transform).a);
+
+  // Initial view: the whole receipt fits the window — scaled well below 1
+  // (fit height), nothing to drag, and − can't go below the contain fit.
+  const contain = await scaleOf();
+  expect(contain).toBeLessThan(0.5);
+  await expect(stage).toHaveCSS("cursor", "default");
+  await expect(page.getByRole("button", { name: "Zoom out" })).toBeDisabled();
+  await expect(preset).toHaveAttribute("data-preset", "fitWidth");
+
+  // Fit width: full column width, now vertically draggable.
+  await preset.click();
+  await expect.poll(scaleOf).toBe(1);
+  await expect(stage).toHaveCSS("cursor", "grab");
+  await expect(preset).toHaveAttribute("data-preset", "zoom2x");
+
+  // 2× of the tighter (more zoomed-in) fit — fit-width here, so exactly 2.
+  await preset.click();
+  await expect.poll(scaleOf).toBe(2);
+  await expect(preset).toHaveAttribute("data-preset", "fitHeight");
+
+  // …and the cycle wraps back to the contain fit.
+  await preset.click();
+  await expect.poll(scaleOf).toBeCloseTo(contain, 5);
+  await expect(stage).toHaveCSS("cursor", "default");
 });

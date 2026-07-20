@@ -1014,6 +1014,30 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Viewer.fitImage": {
+    "source": "Fit whole image",
+    "context": "Tooltip + aria of the review screen's zoom-preset button when pressing it will shrink the receipt photo so the whole image fits its frame. Short verb phrase.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.fitHeight": {
+    "source": "Fit height",
+    "context": "Tooltip + aria of the zoom-preset button when pressing it will scale the receipt photo so its full height fits the frame (width may overflow). Short verb phrase.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.fitWidth": {
+    "source": "Fit width",
+    "context": "Tooltip + aria of the zoom-preset button when pressing it will scale the receipt photo so its full width fits the frame (height may overflow). Short verb phrase.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Viewer.zoom2x": {
+    "source": "Zoom to 2×",
+    "context": "Tooltip + aria of the zoom-preset button when pressing it will zoom to twice the fit scale; '2×' is the multiplier — keep it.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Viewer.zoomLevel": {
     "source": "{percent}%",
     "context": "Zoom badge between the buttons; {percent} is a number — keep the %.",
