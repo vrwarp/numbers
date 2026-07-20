@@ -105,16 +105,21 @@ export async function completeProfile(
   expect(res.ok()).toBeTruthy();
 }
 
+/** Hydration guard for the Shoebox: the dropzone stamps `data-hydrated` after
+ *  mount, so React is interactive and the hidden file input's onChange is
+ *  wired. A pick dispatched before that is silently dropped — the prepare
+ *  dialog never opens and the spec dies at its first toBeVisible. Call before
+ *  driving `file-input` directly. */
+export async function shoeboxReady(page: Page): Promise<void> {
+  await page.locator('[data-testid="shoebox-dropzone"][data-hydrated]').waitFor({ timeout: 15_000 });
+}
+
 /** Upload fixture files through the Shoebox file input. Picking files opens a
  *  prepare dialog per file BEFORE anything uploads (client-side edit chance);
  *  Save sends that file — fill the optional note on the first, save through the
  *  rest, then wait for the cards to land. */
 export async function uploadReceipts(page: Page, filePaths: string[], note?: string): Promise<void> {
-  // setInputFiles dispatches a native change event; if it lands before React
-  // hydrates the page there is no handler and the prepare dialog never opens
-  // (intermittent under CI load since the Receipts page grew). Wait for the
-  // dropzone's post-mount marker before touching the input.
-  await page.locator('[data-testid="shoebox-dropzone"][data-hydrated]').waitFor({ timeout: 15_000 });
+  await shoeboxReady(page);
   const before = await page.locator('[data-testid^="receipt-card-"]').count();
   await page.getByTestId("file-input").setInputFiles(filePaths);
   const noteInput = page.getByTestId("upload-note");

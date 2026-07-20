@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { deleteStoredFile, deletePreviewCache } from "@/lib/storage";
 import { enqueueReceiptEmbedding, deleteEmbeddingsFor } from "@/lib/embeddings/queue";
+import { deleteAnnotationJob } from "@/lib/extraction/queue";
 
 export const runtime = "nodejs";
 
@@ -41,6 +42,7 @@ export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string 
     if (inUse > 0) throw new ApiError(409, "Receipt is part of a claim and cannot be deleted", "receiptOnClaim");
     await prisma.receipt.delete({ where: { id } });
     await deleteEmbeddingsFor("receipt", id);
+    await deleteAnnotationJob(id);
     await deleteStoredFile(receipt.filePath);
     if (receipt.originalFilePath) await deleteStoredFile(receipt.originalFilePath);
     // Best-effort: drop the cached raster preview if this was a PDF (no-op otherwise).

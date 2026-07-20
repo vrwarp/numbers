@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import fs from "fs/promises";
-import { makeReceiptFixture, signInAs } from "./helpers";
+import { makeReceiptFixture, shoeboxReady, signInAs } from "./helpers";
 
 // Building a DataTransfer with a real File lets us drive the browser's native
 // drag-and-drop the same way a desktop file drop would.
@@ -23,6 +23,7 @@ test("the shoebox is a whole-page drag-and-drop upload target", async ({ page },
 
   const dropzone = page.getByTestId("shoebox-dropzone");
   const dataTransfer = await fileDataTransfer(page, await makeReceiptFixture("costco.jpg"));
+  await shoeboxReady(page);
 
   // Dragging a file over the page reveals the drop overlay…
   await dropzone.dispatchEvent("dragenter", { dataTransfer });

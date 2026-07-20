@@ -74,6 +74,14 @@ export type ExtractionEventHandler = (event: ExtractionEvent) => void;
 // tripping provider rate limits.
 export const EXTRACTION_CONCURRENCY = 3;
 
+/** Caller-tunable behavior of one extraction call. */
+export interface ExtractOptions {
+  /** Override AI_QUOTA_MAX_RETRIES. The background annotation worker passes 0:
+   *  its queue reschedule IS the quota retry, so sleeping out cooldowns inside
+   *  the call would only hold its lease for nothing. */
+  quotaMaxRetries?: number;
+}
+
 /**
  * Make one provider call, but first wait for a slot in the process-wide RPM
  * budget, and on a quota/rate-limit rejection wait out the cooldown and retry.
@@ -87,7 +95,8 @@ function callProviderThrottled(
   prompt: string,
   doc: ProviderDocument,
   receipt: ReceiptInput,
-  onEvent?: ExtractionEventHandler
+  onEvent?: ExtractionEventHandler,
+  opts?: ExtractOptions
 ): Promise<string> {
   return withQuotaRetry(
     async () => {
@@ -95,7 +104,7 @@ function callProviderThrottled(
       return callProvider(provider, apiKey, model, prompt, doc);
     },
     {
-      maxRetries: quotaMaxRetries(),
+      maxRetries: opts?.quotaMaxRetries ?? quotaMaxRetries(),
       cooldownMs: quotaCooldownMs(),
       onWait: ({ attempt, maxRetries, cooldownMs, error }) => {
         const seconds = Math.round(cooldownMs / 1000);
@@ -142,7 +151,8 @@ function receiptMetaJson(receipt: ReceiptInput): string {
  */
 export async function extractReceipt(
   receipt: ReceiptInput,
-  onEvent?: ExtractionEventHandler
+  onEvent?: ExtractionEventHandler,
+  opts?: ExtractOptions
 ): Promise<{ result: ExtractedReceipt; meta: ExtractionMeta }> {
   const prompt = buildExtractionPrompt();
   const receiptsJson = receiptMetaJson(receipt);
@@ -203,7 +213,8 @@ export async function extractReceipt(
         base64: data.toString("base64"),
       },
       receipt,
-      onEvent
+      onEvent,
+      opts
     );
   } catch (err) {
     if (err instanceof ProviderCallError) {

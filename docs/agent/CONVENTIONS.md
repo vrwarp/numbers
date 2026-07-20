@@ -129,7 +129,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   claim-ministry, claim-ministry-other, claim-event, claim-description, suggest-ministry,
   suggestion-banner, suggestion-apply, suggestion-dismiss, row-ministry-badge-<id>,
   mode-switch-dialog, mode-switch-confirm, mode-switch-cancel, split-mode-dialog,
-  split-mode-switch, split-mode-cancel, fanout-toast, fanout-undo`.
+  split-mode-switch, split-mode-cancel, fanout-toast, fanout-undo,
+  receipt-annotation-<id> (card chip; data-state = ready|pending|failed)`.
   E-sign setup discoverability (docs/ESIGN_SETUP_DISCOVERABILITY.md):
   `esign-setup-button, esign-setup-callout, esign-setup-callout-close,
   esign-setup-callout-cta, esign-nudge-member, esign-nudge-duty,

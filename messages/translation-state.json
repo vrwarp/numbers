@@ -600,6 +600,24 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "ReceiptGrid.annotationPending": {
+    "source": "Waiting to be read…",
+    "context": "Status line on a receipt card while the background AI hasn't read (transcribed) the receipt yet. 'read' as in the AI reading the photo, same verb as Shoebox.readProgress. Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ReceiptGrid.annotationFailed": {
+    "source": "Couldn't read automatically",
+    "context": "Status line on a receipt card after the background AI gave up reading it; the user will type the details during claim review instead. Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ReceiptGrid.annotationReadyTitle": {
+    "source": "Read automatically — you'll verify the details during claim review",
+    "context": "Tooltip (title attribute) on a receipt card's green '✓ <merchant> · <amount>' line, explaining the AI pre-read the receipt and a human still verifies before filing.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "PdfPreview.chip": {
     "source": "PDF receipt",
     "context": "Fallback chip when an inline PDF preview fails; 'PDF' stays.",
@@ -4925,6 +4943,78 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Admin.annotationTitle": {
+    "source": "Background receipt reading",
+    "context": "Admin Overview section heading for the background receipt-reading queue (the AI annotation worker). 'reading' = the AI transcribing receipt photos.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.annotationNotConfigured": {
+    "source": "Paused — no AI provider is configured, so receipts are only read when a claim is built.",
+    "context": "Amber status line on the admin annotation card when no AI provider key is set; sits next to a 'Fix in Settings' button.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.annotationAllRead": {
+    "source": "All caught up — {annotated} of {total, plural, one {# receipt} other {# receipts}} read",
+    "context": "Green status line on the admin annotation card when the queue is empty. {annotated} and {total} are receipt counts.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.annotationBacklog": {
+    "source": "{queued, plural, one {# receipt} other {# receipts}} waiting to be read — about {minutes, plural, one {# minute} other {# minutes}} at the current pace",
+    "context": "Status line on the admin annotation card while receipts wait: backlog size + ETA from the one-receipt-per-minute pace.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.statAnnotationWaiting": {
+    "source": "Waiting",
+    "context": "Stat-card label under the annotation card: receipts queued for background reading. One or two words.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.statAnnotationReading": {
+    "source": "Being read",
+    "context": "Stat-card label: receipts the worker is reading right now. One or two words.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.statAnnotationFailed": {
+    "source": "Couldn't read",
+    "context": "Stat-card label: receipts the worker terminally failed to read. Matches ReceiptGrid.annotationFailed wording sense. One or two words.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.statAnnotationRead": {
+    "source": "Read",
+    "context": "Stat-card label: receipts with a stored annotation (successfully read). One or two words.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.annotationFailedTitle": {
+    "source": "Receipts the reader gave up on",
+    "context": "Table heading over the failed-receipts list on the admin annotation card; 'the reader' = the background AI worker.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.annotationRetry": {
+    "source": "Retry",
+    "context": "Button re-queuing ONE failed receipt for another background read. One word.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.annotationRetryAll": {
+    "source": "Retry all",
+    "context": "Button re-queuing every failed receipt. Two words.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.annotationAttempts": {
+    "source": "{count, plural, one {# attempt} other {# attempts}}",
+    "context": "How many read attempts a failed receipt burned, shown mid-line in the failed list ('3 attempts').",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Admin.contextTitle": {
     "source": "Church context for AI suggestions",
     "zh-Hans": "machine",
@@ -5443,6 +5533,18 @@
   },
   "Admin.fields_AI_QUOTA_MAX_RETRIES_help": {
     "source": "How many times to retry after a rate-limit error before giving up (0 surfaces it at once). Applies to receipt extraction; the interactive Suggest call never waits. Default 3.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_EXTRACTION_PACE_MS_label": {
+    "source": "Background reading pace (ms)",
+    "context": "Admin settings field label for EXTRACTION_PACE_MS, shown with the raw env-var name beside it. 'reading' = the AI reading/transcribing receipt photos in the background.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_EXTRACTION_PACE_MS_help": {
+    "source": "Minimum gap between the background receipt reader's AI calls, in milliseconds. It reads newly uploaded receipts on its own so claims are instant later; keep it slow to leave your per-minute AI budget for people actively filing. 0 removes the gap. Default 60000 (one receipt a minute).",
+    "context": "Help text under the EXTRACTION_PACE_MS admin field. Keep '60000' and '0' literal; 'claims' = reimbursement claims (报销单).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
