@@ -89,6 +89,7 @@ describe("receipt fingerprint + year (SEARCH_DESIGN §4/§6.5)", () => {
     fileSha256: "abc",
     note: "retreat tables",
     merchant: "Costco",
+    extractedSummary: "6ft folding table, paper towels",
     purchaseDate: "2024-05-12",
     createdAt: new Date("2026-01-01T00:00:00Z"),
   };
@@ -96,13 +97,15 @@ describe("receipt fingerprint + year (SEARCH_DESIGN §4/§6.5)", () => {
     const fp = receiptFingerprint(base);
     expect(receiptFingerprint({ ...base, note: "x" })).not.toBe(fp);
     expect(receiptFingerprint({ ...base, merchant: "x" })).not.toBe(fp);
+    expect(receiptFingerprint({ ...base, extractedSummary: "x" })).not.toBe(fp);
     expect(receiptFingerprint({ ...base, purchaseDate: "2024-05-13" })).not.toBe(fp);
     expect(receiptFingerprint({ ...base, fileSha256: "x" })).not.toBe(fp);
   });
-  it("prompt pairs note + merchant with the pixels", () => {
+  it("prompt pairs note + merchant + item summary with the pixels", () => {
     const p = receiptPromptText(base);
     expect(p).toContain("Costco");
     expect(p).toContain("retreat tables");
+    expect(p).toContain("6ft folding table, paper towels");
   });
   it("year: purchaseDate prefix when date-like, else upload year", () => {
     expect(receiptYear(base)).toBe(2024);

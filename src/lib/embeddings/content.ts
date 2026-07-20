@@ -24,20 +24,37 @@ export type ReceiptContent = {
   fileSha256: string;
   note: string;
   merchant: string;
+  // AI-extracted item summary (e.g. "rulers, duct tape, clothespins"), stamped
+  // by the background annotation worker; "" until then. The richest AI detail
+  // for semantic search, so it rides in the prompt text + fingerprint — a
+  // re-annotation that rewrites it re-embeds (§5.1). Printed totals and the
+  // transcribed date are deliberately NOT embedded: amounts belong to the
+  // exact-match pass (§6.2), not the semantic vector.
+  extractedSummary: string;
+  // Not embedded, but kept in the fingerprint: it feeds the year bucket
+  // (receiptYear), so a date change must re-embed to re-stamp the year column.
   purchaseDate: string;
   createdAt: Date;
 };
 
 /** Fingerprint of the FULL receipt embedding input (image bytes + paired text)
- *  plus the year key's source, so any change re-embeds. */
+ *  plus the year key's source, so any change re-embeds. Covers the AI-extracted
+ *  text that rides in the prompt (merchant, item summary), the user's own note,
+ *  and purchaseDate (the year bucket's source). */
 export function receiptFingerprint(r: ReceiptContent): string {
-  return sha256Hex([r.fileSha256, r.note, r.merchant, r.purchaseDate].join("␟"));
+  return sha256Hex(
+    [r.fileSha256, r.note, r.merchant, r.extractedSummary, r.purchaseDate].join("␟")
+  );
 }
 
-/** The text paired with the image pixels in prompt_string (§5.1). */
-export function receiptPromptText(r: Pick<ReceiptContent, "note" | "merchant">): string {
+/** The text paired with the image pixels in prompt_string (§5.1): the AI-
+ *  extracted merchant + item summary plus the user's own note/description. */
+export function receiptPromptText(
+  r: Pick<ReceiptContent, "note" | "merchant" | "extractedSummary">
+): string {
   const parts = ["A photographed purchase receipt."];
   if (r.merchant) parts.push(`Merchant: ${r.merchant}.`);
+  if (r.extractedSummary) parts.push(`Items: ${r.extractedSummary}.`);
   if (r.note) parts.push(`User note: ${r.note}.`);
   return parts.join(" ");
 }
