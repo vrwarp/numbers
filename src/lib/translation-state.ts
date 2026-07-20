@@ -69,6 +69,13 @@ export const SAME_VALUE_GROUPS: readonly (readonly string[])[] = [
   ["NavBar.budgetCategories", "Ministries.title", "Positions.backToCategories", "Members.categoriesLink"],
   ["Vouch.title", "Members.vouchLink"],
   ["Admin.alwaysOn", "Members.accessAlwaysOn"],
+  // E-sign setup discoverability (docs/ESIGN_SETUP_DISCOVERABILITY.md): the
+  // setup CTA, the QR CTA, and the status chips read identically on every
+  // surface that carries them — menu row, home cards, claim-review callout.
+  ["Identity.enrollButton", "NavBar.setupSigning", "Home.esignNudgeNullCta", "Review.esignSetupCalloutCta"],
+  ["NavBar.showYourCode", "Home.esignNudgePendingCta", "Review.esignSetupCalloutQrCta"],
+  ["Identity.chipNone", "NavBar.chipNone"],
+  ["Identity.chipPending", "NavBar.chipPending", "Review.esignWaitingAction"],
 ];
 
 /**
@@ -90,8 +97,10 @@ export const QUOTED_IN: readonly { message: string; quotes: string; strip?: stri
   { message: "Vouch.membersPageHint", quotes: "Members.title" },
   { message: "Admin.membersManageNote", quotes: "Members.title" },
   { message: "Identity.allowlistOnMembersPage", quotes: "Members.title" },
-  // The directory's pending hint names the vouch page's title.
-  { message: "Members.pendingHint", quotes: "Vouch.title" },
+  // The closure card's recruiter line names the Vouch nav tab.
+  { message: "Home.esignClosureVouchLine", quotes: "NavBar.vouch" },
+  // The Members rollout hint names the Vouch tab/page link.
+  { message: "Members.selfVouchHint", quotes: "NavBar.vouch" },
 ];
 
 export function flatten(obj: Messages, prefix = ""): Map<string, string> {

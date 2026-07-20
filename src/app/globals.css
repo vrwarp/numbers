@@ -215,7 +215,9 @@ body {
 }
 
 /* The ?open=<id> deep-link landing pulse (src/lib/use-open-param.ts): a brief
-   ring so the scrolled-to card is unmistakable, fading out on its own. */
+   ring so the scrolled-to card is unmistakable, fading out on its own. Under
+   reduced-motion the pulse becomes a steady ring for the same window (the
+   scroll already moved the viewport; a throbbing halo is the part to drop). */
 .highlight-pulse {
   animation: highlight-pulse 1s ease-in-out 3;
   border-radius: 1rem;
@@ -223,4 +225,10 @@ body {
 @keyframes highlight-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
   50% { box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.45); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .highlight-pulse {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.45);
+  }
 }

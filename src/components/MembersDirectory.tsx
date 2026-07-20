@@ -40,11 +40,15 @@ interface DirectoryMember {
   role: string;
   position: PositionNameSet | null;
   allowed: boolean;
+  prefersPaper: boolean;
   identityStatus: string | null;
   attestedAt: string | null;
+  identityCreatedAt: string | null;
   publicKey: string | null;
   fingerprint: string | null;
 }
+
+const PENDING_STALE_MS = 14 * 24 * 60 * 60 * 1000;
 
 const ROLE_STYLE: Record<string, string> = {
   admin: "bg-indigo-100 text-indigo-700",
@@ -112,6 +116,28 @@ export default function MembersDirectory() {
       if (!res.ok) throw new Error((await res.json().catch(() => null))?.error);
       setMembers((prev) =>
         prev?.map((u) => (u.userId === m.userId ? { ...u, allowed } : u)) ?? prev
+      );
+    } catch (err) {
+      setError(thrown(err, t("saveFailed")));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  // "Prefers paper" is recorded here AFTER a conversation — the audited
+  // per-person OFF ramp for the nudge layer (never inferred from dismissals).
+  async function setPrefersPaper(m: DirectoryMember, prefersPaper: boolean) {
+    setBusyId(m.userId);
+    setError(null);
+    try {
+      const res = await fetch("/api/members/paper", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: m.userId, prefersPaper }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => null))?.error);
+      setMembers((prev) =>
+        prev?.map((u) => (u.userId === m.userId ? { ...u, prefersPaper } : u)) ?? prev
       );
     } catch (err) {
       setError(thrown(err, t("saveFailed")));
@@ -194,6 +220,33 @@ export default function MembersDirectory() {
   const attested = (members ?? []).filter((m) => m.identityStatus === "attested");
   const others = (members ?? []).filter((m) => m.identityStatus !== "attested");
 
+  // Rollout tally (docs/ESIGN_SETUP_DISCOVERABILITY.md §3.6a): setup state
+  // over the members e-sign is offered to. Neutral by design — "not yet" is a
+  // fact, not a deficiency (paper is a legitimate choice), and the "prefer
+  // paper" bucket exists precisely to stop the re-asking.
+  const offered = (members ?? []).filter(
+    (m) => env?.scope === "everyone" || m.allowed || m.role === "admin"
+  );
+  const tally = {
+    setUp: offered.filter((m) => m.identityStatus === "attested").length,
+    paper: offered.filter((m) => m.prefersPaper && m.identityStatus !== "attested").length,
+    notYet: offered.filter((m) => m.identityStatus !== "attested" && !m.prefersPaper).length,
+  };
+  const now = Date.now();
+  const stalePending = offered.filter(
+    (m) =>
+      m.identityStatus === "pending" &&
+      m.identityCreatedAt &&
+      now - Date.parse(m.identityCreatedAt) > PENDING_STALE_MS
+  ).length;
+  // The David gap (§3.6c): attested + holds a Position, but the approver role
+  // was never granted — invisible to routing while everyone assumes they're
+  // live. Surfaced beside the grant controls that fix it.
+  const awaitingDuty = (m: DirectoryMember) =>
+    m.identityStatus === "attested" && !!m.position && m.role === "member";
+  const viewerAttested = env?.me.identityStatus === "attested";
+  const anyPending = others.some((m) => m.identityStatus === "pending");
+
   return (
     <div className="space-y-4" data-testid="members-directory">
       <div>
@@ -219,6 +272,63 @@ export default function MembersDirectory() {
 
       {env && !esignOn && (
         <p className="rounded-lg bg-stone-50 p-2.5 text-xs text-stone-600">{t("esignOffNote")}</p>
+      )}
+
+      {/* Rollout ops (docs/ESIGN_SETUP_DISCOVERABILITY.md §3.6): the neutral
+          tally, the aging-pending flag, and the in-person script — the human
+          channel this congregation actually converts through. */}
+      {esignOn && members && (
+        <div className="card space-y-2 p-4 text-sm" data-testid="members-tally">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+              {t("tallySetUp", { count: tally.setUp })}
+            </span>
+            <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600">
+              {t("tallyNotYet", { count: tally.notYet })}
+            </span>
+            <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-500">
+              {t("tallyPaper", { count: tally.paper })}
+            </span>
+            {stalePending > 0 && (
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                {t("tallyStalePending", { count: stalePending })}
+              </span>
+            )}
+          </div>
+          {anyPending &&
+            (viewerAttested ? (
+              <p className="text-stone-600" data-testid="self-vouch-hint">
+                {t.rich("selfVouchHint", {
+                  link: (chunks) => (
+                    <Link href="/vouch" className="text-indigo-600 underline">
+                      {chunks}
+                    </Link>
+                  ),
+                })}
+              </p>
+            ) : (
+              // An un-attested officer cannot vouch — role alone is not enough.
+              // Say so instead of handing them an unservable instruction.
+              <p className="text-stone-600" data-testid="self-vouch-blocked">
+                {t.rich("selfVouchBlocked", {
+                  link: (chunks) => (
+                    <Link href="/profile?open=esign" className="text-indigo-600 underline">
+                      {chunks}
+                    </Link>
+                  ),
+                })}
+              </p>
+            ))}
+          <details className="text-xs text-stone-600">
+            <summary className="cursor-pointer font-medium text-stone-700">{t("helpTitle")}</summary>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              <li>{t("helpScriptPrivacy")}</li>
+              <li>{t("helpScriptSetup")}</li>
+              <li>{t("helpScriptSeniors")}</li>
+              <li>{t("helpScriptPaper")}</li>
+            </ul>
+          </details>
+        </div>
       )}
 
       {/* Role/key management signs roster events, so the admin's device needs
@@ -251,6 +361,14 @@ export default function MembersDirectory() {
                     )}
                     {m.attestedAt && t("attestedSince", { date: dateLabel(m.attestedAt) })}
                   </p>
+                  {awaitingDuty(m) && (
+                    <p
+                      className="rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900"
+                      data-testid={`awaiting-duty-${m.userId}`}
+                    >
+                      {t("awaitingDutyHint")}
+                    </p>
+                  )}
                   {allowlistActive && <div>{accessButton(m)}</div>}
                 </div>
                 {canManageRoles && env && m.userId !== env.me.userId && m.publicKey && (
@@ -280,23 +398,35 @@ export default function MembersDirectory() {
               >
                 {memberIdentity(m)}
                 <div className="flex flex-wrap items-center gap-2">
-                  {esignOn && statusChip(m)}
+                  {esignOn && m.prefersPaper && (
+                    <span
+                      className="rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-semibold text-stone-500"
+                      data-testid={`prefers-paper-chip-${m.userId}`}
+                    >
+                      {t("prefersPaperChip")}
+                    </span>
+                  )}
+                  {esignOn && !m.prefersPaper && statusChip(m)}
+                  {esignOn && m.identityStatus !== "attested" && (
+                    <button
+                      className="rounded-lg border border-stone-200 px-2.5 py-1 text-xs text-stone-500 hover:bg-stone-100"
+                      disabled={busyId === m.userId}
+                      onClick={() => setPrefersPaper(m, !m.prefersPaper)}
+                      title={t("prefersPaperHint")}
+                      data-testid={`prefers-paper-${m.userId}`}
+                    >
+                      {busyId === m.userId
+                        ? "…"
+                        : m.prefersPaper
+                          ? t("prefersPaperClear")
+                          : t("prefersPaperSet")}
+                    </button>
+                  )}
                   {allowlistActive && accessButton(m)}
                 </div>
               </li>
             ))}
           </ul>
-        )}
-        {esignOn && others.some((m) => m.identityStatus === "pending") && (
-          <p className="mt-3 text-xs text-stone-500">
-            {t.rich("pendingHint", {
-              link: (chunks) => (
-                <Link href="/vouch" className="text-indigo-600 underline">
-                  {chunks}
-                </Link>
-              ),
-            })}
-          </p>
         )}
       </div>
     </div>

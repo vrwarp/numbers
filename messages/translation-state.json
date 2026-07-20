@@ -2232,12 +2232,6 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Esign.notAttested": {
-    "source": "You can't sign yet — turn on signing on your <link>profile</link>, then get vouched.",
-    "context": "Shown in the signing dialog when the member isn't vouched yet. <link> wraps the word for the profile page.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
   "Esign.submitIntro": {
     "source": "You're asking for approval of this claim ({amount}). Place your signature on the form, pick who should approve it, and sign. If the claim changes later, your signature stops counting and approval starts over.",
     "context": "Explains the submit ceremony. {amount} is the claim total. Plain, non-technical wording.",
@@ -2263,8 +2257,8 @@
     "zh-Hant": "machine"
   },
   "Esign.noEligibleApprovers": {
-    "source": "No approver is available right now — everyone who could approve is paused or unenrolled. Check with your treasurer.",
-    "context": "Amber note in the submit-for-approval dialog when the approver dropdown has nobody to list (all paused or unenrolled).",
+    "source": "No approver is available to pick right now. Check with your treasurer — and you can still print this claim and hand it in on paper today.",
+    "context": "Submit-dialog notice when the approver list is empty. Plain register (no roster jargon) and names the recovery: paper still works today.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -2912,8 +2906,8 @@
     "zh-Hant": "machine"
   },
   "Identity.chipPending": {
-    "source": "Waiting for vouches",
-    "context": "Status chip: enrolled, still needs vouches. Encouraging tone.",
+    "source": "Waiting for confirmation",
+    "context": "Profile signing-card status chip while enrollment awaits the in-person confirmation. Candidate-facing register: “confirmation”, never the guarantor word (see GLOSSARY vouch split). Canonical for its same-value group.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -6778,12 +6772,6 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Members.pendingHint": {
-    "source": "People awaiting vouches become attested in person — see <link>Vouch for a member</link>.",
-    "context": "Hint under the directory; <link> wraps the Vouch page title, quoted verbatim.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
   "Members.roleLabel": {
     "source": "Role",
     "context": "Label before the role select in the Members page's attested list.",
@@ -7012,6 +7000,426 @@
   "Teams.archiveEndsAccess": {
     "source": "Archiving ends every member’s read access when you save.",
     "context": "Amber note under a team's Archived toggle: saving the archive ends members' read access.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignNudgeTitle": {
+    "source": "Skip the printer",
+    "context": "Title of the home-page e-sign invitation card for members. Short, friendly.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignNudgeNull": {
+    "source": "Sign and submit claims from your phone. You'll sign in with Google again, set up in about two minutes, and then two members (or one approver) confirm it's really you in person — usually at the next service.",
+    "context": "Body of the home invitation card. The two-part expectation (2-minute self-serve setup NOW vs in-person confirmation at the NEXT service) is the load-bearing content — keep both parts distinct.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignNudgeNullCta": {
+    "source": "Set up signing",
+    "context": "Primary button on the home invitation card. Must read identically to Identity.enrollButton (same-value group).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignNudgeDecline": {
+    "source": "I'll stick with paper",
+    "context": "Labeled decline button beside the setup CTA — a legitimate, respected choice (never a bare ✕). Sets a terminal do-not-ask-again mark.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignNudgePendingTitle": {
+    "source": "Almost there",
+    "context": "Title of the home card when the member has enrolled but awaits in-person confirmation.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignNudgePending": {
+    "source": "Show your QR code to any two members (or one approver) at church and you're confirmed. You may be asked to sign in with Google first.",
+    "context": "Body of the pending-state home card. 'confirmed' = the in-person vouch (candidate-facing register: 当面确认 family, never 担保).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignNudgePendingCta": {
+    "source": "Show your QR code",
+    "context": "Button on the pending home card; deep-links to the QR on the profile page. Same-value group with NavBar.showYourCode.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignNudgePaperRepeat": {
+    "source": "Finishing on paper? The next one can be signed from your phone — set up once and skip the printer.",
+    "context": "One-time re-invitation shown after a claim sat printed-but-unsubmitted for two weeks. De-asserted on purpose (a question, not a claim about what they chose).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignNudgeCollapsed": {
+    "source": "Set up e-signing",
+    "context": "One-line collapsed version of the invitation card (after it decayed). A quiet link, not a pitch.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignNudgeCollapsedPending": {
+    "source": "Show your QR code at church to finish signing setup",
+    "context": "One-line collapsed pending-state link on the home page.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignDutyTitle": {
+    "source": "You're listed as an approver",
+    "context": "Title of the amber duty card for Position holders who haven't set up signing.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignDutyNull": {
+    "source": "Set up signing so members can send you claims to approve. Setup is self-service; confirmation happens in person; then an officer switches on your approver duty. Don't skip the recovery step — your duty can't be switched on without it.",
+    "context": "Body of the duty card, capability-forward (what setup ENABLES, never 'members can't…' blame). States the honest three-step chain and the recovery-step requirement.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignDutyPendingTitle": {
+    "source": "One scan left",
+    "context": "Title of the duty card in the pending state.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignDutyPending": {
+    "source": "Any officer can confirm you — a single scan of your QR code. After that an officer switches on your approver duty and members can send you claims.",
+    "context": "Body of the pending duty card. 'officer' = executive officer (执行同工/執行同工 per GLOSSARY).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignDutySnooze": {
+    "source": "Remind me next week",
+    "context": "Snooze button on the duty card (deliberately no day-of-week — congregations gather on different days).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignClosureTitle": {
+    "source": "You're set up",
+    "context": "Title of the one-time closure card shown right after the member becomes able to sign.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignClosure": {
+    "source": "Your claim from {date} ({amount}) can now be e-signed.",
+    "context": "Closure card body pointing at the claim that was parked at Ready-to-submit. {date} is a formatted month+day; {amount} a money string.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignClosureNoClaim": {
+    "source": "Your next claim can be e-signed right from your phone.",
+    "context": "Closure card body when no parked claim exists at render time.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignClosureVouchLine": {
+    "source": "You can now also confirm others at church — that's your Vouch tab.",
+    "context": "Second line of the closure card: recruits the new signer as vouching capacity. QUOTES the Vouch nav tab's label verbatim (QUOTED_IN).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignClosureCta": {
+    "source": "Open the claim",
+    "context": "Closure card primary button; opens the parked claim.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignClosureGotIt": {
+    "source": "Got it",
+    "context": "Closure card dismiss button; both buttons mark the one-shot card as seen.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignNudgeResolved": {
+    "source": "Signing setup suggestion resolved",
+    "context": "Screen-reader-only announcement when a setup card removes itself (state changed elsewhere / dismissed). Never shown visually.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Claims.subtitlePaper": {
+    "source": "Draft claims need review; claims marked “Ready to submit” can be printed.",
+    "context": "Claims-list subtitle for users without e-sign (outside the rollout, or identity revoked). Mirrors Claims.subtitle but promises print only.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Claims.subtitleSetup": {
+    "source": "Draft claims need review; claims marked “Ready to submit” can be printed — or e-signed once you <link>set up signing</link>.",
+    "context": "Claims-list subtitle for eligible users who haven't started e-sign setup. <link> → the profile signing card.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Claims.subtitlePending": {
+    "source": "Draft claims need review; claims marked “Ready to submit” can be printed — or e-signed after you're <link>confirmed in person</link> at church.",
+    "context": "Claims-list subtitle while the user's enrollment awaits the in-person vouch. <link> → the QR on the profile signing card.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.esignSetupHint": {
+    "source": "Finish this claim — print it, or set up e-signing.",
+    "context": "Desktop gutter hint on the claim action bar for users who haven't set up e-sign; replaces Review.esignFinishHint for them.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.esignSetupAction": {
+    "source": "Set up e-signing",
+    "context": "Secondary action-bar button where E-sign would be, for users who haven't set up. Opens an explanation callout — never the ceremony.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.esignWaitingAction": {
+    "source": "Waiting for confirmation",
+    "context": "Action-bar button label while the user's enrollment awaits in-person confirmation. Same wording as the Identity.chipPending status chip (same-value group).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.esignWaitingAria": {
+    "source": "E-signing: waiting for in-person confirmation — details",
+    "context": "Screen-reader label for the waiting-state button (the visible label alone reads as a status; this adds the action).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.esignSetupCalloutTitle": {
+    "source": "E-sign this claim? One-time setup first",
+    "context": "Title of the callout the demoted e-sign button opens (user hasn't started setup).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.esignSetupCalloutNull": {
+    "source": "You'll sign in with Google again, set up in about two minutes, and then two members (or one approver) confirm it's really you in person — usually at the next service.",
+    "context": "Callout body (not-started state). Same two-part expectation as Home.esignNudgeNull.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.esignSetupCalloutPendingTitle": {
+    "source": "One in-person step left",
+    "context": "Callout title while enrollment awaits the in-person confirmation.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.esignSetupCalloutPending": {
+    "source": "Show your QR code to two members (or one approver) at church — after that, claims like this can be e-signed.",
+    "context": "Callout body (pending state).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.esignSetupCalloutRevokedTitle": {
+    "source": "Electronic signing is turned off for you",
+    "context": "Callout title when the user's signing identity was revoked. Neutral, no pitch.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.esignSetupCalloutRevoked": {
+    "source": "Your signing identity was turned off. See your profile for details.",
+    "context": "Callout body for the revoked state — the profile card owns the full story.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.esignSetupCalloutPaper": {
+    "source": "You can still hand this claim in on paper — download the PDF now and print it at church or wherever's easy.",
+    "context": "Paper-reassurance line in the callout. Outcome-worded on purpose (download now, print wherever) — many members have no printer at home.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.esignSetupCalloutCta": {
+    "source": "Set up signing",
+    "context": "Callout CTA → profile signing card. Same-value group with Identity.enrollButton.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Review.esignSetupCalloutQrCta": {
+    "source": "Show your QR code",
+    "context": "Callout CTA in the pending state → the QR on the profile. Same-value group with NavBar.showYourCode.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "NavBar.setupSigning": {
+    "source": "Set up signing",
+    "context": "Account-menu row: the persistent door to e-sign setup. Same-value group with Identity.enrollButton.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "NavBar.showYourCode": {
+    "source": "Show your QR code",
+    "context": "Account-menu row while enrollment awaits the in-person confirmation; deep-links to the QR.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "NavBar.chipNone": {
+    "source": "Not set up",
+    "context": "Tiny status chip on the account-menu setup row. Same-value group with Identity.chipNone.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "NavBar.chipPending": {
+    "source": "Waiting for confirmation",
+    "context": "Tiny status chip on the account-menu setup row while awaiting in-person confirmation. Same-value group with Identity.chipPending.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.notAttestedNull": {
+    "source": "To e-sign, first set up signing on your <link>profile</link> — then two members confirm it's really you in person.",
+    "context": "Submit-dialog notice when the user never started setup. Plain register: no roster/vouch jargon; the in-person step is stated up front.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.notAttestedPending": {
+    "source": "Almost there — show your QR code (it's on your <link>profile</link>) to two members or one approver at church. After that you can sign.",
+    "context": "Submit-dialog notice while enrollment awaits the vouch — must NOT tell them to enroll again.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.notAttestedRevoked": {
+    "source": "Your signing identity was turned off. See your <link>profile</link> for details.",
+    "context": "Submit-dialog notice for a revoked identity. Neutral, profile-owned story.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.connectFraming": {
+    "source": "First, sign in with the same Google account you use for this app.",
+    "context": "One plain line above the connect (Google popup) card on the profile signing card — sets the expectation the nudges promised.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.step4Esign": {
+    "source": "<step>4. Finish.</step> Print and sign the filled CFCC form — or e-sign it right from your phone.",
+    "context": "First-run guide step 4 variant shown ONLY to users inside the e-sign rollout. Outcome-neutral: both endings named, no setup CTA. Others keep Shoebox.step4.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Approvals.emptyNotSetUp": {
+    "source": "Claims can't be sent to you yet — <link>set up signing</link> so members can pick you as their approver.",
+    "context": "Approvals inbox empty state for a role-holder who never enrolled (rare transitional state). The one surface where the deficit sentence is allowed — it's their own duty page.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Approvals.emptyPendingVouch": {
+    "source": "Setup done — one in-person confirmation left. <link>Show your QR code</link> at church; after that members can send you claims.",
+    "context": "Approvals inbox empty state for a role-holder mid-re-enrollment (pending).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Approvals.emptyRevoked": {
+    "source": "Your signing identity was turned off. See your <link>profile</link> for details.",
+    "context": "Approvals inbox empty state for a revoked identity. Neutral.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.tallySetUp": {
+    "source": "{count} set up",
+    "context": "Rollout tally chip: members who completed e-sign setup (attested). Keep to a few words.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.tallyNotYet": {
+    "source": "{count} not yet",
+    "context": "Rollout tally chip: offered e-sign but not set up and not marked prefers-paper. Neutral — NOT a deficiency.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.tallyPaper": {
+    "source": "{count} prefer paper",
+    "context": "Rollout tally chip: members recorded (after a conversation) as preferring the paper process.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.tallyStalePending": {
+    "source": "{count} waiting over two weeks",
+    "context": "Rollout tally chip: enrollments stuck awaiting the in-person confirmation for 14+ days — the treasurer's cue to plan a vouching moment.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.selfVouchHint": {
+    "source": "You can confirm waiting members yourself — one scan each on the <link>Vouch</link> page.",
+    "context": "Shown to an ATTESTED officer when members are waiting for vouches. Officer-facing, so the 担保/擔保 register is correct here.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.selfVouchBlocked": {
+    "source": "Waiting members need an attested voucher — <link>set up signing</link> to confirm them yourself.",
+    "context": "Shown instead of selfVouchHint when the viewing officer is NOT attested themselves (role alone cannot vouch).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.awaitingDutyHint": {
+    "source": "Confirmed and holds a Position, but the approver role hasn't been granted yet — until it is, claims can't be routed to them.",
+    "context": "Amber note on an attested member's row when they hold a Position but role is still member; the grant controls sit beside it.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.prefersPaperChip": {
+    "source": "Prefers paper",
+    "context": "Row chip for a member recorded as preferring the paper process.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.prefersPaperSet": {
+    "source": "Set “prefers paper”",
+    "context": "Button: record (after a conversation) that this member prefers paper — silences their setup suggestions.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.prefersPaperClear": {
+    "source": "Clear “prefers paper”",
+    "context": "Button: clear the prefers-paper record.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.prefersPaperHint": {
+    "source": "Record this after a real conversation — it stops the app's setup suggestions for this member. Paper is always fine.",
+    "context": "Tooltip on the prefers-paper button.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.helpTitle": {
+    "source": "Helping members set up",
+    "context": "Summary label of the collapsed in-person-script disclosure on the Members page.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.helpScriptPrivacy": {
+    "source": "Some members may have chosen paper in the app — they won't have told you. Ask first: “Want help setting up, or are you set with paper?” and record it here.",
+    "context": "First line of the in-person script: in-app declines are private, so the conversation must ask, never assume.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.helpScriptSetup": {
+    "source": "Setup lives on each member's Profile page; the in-person confirmation is one QR scan.",
+    "context": "Second line of the in-person script.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.helpScriptSeniors": {
+    "source": "Seniors may need a hand with the Google sign-in step — plan a minute per person after the service.",
+    "context": "Third line of the in-person script.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Members.helpScriptPaper": {
+    "source": "Paper remains completely fine. Early on, every confirmation goes through the few attested members — plan the after-service table accordingly.",
+    "context": "Fourth line of the in-person script.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.invalidNudge": {
+    "source": "That update couldn't be saved.",
+    "context": "Generic failure for the self-serve nudge-preference endpoint (dismissals/snoozes). Low-stakes; a retry happens naturally.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields.ESIGN_NUDGES_OFF.label": {
+    "source": "Pause setup suggestions",
+    "context": "Admin settings label for the nudge kill-switch (boolean). Checked = the home-page e-sign invitation/closure cards stop showing.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields.ESIGN_NUDGES_OFF.help": {
+    "source": "Hides the home-page e-sign setup and closure cards for everyone. Honest buttons, menu rows, and status lines stay.",
+    "context": "Admin settings help text for the nudge kill-switch.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.invalidMemberUpdate": {
+    "source": "That member update couldn't be saved.",
+    "context": "Generic failure for officer-side member updates on the Members page (e.g. recording “prefers paper”).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   }

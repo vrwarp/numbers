@@ -37,13 +37,17 @@ export async function GET() {
     // in the decision route and by ledger validity regardless.
     const me = await prisma.user.findUnique({
       where: { id: userId },
-      select: { role: true, approvalsPaused: true },
+      select: { role: true, approvalsPaused: true, signerIdentity: { select: { status: true } } },
     });
     return NextResponse.json({
       claims: items,
       me: {
         approvalsPaused: me?.approvalsPaused ?? false,
         canApprove: (APPROVER_PLUS_ROLES as readonly string[]).includes(me?.role ?? ""),
+        // Backstop empty-state branches (docs/ESIGN_SETUP_DISCOVERABILITY.md
+        // §3.8): a role-holder in a transitional identity state (re-enrolling,
+        // revoked) sees WHY the inbox is dark instead of a bare dove.
+        identityStatus: me?.signerIdentity?.status ?? null,
       },
     });
   });

@@ -412,6 +412,12 @@ export default function ReviewClaim({
   // single-button print flow, untouched. Null while the master switch loads.
   const [esignEnv, setEsignEnv] = useState<EsignEnv | null>(null);
   const [submitOpen, setSubmitOpen] = useState(false);
+  // EP4 (docs/ESIGN_SETUP_DISCOVERABILITY.md §3.1): the demoted e-sign
+  // button's explanation callout. Opening never mutates the claim — the
+  // draft-freeze belongs to the real ceremony path only.
+  const [esignSetupOpen, setEsignSetupOpen] = useState(false);
+  const esignSetupRef = useRef<HTMLDivElement>(null);
+  const esignSetupTriggerRef = useRef<HTMLButtonElement>(null);
   const [editingReceiptId, setEditingReceiptId] = useState<string | null>(null);
   const [addingReceipts, setAddingReceipts] = useState(false);
   // Receipt whose failed-extraction placeholder is being filled in by hand, and
@@ -502,6 +508,34 @@ export default function ReviewClaim({
   useEffect(() => {
     void loadEnv().then(setEsignEnv).catch(() => {});
   }, []);
+
+  // A user vouched mid-session must not keep a stale demoted action bar: while
+  // the env says un-attested, re-check on focus/interval (the standard cadence)
+  // so the real ceremony button appears without a manual reload.
+  const esignUnattested =
+    !!esignEnv?.bootstrapped &&
+    !!esignEnv.enabled &&
+    esignEnv.allowed !== false &&
+    esignEnv.me.identityStatus !== "attested";
+  useAutoRefresh(() => void loadEnv().then(setEsignEnv).catch(() => {}), {
+    intervalMs: 90_000,
+    paused: !esignUnattested,
+  });
+
+  // Esc closes the setup callout and hands focus back to its trigger (it is a
+  // region, not a dialog — no trap, but the keyboard path must round-trip).
+  useEffect(() => {
+    if (!esignSetupOpen) return;
+    esignSetupRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setEsignSetupOpen(false);
+        esignSetupTriggerRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [esignSetupOpen]);
 
   // The split/exclude coach line shows until the user dismisses it once; the
   // choice is remembered so it doesn't nag on every claim.
@@ -758,6 +792,13 @@ export default function ReviewClaim({
     !!esignEnv?.bootstrapped && !!esignEnv.enabled && esignEnv.allowed !== false;
   const esignActions =
     esignEnabled && (claim.status === "draft" || claim.status === "generated");
+  // EP4 button honesty (docs/ESIGN_SETUP_DISCOVERABILITY.md §3.1): only an
+  // attested identity gets the real ceremony button. Everyone else keeps Print
+  // as the primary and a secondary that opens an explanation callout — never
+  // the ceremony modal, never a draft freeze.
+  const esignIdentityStatus = esignEnv?.me.identityStatus ?? null;
+  const esignReady = esignActions && esignIdentityStatus === "attested";
+  const esignSetupNeeded = esignActions && !esignReady;
   const isSigned = (SIGNED_STATUSES as readonly string[]).includes(claim.status);
   // First unverified row in display order — the nudge target when the gated
   // Generate PDF button is clicked while rows remain unverified.
@@ -1000,8 +1041,14 @@ export default function ReviewClaim({
 
   // Bar primary for e-sign users. From a verified draft this freezes first
   // (no forced download), then opens the ceremony; from `generated` it opens
-  // straight away.
+  // straight away. Belt for EP4: an un-attested identity never freezes a
+  // draft — the demoted button opens the setup callout, and even a stale
+  // click lands there instead of mutating claim state on a dead-end path.
   async function openSubmitForApproval() {
+    if (esignEnv?.me.identityStatus !== "attested") {
+      setEsignSetupOpen(true);
+      return;
+    }
     if (claim!.status === "draft") {
       if (!(await freezePacketForSignature())) return;
     }
@@ -1364,6 +1411,64 @@ export default function ReviewClaim({
         </div>
       )}
 
+      {/* EP4 setup callout (docs/ESIGN_SETUP_DISCOVERABILITY.md §3.1): why the
+          e-sign button is demoted and what to do — with the in-person latency
+          named (that fact converts "later" into "tonight") and the paper path
+          legitimized in the same breath. A region, not a dialog: no trap, no
+          backdrop; Esc and the ✕ both return focus to the trigger. */}
+      {esignSetupOpen && esignSetupNeeded && (
+        <div
+          ref={esignSetupRef}
+          tabIndex={-1}
+          role="region"
+          aria-labelledby="esign-setup-callout-title"
+          className="card space-y-2 border-indigo-200 bg-indigo-50/60 p-4 text-sm text-stone-700 outline-none"
+          data-testid="esign-setup-callout"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <p id="esign-setup-callout-title" className="font-semibold text-indigo-900">
+              {esignIdentityStatus === "pending"
+                ? t("esignSetupCalloutPendingTitle")
+                : esignIdentityStatus === "revoked"
+                  ? t("esignSetupCalloutRevokedTitle")
+                  : t("esignSetupCalloutTitle")}
+            </p>
+            <button
+              className="rounded-lg px-2 py-0.5 text-stone-400 hover:bg-indigo-100 hover:text-stone-600"
+              onClick={() => {
+                setEsignSetupOpen(false);
+                esignSetupTriggerRef.current?.focus();
+              }}
+              aria-label={tCommon("close")}
+              data-testid="esign-setup-callout-close"
+            >
+              ✕
+            </button>
+          </div>
+          <p>
+            {esignIdentityStatus === "pending"
+              ? t("esignSetupCalloutPending")
+              : esignIdentityStatus === "revoked"
+                ? t("esignSetupCalloutRevoked")
+                : t("esignSetupCalloutNull")}
+          </p>
+          <p className="text-stone-500">{t("esignSetupCalloutPaper")}</p>
+          {esignIdentityStatus !== "revoked" && (
+            <div>
+              <Link
+                href="/profile?open=esign"
+                className="btn-primary inline-block !px-4"
+                data-testid="esign-setup-callout-cta"
+              >
+                {esignIdentityStatus === "pending"
+                  ? t("esignSetupCalloutQrCta")
+                  : t("esignSetupCalloutCta")}
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Floating action bar: verify progress and the claim actions stay in
           reach while scrolling a long claim. One structure for every case —
           edit utilities (soft-red Discard, Add receipts) on the left, the
@@ -1422,8 +1527,11 @@ export default function ReviewClaim({
           // print-vs-sign guidance (only meaningful when there's a fork —
           // hidden on mobile, where the labeled buttons already make it clear).
           esignActions ? (
+            // Un-attested users get the setup hint INSTEAD of the finish-fork
+            // hint — the old line asserted "print, or e-sign" to people whose
+            // e-sign tap cannot succeed yet.
             <span className="hidden text-sm text-stone-500 sm:block sm:flex-1">
-              {t("esignFinishHint")}
+              {esignReady ? t("esignFinishHint") : t("esignSetupHint")}
             </span>
           ) : null
         ) : (
@@ -1485,8 +1593,10 @@ export default function ReviewClaim({
                     : undefined
               }
             >
+              {/* Print stays PRIMARY until the user can actually e-sign —
+                  a primary that cannot succeed is a lie (EP4). */}
               <button
-                className={`${esignActions ? "btn-secondary" : "btn-primary"} !px-3 disabled:pointer-events-none sm:!px-4`}
+                className={`${esignReady ? "btn-secondary" : "btn-primary"} !px-3 disabled:pointer-events-none sm:!px-4`}
                 onClick={generatePdf}
                 disabled={!pdfButtonEnabled || downloading}
                 data-testid={esignActions ? "download-pdf" : "generate-pdf"}
@@ -1494,7 +1604,7 @@ export default function ReviewClaim({
                 {downloading ? t("buildingPdf") : isSigned ? t("downloadSigned") : t("printAction")}
               </button>
             </span>
-            {esignActions && (
+            {esignReady && (
               <span
                 onClick={() => {
                   if (!pdfButtonEnabled && !downloading) nudgeBlocked();
@@ -1516,6 +1626,27 @@ export default function ReviewClaim({
                   {downloading ? t("buildingPdf") : t("esignAction")}
                 </button>
               </span>
+            )}
+            {esignSetupNeeded && (
+              // A real, enabled button (never aria-disabled): for screen-reader
+              // users a status phrase wearing a disabled button would hide the
+              // only path to the explanation.
+              <button
+                ref={esignSetupTriggerRef}
+                className="btn-secondary !px-3 sm:!px-4"
+                onClick={() => setEsignSetupOpen((v) => !v)}
+                aria-expanded={esignSetupOpen}
+                aria-label={
+                  esignIdentityStatus === "pending"
+                    ? t("esignWaitingAria")
+                    : t("esignSetupAction")
+                }
+                data-testid="esign-setup-button"
+              >
+                {esignIdentityStatus === "pending"
+                  ? t("esignWaitingAction")
+                  : t("esignSetupAction")}
+              </button>
             )}
           </div>
         </div>

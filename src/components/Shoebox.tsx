@@ -44,7 +44,16 @@ interface UploadedPending {
 
 type PendingItem = LocalPending | UploadedPending;
 
-export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) {
+export default function Shoebox({
+  searchEnabled,
+  esignOffered,
+}: {
+  searchEnabled?: boolean;
+  /** Page-computed (A5/A8 predicate, docs/ESIGN_SETUP_DISCOVERABILITY.md §3.5):
+   *  branches the first-run guide's finish step. Outcome-neutral wording only —
+   *  users outside the switch/allowlist must never read the word "e-sign". */
+  esignOffered?: boolean;
+}) {
   const t = useTranslations("Shoebox");
   const tCommon = useTranslations("Common");
   const tErrors = useTranslations("Errors");
@@ -745,13 +754,15 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
             <LocaleSwitcher signedIn variant="prominent" />
           </div>
           <ol className="mx-auto mt-8 grid max-w-3xl gap-3 text-left text-sm text-stone-600 sm:grid-cols-4">
-            {(["step1", "step2", "step3", "step4"] as const).map((step) => (
-              <li key={step}>
-                {t.rich(step, {
-                  step: (chunks) => <span className="font-semibold text-indigo-700">{chunks}</span>,
-                })}
-              </li>
-            ))}
+            {(["step1", "step2", "step3", esignOffered ? "step4Esign" : "step4"] as const).map(
+              (step) => (
+                <li key={step}>
+                  {t.rich(step, {
+                    step: (chunks) => <span className="font-semibold text-indigo-700">{chunks}</span>,
+                  })}
+                </li>
+              )
+            )}
           </ol>
         </div>
       ) : (
