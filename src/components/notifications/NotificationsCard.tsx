@@ -108,8 +108,13 @@ export default function NotificationsCard({ pushConfig }: { pushConfig: PushClie
 
   useEffect(() => {
     setCapability(detectCapability(pushConfig.mock));
+    // Mock mode never touches the real Notification permission (the enable
+    // path is synthetic), so a browser default of "denied" — common in
+    // headless CI Chromium — must not gate the mock flow.
     setPermissionDenied(
-      typeof Notification !== "undefined" && Notification.permission === "denied"
+      !pushConfig.mock &&
+        typeof Notification !== "undefined" &&
+        Notification.permission === "denied"
     );
     fetch("/api/profile")
       .then((r) => r.json())
