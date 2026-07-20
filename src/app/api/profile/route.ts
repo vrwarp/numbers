@@ -21,6 +21,12 @@ const userSelect = {
   adminPaused: true,
   printIncludeReceipts: true,
   printIncludeCertificate: true,
+  notifyEnabled: true,
+  notifySigning: true,
+  notifyClaimProgress: true,
+  notifyFinance: true,
+  notifySecurity: true,
+  notifyDiscreet: true,
 } as const;
 
 /** The GET/PATCH response: the row plus which duty toggles the user's grants
@@ -83,6 +89,15 @@ const PatchSchema = z
     // re-reads the ids/content per request, so these only seed the UI.
     printIncludeReceipts: z.boolean(),
     printIncludeCertificate: z.boolean(),
+    // Push-notification preferences (docs/NOTIFICATIONS_DESIGN.md §8.2).
+    // Same class as the print toggles: self-only plain preferences, honored
+    // at SEND time by the worker (enqueue is unconditional — §5 parity).
+    notifyEnabled: z.boolean(),
+    notifySigning: z.boolean(),
+    notifyClaimProgress: z.boolean(),
+    notifyFinance: z.boolean(),
+    notifySecurity: z.boolean(),
+    notifyDiscreet: z.boolean(),
   })
   .partial();
 

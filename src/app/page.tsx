@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { currentUserId } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import Shoebox from "@/components/Shoebox";
+import ActivityCard from "@/components/notifications/ActivityCard";
 import EsignNudgeCard from "@/components/EsignNudgeCard";
 import { embeddingEnabled } from "@/lib/embeddings/settings";
 import { esignSetupSnapshot } from "@/lib/esign/nudge-server";
@@ -77,6 +78,7 @@ export default async function HomePage() {
         esignOffered={esign?.eligible ?? false}
         nudgeSlot={nudge ? <EsignNudgeCard decision={nudge} /> : null}
       />
+      <ActivityCard />
     </div>
   );
 }

@@ -41,6 +41,7 @@
     "shoebox": "收據",
     "claims": "報銷單",
     "profile": "個人資料",
+    "recentActivity": "Recent activity",
     "signOut": "登出",
     "signedInAs": "目前登入：{name}",
     "approvals": "審批",
@@ -547,6 +548,7 @@
     "alreadyDecidedNote": "這張報銷單已有審批結果——清單稍後會更新。",
     "assignedElsewhereNote": "這張報銷單已指派給其他審批人。",
     "undoStroke": "復原一筆",
+    "stalledNote": "Waiting for a signature for {days, plural, one {# day} other {# days}}. Notifications are often missed — phones get muted, batteries die. You can withdraw and pick a different approver at any time.",
     "notAttestedNull": "要使用電子簽署，請先在<link>個人資料</link>頁開通簽名——之後由兩位會友當面確認是您本人。",
     "notAttestedPending": "就差一步——在教會向兩位會友或一位審批人出示您的 QR 碼（在<link>個人資料</link>頁）。確認後即可簽署。",
     "notAttestedRevoked": "您的簽名身份已被停用。詳情請見<link>個人資料</link>頁。"
@@ -891,6 +893,8 @@
       "contextTooLong": "教會背景過長（上限 {max} 位元組）。",
       "unknownField": "該設定無法在此編輯。",
       "nothingToChange": "沒有可變更的內容。",
+      "invalidValidation": "That test request was invalid.",
+      "unknownService": "Unknown service to test.",
       "selfLockout": "此變更會移除您自己的管理員權限——請保留您的電子郵件"
     },
     "ministry": {
@@ -910,7 +914,15 @@
     },
     "searchInvalid": "無法理解該搜尋——請調整後重試",
     "searchEmptyQuery": "請先輸入要搜尋的內容",
-    "invalidMemberUpdate": "此成員更新未能儲存。"
+    "invalidMemberUpdate": "此成員更新未能儲存。",
+    "push": {
+      "invalidToken": "That notification registration is invalid.",
+      "invalidHint": "That notification hint is invalid.",
+      "hintRateLimited": "Too many device alerts in a short time — try again later.",
+      "notConfigured": "Push notifications aren’t set up for this deployment.",
+      "notEnabled": "Turn notifications on first.",
+      "invalidUiState": "That settings update is invalid."
+    }
   },
   "AddReceipts": {
     "title": "向這張報銷單新增收據",
@@ -1179,10 +1191,188 @@
     "action_update_embedding_config": "變更了搜尋設定",
     "action_rebuild_embeddings": "重建了搜尋索引",
     "action_retry_embedding": "重試了失敗的索引",
+    "group_push": "Push notifications",
+    "fields_FCM_SERVICE_ACCOUNT_JSON_label": "Messaging service account (JSON)",
+    "fields_FCM_SERVICE_ACCOUNT_JSON_help": "Paste the whole JSON key of the MESSAGING-ONLY service account (custom role with exactly cloudmessaging.messages.create — see docs/PUSH_SETUP.md). Write-only.",
+    "fields_FIREBASE_VAPID_PUBLIC_KEY_label": "Web Push certificate key",
+    "fields_FIREBASE_VAPID_PUBLIC_KEY_help": "Firebase console → Project settings → Cloud Messaging → Web Push certificates → key pair. Public, client-safe.",
+    "fields_FIREBASE_MESSAGING_SENDER_ID_label": "Messaging sender ID",
+    "fields_FIREBASE_MESSAGING_SENDER_ID_help": "Firebase console → Project settings → Cloud Messaging → Sender ID.",
+    "fields_NOTIFY_PAUSED_label": "Pause all sending",
+    "fields_NOTIFY_PAUSED_help": "The incident switch: nothing is delivered while paused, but events keep recording (the in-app activity list is unaffected). Unpausing releases only still-fresh notifications.",
+    "fields_NOTIFY_QUIET_label": "Quiet hours",
+    "fields_NOTIFY_QUIET_help": "Optional hold-then-send window, e.g. 21:30-08:00,sun:09:00-12:30 (server time). Off by default — phones’ own Do Not Disturb is usually the better tool. Device alerts are never held.",
+    "pushHealthTitle": "Push notification health",
+    "pushHealthLoadFailed": "Could not load push health.",
+    "pushHealthState": "Status",
+    "pushHealthOff": "Not configured",
+    "pushHealthPaused": "Paused",
+    "pushHealthMock": "Mock mode",
+    "pushHealthOn": "Sending",
+    "pushHealthQueue": "Waiting to send",
+    "pushHealthFailed": "Failed (last 24h)",
+    "pushHealthLastSent": "Last delivered",
+    "pushHealthNever": "Never",
+    "pushHealthDevices": "Registered devices",
+    "pushHealthFewer": "Fewer than 5",
+    "pushHealthSa": "Service account",
+    "pushHealthScopeBroad": "This service account can do more than send messages — that weakens the e-sign security model. Recreate it with ONLY the custom messaging role (docs/PUSH_SETUP.md).",
+    "pushHealthScopeOk": "Service account is messaging-only — as designed.",
     "fields": {
       "ESIGN_NUDGES_OFF": {
         "label": "暫停開通提示",
         "help": "對所有人隱藏首頁的電子簽名開通與完成提示卡。按鈕、選單入口與狀態提示仍保留。"
+      }
+    },
+    "tab_setup": "Setup",
+    "setupIntro": "Guided, step-by-step configuration for each optional service — with a dry-run test where one applies. Once a service is set up, day-to-day tweaks live in Settings and Search.",
+    "wizardSetUp": "Set up",
+    "wizardReconfigure": "Reconfigure",
+    "wizardConfigured": "Configured",
+    "wizardNeedsSetup": "Not set up",
+    "wizardMock": "Mock mode",
+    "wizardStepOf": "Step {n} of {total}",
+    "wizardTest": "Test this step",
+    "wizardTesting": "Testing…",
+    "wizardTestFailed": "The test couldn't run — check the values and try again.",
+    "wizardBack": "Back",
+    "wizardSaveNext": "Save & continue",
+    "wizardSaveFinish": "Save & finish",
+    "wizardFinish": "Done",
+    "wizardCancel": "Close",
+    "wizard": {
+      "push": {
+        "title": "Push notifications",
+        "blurb": "Let approvers, owners, and treasurers hear when a claim needs them.",
+        "done": "Push notifications are configured. Send yourself a test from Profile → Notifications to confirm the whole path.",
+        "steps": {
+          "keys": {
+            "title": "Web Push keys",
+            "intro": "From the Firebase console → Project settings → Cloud Messaging. Both values are client-safe."
+          },
+          "account": {
+            "title": "Sending credential",
+            "intro": "Paste the whole JSON key of the messaging-only service account. The test checks that its role is scoped to sending messages and nothing more."
+          },
+          "delivery": {
+            "title": "Delivery options",
+            "intro": "Optional. Quiet hours hold claim notifications inside a window; the pause switch stops all sending without losing the in-app activity list."
+          }
+        }
+      },
+      "ai": {
+        "title": "Receipt reading (AI)",
+        "blurb": "The vision model that drafts line items from receipt photos.",
+        "done": "Receipt reading is configured. Generate a claim to see it in action.",
+        "steps": {
+          "provider": {
+            "title": "Provider",
+            "intro": "Choose which backend reads receipts — OpenRouter or Google AI Studio."
+          },
+          "credentials": {
+            "title": "API key & model",
+            "intro": "Enter the key and model for the provider you chose above. The test makes one tiny call to confirm they work."
+          },
+          "limits": {
+            "title": "Rate limits",
+            "intro": "Optional. How fast to call the model and how to back off when the provider is busy."
+          }
+        }
+      },
+      "firebase": {
+        "title": "Sign-in (Firebase)",
+        "blurb": "Google sign-in — the identity layer the whole app sits on.",
+        "done": "Sign-in is configured. Open the app in a private window to try signing in.",
+        "steps": {
+          "webconfig": {
+            "title": "Web app config",
+            "intro": "From the Firebase console → Project settings → Your apps. These values are client-safe."
+          },
+          "ios": {
+            "title": "iPhone sign-in",
+            "intro": "Optional but recommended if members use iPhones: serve Firebase's sign-in helper from your own origin so WebKit's storage rules don't break it. Requires your public URL plus two console entries."
+          }
+        }
+      },
+      "search": {
+        "title": "Semantic search",
+        "blurb": "Natural-language search over receipts and claims.",
+        "done": "Search is set up. It indexes existing content in the background; new receipts index within seconds.",
+        "steps": {
+          "endpoint": {
+            "title": "Embedding endpoint",
+            "intro": "The address of your embedding server and its model. The test connects and detects the vector size for you."
+          },
+          "enable": {
+            "title": "Turn it on",
+            "intro": "Enable search and set how close a match has to be to show up. Saving here starts the first index build."
+          }
+        }
+      }
+    },
+    "checks": {
+      "push": {
+        "mock": "Mock mode — deliveries are recorded locally, no real sending.",
+        "vapidPresent": "Web Push key is set.",
+        "vapidMissing": "Web Push key is missing — devices can't be registered without it.",
+        "senderPresent": "Sender ID is set.",
+        "senderMissing": "Sender ID is missing — add it so the browser can register for push.",
+        "saMissing": "No sending credential yet — paste the service-account JSON.",
+        "saInvalid": "That doesn't look like a service-account JSON key.",
+        "saParsed": "Service account read: {email}",
+        "scopeOk": "The service account can send messages and nothing more — exactly right.",
+        "scopeBroad": "This service account can do more than send messages. That weakens the e-sign security model — recreate it with only the custom messaging role.",
+        "scopeUnknown": "Couldn't verify the service account's permissions from here. Double-check it holds only the custom messaging role.",
+        "quietValid": "Quiet hours understood ({count, plural, one {# window} other {# windows}}).",
+        "quietInvalid": "Quiet hours couldn't be read — expected times like 21:30-08:00,sun:09:00-12:30."
+      },
+      "ai": {
+        "providerSelected": "Provider: {provider}",
+        "providerInvalid": "Unknown provider \"{provider}\" — choose OpenRouter or Google.",
+        "modelPresent": "Model: {model}",
+        "mock": "Mock mode — receipt reading returns fixed sample data, no API calls.",
+        "keyMissing": "{key} is missing — the model can't be reached without it.",
+        "callOk": "The model answered in {ms} ms — key and model work.",
+        "callFailed": "Test call failed: {error}"
+      },
+      "firebase": {
+        "apiKey": "Web API key is set.",
+        "apiKeyMissing": "Web API key is missing.",
+        "projectId": "Project ID is set.",
+        "projectIdMissing": "Project ID is missing.",
+        "authDomain": "Auth domain is set.",
+        "authDomainMissing": "Auth domain is missing.",
+        "proxyBaseUrl": "Public URL is set — the iPhone sign-in proxy can use it.",
+        "proxyNeedsBaseUrl": "The iPhone sign-in proxy needs your public URL — set it, or turn the proxy off."
+      },
+      "search": {
+        "mock": "Mock mode — search uses recorded vectors, no endpoint call.",
+        "endpointMissing": "Endpoint is missing.",
+        "endpointPresent": "Endpoint is set.",
+        "probeOk": "Connected — {dim}-dimension vectors, {ms} ms.",
+        "probeFailed": "Couldn't reach the endpoint: {error}"
+      }
+    },
+    "searchFields": {
+      "endpoint": {
+        "label": "Embedding endpoint",
+        "help": "Base URL of your embedding server (llama.cpp / OpenAI-compatible)."
+      },
+      "model": {
+        "label": "Model",
+        "help": "The embedding model name your server serves."
+      },
+      "apiKey": {
+        "label": "API key",
+        "help": "Sent as a Bearer token to the endpoint. Leave blank if it needs none."
+      },
+      "enabled": {
+        "label": "Enable search",
+        "help": "Turn semantic search on and start indexing."
+      },
+      "minScore": {
+        "label": "Match threshold",
+        "help": "How close a match must be to show up, 0–1 (higher = stricter). 0.25 is a good start."
       }
     }
   },
@@ -1203,7 +1393,7 @@
     "code": "Code",
     "name": "Name",
     "description": "Description (optional)",
-    "descriptionPlaceholder": "為報銷人新增提示——它同時會引導 AI 的類別建議…",
+    "descriptionPlaceholder": "Add a hint for requesters — it also guides the AI’s category suggestions…",
     "codeAria": "Account code",
     "nameAria": "Category name",
     "active": "Active",
@@ -1413,5 +1603,144 @@
     "choosePerson": "Choose a person…",
     "removeMember": "Remove",
     "archiveEndsAccess": "封存後，儲存時將結束所有成員的檢視權限。"
+  },
+  "Notifications": {
+    "push": {
+      "signingRequest": {
+        "title": "Signature requested — {label}",
+        "titleBare": "Signature requested",
+        "body": "Submitted by {name}",
+        "bodyBare": "A claim is waiting for your signature."
+      },
+      "claimApproved": {
+        "title": "Your claim was approved — {label}",
+        "titleBare": "Your claim was approved"
+      },
+      "claimRejected": {
+        "title": "Your claim needs changes — {label}",
+        "titleBare": "Your claim needs changes",
+        "body": "Tap to see the reviewer’s note."
+      },
+      "financeQueue": {
+        "title": "{count, plural, =1 {A claim is ready for payment} other {# claims are ready for payment}}",
+        "bodySingle": "Ready for payment — {label}"
+      },
+      "claimPaid": {
+        "title": "Your reimbursement was paid — {label}",
+        "titleBare": "Your reimbursement was paid"
+      },
+      "deviceRequest": {
+        "title": "A new device asked to join your signing identity",
+        "body": "If this wasn’t you, review now."
+      },
+      "selfTest": {
+        "title": "This is your test notification.",
+        "body": "Notifications are working on this device."
+      },
+      "discreet": {
+        "signing": "A signature request is waiting",
+        "claims": "An update on one of your claims",
+        "finance": "Claims may be ready for payment",
+        "body": "Open Numbers to see the details."
+      }
+    },
+    "card": {
+      "title": "Notifications",
+      "undo": "Turn everything off anytime: Profile → Notifications → Off. This works even if your phone’s settings are wrong.",
+      "notConfigured": "Push notifications aren’t set up for this deployment yet — an admin can enable them in Admin → Settings.",
+      "loadFailed": "Could not load your notification settings.",
+      "saveFailed": "Could not save that change.",
+      "enable": "Turn on notifications",
+      "enableFailed": "Could not turn notifications on — please try again.",
+      "thisDeviceOn": "This device is receiving notifications.",
+      "thisDeviceOff": "Turn off on this device",
+      "thisDeviceEnable": "Turn on for this device",
+      "noDevices": "Notifications are on, but no device is currently receiving them.",
+      "devices": "Devices receiving notifications",
+      "deviceCurrent": "This device",
+      "deviceUnnamed": "Unnamed device",
+      "deviceRemove": "Remove",
+      "deviceRemoveAria": "Stop notifications on {label}",
+      "selfTest": "Send myself a test notification",
+      "selfTestSent": "Sent at {time} — did this device show it?",
+      "accountOff": "Turn all notifications off",
+      "turnOn": "Turn on",
+      "turnOff": "Turn off"
+    },
+    "categories": {
+      "title": "What you’ll be told about",
+      "signing": {
+        "name": "Signing requests",
+        "example": "e.g. “Signature requested — Retreat 2026”"
+      },
+      "claims": {
+        "name": "My claims",
+        "example": "e.g. “Your claim was approved”"
+      },
+      "finance": {
+        "name": "Payments to make",
+        "example": "e.g. “A claim is ready for payment”"
+      },
+      "security": {
+        "name": "Security",
+        "example": "e.g. “A new device asked to join your signing identity”"
+      },
+      "discreet": {
+        "name": "Discreet previews",
+        "example": "Lock-screen text hides names and outcomes — “An update on one of your claims”."
+      }
+    },
+    "softAsk": {
+      "title": "Turn on notifications?",
+      "body": "Numbers will notify this device about:",
+      "privacy": "Only you can see your notification settings. No one is told whether a notification reached you, or when.",
+      "noDuty": "This doesn’t create a duty to respond faster — the badges in the app remain the official queue.",
+      "reassign": "Owners can withdraw or reassign a signature request at any time — that is routine, not a judgment.",
+      "shared": "Is this a shared computer or a family tablet? Don’t turn notifications on here — or use discreet previews.",
+      "promptHint": "Next, your device asks permission — choose “Allow”.",
+      "promptHintOs": "Your device may show that dialog in its own language; “Allow / 允許” is the agree button.",
+      "confirm": "Continue",
+      "decline": "Not now"
+    },
+    "embedded": {
+      "title": "Open in your browser first",
+      "body": "Notifications can’t be turned on inside this app (WeChat, Line…). Open Numbers in Safari or Chrome, then come back to this page.",
+      "copyLink": "Copy link",
+      "copied": "Copied"
+    },
+    "iosInstall": {
+      "title": "Add Numbers to your Home Screen first",
+      "step1": "1. In Safari, tap the Share button (the square with an arrow).",
+      "step2": "2. Choose “Add to Home Screen”.",
+      "step3": "3. Open the new Numbers icon, sign in there, and turn notifications on.",
+      "note": "The installed app counts as a new device for signing — if you e-sign, approve it from here when it asks. If you stop partway, the app will remind you to finish; nothing is lost.",
+      "started": "I’ve added it",
+      "marked": "Great — continue in the installed app."
+    },
+    "iosOld": {
+      "body": "This iPhone’s software is too old for web notifications — iOS 16.4 or later is required."
+    },
+    "unsupported": {
+      "body": "This browser can’t receive push notifications."
+    },
+    "denied": {
+      "title": "Notifications are blocked by this browser",
+      "desktop": "Click the lock icon in the address bar → “Site settings” → allow Notifications, then try again.",
+      "ios": "Remove the app icon from your Home Screen and add it again (Share → “Add to Home Screen”), then choose Allow when asked. Removing the icon also removes this device’s signing key — you’ll approve this device again afterwards."
+    },
+    "runtime": {
+      "reconnect": "Reconnect",
+      "reconnectBody": "Notifications are on for your account, but this device stopped receiving them.",
+      "resumeBody": "Finish setting up notifications — you’re almost there.",
+      "openSettings": "Open settings",
+      "dismiss": "Dismiss",
+      "open": "Open",
+      "openWhenReady": "A notification arrived — open it when you’re ready (your receipts are still processing)."
+    },
+    "activity": {
+      "title": "Recent activity",
+      "deletedClaim": "a deleted claim",
+      "byName": "by {name}"
+    }
   }
 }

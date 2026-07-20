@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getFormatter, getTimeZone, getTranslations } from "next-intl/server";
-import { currentUserId } from "@/auth";
+import { currentUserId, signInPath } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { formatCents } from "@/lib/money";
 import { relativeDateLabel } from "@/lib/date-label";
@@ -24,7 +24,7 @@ const STATUS_KEYS = ["generated", "submitted", "rejected", "approved", "paid"] a
 
 export default async function ClaimsPage() {
   const userId = await currentUserId();
-  if (!userId) redirect("/signin");
+  if (!userId) redirect(signInPath("/claims"));
 
   const claims = await prisma.reimbursement.findMany({
     where: { userId },

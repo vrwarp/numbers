@@ -46,6 +46,8 @@ export interface EsignClaim extends ClaimRef {
   approverUserId: string | null;
   totalCents: number;
   checkNumber?: string;
+  /** Serialized by the claim GET; drives the §5 de-personalized stall note. */
+  submittedAt?: string | null;
   /** Assigned approver's routing availability (server-computed mirror state,
    *  A9/A10) — drives the owner's waiting/reassign notices while submitted. */
   approverInfo?: { name: string; availability: "available" | "paused" | "ineligible" } | null;
@@ -211,6 +213,19 @@ export default function EsignPanel({
           {t("waitingFor", { name: claim.approverInfo.name })}
         </p>
       )}
+      {/* §5 equity backstop (docs/NOTIFICATIONS_DESIGN.md): plain elapsed
+          time, de-personalized ("you have an option", not "they are slow"),
+          and charitable about why — notifications die silently all the time.
+          No push involved; this works identically for push-less approvers. */}
+      {claim.status === "submitted" &&
+        claim.submittedAt &&
+        Date.now() - new Date(claim.submittedAt).getTime() > 7 * 24 * 60 * 60 * 1000 && (
+          <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="stalled-note">
+            {t("stalledNote", {
+              days: Math.floor((Date.now() - new Date(claim.submittedAt).getTime()) / 86_400_000),
+            })}
+          </p>
+        )}
       {claim.status === "submitted" && claim.approverInfo?.availability === "paused" && (
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="approver-paused-note">
           {t("approverPausedNote", { name: claim.approverInfo.name })}

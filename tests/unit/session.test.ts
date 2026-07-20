@@ -21,10 +21,13 @@ describe("session tokens", () => {
     expect(verifySessionToken(`${payload}.AAAA${sig.slice(4)}`)).toBeNull();
   });
 
-  it("rejects an expired token", () => {
-    const thirtyOneDaysMs = 31 * 24 * 60 * 60 * 1000;
-    const token = signSessionToken("user_123", Date.now() - thirtyOneDaysMs);
-    expect(verifySessionToken(token)).toBeNull();
+  it("rejects an expired token (90-day lifetime)", () => {
+    // 90-day fixed session — docs/NOTIFICATIONS_DESIGN.md §8.8/§15 #1.
+    const days = (n: number) => n * 24 * 60 * 60 * 1000;
+    const expired = signSessionToken("user_123", Date.now() - days(91));
+    expect(verifySessionToken(expired)).toBeNull();
+    const stillValid = signSessionToken("user_123", Date.now() - days(31));
+    expect(verifySessionToken(stillValid)).toBe("user_123");
   });
 
   it("rejects garbage", () => {

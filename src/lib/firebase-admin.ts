@@ -43,6 +43,9 @@ export function firebaseWebConfig() {
     authDomain,
     projectId,
     appId: configValue("FIREBASE_APP_ID") || undefined,
+    // FCM web push (docs/NOTIFICATIONS_DESIGN.md §13): the sender id is
+    // client-safe config like the rest; absent unless push is set up.
+    messagingSenderId: configValue("FIREBASE_MESSAGING_SENDER_ID") || undefined,
   };
 }
 

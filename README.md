@@ -13,6 +13,8 @@ workflow** routes the claim from requestor to approver to treasurer — DocuSign
 tap-to-sign on the actual form, an in-person vouching ceremony instead of passwords, and an
 approval certificate whose QR code lets anyone audit the signatures without an account. It
 ships **switched off**; see [Electronic signatures & approvals](#electronic-signatures--approvals).
+An optional [push-notification layer](#push-notifications) (also off by default) tells the
+right person when a claim is waiting on them, without becoming something the workflow depends on.
 
 It self-hosts as a **single Docker container** with SQLite and local file storage — backups are
 just a copy of the `/data` folder.
@@ -143,6 +145,65 @@ Dev and CI never need any of this: `ESIGN_MOCK=1` runs the identical protocol (r
 cryptography, real ceremonies) on SQLite stores, and the committed e2e suite runs the real
 Firestore backend against the **Firebase emulator** — see Tests below.
 
+## Push notifications
+
+Because the app is opened a few times a month, the person who needs to act on a claim often
+doesn't know it's waiting. An **optional** push-notification layer (Firebase Cloud Messaging,
+web push) closes that gap: the named approver hears that a claim awaits their signature, the
+owner hears when it's approved / needs changes / paid, treasurers hear when something's ready
+to pay. It ships **switched off**, is opt-in per person, and is designed to *never* be
+load-bearing — a member with notifications off has exactly today's experience.
+
+- **An acceleration layer, not a source of truth.** The in-app badges and a new home-page
+  **activity list** stay authoritative and sufficient; push just delivers the same facts
+  sooner. Every event is recorded for the activity list regardless of anyone's push
+  preferences, so a member with notifications off still sees "Your claim was approved" the
+  next time they open the app — push merely delivers it to their lock screen first.
+- **Opt-in, with an honest on-ramp.** Turning it on happens on the profile page behind a
+  soft-ask that names what you'll be told about and the one reliable off-switch, *then* asks
+  the browser's permission. The card never shows a dead toggle: WeChat/Line in-app browsers
+  are told to open in Safari, an iPhone is walked through *Add to Home Screen* first (iOS only
+  delivers web push to an installed app), and an iOS version too old to support it says so
+  plainly. Categories (signing / my claims / payments / security) are individually toggleable
+  and only shown to people they can fire for.
+- **Lock screens stay discreet.** Payloads carry a title, a short label, and a tap route —
+  **never** dollar amounts, reviewer notes, or a claim's free-text description. An optional
+  *discreet previews* mode makes them fully outcome- and name-neutral for shared family
+  devices. Whether a notification was delivered, seen, or tapped is never recorded.
+- **The trust model is preserved.** The e-sign design keeps the server unable to touch the
+  Firestore ledger. Sending push needs a Google service account — so this one uses a **custom
+  IAM role holding exactly `cloudmessaging.messages.create`** and nothing else; it can send
+  messages but cannot read or write Firestore. The admin health card verifies that scope and
+  warns in red if the account can do more.
+
+The full contract (event catalog, delivery pipeline, preference model, trust amendments) is in
+[`docs/NOTIFICATIONS_DESIGN.md`](docs/NOTIFICATIONS_DESIGN.md).
+
+### Setting up push (Firebase)
+
+Entirely optional — leave it unconfigured and the app runs exactly as before (badges and the
+activity list are the baseline). The step-by-step console walkthrough, written for someone who
+has never opened the Google Cloud IAM screen, is [`docs/PUSH_SETUP.md`](docs/PUSH_SETUP.md); in
+short:
+
+1. **Firebase console → Project settings → Cloud Messaging**: copy the **Sender ID**
+   (`FIREBASE_MESSAGING_SENDER_ID`) and generate a **Web Push certificate** key pair
+   (`FIREBASE_VAPID_PUBLIC_KEY`). Both are client-safe.
+2. **Google Cloud → IAM & Admin → Roles → Create role** *first*: add exactly the one
+   permission `cloudmessaging.messages.create`. Then create a **service account**, grant it
+   *only* that custom role, and download a JSON key. Never grant "Firebase Admin" — a broad
+   role would let the server touch the signature ledger and void the e-sign trust model (the
+   admin health card checks for this).
+3. Paste the values into **Admin → Settings → Push** (the service-account JSON is
+   multi-line, so `<DATA_DIR>/config.json` / the admin editor is its home, not shell env).
+   The health card should read *Sending*; then **Profile → Notifications → Send myself a
+   test**.
+
+iPhones receive push only from the installed Home-Screen app (iOS 16.4+), so the
+`FIREBASE_AUTH_PROXY` sign-in fix below is a practical prerequisite there. Dev and tests never
+need any of this: **`PUSH_MOCK=1`** records deliveries to a local file instead of FCM and
+registers synthetic tokens, so the whole pipeline runs offline.
+
 ## Languages — English · 简体中文 · 繁體中文
 
 The UI ships in English, Simplified Chinese (mainland-China audience), and Traditional Chinese
@@ -189,6 +250,7 @@ currently machine drafts awaiting review by a native speaker.
 | PDF engine | pdf-lib — fills + flattens the official form's AcroForm fields, merges receipts; CJK values drawn with a bundled Noto face (subset-embedded via fontkit) |
 | Localization | next-intl — `en` / `zh-Hans` / `zh-Hant` catalogs in `messages/`, typed keys, AI-drafted + human-reviewed translation pipeline |
 | E-signatures | [charproof](https://github.com/vrwarp/charproof) (client-side ECDSA identities, AMK multi-device keystore, phrase/passkey recovery) over append-only encrypted ledgers on Cloud Firestore; pdf.js renders the packet in-browser for tap-to-sign; all verification re-runs client-side (the server never holds Firestore credentials) |
+| Push notifications | Firebase Cloud Messaging web push (optional, opt-in); a durable outbox + in-process worker mirror the search-index queue; sent via a messaging-only service account; the service worker is served as a route (runtime config, no build-time secrets) |
 
 Money is stored as **integer cents** everywhere; users only ever see dollars.
 
@@ -317,6 +379,10 @@ See [`config.json.example`](config.json.example) for a full template (`cp config
 | `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID` | Firebase web-app config ([console](https://console.firebase.google.com) → Project settings → Your apps). Enable the **Google** provider under Authentication → Sign-in method and add your app's domain to Authentication → Authorized domains. These values are client-safe |
 | `FIREBASE_APP_ID` | Optional, from the same Firebase web-app config |
 | `FIREBASE_AUTH_PROXY` | Set to `1` to fix Google sign-in on iOS/WebKit by serving Firebase's sign-in helper from this app's own origin (see [iOS / in-app-browser sign-in](#ios--in-app-browser-sign-in) below). Requires `PUBLIC_BASE_URL` plus two console entries |
+| `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_VAPID_PUBLIC_KEY` | Optional [push notifications](#push-notifications) — the client-safe half (Firebase console → Cloud Messaging). Unset → the feature stays dormant |
+| `FCM_SERVICE_ACCOUNT_JSON` | The push **sending** credential: a service account whose custom IAM role holds only `cloudmessaging.messages.create` (never "Firebase Admin"). Multi-line JSON — best supplied via `config.json` / the admin editor. Write-only; never returned by any API |
+| `NOTIFY_PAUSED` | Set to `1` to stop all push sending without a redeploy (events keep recording); the deployment kill-switch |
+| `NOTIFY_QUIET` | Optional hold-then-send window for claim notifications, e.g. `21:30-08:00,sun:09:00-12:30` (server time). Off by default — device Do-Not-Disturb is usually the better tool. Device security alerts are never held |
 | `AI_PROVIDER` | Extraction backend: `openrouter` (default) or `google` (Google AI Studio / Gemini API) |
 | `OPENROUTER_API_KEY` | OpenRouter API key ([openrouter.ai/keys](https://openrouter.ai/keys)) |
 | `OPENROUTER_MODEL` | Vision-capable OpenRouter model id, default `google/gemini-3.1-flash-lite` |
@@ -328,7 +394,7 @@ See [`config.json.example`](config.json.example) for a full template (`cp config
 | `DATA_DIR` / `DATABASE_URL` | Preset in the image (`/data`, `file:/data/numbers.db`) |
 | `TEMPLATE_PDF` | Optional path to a replacement blank form (must keep the same AcroForm field names) |
 | `CJK_FONT_PATH` | Optional replacement font for Chinese text on generated PDFs (default: the bundled Noto Sans CJK face) |
-| `AI_MOCK`, `AUTH_TEST_MODE`, `ESIGN_MOCK`, `FIRESTORE_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST` | Dev/test only — never set in production |
+| `AI_MOCK`, `AUTH_TEST_MODE`, `ESIGN_MOCK`, `PUSH_MOCK`, `FIRESTORE_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST` | Dev/test only — never set in production (`PUSH_MOCK=1` records push deliveries to a local file instead of FCM) |
 
 ### iOS / in-app-browser sign-in
 
@@ -408,7 +474,8 @@ template file itself is never modified.
 ## Data model
 
 - `users` — Firebase identity, full name, mailing address (printed on the form), role
-  (mirrored from signed roster events), UI language (`locale`)
+  (mirrored from signed roster events), UI language (`locale`), and per-user
+  notification preferences (`notify*` — master switch + category toggles, off by default)
 - `receipts` — file path, MIME type, size, status `unassigned → processed`, extraction-stamped
   merchant/date/printed totals
 - `reimbursements` — status `draft → generated` (+ e-sign: `submitted | rejected | approved |
@@ -420,3 +487,6 @@ template file itself is never modified.
   (verified mirror + drawn signature), raw ledger-event mirrors, signature records, and the
   per-hash archive ledger that keeps signed packets verifiable even after a claim is deleted;
   `Esign*` mock stores stand in for Firestore in dev/tests only
+- push tables — `push_tokens` (one FCM registration token per device, owner-scoped, never
+  returned by any API) and `notification_jobs` (the durable outbox, which also backs the
+  in-app activity list; 90-day retention)

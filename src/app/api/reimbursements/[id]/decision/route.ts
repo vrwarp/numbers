@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
+import { notifyDecision } from "@/lib/notifications/enqueue";
 import { canonicalStringify, sha256Hex } from "@/lib/esign/canonical";
 import { CONSENT_TEXT, CONSENT_VERSION } from "@/lib/esign/consent";
 import {
@@ -230,6 +231,19 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       }),
     ]);
     await recordSignature(id, userId, event);
+    // Owner learns the outcome; on approve the finance duty gains work
+    // (docs/NOTIFICATIONS_DESIGN.md §5 — fire-and-forget, never gates).
+    notifyDecision(
+      {
+        id,
+        userId: claim.userId,
+        submitSeq: claim.submitSeq,
+        claimEvent: claim.claimEvent,
+        approverUserId: claim.approverUserId,
+      },
+      newStatus === "approved" ? "approved" : "rejected",
+      userId
+    );
     return NextResponse.json({ ok: true, status: newStatus });
   });
 }

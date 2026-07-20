@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { currentUserId } from "@/auth";
+import { currentUserId, signInPath } from "@/auth";
 import { searchCapabilitiesFor } from "@/lib/roles";
 import { embeddingEnabled } from "@/lib/embeddings/settings";
 import SearchClient from "@/components/SearchClient";
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
  *  touch; the whole surface 404s while the feature is unconfigured. */
 export default async function SearchPage() {
   const userId = await currentUserId();
-  if (!userId) redirect("/signin");
+  if (!userId) redirect(signInPath("/search"));
   if (!(await embeddingEnabled())) {
     // Bookmarked /search links land here between config changes — a bare 404
     // reads as "broken", not "not set up". (The API keeps its plain 404.)

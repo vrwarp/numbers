@@ -11,13 +11,14 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import OverviewTab from "./OverviewTab";
 import ChurchContextTab from "./ChurchContextTab";
+import SetupTab from "./SetupTab";
 import SettingsTab from "./SettingsTab";
 import UsageTab from "./UsageTab";
 import LogsTab from "./LogsTab";
 import MembersTab from "./MembersTab";
 import SearchIndexTab from "./SearchIndexTab";
 
-const TABS = ["overview", "context", "settings", "search", "usage", "logs", "members"] as const;
+const TABS = ["overview", "setup", "context", "settings", "search", "usage", "logs", "members"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function AdminDashboard() {
@@ -55,6 +56,7 @@ export default function AdminDashboard() {
 
       <div>
         {tab === "overview" && <OverviewTab onNavigate={setTab} />}
+        {tab === "setup" && <SetupTab />}
         {tab === "context" && <ChurchContextTab />}
         {tab === "settings" && <SettingsTab />}
         {tab === "search" && <SearchIndexTab />}

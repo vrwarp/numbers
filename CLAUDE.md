@@ -34,8 +34,11 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    Dollars exist only at UI/LLM boundaries. Never do float arithmetic on money.
 2. **Every API route** wraps its body in `handleApi()` and starts with `await requireUserId()`
    (`src/lib/api.ts`); every Prisma query filters by that `userId`. Cross-tenant access returns
-   **404**, never 403. Sole exception: `GET /c/[token]` — the QR capability link on generated
-   PDFs, where the unguessable `publicToken` is the credential (still 404 on any miss).
+   **404**, never 403. Named exceptions: `GET /c/[token]` — the QR capability link on
+   generated PDFs, where the unguessable `publicToken` is the credential (still 404 on any
+   miss) — and `GET /firebase-messaging-sw.js`, the push service worker, which browsers
+   re-validate after session expiry and which serves only static handler code
+   (docs/NOTIFICATIONS_DESIGN.md §7.0).
 3. **Human-in-the-loop gate**: PDF generation requires every non-excluded line item
    `isVerified` with a non-empty `ministry` (the AI may *suggest* a ministry via the Suggest
    feature but never assigns or verifies one — a human applies suggestions; verifying a
@@ -119,6 +122,18 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    (`src/lib/teams-catalog.ts`), never role- or `ADMIN_EMAILS`-derived; A10
    pauses don't apply; same pre-filter + hydration re-check discipline.
 
+12. **Push notifications are an acceleration layer, never load-bearing**
+   (`docs/NOTIFICATIONS_DESIGN.md` is the contract): enqueues are fire-and-forget and can
+   never gate or fail a mutation (the invariant-11 discipline); `NotificationJob` rows are
+   written UNCONDITIONALLY of preferences (they feed the in-app activity list — parity for
+   push-less users) and preferences are consulted only at send time; every route that lands
+   a submit/decision/paid transition enqueues — `reconcile` included; push payloads carry
+   titles/labels/routes, never amounts, reviewer notes, or `claimDescription`; tokens are
+   never returned by any GET; the sending service account stays messaging-only
+   (`cloudmessaging.messages.create` — the §12 health card checks); seen/tapped state is
+   never recorded. Every user-visible push string lives in `messages/*.json` under
+   `Notifications.*` and is composed at send/render time, never stored.
+
 ## Docs map
 
 - `docs/agent/ARCHITECTURE.md` — file map, request flows, PDF field names, env vars
@@ -126,6 +141,9 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
   ceremonies, attack/defense matrix (ratified design, now implemented)
 - `docs/SEARCH_DESIGN.md` — semantic search: embedding ingest queue/worker, exact-match
   pass, permission matrix, admin runtime config (ratified design, now implemented)
+- `docs/NOTIFICATIONS_DESIGN.md` — push notifications: catalog, outbox worker, preference
+  model, iOS onboarding, trust amendments (ratified v6, implemented; setup:
+  `docs/PUSH_SETUP.md`)
 - `docs/agent/DATA_MODEL.md` — schema semantics, state machines, invariants per table
 - `docs/agent/CONVENTIONS.md` — code patterns + gotchas that have already bitten (read before UI/test work)
 - `docs/agent/TESTING.md` — how suites run, how to write tests here, known failure modes

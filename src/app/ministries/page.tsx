@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { currentUser } from "@/auth";
+import { currentUser, signInPath } from "@/auth";
 import { canManageMinistries } from "@/lib/ministries-guard";
 import BudgetCategories from "@/components/BudgetCategories";
 
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function MinistriesPage() {
   const user = await currentUser();
-  if (!user) redirect("/signin");
+  if (!user) redirect(signInPath("/ministries"));
   if (!canManageMinistries(user)) redirect("/");
   return <BudgetCategories />;
 }

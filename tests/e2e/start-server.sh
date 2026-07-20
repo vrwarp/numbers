@@ -8,6 +8,9 @@ export DATABASE_URL="file:$PWD/.e2e-data/numbers.db"
 export AUTH_SECRET="e2e-secret-0123456789abcdef0123456789abcdef"
 export AUTH_TEST_MODE="1"
 export AI_MOCK="1"
+# Push notifications in mock mode: full queue/worker/preference pipeline,
+# synthetic client tokens, deliveries recorded to .e2e-data/push-mock.jsonl.
+export PUSH_MOCK="1"
 
 # Semantic search e2e (SEARCH_DESIGN §11): the app talks to a local REPLAY
 # server that serves REAL vectors recorded from the live endpoint

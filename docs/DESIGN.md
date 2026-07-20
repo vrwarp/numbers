@@ -72,6 +72,15 @@ additional moving part is a future 10pm phone call. SQLite handles this workload
 hundreds of receipts a year) with five orders of magnitude of headroom, and a single `/data`
 folder makes backup a Synology scheduled-copy task.
 
+**Background work stays inside the one process.** Two later features — semantic search and
+push notifications — need durable work queues, but neither adds a service: each is a table
+plus an **in-process worker** started from Next.js instrumentation, draining fire-and-forget
+enqueues. The discipline is identical and load-bearing: enqueues can never gate or fail the
+mutation that triggered them (a search re-index or a missed push must never block a claim
+edit), so the single-container, copy-a-folder shape survives. Search is documented in
+[`SEARCH_DESIGN.md`](SEARCH_DESIGN.md); notifications (an optional Firebase Cloud Messaging
+web-push layer, off by default) in [`NOTIFICATIONS_DESIGN.md`](NOTIFICATIONS_DESIGN.md).
+
 ---
 
 ## 3. The user journey and its state machine
@@ -358,6 +367,7 @@ pure return triggered by "return"), so every downstream number is predictable to
 | 10 | 13 rows per form page | Blueprint said ~8 | The real form has a 13-row table; the form wins over the spec. |
 | 11 | Totals-first extraction: one line item per receipt | Per-item extraction (the original design) | Itemization was chronically finicky across merchant formats (Amazon refund sections, pooled tax, shipping rebates) and every wrong penny cost a human correction. Itemized rows only mattered for the rare multi-ministry receipt, which Split already covers — and real splits rarely align with line items anyway. The model now *transcribes* two printed numbers (total, refund total) and spends its item-reading on the description; the UI shows the net derivation so the human verifies a subtraction, not a bare figure. |
 | 12 | Background annotation at upload, throttled to ~1 receipt/minute | Extraction at claim time (the original #4); burst extraction at upload | Claim-time extraction made the user sit through the whole batch at the worst moment (they're ready to file NOW), and burst-at-upload would eat the provider's small RPM budget exactly when interactive calls (suggestions, claim-time fallback) need it. A slow drip annotates the shoebox while nobody is waiting, so claim creation is instant for annotated receipts; the drip shares the same process-wide RPM limiter, and anything the worker hasn't reached still extracts inline at claim time — behavior degrades to exactly the old model, never worse. The receipt is read ONCE and every claim reuses the stored annotation (a human manual entry outranks and is never overwritten). |
+| 13 | Push notifications as an opt-in acceleration layer | Load-bearing notifications; email/SMS; no notifications (the prior decision) | A few-times-a-month app leaves the person who must act unaware that work is waiting — the polled badge is the only signal. Push closes that gap, but the badges + a new in-app activity list stay authoritative, so a member with push off loses nothing. Sending needs a Google service account — the first server-held Firebase credential — so it uses a **custom IAM role scoped to `cloudmessaging.messages.create` only**, preserving the e-sign guarantee that the server cannot touch the ledger. Quiet hours ship **dormant** (device Do-Not-Disturb is the better per-person tool), and payloads never carry amounts or notes. Full rationale + the 5-round UXR critique log: [`NOTIFICATIONS_DESIGN.md`](NOTIFICATIONS_DESIGN.md). |
 
 ---
 

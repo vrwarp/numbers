@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { currentUser } from "@/auth";
+import { currentUser, signInPath } from "@/auth";
 import { canViewMembers } from "@/lib/members-guard";
 import MembersDirectory from "@/components/MembersDirectory";
 
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function MembersPage() {
   const user = await currentUser();
-  if (!user) redirect("/signin");
+  if (!user) redirect(signInPath("/members"));
   if (!canViewMembers(user)) redirect("/");
   return <MembersDirectory />;
 }

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { currentUser } from "@/auth";
+import { currentUser, signInPath } from "@/auth";
 import { canManagePositions } from "@/lib/positions-guard";
 import Positions from "@/components/Positions";
 
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function PositionsPage() {
   const user = await currentUser();
-  if (!user) redirect("/signin");
+  if (!user) redirect(signInPath("/positions"));
   if (!canManagePositions(user)) redirect("/");
   return <Positions />;
 }
