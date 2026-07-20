@@ -681,11 +681,17 @@ The year is **denormalized onto the Embedding row at write time** (`year` column
 grouping needs no joins:
 
 - **Receipt**: `purchaseDate` prefix (`YYYY` of the transcription string) when it
-  looks like a date; else `createdAt` year. A substring read of a transcription for
+  looks like a date; else `createdAt` year **in the app time zone** (`TIME_ZONE`,
+  `appTimeZone()`). The prefix path is a substring read of a transcription for
   display bucketing — not date arithmetic (invariant respected). `purchaseDate` is in
   the staleness fingerprint (§4), so a re-extraction that changes it re-embeds and
-  re-buckets the receipt.
-- **Claim**: `submittedAt ?? createdAt` year; the submit trigger (§5.2) re-buckets.
+  re-buckets the receipt. The fallback year is NOT in the fingerprint, so the daily
+  sweep also reconciles a drifted `year` column in place (plain DB write, no
+  re-embed) — e.g. after an admin changes `TIME_ZONE`.
+- **Claim**: `submittedAt ?? createdAt` year in the app time zone; the submit
+  trigger (§5.2) re-buckets. The composite's `MM/YYYY` tail (§5.1) uses the same
+  zone, so a `TIME_ZONE` change that moves a claim's month label changes its
+  fingerprint and the sweep re-embeds exactly those claims.
 
 ## 7. UI design
 

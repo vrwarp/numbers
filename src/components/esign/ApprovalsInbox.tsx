@@ -11,8 +11,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useOpenParam } from "@/lib/use-open-param";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
-import { useTranslations } from "next-intl";
+import { useTimeZone, useTranslations } from "next-intl";
 import { formatCents } from "@/lib/money";
+import { DEFAULT_TIME_ZONE, formatDateMMDDYYYY } from "@/lib/timezone";
 import ClaimSummaryRow from "./ClaimSummaryRow";
 import { LedgerCommittedError, runDecisionCeremony, warmClaimVerification } from "@/lib/esign/client";
 import { CONSENT_TEXT } from "@/lib/esign/consent";
@@ -258,11 +259,10 @@ function DecisionCeremony({
   const [nameField, setNameField] = useState<FieldAnchor | null>(null);
   const [dateField, setDateField] = useState<FieldAnchor | null>(null);
   const [placement, setPlacement] = useState<SignaturePlacement | null>(null);
-  // The date the certificate route stamps is the signing time — "today" here.
-  const [today] = useState(() => {
-    const d = new Date();
-    return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
-  });
+  // The date the certificate route stamps is the signing time — "today" here,
+  // in the app time zone so the preview matches the server-stamped copy.
+  const timeZone = useTimeZone() ?? DEFAULT_TIME_ZONE;
+  const [today] = useState(() => formatDateMMDDYYYY(new Date(), timeZone));
 
   const prefilled = useRef(false);
   useEffect(() => {

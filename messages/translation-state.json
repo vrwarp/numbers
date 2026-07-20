@@ -5504,6 +5504,18 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Admin.fields_TIME_ZONE_label": {
+    "source": "Time zone",
+    "context": "Admin settings field label (deployment group) for the app-wide display time zone. One or two words.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_TIME_ZONE_help": {
+    "source": "The time zone dates are shown and stamped in: “Today” labels, the date printed on generated and approved claim forms, and the usage chart’s days. An IANA name like America/Los_Angeles. Blank uses America/Los_Angeles (Hayward). Takes effect immediately.",
+    "context": "Help text under the time-zone field in admin deployment settings. “IANA name” is the technical zone-name standard — keep “America/Los_Angeles” verbatim (never translated). Hayward is the church’s city (海沃, see GLOSSARY).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Admin.tab_search": {
     "source": "Search",
     "context": "Admin dashboard tab label. Same word as the user-facing Search title (搜索/搜尋).",

@@ -9,6 +9,7 @@ import {
   FORM_ROWS_PER_PAGE,
   IMAGE_TARGET_BYTES,
   adminEmails,
+  appTimeZone,
   dataDir,
   esignEmulatorHosts,
   esignRootEmail,
@@ -44,6 +45,7 @@ const TEST_KEYS = [
   "FIRESTORE_EMULATOR_HOST",
   "FIREBASE_AUTH_PROXY",
   "FIREBASE_AUTH_DOMAIN",
+  "TIME_ZONE",
 ];
 
 const oldEnv = { ...process.env };
@@ -66,6 +68,20 @@ describe("constants", () => {
     expect(DEFAULT_RPM_TARGET).toBe(15);
     expect(DEFAULT_QUOTA_COOLDOWN_MS).toBe(60_000);
     expect(DEFAULT_QUOTA_MAX_RETRIES).toBe(3);
+  });
+});
+
+describe("appTimeZone", () => {
+  it("defaults to Hayward's zone and rejects invalid names", () => {
+    expect(appTimeZone()).toBe("America/Los_Angeles"); // unset → default
+    process.env.TIME_ZONE = "America/New_York";
+    expect(appTimeZone()).toBe("America/New_York");
+    process.env.TIME_ZONE = "  Asia/Taipei  ";
+    expect(appTimeZone()).toBe("Asia/Taipei"); // trimmed
+    process.env.TIME_ZONE = "Not/A_Zone";
+    expect(appTimeZone()).toBe("America/Los_Angeles"); // invalid → default, never throws
+    process.env.TIME_ZONE = "";
+    expect(appTimeZone()).toBe("America/Los_Angeles");
   });
 });
 

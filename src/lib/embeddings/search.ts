@@ -9,6 +9,8 @@ import { cachedQueryVector, storeQueryVector } from "./query-cache";
 import { indexEntries, dot, type IndexEntry } from "./index-cache";
 import { exactMatchPass, type ExactScope } from "./exact";
 import { formatMinistryEvent } from "@/lib/ministries";
+import { appTimeZone } from "@/lib/config";
+import { zonedYear } from "@/lib/timezone";
 
 /** The search engine behind POST /api/search (docs/SEARCH_DESIGN.md §6). */
 
@@ -110,7 +112,7 @@ async function hydrate(
         ownerId: r.userId,
         year: /^(\d{4})-/.test(r.purchaseDate)
           ? Number(r.purchaseDate.slice(0, 4))
-          : r.createdAt.getUTCFullYear(),
+          : zonedYear(r.createdAt, appTimeZone()),
         ownerName: includeOwner
           ? r.user?.fullName || r.user?.email || undefined
           : undefined,
@@ -146,7 +148,7 @@ async function hydrate(
         ownerName: includeOwner ? c.user.fullName || c.user.email : undefined,
         ownerId: c.userId,
         approverUserId: c.approverUserId,
-        year: (c.submittedAt ?? c.createdAt).getUTCFullYear(),
+        year: zonedYear(c.submittedAt ?? c.createdAt, appTimeZone()),
         createdAt: c.createdAt.toISOString(),
       });
     }

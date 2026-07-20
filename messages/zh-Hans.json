@@ -1026,6 +1026,8 @@
     "fields_FIREBASE_AUTH_UPSTREAM_HOST_help": "高级选项。第一方登录代理转发到的主机。留空则由项目 id 推导（project.firebaseapp.com），普通项目使用即可——仅在特殊的 Firebase 配置下才需设置。",
     "fields_ADMIN_EMAILS_label": "管理员邮箱",
     "fields_ADMIN_EMAILS_help": "获得本区域管理权限的邮箱，用逗号分隔——在不使用电子签署名册的情况下添加管理员的方式。仅授予应用访问权限，不会更改任何人的签署角色。立即生效；请保留你自己的邮箱，以免把自己锁在外面。",
+    "fields_TIME_ZONE_label": "时区",
+    "fields_TIME_ZONE_help": "日期显示与盖印所用的时区：“今天”标签、生成及批准的报销表上打印的日期，以及用量图表的日期。填 IANA 名称，如 America/Los_Angeles。留空则使用 America/Los_Angeles（海沃）。立即生效。",
     "tab_search": "搜索",
     "search": {
       "loading": "加载中…",
