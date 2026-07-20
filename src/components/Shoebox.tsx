@@ -116,6 +116,18 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
     load();
   }, [load]);
 
+  // Cards flip "waiting to be read" → "✓ merchant · amount" as the background
+  // worker gets to them (one receipt a minute) — refresh at a gentle cadence
+  // while any card still waits, so the chips move without a manual reload.
+  const hasPendingAnnotation = (receipts ?? []).some((r) => r.annotation === "pending");
+  useEffect(() => {
+    if (!hasPendingAnnotation) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") void load();
+    }, 15_000);
+    return () => clearInterval(timer);
+  }, [hasPendingAnnotation, load]);
+
   // Recover photos stranded by an interrupted visit (app switch, tab
   // reclaim): re-queue them through the same prepare dialog, flagged so it
   // can say where they came from.

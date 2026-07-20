@@ -120,7 +120,10 @@
     "noteAria": "{name} 的说明",
     "meta": "{date} · {kb} KB",
     "processedSuffix": " · 已处理",
-    "claimChip": "报销单"
+    "claimChip": "报销单",
+    "annotationPending": "等待读取…",
+    "annotationFailed": "无法自动读取",
+    "annotationReadyTitle": "已自动读取——报销单核对时你会再确认细节"
   },
   "PdfPreview": {
     "chip": "PDF 收据",
@@ -1010,6 +1013,8 @@
     "fields_AI_QUOTA_COOLDOWN_MS_help": "遇到限流错误后，重试前等待的时长（毫秒）。等待过程会显示给正在建单的人。默认 60000（一分钟）。",
     "fields_AI_QUOTA_MAX_RETRIES_label": "限流重试次数",
     "fields_AI_QUOTA_MAX_RETRIES_help": "遇到限流错误后放弃前的重试次数（0 表示立即报错）。适用于收据识别；交互式“建议”调用从不等待。默认 3。",
+    "fields_EXTRACTION_PACE_MS_label": "后台读取节奏（毫秒）",
+    "fields_EXTRACTION_PACE_MS_help": "后台收据读取器两次 AI 调用之间的最小间隔（毫秒）。它会自动读取新上传的收据，之后建报销单即刻完成；保持较慢的节奏，把每分钟的 AI 额度留给正在填报的人。0 表示不设间隔。默认 60000（每分钟一张）。",
     "fields_PUBLIC_BASE_URL_label": "公开网址",
     "fields_PUBLIC_BASE_URL_help": "本部署的公开网址。设置后，生成的 PDF 会带一个指向报销包的二维码，签名证书也会链接到它。反向代理会隐藏真实网址，因此在此显式设置。更改只影响此后生成的 PDF；下方的第一方登录也需要它。",
     "fields_ESIGN_ROOT_EMAIL_label": "电子签署根账户邮箱",

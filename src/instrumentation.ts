@@ -8,6 +8,17 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   if (process.env.NEXT_PHASE === "phase-production-build") return;
+
+  // Background receipt annotation (same guard spirit: in dev it needs AI_MOCK
+  // or an explicit EXTRACTION_DEV=1 so a real key never quietly burns quota).
+  const { extractionAllowedInThisEnv } = await import("./lib/extraction/settings");
+  if (extractionAllowedInThisEnv()) {
+    const { startExtractionWorker } = await import("./lib/extraction/worker");
+    const ge = globalThis as { __extractWorker?: { stop(): void } };
+    ge.__extractWorker?.stop();
+    ge.__extractWorker = startExtractionWorker();
+  }
+
   const { embeddingAllowedInThisEnv } = await import("./lib/embeddings/settings-shared");
   if (!embeddingAllowedInThisEnv()) return;
   const { startEmbeddingWorker } = await import("./lib/embeddings/worker");

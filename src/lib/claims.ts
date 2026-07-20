@@ -9,14 +9,22 @@ import {
 } from "@/lib/ai/extract";
 import { isQuotaErrorMessage } from "@/lib/ai/throttle";
 import { rpmTarget } from "@/lib/config";
-import { composeDescription } from "@/lib/ai/compose";
-import { parseDollarsToCents } from "@/lib/money";
+import {
+  annotationClaimRow,
+  isAnnotated,
+  outcomeClaimRow,
+  type ClaimExtraction,
+} from "@/lib/claims-rows";
+import { completeAnnotationJobs } from "@/lib/extraction/queue";
 import type { ClaimStreamMessage } from "@/lib/claim-stream";
+
+export type { ClaimExtraction } from "@/lib/claims-rows";
 
 /**
  * Shared machinery for the two claim-building routes (create a claim, add
- * receipts to a draft): per-receipt AI extraction with all-or-nothing failure
- * handling, and the NDJSON progress-stream response. SERVER ONLY (prisma).
+ * receipts to a draft): consuming stored background annotations, per-receipt
+ * AI extraction for the receipts the worker hasn't reached, and the NDJSON
+ * progress-stream response. SERVER ONLY (prisma).
  */
 
 export function extractionLogRow(
@@ -27,6 +35,7 @@ export function extractionLogRow(
   return {
     userId,
     reimbursementId,
+    receiptId: outcome.receipt.id,
     model: outcome.meta.model,
     prompt: outcome.meta.prompt,
     receiptsJson: outcome.meta.receiptsJson,
@@ -38,35 +47,13 @@ export function extractionLogRow(
   };
 }
 
-export interface ClaimExtraction {
-  /** Extraction fields to stamp onto the Receipt row. Absent when extraction
-   *  failed and the row is a manual-entry placeholder — the receipt keeps
-   *  whatever metadata it already had. */
-  receiptUpdate?: {
-    id: string;
-    merchant: string;
-    purchaseDate: string;
-    extractedTotalCents: number;
-    extractedRefundCents: number;
-  };
-  /** LineItem create data; sortOrder is the batch index — offset it when
-   *  appending to a claim that already has rows. original* are null on a
-   *  manual-entry row (the AI produced nothing to freeze), matching the
-   *  "human-created row" convention used by splits. */
-  item: {
-    receiptId: string;
-    description: string;
-    amountCents: number;
-    ministry: string;
-    sortOrder: number;
-    originalDescription: string | null;
-    originalAmountCents: number | null;
-  };
-}
-
 /**
- * Run each receipt through the LLM (one call per receipt, throttled to the RPM
- * target with quota-error retries) and map the results to row data.
+ * Build one row per receipt, in the selection order. Receipts the background
+ * worker (or a human, via manual entry) already annotated are consumed
+ * DIRECTLY from the Receipt columns — no AI call, they complete instantly.
+ * Only the rest go through the LLM (one call per receipt, throttled to the
+ * RPM target with quota-error retries), and each success also stamps the
+ * receipt's annotation so the NEXT claim skips the call too.
  *
  * A receipt the model can't read (a blurry photo, or something that isn't a
  * receipt at all) does NOT block the batch: its outcome becomes a blank
@@ -84,14 +71,41 @@ export interface ClaimExtraction {
  * On the success/partial path the outcomes are returned UNlogged so the caller
  * can log them (successes AND failures) with the claim id after its transaction
  * commits. onEvent forwards live extraction progress (per-receipt completion
- * and quota waits).
+ * and quota waits); consumed annotations surface as immediate completions so
+ * the stream's counts stay truthful.
  */
 export async function extractClaimRows(
   userId: string,
   receipts: Receipt[],
   onEvent?: ExtractionEventHandler
 ): Promise<{ outcomes: ReceiptExtraction[]; extractions: ClaimExtraction[] }> {
-  const outcomes = await extractReceipts(receipts, onEvent);
+  const annotated = receipts.filter((r) => isAnnotated(r));
+  const pending = receipts.filter((r) => !isAnnotated(r));
+
+  annotated.forEach((r, i) => {
+    onEvent?.({
+      type: "receipt-done",
+      receiptId: r.id,
+      receiptName: r.originalName,
+      ok: true,
+      completed: i + 1,
+      total: receipts.length,
+    });
+  });
+
+  // Live-extraction events count only the pending subset — offset them so the
+  // stream keeps reporting progress over the WHOLE selection.
+  const offsetEvent: ExtractionEventHandler | undefined = onEvent
+    ? (ev) =>
+        onEvent(
+          ev.type === "receipt-done"
+            ? { ...ev, completed: ev.completed + annotated.length, total: receipts.length }
+            : ev
+        )
+    : undefined;
+
+  const outcomes =
+    pending.length > 0 ? await extractReceipts(pending, offsetEvent) : [];
 
   // Quota / rate-limit failures are transient and batch-wide — keep them
   // all-or-nothing so the user retries rather than getting manual rows for
@@ -115,60 +129,60 @@ export async function extractClaimRows(
     );
   }
 
-  const extractions = outcomes.map((o, i): ClaimExtraction => {
-    // Non-quota failure → a manual-entry placeholder the user fills in during
-    // review. No receiptUpdate: the receipt keeps whatever metadata it had.
-    if (o.result === null) {
-      return {
-        item: {
-          receiptId: o.receipt.id,
-          description: "",
-          amountCents: 0,
-          ministry: "",
-          sortOrder: i,
-          originalDescription: null,
-          originalAmountCents: null,
-        },
-      };
-    }
-    const r = o.result;
-    const totalCents = parseDollarsToCents(r.totalAmount);
-    const refundCents = parseDollarsToCents(r.refundAmount);
-    const description = composeDescription(r);
-    return {
-      receiptUpdate: {
-        id: r.receiptId,
-        merchant: r.merchant,
-        purchaseDate: r.purchaseDate ?? "",
-        extractedTotalCents: totalCents,
-        extractedRefundCents: refundCents,
-      },
-      item: {
-        receiptId: r.receiptId,
-        description,
-        // The suggested amount is a derivation of two printed numbers; the
-        // review UI shows it ("charged X − refunded Y") for the human to
-        // verify against what they actually paid.
-        amountCents: totalCents - refundCents,
-        // The model never assigns ministries; the user picks one per row
-        // during review (a row cannot be verified without one).
-        ministry: "",
-        sortOrder: i,
-        // Frozen AI snapshot for later original-vs-final comparison.
-        originalDescription: description,
-        originalAmountCents: totalCents - refundCents,
-      },
-    };
-  });
+  const outcomeByReceipt = new Map(outcomes.map((o) => [o.receipt.id, o]));
+  const extractions = receipts.map((r, i) =>
+    isAnnotated(r) ? annotationClaimRow(r, i) : outcomeClaimRow(outcomeByReceipt.get(r.id)!, i)
+  );
 
   return { outcomes, extractions };
+}
+
+/**
+ * Post-commit bookkeeping shared by the claim-building routes (non-manual
+ * path only — manual mode consumes nothing and calls nothing):
+ *  - log every fresh AI call against the claim (invariant 7);
+ *  - adopt the batch's still-unlinked background-annotation logs, so the
+ *    claim's telemetry shows the calls that actually produced its rows even
+ *    though they ran before the claim existed;
+ *  - mark the freshly-extracted receipts' queue jobs done, so the background
+ *    worker doesn't re-read what the claim just read.
+ * Never throws: the claim exists — telemetry/queue upkeep must not fail it.
+ */
+export async function recordClaimExtractions(
+  userId: string,
+  reimbursementId: string,
+  receipts: Receipt[],
+  outcomes: ReceiptExtraction[]
+): Promise<void> {
+  try {
+    if (outcomes.length > 0) {
+      await prisma.extractionLog.createMany({
+        data: outcomes.map((o) => extractionLogRow(userId, o, reimbursementId)),
+      });
+    }
+    await prisma.extractionLog.updateMany({
+      where: {
+        userId,
+        kind: "receipt",
+        reimbursementId: null,
+        receiptId: { in: receipts.map((r) => r.id) },
+      },
+      data: { reimbursementId },
+    });
+    completeAnnotationJobs(
+      outcomes.filter((o) => o.result !== null).map((o) => o.receipt.id)
+    );
+  } catch (err) {
+    console.error("claim extraction bookkeeping failed:", err);
+  }
 }
 
 /**
  * Rows for a claim built WITHOUT any AI extraction — the manual escape hatch
  * for when the user would rather type receipts in than wait out a provider
  * rate-limit (or when extraction keeps failing). Every receipt gets the same
- * blank placeholder row a failed extraction produces, to fill in during review.
+ * blank placeholder row a failed extraction produces, to fill in during review
+ * — stored annotations are deliberately ignored: manual means manual.
  * No provider calls are made, so there are no outcomes to telemetry-log.
  */
 export function manualClaimRows(receipts: Receipt[]): ClaimExtraction[] {

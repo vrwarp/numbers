@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useDateLabel } from "@/lib/use-date-label";
+import { formatCents } from "@/lib/money";
 
 /** Thumbnail for a PDF receipt: the top slice of the server-rasterized preview
  *  (browsers can't thumbnail a PDF), falling back to a plain chip if it fails. */
@@ -38,7 +39,9 @@ export interface ClaimRef {
   createdAt: string;
 }
 
-/** A receipt as returned by GET /api/receipts (claims = join data flattened). */
+/** A receipt as returned by GET /api/receipts (claims = join data flattened).
+ *  The annotation fields are optional because the upload POST's slimmer
+ *  response is also cast to this shape; the grid refreshes from the GET. */
 export interface ReceiptSummary {
   id: string;
   originalName: string;
@@ -48,6 +51,11 @@ export interface ReceiptSummary {
   note: string;
   createdAt: string;
   claims: ClaimRef[];
+  /** Background AI read state: ready = a claim can use it without an AI call. */
+  annotation?: "ready" | "pending" | "failed";
+  merchant?: string;
+  extractedTotalCents?: number | null;
+  extractedRefundCents?: number | null;
 }
 
 /**
@@ -207,6 +215,33 @@ export default function ReceiptGrid({
                 })}
                 {r.status !== "unassigned" && t("processedSuffix")}
               </div>
+              {/* Background AI read state: what was read (merchant · net), or
+                  that the drip worker hasn't reached / gave up on this one. */}
+              {r.annotation && (
+                <div
+                  className={`truncate text-[11px] ${
+                    r.annotation === "ready"
+                      ? "text-emerald-700"
+                      : r.annotation === "failed"
+                        ? "text-amber-700"
+                        : "text-stone-400 italic"
+                  }`}
+                  title={r.annotation === "ready" ? t("annotationReadyTitle") : undefined}
+                  data-testid={`receipt-annotation-${r.id}`}
+                  data-state={r.annotation}
+                >
+                  {r.annotation === "ready"
+                    ? `✓ ${[
+                        r.merchant,
+                        formatCents((r.extractedTotalCents ?? 0) - (r.extractedRefundCents ?? 0)),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}`
+                    : r.annotation === "failed"
+                      ? t("annotationFailed")
+                      : t("annotationPending")}
+                </div>
+              )}
               {r.claims.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {r.claims.map((c) => (

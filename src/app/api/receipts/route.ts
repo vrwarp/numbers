@@ -6,34 +6,55 @@ import { saveReceiptFile } from "@/lib/storage";
 import { createId } from "@paralleldrive/cuid2";
 import { createHash } from "crypto";
 import { enqueueReceiptEmbedding } from "@/lib/embeddings/queue";
+import { enqueueReceiptAnnotation } from "@/lib/extraction/queue";
 
 export const runtime = "nodejs";
 
-/** List the caller's receipts (Shoebox) with the claims each one is on.
+/** List the caller's receipts (Shoebox) with the claims each one is on and
+ *  the state of their background AI annotation (the card's read-status chip).
  *  ?status=unassigned|processed filters. */
 export async function GET(req: NextRequest) {
   return handleApi(async () => {
     const userId = await requireUserId();
     const status = req.nextUrl.searchParams.get("status") ?? undefined;
-    const rows = await prisma.receipt.findMany({
-      where: { userId, ...(status ? { status } : {}) },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        originalName: true,
-        mimeType: true,
-        sizeBytes: true,
-        status: true,
-        note: true,
-        createdAt: true,
-        reimbursements: {
-          select: { reimbursement: { select: { id: true, status: true, createdAt: true } } },
+    const [rows, jobs] = await Promise.all([
+      prisma.receipt.findMany({
+        where: { userId, ...(status ? { status } : {}) },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          originalName: true,
+          mimeType: true,
+          sizeBytes: true,
+          status: true,
+          note: true,
+          createdAt: true,
+          merchant: true,
+          extractedTotalCents: true,
+          extractedRefundCents: true,
+          annotatedAt: true,
+          annotationSource: true,
+          reimbursements: {
+            select: { reimbursement: { select: { id: true, status: true, createdAt: true } } },
+          },
         },
-      },
-    });
-    const receipts = rows.map(({ reimbursements, ...r }) => ({
+      }),
+      // Only terminal failures matter here — anything else still counts as
+      // "pending" (queued, running, or not yet swept in).
+      prisma.extractionJob.findMany({
+        where: { userId, status: "failed" },
+        select: { receiptId: true, status: true },
+      }),
+    ]);
+    const jobStatus = new Map(jobs.map((j) => [j.receiptId, j.status]));
+    const receipts = rows.map(({ reimbursements, annotatedAt, annotationSource, ...r }) => ({
       ...r,
       claims: reimbursements.map((rr) => rr.reimbursement),
+      // "ready" = stored annotation a claim can consume without an AI call;
+      // "failed" = the worker gave up (claim creation will retry inline, and
+      // degrade to a manual-entry row); "pending" = not read yet.
+      annotation: annotatedAt ? "ready" : jobStatus.get(r.id) === "failed" ? "failed" : "pending",
+      annotationSource,
     }));
     return NextResponse.json({ receipts });
   });
@@ -79,6 +100,9 @@ export async function POST(req: NextRequest) {
       });
       // Search trigger (docs/SEARCH_DESIGN.md §5.2): index as soon as available.
       enqueueReceiptEmbedding(id, userId);
+      // Background AI annotation: the worker reads the receipt (≤1/minute)
+      // so claim creation later consumes the result without a provider call.
+      enqueueReceiptAnnotation(id, userId);
       created.push(receipt);
     }
     return NextResponse.json({ receipts: created }, { status: 201 });

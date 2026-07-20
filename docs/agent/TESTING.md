@@ -25,6 +25,8 @@ npx playwright test tests/e2e/journey.spec.ts --project=chromium-desktop   # one
 | `pdf.test.ts` | page counts (13/page, receipts appended, pdf-merge), field values actually drawn (via `pdfVisibleText`), flatten removes fields, splitAddress |
 | `audit.test.ts` | field-diff computation |
 | `extract-meta.test.ts` | extraction metadata for telemetry; ExtractionError carries meta |
+| `claims-rows.test.ts` | annotation→row and outcome→row builders: original* freezing (AI) vs NULL (manual), refund math, placeholder rows, fresh-vs-consumed round-trip |
+| `annotation-retry.test.ts` | background-worker retry plan (quota never burns attempts, exponential backoff, terminal at 5) + the ≤1/minute pace window math |
 | `ministries.test.ts` | budget-list integrity, isKnownMinistry, formatMinistryEvent, mostCommonMinistryEvent (mode-switch adoption) |
 | `suggest.test.ts` | suggestion prompt (chart of accounts + church context), response parsing (unknown ministry → null), account-number fallback matching, mockSuggest keyword rules (e2e depends on them), mock-mode metadata |
 
@@ -40,7 +42,12 @@ content"), or rasterize with `scripts/render-pdf.mjs` / `scripts/verify-cjk-pdf.
 **Harness**: `playwright.config.ts` boots `tests/e2e/start-server.sh` once per run → wipes
 `.e2e-data/`, `prisma generate`, builds if needed (`E2E_FORCE_BUILD=1` forces), `prisma db push`,
 `next start -p 3100` with `AI_MOCK=1 AUTH_TEST_MODE=1`. `workers: 1` (shared SQLite).
-`reuseExistingServer` when not CI.
+`reuseExistingServer` when not CI. The background annotation worker runs with a fast drip
+(`EXTRACTION_PACE_MS=1000`), so most receipts are annotated before their claim is created;
+claim rows and per-claim log counts are IDENTICAL whichever side wins that race (consumed
+annotations adopt their upload-time log; pending receipts extract inline with a claim-linked
+log) — do not write assertions that distinguish the two paths, except in
+`background-annotation.spec.ts` which pins the background path down deterministically.
 
 **Projects** (matrix): `chromium-desktop`, `webkit-desktop` run every non-mobile spec
 (`journey.spec.ts`, `security.spec.ts`, `image-edit.spec.ts`); `chromium-mobile` (Pixel 7),
@@ -88,6 +95,10 @@ exclusion event). If you change mock values, update these expectations coherentl
   restores rows/verification; Split-in-single-mode gate ("Switch & split"); cross-tenant 404s
   for the claim PATCH and suggest routes. Mock suggestions key on DESCRIPTION KEYWORDS
   ("youth"+"retreat" → 471, "retreat" → 470, "office" → 237, else null — src/lib/ai/suggest.ts).
+- `background-annotation.spec.ts` — the background worker reads an upload (card chip flips to
+  "✓ merchant · amount"), claim creation consumes the stored annotation with NO fresh AI call
+  (the upload-time log is adopted by the claim; a second claim reuses the annotation and gets
+  no logs).
 - `mobile.spec.ts` — phone capture flow + manifest check.
 
 ## Failure modes seen before (check these first)

@@ -54,12 +54,13 @@ locale("en"), printIncludeReceipts(false), printIncludeCertificate(false), creat
 
 ### Receipt
 `id, userId, filePath, originalFilePath?, mimeType, originalName, sizeBytes, status, note,
-merchant, purchaseDate, extractedTotalCents?, extractedRefundCents?, createdAt`
+merchant, purchaseDate, extractedTotalCents?, extractedRefundCents?, extractedSummary,
+annotatedAt?, annotationSource, fileSha256, createdAt`
 - A receipt may join ANY number of claims (a purchase split across filings).
   `status="processed"` is a cache meaning "on ≥1 GENERATED claim", maintained at PDF
   generation and revert (revert releases a receipt only if no other generated claim holds
-  it). Processed receipts stay selectable in the Shoebox; each new claim re-extracts and
-  overwrites the extraction metadata below.
+  it). Processed receipts stay selectable in the Shoebox; every claim consumes the SAME
+  stored annotation (below) — the AI reads each receipt once, not once per claim.
 - `note` is the user's optional description (set at upload, editable via PATCH any time,
   never touched by the AI). Shown on the Shoebox card, both review headers, and appended to
   the PDF appendix page label.
@@ -71,12 +72,17 @@ merchant, purchaseDate, extractedTotalCents?, extractedRefundCents?, createdAt`
   upload); deleted alongside the receipt.
 - `mimeType` after upload is only `image/jpeg` (everything raster is converted) or
   `application/pdf`.
-- `merchant`/`purchaseDate`/`extracted*Cents` are stamped by AI extraction at claim creation
-  (empty/null until then; overwritten if the receipt is re-extracted into a new draft).
+- `merchant`/`purchaseDate`/`extracted*Cents`/`extractedSummary` + `annotatedAt`/
+  `annotationSource` are THE ANNOTATION — stamped by the background worker shortly after
+  upload (`annotationSource:"ai"`), by claim creation inline for receipts the worker hasn't
+  reached, or by the manual-entry dialog (`"manual"`, which the worker never overwrites).
+  `annotatedAt` NULL = never annotated → claim creation extracts inline. An image edit
+  clears an AI annotation (and re-queues the read); a manual one survives it.
   `purchaseDate` is a transcription string ("YYYY-MM-DD" or "") — never arithmetic.
-  `extractedTotalCents − extractedRefundCents` is the AI's suggested row amount; the review UI
+  `extractedTotalCents − extractedRefundCents` is the suggested row amount; the review UI
   renders this derivation so the human verifies it against what they actually paid.
-- Delete is blocked (409) while any `reimbursement_receipts` row references it.
+- Delete is blocked (409) while any `reimbursement_receipts` row references it; deletion also
+  removes the receipt's `ExtractionJob` row.
 
 ### Reimbursement
 `id, userId, status, totalCents, singleMinistry, claimMinistry, claimEvent, claimDescription,
@@ -136,14 +142,20 @@ isVerified, isExcluded, sortOrder, originalDescription?, originalAmountCents?`
 either side.
 
 ### ExtractionLog (telemetry — one row per AI call, success or error)
-`id, userId, reimbursementId?, kind("receipt"|"suggestion"), model, prompt, receiptsJson?,
-rawResponse?, parsedJson?, status("success"|"error"), errorMessage?, durationMs, createdAt`
-- `reimbursementId` is `SetNull` on claim deletion — logs must outlive claims.
+`id, userId, reimbursementId?, kind("receipt"|"suggestion"), receiptId?, model, prompt,
+receiptsJson?, rawResponse?, parsedJson?, status("success"|"error"), errorMessage?,
+durationMs, createdAt`
+- `reimbursementId` is `SetNull` on claim deletion — logs must outlive claims. `receiptId`
+  is a plain string (no FK) for the same reason.
 - `kind="receipt"` (vision extraction): `receiptsJson` = metadata array `{id, name, mimeType}`
   — NEVER store image bytes; `parsedJson` = the receipt-level result `{merchant, purchaseDate,
-  totalAmount, refundAmount, summary, receiptId}`. Written by the claim-building routes
-  (create claim, add receipts to a draft) via `src/lib/claims.ts` (success and failure
-  branches); failure meta comes from `ExtractionError.meta` (`src/lib/ai/extract.ts`).
+  totalAmount, refundAmount, summary, receiptId}`. Written by the background annotation
+  worker (`src/lib/extraction/worker.ts`, `reimbursementId` NULL) and by the claim-building
+  routes for inline calls via `src/lib/claims.ts` (success and failure branches); failure
+  meta comes from `ExtractionError.meta` (`src/lib/ai/extract.ts`). A claim that consumes a
+  stored annotation ADOPTS the receipt's still-unlinked logs (stamps its id onto their
+  `reimbursementId`) — the tuning UI stays complete without a second call; a later claim
+  reusing the same annotation gets no logs (they already belong to the first).
 - `kind="suggestion"` (text-only ministry suggestion): `receiptsJson` NULL, the user's
   sentence travels inside `prompt`, `parsedJson` = `{ministry, event, rationale}`. Written by
   `POST /api/reimbursements/[id]/suggest` (success and failure).
@@ -195,6 +207,20 @@ rawResponse?, parsedJson?, status("success"|"error"), errorMessage?, durationMs,
   draft debounce = `nextAttemptAt = now + EMBEDDING_DRAFT_IDLE_MS`; `failedSourceSha256`
   keeps failed jobs stable until content changes. Receipt gains `fileSha256` (stamped at
   upload/edit/restore + lazily at first embed).
+
+### ExtractionJob (background annotation queue)
+`id, receiptId(unique), userId, status("queued"|"running"|"done"|"failed"), generation,
+priority(0 live | 1 backfill), attempts, nextAttemptAt, leaseExpiresAt?, lastError,
+failedFileSha256, createdAt, updatedAt`
+- Same crash/race discipline as EmbeddingJob: enqueue-upsert bumps `generation` and resets
+  attempts; the worker's finalize is generation-conditional; expired leases (5 min) are
+  reclaimed. Enqueued at upload and image-edit; superseded (done + generation++) by manual
+  entry and by claim-time inline extraction; deleted with the receipt; sweep GCs orphans and
+  backfills never-annotated receipts at priority 1.
+- Quota failures re-queue after the cooldown WITHOUT burning `attempts`; real errors back off
+  exponentially and go terminal `failed` after 5, stamping `failedFileSha256` so the sweep
+  retries only if the file changes. The worker paces itself to ≤1 provider call per
+  `EXTRACTION_PACE_MS` (default 60s) so user-initiated calls keep the RPM headroom.
 
 ### SearchHistory (recent searches — docs/SEARCH_DESIGN.md §7)
 `id, userId, query, createdAt, updatedAt` — unique `(userId, query)`, indexed

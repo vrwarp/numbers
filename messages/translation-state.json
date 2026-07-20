@@ -600,6 +600,24 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "ReceiptGrid.annotationPending": {
+    "source": "Waiting to be read…",
+    "context": "Status line on a receipt card while the background AI hasn't read (transcribed) the receipt yet. 'read' as in the AI reading the photo, same verb as Shoebox.readProgress. Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ReceiptGrid.annotationFailed": {
+    "source": "Couldn't read automatically",
+    "context": "Status line on a receipt card after the background AI gave up reading it; the user will type the details during claim review instead. Short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "ReceiptGrid.annotationReadyTitle": {
+    "source": "Read automatically — you'll verify the details during claim review",
+    "context": "Tooltip (title attribute) on a receipt card's green '✓ <merchant> · <amount>' line, explaining the AI pre-read the receipt and a human still verifies before filing.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "PdfPreview.chip": {
     "source": "PDF receipt",
     "context": "Fallback chip when an inline PDF preview fails; 'PDF' stays.",
@@ -5425,6 +5443,18 @@
   },
   "Admin.fields_AI_QUOTA_MAX_RETRIES_help": {
     "source": "How many times to retry after a rate-limit error before giving up (0 surfaces it at once). Applies to receipt extraction; the interactive Suggest call never waits. Default 3.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_EXTRACTION_PACE_MS_label": {
+    "source": "Background reading pace (ms)",
+    "context": "Admin settings field label for EXTRACTION_PACE_MS, shown with the raw env-var name beside it. 'reading' = the AI reading/transcribing receipt photos in the background.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_EXTRACTION_PACE_MS_help": {
+    "source": "Minimum gap between the background receipt reader's AI calls, in milliseconds. It reads newly uploaded receipts on its own so claims are instant later; keep it slow to leave your per-minute AI budget for people actively filing. 0 removes the gap. Default 60000 (one receipt a minute).",
+    "context": "Help text under the EXTRACTION_PACE_MS admin field. Keep '60000' and '0' literal; 'claims' = reimbursement claims (报销单).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

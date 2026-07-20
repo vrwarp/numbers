@@ -8,8 +8,8 @@ import {
   apiErrorJson,
   claimProgressStream,
   extractClaimRows,
-  extractionLogRow,
   manualClaimRows,
+  recordClaimExtractions,
 } from "@/lib/claims";
 
 import { enqueueClaimEmbeddingDebounced, enqueueReceiptEmbedding } from "@/lib/embeddings/queue";
@@ -47,17 +47,18 @@ async function loadValidated(req: NextRequest, userId: string, id: string) {
     throw new ApiError(404, "One or more receipts were not found", "receiptsNotFound");
   }
   // As at claim creation, any owned receipt qualifies regardless of status —
-  // a receipt may sit on several claims. It is re-extracted for this claim,
-  // overwriting the receipt's extraction metadata.
+  // a receipt may sit on several claims. Its stored background annotation is
+  // consumed as-is; only never-annotated receipts are extracted here.
   return { receipts, manual: body.data.manual ?? false };
 }
 
 /**
- * Extract the new receipts and append them to the draft: join rows + ONE line
- * item per receipt, exactly like claim creation, then AuditEvent(add-receipt)
- * and a fresh totalCents recompute. A receipt the AI can't read becomes a
- * manual-entry placeholder rather than blocking the add; manual mode skips AI
- * entirely and starts every new row blank.
+ * Append the receipts to the draft: join rows + ONE line item per receipt,
+ * exactly like claim creation — stored annotations consumed directly, the
+ * rest extracted — then AuditEvent(add-receipt) and a fresh totalCents
+ * recompute. A receipt the AI can't read becomes a manual-entry placeholder
+ * rather than blocking the add; manual mode skips AI entirely and starts
+ * every new row blank.
  */
 async function addReceipts(
   userId: string,
@@ -132,11 +133,9 @@ async function addReceipts(
   const totalCents = all.reduce((s, it) => (it.isExcluded ? s : s + it.amountCents), 0);
   await prisma.reimbursement.update({ where: { id: reimbursementId }, data: { totalCents } });
 
-  if (outcomes.length > 0) {
-    await prisma.extractionLog.createMany({
-      data: outcomes.map((o) => extractionLogRow(userId, o, reimbursementId)),
-    });
-  }
+  // Log fresh calls against the claim, adopt the background-annotation logs
+  // that produced the consumed rows, and mark those receipts' queue jobs done.
+  if (!manual) await recordClaimExtractions(userId, reimbursementId, receipts, outcomes);
 
   // Search triggers (docs/SEARCH_DESIGN.md §5.2): draft content changed +
   // extraction restamped the added receipts' merchant/purchaseDate.

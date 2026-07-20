@@ -128,7 +128,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   claim-ministry, claim-ministry-other, claim-event, claim-description, suggest-ministry,
   suggestion-banner, suggestion-apply, suggestion-dismiss, row-ministry-badge-<id>,
   mode-switch-dialog, mode-switch-confirm, mode-switch-cancel, split-mode-dialog,
-  split-mode-switch, split-mode-cancel, fanout-toast, fanout-undo`.
+  split-mode-switch, split-mode-cancel, fanout-toast, fanout-undo,
+  receipt-annotation-<id> (card chip; data-state = ready|pending|failed)`.
 - The claim-level ministry select is labeled "Claim ministry" ON PURPOSE — e2e loops over
   `getByLabel("Ministry", { exact: true })` to reach the per-row selects (multi mode only)
   and must not catch the claim-level one.

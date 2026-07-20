@@ -120,7 +120,10 @@
     "noteAria": "Description for {name}",
     "meta": "{date} · {kb} KB",
     "processedSuffix": " · processed",
-    "claimChip": "Claim"
+    "claimChip": "Claim",
+    "annotationPending": "Waiting to be read…",
+    "annotationFailed": "Couldn't read automatically",
+    "annotationReadyTitle": "Read automatically — you'll verify the details during claim review"
   },
   "PdfPreview": {
     "chip": "PDF receipt",
@@ -1010,6 +1013,8 @@
     "fields_AI_QUOTA_COOLDOWN_MS_help": "After a rate-limit error, how long to wait before retrying, in milliseconds. The wait is shown to whoever is building the claim. Default 60000 (one minute).",
     "fields_AI_QUOTA_MAX_RETRIES_label": "Rate-limit retries",
     "fields_AI_QUOTA_MAX_RETRIES_help": "How many times to retry after a rate-limit error before giving up (0 surfaces it at once). Applies to receipt extraction; the interactive Suggest call never waits. Default 3.",
+    "fields_EXTRACTION_PACE_MS_label": "Background reading pace (ms)",
+    "fields_EXTRACTION_PACE_MS_help": "Minimum gap between the background receipt reader's AI calls, in milliseconds. It reads newly uploaded receipts on its own so claims are instant later; keep it slow to leave your per-minute AI budget for people actively filing. 0 removes the gap. Default 60000 (one receipt a minute).",
     "fields_PUBLIC_BASE_URL_label": "Public web address",
     "fields_PUBLIC_BASE_URL_help": "This deployment’s public web address. When set, generated PDFs carry a QR code back to the claim packet and signature certificates link to it. A reverse proxy hides the real URL, so it’s explicit here. Changing it only affects PDFs generated afterward; it’s also required for first-party sign-in below.",
     "fields_ESIGN_ROOT_EMAIL_label": "E-sign root email",

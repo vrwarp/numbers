@@ -25,6 +25,11 @@ export EMBEDDING_DIM="$(node -e "process.stdout.write(String(JSON.parse(require(
 export EMBEDDING_MIN_SCORE="0.15"
 export EMBEDDING_DRAFT_IDLE_MS="1500"
 export EMBEDDING_POLL_MS="500"
+# Background receipt annotation: keep the worker's drip fast so uploads are
+# annotated within seconds (production default is one receipt per minute).
+# Claim rows and telemetry are identical whichever side wins the race — an
+# annotated receipt is consumed (its log adopted), the rest extract inline.
+export EXTRACTION_PACE_MS="1000"
 export PORT=3100
 
 rm -rf .e2e-data
