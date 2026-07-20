@@ -19,6 +19,7 @@ import { type InboxClaim } from "./ApprovalsInbox";
 import ClaimSummaryRow from "./ClaimSummaryRow";
 import PdfLink from "@/components/PdfLink";
 import { deliverPdf, downloadBlob, isIosStandalonePwa, pdfFile, sharePdf } from "@/lib/pdf-delivery";
+import { relativeDay } from "@/lib/date-label";
 
 export default function FinanceQueue() {
   const t = useTranslations("Finance");
@@ -108,6 +109,13 @@ export default function FinanceQueue() {
 
   const queue = list.filter((c) => c.status === "approved");
   const paid = list.filter((c) => c.status === "paid");
+  // The treasurer's print batch is almost always "what I just marked paid this
+  // sitting" — older rows went to the printer in a previous session. So the
+  // bulk-select affordance grabs today's payments (local calendar day, the
+  // same frame as the row's "Paid Today" label), not the whole history.
+  const paidToday = paid.filter(
+    (c) => c.paidAt && relativeDay(new Date(c.paidAt), new Date()) === "today"
+  );
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -206,13 +214,19 @@ export default function FinanceQueue() {
         <div>
           <div className="mb-2 flex items-center gap-3">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-stone-400">{t("paidHeader")}</h2>
-            {paid.some((c) => !selected.has(c.id)) && (
+            {/* Additive: today's rows join whatever is already checked — a
+                bulk-select link must never silently uncheck a manual pick.
+                Retires once every paid-today row is selected (and never shows
+                on a day with no payments). */}
+            {paidToday.some((c) => !selected.has(c.id)) && (
               <button
                 className="text-[13px] font-medium text-indigo-600 underline underline-offset-2 hover:text-indigo-800"
-                onClick={() => setSelected(new Set(paid.map((c) => c.id)))}
-                data-testid="print-select-all"
+                onClick={() =>
+                  setSelected((prev) => new Set([...prev, ...paidToday.map((c) => c.id)]))
+                }
+                data-testid="print-select-today"
               >
-                {t("selectAllPaid")}
+                {t("selectPaidToday", { count: paidToday.length })}
               </button>
             )}
           </div>
@@ -272,11 +286,15 @@ export default function FinanceQueue() {
 
       {selected.size > 0 && (
         // Floating batch-print toolbar (mirrors the claim page's action bar):
-        // count, the two content toggles, and Print all — building one PDF with
-        // every selected packet for a single trip to the printer.
+        // count, the two content toggles, and Print selected — building one PDF
+        // with every selected packet for a single trip to the printer.
         <div className="fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-30 flex justify-center px-4">
           <div className="card flex flex-wrap items-center gap-x-4 gap-y-2 bg-white/95 p-3 shadow-lg backdrop-blur">
-            <span className="text-sm font-medium">{t("selectedCount", { count: selected.size })}</span>
+            {/* role=status: activating the bulk-select link keeps focus on the
+                link, so the count is the only announcement of what happened. */}
+            <span className="text-sm font-medium" role="status">
+              {t("selectedCount", { count: selected.size })}
+            </span>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -325,9 +343,9 @@ export default function FinanceQueue() {
                 className="btn-primary !px-4 disabled:opacity-50"
                 onClick={printSelected}
                 disabled={printing}
-                data-testid="print-all"
+                data-testid="print-selected"
               >
-                {printing ? t("printing") : t("printAll")}
+                {printing ? t("printing") : t("printSelected")}
               </button>
             </div>
           </div>

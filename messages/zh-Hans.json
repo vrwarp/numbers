@@ -522,12 +522,12 @@
     "includeReceipts": "包含收据",
     "includeCertificate": "包含证书",
     "clearSelection": "清除",
-    "printAll": "全部打印",
+    "printSelected": "打印所选单据包",
     "printing": "正在准备…",
     "printFailed": "无法生成单据包，请重试。",
     "openGone": "该报销单已不在此列表中——可能已完成付款。",
     "noCheckNumberNote": "未填写支票号——非支票付款可留空；若开了支票请填写。",
-    "selectAllPaid": "全选"
+    "selectPaidToday": "选择今天已支付的报销单（{count}）"
   },
   "Identity": {
     "title": "电子签名",

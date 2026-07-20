@@ -522,12 +522,12 @@
     "includeReceipts": "包含收據",
     "includeCertificate": "包含證書",
     "clearSelection": "清除",
-    "printAll": "全部列印",
+    "printSelected": "列印所選單據包",
     "printing": "正在準備…",
     "printFailed": "無法產生單據包，請重試。",
     "openGone": "該報銷單已不在此清單中——可能已完成付款。",
     "noCheckNumberNote": "未填寫支票號——非支票付款可留空；若開了支票請填寫。",
-    "selectAllPaid": "全選"
+    "selectPaidToday": "選擇今天已支付的報銷單（{count}）"
   },
   "Identity": {
     "title": "電子簽名",

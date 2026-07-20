@@ -522,12 +522,12 @@
     "includeReceipts": "Include receipts",
     "includeCertificate": "Include certificate",
     "clearSelection": "Clear",
-    "printAll": "Print all",
+    "printSelected": "Print selected",
     "printing": "Preparing…",
     "printFailed": "Couldn't build the packets. Please try again.",
     "openGone": "That claim isn’t in this list anymore — it may already have been paid.",
     "noCheckNumberNote": "No check number — that’s fine for non-check payments; add one if a check was written.",
-    "selectAllPaid": "Select all"
+    "selectPaidToday": "Select claims paid today ({count})"
   },
   "Identity": {
     "title": "Electronic signing",

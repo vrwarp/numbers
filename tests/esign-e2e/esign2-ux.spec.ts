@@ -30,7 +30,7 @@ import sharp from "sharp";
  *  - /vouch?c= → /signin?return= threading (the camera-app detour)
  *  - submit dialog: disabled-button hints, Escape-to-close
  *  - reject requires the signed intent affirmation + confirm dialog
- *  - finance: paid-section select-all, blank-check-number note
+ *  - finance: paid-section paid-today bulk select, blank-check-number note
  */
 
 const BASE = "http://localhost:3101";
@@ -375,13 +375,14 @@ test("reject demands the same signed intent affirmation as approve", async () =>
   await expect(bob.page.locator(`[data-testid="approval-${claimId}"]`)).toBeVisible();
 });
 
-test("finance: select-all over the paid section; blank check number is explained", async ({
+test("finance: paid-today bulk select; blank check number is explained", async ({
   browser,
 }) => {
   test.setTimeout(240_000);
 
-  // The prior story left Carol the treasurer with one paid claim, so the
-  // batch-print select-all always has rows. An approved-unpaid claim (for
+  // The prior story left Carol the treasurer with one claim marked paid
+  // during this run — i.e. paid TODAY — so the paid-today bulk-select link
+  // always has rows to grab. An approved-unpaid claim (for
   // the pay-ceremony note) exists only when the duty-pause scene's second
   // approval actually committed — esign.spec.ts asserts it with a bare
   // `getByText("Approved")`, which the paid claim's "Approved {date}" meta
@@ -390,29 +391,44 @@ test("finance: select-all over the paid section; blank check number is explained
   // end-states rather than replaying a full approve→pay chain here.
   carol = await newPersona(browser, "carol@example.com", "Carol Okafor");
   const finance = await (await carol.context.request.get(`${BASE}/api/finance`)).json();
-  const claims = (finance.claims ?? []) as { id: string; status: string }[];
-  const paidIds = claims.filter((c) => c.status === "paid").map((c) => c.id);
+  const claims = (finance.claims ?? []) as { id: string; status: string; paidAt: string | null }[];
+  const sameLocalDay = (iso: string) => {
+    const d = new Date(iso);
+    const now = new Date();
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  };
+  const paidTodayIds = claims
+    .filter((c) => c.status === "paid" && c.paidAt && sameLocalDay(c.paidAt))
+    .map((c) => c.id);
   const approvedIds = claims.filter((c) => c.status === "approved").map((c) => c.id);
-  expect(paidIds.length).toBeGreaterThan(0);
+  expect(paidTodayIds.length).toBeGreaterThan(0);
 
   await carol.page.goto(`${BASE}/finance`);
-  await carol.page.waitForSelector('[data-testid="print-select-all"]', { timeout: 30_000 });
-  await carol.page.click('[data-testid="print-select-all"]');
-  for (const id of paidIds) {
+  await carol.page.waitForSelector('[data-testid="print-select-today"]', { timeout: 30_000 });
+  // The link forecasts its scope: "(n)" = how many claims were paid today.
+  await expect(carol.page.locator('[data-testid="print-select-today"]')).toContainText(
+    `(${paidTodayIds.length})`
+  );
+  await carol.page.click('[data-testid="print-select-today"]');
+  for (const id of paidTodayIds) {
     await expect(carol.page.locator(`[data-testid="paid-select-${id}"]`)).toHaveAttribute(
       "aria-checked",
       "true"
     );
   }
-  // Everything selected ⇒ the select-all affordance retires and the batch
-  // toolbar offers Print all.
-  await expect(carol.page.locator('[data-testid="print-select-all"]')).toHaveCount(0);
-  await expect(carol.page.locator('[data-testid="print-all"]')).toBeVisible();
+  // Every paid-today row selected ⇒ the bulk-select link retires and the
+  // batch toolbar offers Print selected.
+  await expect(carol.page.locator('[data-testid="print-select-today"]')).toHaveCount(0);
+  await expect(carol.page.locator('[data-testid="print-selected"]')).toBeVisible();
 
   // Drop the selection so the floating batch toolbar can't cover the pay
   // ceremony's fields below.
   await carol.page.getByRole("button", { name: "Clear" }).click();
-  await expect(carol.page.locator('[data-testid="print-all"]')).toHaveCount(0);
+  await expect(carol.page.locator('[data-testid="print-selected"]')).toHaveCount(0);
 
   // Open the approved claim's pay ceremony: with the check-number field
   // empty, the note explains blank is fine for non-check payments. Skipped
