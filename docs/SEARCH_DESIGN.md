@@ -254,7 +254,8 @@ model Embedding {
   vector       Bytes    // Float32Array little-endian, L2-normalized, length == dim
   // Fingerprint of the FULL embedding input (not just the image): staleness is
   // detected by rebuilding this from DB columns and comparing — no file reads.
-  //   receipt: sha256(Receipt.fileSha256 ‖ note ‖ merchant ‖ purchaseDate)
+  //   receipt: sha256(Receipt.fileSha256 ‖ note ‖ merchant ‖ extractedSummary
+  //                    ‖ purchaseDate)
   //   claim:   sha256(composite text)                       (§5.1)
   sourceSha256 String
   createdAt    DateTime @default(now())
@@ -329,9 +330,17 @@ claim job (short write) → embed (no txn) → finalize (short write).
 already-compressed stored file (`filePath`, ~100 KB WebP — never the original), which
 the provider normalizes in memory to a **≤640 px JPEG**: the endpoint rejects WebP
 outright and an undownscaled image costs ~90 s instead of ~15 s for a near-identical
-vector (§3.1). The user's `note` + extracted `merchant` ride in `prompt_string` ahead
-of the `<__media__>` token — which is why they are part of the staleness fingerprint
-(§4). PDF receipts embed their **page-1 raster**, reusing the existing preview
+vector (§3.1). The user's `note` (the receipt's description) + the AI-extracted text
+that lives on the Receipt row — `merchant` and the item `extractedSummary`
+("rulers, duct tape, clothespins"), stamped by the background annotation worker
+(`src/lib/extraction/worker.ts`) or by claim-time extraction — ride in `prompt_string`
+ahead of the `<__media__>` token, which is why each is part of the staleness
+fingerprint (§4): a re-annotation that rewrites the summary (or an image/note edit)
+re-embeds. The printed `extractedTotalCents`/`extractedRefundCents` and the transcribed
+`purchaseDate` are deliberately NOT embedded — amounts belong to the exact-match pass
+(§6.2), not the semantic vector — but `purchaseDate` stays in the fingerprint because
+it drives the year bucket (§6.5), so a date change re-embeds to re-stamp the `year`
+column. PDF receipts embed their **page-1 raster**, reusing the existing preview
 machinery (`src/lib/pdf/preview.ts` cache; generate on demand if not yet cached) —
 those cached pages are WebP too, so they pass through the same JPEG normalization.
 
@@ -366,7 +375,7 @@ content change like any other.
 | Receipt uploaded (`POST /api/receipts`) | stamp `fileSha256`; enqueue `{kind:"receipt"}`, priority 0 |
 | Receipt image edited / restored (`/api/receipts/[id]/edit`) | re-stamp `fileSha256`; re-enqueue |
 | Receipt note edited (`PATCH /api/receipts/[id]`) | re-enqueue (note is embedded text, §5.1) |
-| Receipt extraction (re)stamped — claim create, add-receipts, manual-entry PATCH | re-enqueue the **receipt** (merchant/purchaseDate are embedded text + the year key) |
+| Receipt extraction (re)stamped — **background annotation worker** (`extraction/worker.ts`), claim create, add-receipts, manual-entry PATCH | re-enqueue the **receipt** (merchant + item `extractedSummary` are embedded text; `purchaseDate` feeds the year key) — the AI details are the summary+merchant, so a re-annotation that rewrites the summary re-embeds (§5.1) |
 | Any draft-claim content mutation (claim created, claim PATCH, line-item PATCH/split/merge, receipts added/removed, manual entry) | enqueue `{kind:"claim"}`, priority 0, **`nextAttemptAt = now + 10 min`** — the draft-idle debounce, see below |
 | Claim PDF generated (`POST …/pdf`) | re-enqueue `{kind:"claim"}` with `nextAttemptAt = now` (content is frozen; index immediately); regeneration likewise |
 | Claim submitted (e-sign) | re-enqueue claim (status/year may shift: `submittedAt` becomes the year key) |
@@ -376,8 +385,10 @@ content change like any other.
 
 Route anchors for the rows above: upload = the per-file loop in
 `src/app/api/receipts/route.ts` POST; image edit = `receipts/[id]/edit/route.ts`;
-note = `receipts/[id]/route.ts` PATCH; extraction restamps = `src/lib/claims.ts`
-consumers (claim POST, `[id]/receipts` POST, manual-entry PATCH); submit =
+note = `receipts/[id]/route.ts` PATCH; extraction restamps = the background
+annotation worker (`src/lib/extraction/worker.ts`, the primary path — most receipts
+are read there before ever joining a claim) plus the `src/lib/claims.ts` consumers
+(claim POST, `[id]/receipts` POST, manual-entry PATCH); submit =
 `reimbursements/[id]/submit/route.ts` (the only place `submittedAt` is written —
 `esign/server.ts` writes roster/record mirrors, never claim status).
 
@@ -463,8 +474,9 @@ for ~15 s; parallel calls would just queue server-side. Make it a config
 On worker start (and once a day thereafter) a sweep enqueues, at **priority 1**, every
 receipt and every claim — including drafts whose `updatedAt` is ≥ 10 min old — that
 either has no `Embedding` row for the current model or whose fingerprint, rebuilt
-**from DB columns only** (`fileSha256`/note/merchant/purchaseDate; composite from the
-claim rows — no file reads), no longer matches (covers: pre-feature rows, rows that
+**from DB columns only** (`fileSha256`/note/merchant/extractedSummary/purchaseDate;
+composite from the claim rows — no file reads), no longer matches
+(covers: pre-feature rows, rows that
 missed a trigger, edits that raced; recently-touched drafts are skipped because their
 debounced job already exists). **Failed jobs are exempt unless their content
 changed**: a failed job re-enqueues only when the rebuilt fingerprint differs from
