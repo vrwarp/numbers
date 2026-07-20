@@ -1439,7 +1439,7 @@ export default function ReviewClaim({
                   : t("esignSetupCalloutTitle")}
             </p>
             <button
-              className="-m-2 shrink-0 rounded-lg p-2.5 leading-none text-stone-400 hover:bg-indigo-100 hover:text-stone-600"
+              className="-m-2 shrink-0 rounded-lg p-2.5 leading-none text-stone-600 hover:bg-indigo-100 hover:text-stone-800"
               onClick={() => {
                 setEsignSetupOpen(false);
                 esignSetupTriggerRef.current?.focus();

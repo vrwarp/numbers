@@ -106,7 +106,7 @@
     "subtitle": "Draft claims need review; claims marked “Ready to submit” can be printed or sent for approval.",
     "emptyTitle": "No claims yet",
     "emptyBody": "Select receipts on the <link>Receipts</link> page and hit “New Claim”.",
-    "counts": "{items} items · {receipts, plural, one {# receipt} other {# receipts}}",
+    "counts": "{items, plural, one {# item} other {# items}} · {receipts, plural, one {# receipt} other {# receipts}}",
     "searchPill": "Search claims…",
     "subtitlePaper": "Draft claims need review; claims marked “Ready to submit” can be printed.",
     "subtitleSetup": "Draft claims need review; claims marked “Ready to submit” can be printed — or e-signed once you <link>set up signing</link>.",
@@ -564,7 +564,7 @@
     "rejectConfirmAction": "✗ Reject claim",
     "openGone": "That claim isn’t in this list anymore — it may already have been decided.",
     "emptyNotSetUp": "Claims can't be sent to you yet — <link>set up signing</link> so members can pick you as their approver.",
-    "emptyPendingVouch": "Setup done — one in-person confirmation left. <link>Show your QR code</link> at church; after that members can send you claims.",
+    "emptyPendingVouch": "Setup done — one in-person confirmation left. <link>Show your QR code</link> at church; after that members can send you claims.",
     "emptyRevoked": "Your signing identity was turned off. See your <link>profile</link> for details."
   },
   "Finance": {

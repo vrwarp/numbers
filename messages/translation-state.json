@@ -367,8 +367,8 @@
     "zh-Hant": "machine"
   },
   "Claims.counts": {
-    "source": "{items} items · {receipts, plural, one {# receipt} other {# receipts}}",
-    "context": "Meta line per claim: {items} row count, {receipts} receipt count (ICU).",
+    "source": "{items, plural, one {# item} other {# items}} · {receipts, plural, one {# receipt} other {# receipts}}",
+    "context": "Claims-list card meta line: item and receipt counts. EN pluralizes both; zh renders bare counts with measure words.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -7352,7 +7352,7 @@
     "zh-Hant": "machine"
   },
   "Approvals.emptyPendingVouch": {
-    "source": "Setup done — one in-person confirmation left. <link>Show your QR code</link> at church; after that members can send you claims.",
+    "source": "Setup done — one in-person confirmation left. <link>Show your QR code</link> at church; after that members can send you claims.",
     "context": "Approvals inbox empty state for a role-holder mid-re-enrollment (pending).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"

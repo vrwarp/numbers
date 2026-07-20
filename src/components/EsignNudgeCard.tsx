@@ -107,10 +107,19 @@ export default function EsignNudgeCard({ decision }: { decision: HomeNudgeDecisi
   const duty = variant === "duty";
   // Tinted shell carries the signal; body text stays stone so the card never
   // reads as a wall of warning — only the title takes the variant color.
+  // Closure is the feature's one DONE moment: emerald, like the tally's
+  // "set up" chip and verified rows — completion must not look like more
+  // coaching.
   const cardTone = duty
     ? "border-amber-200 bg-amber-50 text-stone-700"
-    : "border-indigo-200 bg-indigo-50 text-stone-700";
-  const titleTone = duty ? "text-amber-900" : "text-indigo-950";
+    : variant === "closure"
+      ? "border-emerald-200 bg-emerald-50 text-stone-700"
+      : "border-indigo-200 bg-indigo-50 text-stone-700";
+  const titleTone = duty
+    ? "text-amber-900"
+    : variant === "closure"
+      ? "text-emerald-900"
+      : "text-indigo-950";
 
   // Collapsed = the decayed/capped one-line door. Still a real link; no chrome.
   if (collapsed) {

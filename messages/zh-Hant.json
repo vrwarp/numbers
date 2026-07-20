@@ -564,7 +564,7 @@
     "rejectConfirmAction": "✗ 拒絕報銷單",
     "openGone": "該報銷單已不在此清單中——可能已有審批結果。",
     "emptyNotSetUp": "報銷單還無法送交給您——請先<link>開通簽名</link>，會友才能選您作為審批人。",
-    "emptyPendingVouch": "設定已完成——只差當面確認。請在教會<link>出示您的 QR 碼</link>；確認後會友即可將報銷單送交給您。",
+    "emptyPendingVouch": "設定已完成——只差當面確認。請在教會<link>出示您的 QR 碼</link>；確認後會友即可將報銷單送交給您。",
     "emptyRevoked": "您的簽名身份已被停用。詳情請見<link>個人資料</link>頁。"
   },
   "Finance": {
