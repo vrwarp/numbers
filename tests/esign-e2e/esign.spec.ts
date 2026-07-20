@@ -394,11 +394,11 @@ test("submit → approve → pay, fail-closed ceremonies throughout", async () =
 
   // Treasurer batch-print (Finance › Paid): the paid row carries a select
   // checkbox and its full date history in the meta line; selecting reveals the
-  // floating toolbar with Print all.
+  // floating toolbar with Print selected.
   await expect(carol.page.getByTestId(`paid-select-${claimId}`)).toBeVisible({ timeout: 30_000 });
   await expect(carol.page.getByTestId(`paid-${claimId}`)).toContainText("Submitted");
   await carol.page.click(`[data-testid="paid-select-${claimId}"]`);
-  await expect(carol.page.getByTestId("print-all")).toBeVisible();
+  await expect(carol.page.getByTestId("print-selected")).toBeVisible();
   // The button opens the combined PDF in a new tab via a blob URL; assert the
   // POST /api/finance/print endpoint directly — forms-only, then the full
   // variant with receipts + the signature certificate cover.

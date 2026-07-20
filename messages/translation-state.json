@@ -2863,15 +2863,15 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Finance.printAll": {
-    "source": "Print all",
-    "context": "Primary button in the batch-print toolbar that builds one combined PDF of all selected packets to print. Short button label.",
+  "Finance.printSelected": {
+    "source": "Print selected",
+    "context": "Primary button on the floating batch-print toolbar (finance queue), next to \"Clear\" and the \"# packets selected\" count — prints ONLY the checked packets, never the whole paid list. \"单据包\" deliberately matches the toolbar’s packet noun (Finance.selectedCount).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Finance.printing": {
     "source": "Preparing…",
-    "context": "Busy label on the Print all button while the combined PDF is being built.",
+    "context": "Busy label on the Print selected button while the combined PDF is being built.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -2893,9 +2893,9 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Finance.selectAllPaid": {
-    "source": "Select all",
-    "context": "Link beside the Paid section header selecting every paid claim for batch printing. Short.",
+  "Finance.selectPaidToday": {
+    "source": "Select claims paid today ({count})",
+    "context": "Text link beside the \"Paid\" section header on the finance page; tapping checks the rows of claims whose PAID date (not submitted/approved) is today, adding them to the selection. {count} = how many such claims exist; only rendered when count ≥ 1. \"今天\" must match Common.date.today, which the rows’ \"Paid Today\" meta line uses.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
