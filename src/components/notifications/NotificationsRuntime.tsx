@@ -76,7 +76,7 @@ export default function NotificationsRuntime({
   // §7.7 ping + §8.7 drift detection.
   const runPing = useCallback(async () => {
     if (!notifyEnabled) return;
-    const capability = detectCapability();
+    const capability = detectCapability(pushConfig.mock);
     if (capability === "ios-install") {
       // Push-incapable but fixable by finishing §8.4 — only when mid-flow.
       setSurface(onboardingStep > 0 ? "resume" : null);

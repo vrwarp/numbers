@@ -54,8 +54,13 @@ function iosMajorVersion(): number | null {
   return m ? Number(m[1]) : null;
 }
 
-export function detectCapability(): PushCapability {
+export function detectCapability(mock = false): PushCapability {
   if (typeof window === "undefined") return "unsupported";
+  // Mock mode (PUSH_MOCK — dev/tests): enablement uses a synthetic token and
+  // never touches the browser Push API, so capability is "ok" on any engine
+  // (headless Chromium/WebKit don't uniformly expose PushManager). Never set
+  // in production, so real capability gating is unchanged there.
+  if (mock) return "ok";
   if (isEmbeddedBrowser()) return "embedded";
   if (!window.isSecureContext) return "unsupported";
   if ("serviceWorker" in navigator && "PushManager" in window && "Notification" in window) {

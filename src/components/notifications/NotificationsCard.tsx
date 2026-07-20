@@ -107,7 +107,7 @@ export default function NotificationsCard({ pushConfig }: { pushConfig: PushClie
   }, []);
 
   useEffect(() => {
-    setCapability(detectCapability());
+    setCapability(detectCapability(pushConfig.mock));
     setPermissionDenied(
       typeof Notification !== "undefined" && Notification.permission === "denied"
     );
