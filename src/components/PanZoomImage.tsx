@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   beginPinch,
@@ -52,6 +52,14 @@ const DOUBLE_TAP_SLOP_PX = 30;
 const TAP_MOVE_SLOP_PX = 12;
 const DOUBLE_TAP_SCALE = 2.5;
 
+// Fling (momentum) tuning — the surface owns touch, so native inertia never
+// happens; this synthesizes it. Velocity is sampled over the drag's last
+// ~100ms; the fling decays exponentially with iOS-like time constant.
+const FLING_SAMPLE_MS = 100;
+const FLING_MIN_START = 0.25; // px/ms
+const FLING_MIN_KEEP = 0.02; // px/ms
+const FLING_DECAY_TAU_MS = 325;
+
 export default function PanZoomImage({
   src,
   alt,
@@ -79,6 +87,8 @@ export default function PanZoomImage({
   const pinchStart = useRef<PinchStart>({ dist: 0, scale: 1, cx: 0, cy: 0 });
   const lastTap = useRef({ t: 0, x: 0, y: 0 });
   const downAt = useRef({ x: 0, y: 0 });
+  const flingSamples = useRef<{ t: number; x: number; y: number }[]>([]);
+  const flingRaf = useRef<number | null>(null);
 
   const box = () => {
     const r = boxRef.current?.getBoundingClientRect();
@@ -86,15 +96,53 @@ export default function PanZoomImage({
   };
 
   /** Hand pan overflow to the scrollers, nearest first — each consumes what
-   *  it can (an edge-pinned scroller consumes nothing) and passes the rest on. */
-  function chainScroll(dy: number) {
+   *  it can (an edge-pinned scroller consumes nothing) and passes the rest on.
+   *  Returns the remainder nothing could consume (everything saturated). */
+  function chainScroll(dy: number): number {
     let rest = dy;
     for (const p of scrollParents.current) {
-      if (Math.abs(rest) < 0.5) return;
+      if (Math.abs(rest) < 0.5) break;
       const before = p.scrollTop;
       p.scrollTop = before - rest;
       rest -= before - p.scrollTop;
     }
+    return rest;
+  }
+
+  function cancelFling() {
+    if (flingRaf.current != null) cancelAnimationFrame(flingRaf.current);
+    flingRaf.current = null;
+  }
+  useEffect(() => cancelFling, []);
+
+  /** Decay a released drag's velocity, feeding the same pan+chain path each
+   *  frame so the fling crosses the image/scroller/page boundaries just like
+   *  the finger did. Stops when it slows down or everything is saturated. */
+  function startFling(vx0: number, vy0: number) {
+    let vx = vx0;
+    let vy = vy0;
+    let prev = performance.now();
+    const tick = (now: number) => {
+      flingRaf.current = null;
+      const dt = Math.min(64, now - prev); // clamp over a dropped-frame gap
+      prev = now;
+      const b = box();
+      if (!b) return;
+      const cur = viewRef.current;
+      const { view, overflowY } = panStep(cur, b, vx * dt, vy * dt);
+      const moved = view.tx !== cur.tx || view.ty !== cur.ty;
+      if (moved) setView(view);
+      const unconsumed = overflowY ? chainScroll(overflowY) : 0;
+      const decay = Math.exp(-dt / FLING_DECAY_TAU_MS);
+      vx *= decay;
+      vy *= decay;
+      // A fully saturated vertical fling (nothing moved, nothing scrolled)
+      // has hit the end of every surface — let it die there.
+      if (!moved && Math.abs(unconsumed) >= Math.abs(vy * dt) - 0.5) vy = 0;
+      if (Math.hypot(vx, vy) < FLING_MIN_KEEP) return;
+      flingRaf.current = requestAnimationFrame(tick);
+    };
+    flingRaf.current = requestAnimationFrame(tick);
   }
 
   function midpoint() {
@@ -120,6 +168,7 @@ export default function PanZoomImage({
   }
 
   function onPointerDown(e: React.PointerEvent) {
+    cancelFling(); // catching a fling stops it, like native scrolling
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     e.currentTarget.setPointerCapture(e.pointerId);
     if (pointers.current.size >= 2) {
@@ -131,6 +180,7 @@ export default function PanZoomImage({
     } else {
       downAt.current = { x: e.clientX, y: e.clientY };
       panMoved.current = 0;
+      flingSamples.current = [{ t: performance.now(), x: e.clientX, y: e.clientY }];
       beginPan(e.clientX, e.clientY);
     }
   }
@@ -152,6 +202,11 @@ export default function PanZoomImage({
       const dy = e.clientY - panLast.current.y;
       panLast.current = { x: e.clientX, y: e.clientY };
       panMoved.current += Math.abs(dx) + Math.abs(dy);
+      const now = performance.now();
+      flingSamples.current.push({ t: now, x: e.clientX, y: e.clientY });
+      while (flingSamples.current.length > 1 && now - flingSamples.current[0].t > FLING_SAMPLE_MS) {
+        flingSamples.current.shift();
+      }
       const { view, overflowY } = panStep(cur, b, dx, dy);
       // Skip the render when nothing moved (pure scroll at 100%).
       if (view.tx !== cur.tx || view.ty !== cur.ty || view.scale !== cur.scale) setView(view);
@@ -174,6 +229,17 @@ export default function PanZoomImage({
           Math.hypot(e.clientX - prev.x, e.clientY - prev.y) < DOUBLE_TAP_SLOP_PX;
         lastTap.current = isDouble ? { t: 0, x: 0, y: 0 } : { t: now, x: e.clientX, y: e.clientY };
         if (isDouble) toggleZoomAt(e.clientX, e.clientY);
+      } else if (wasPan && e.pointerType !== "mouse" && panMoved.current >= TAP_MOVE_SLOP_PX) {
+        // Release velocity over the drag's last ~100ms → inertia. Touch/pen
+        // only: a mouse drag has no fling convention.
+        const s = flingSamples.current;
+        const first = s[0];
+        const dt = performance.now() - first.t;
+        if (dt > 20) {
+          const vx = viewRef.current.scale > 1 ? (e.clientX - first.x) / dt : 0;
+          const vy = (e.clientY - first.y) / dt;
+          if (Math.hypot(vx, vy) > FLING_MIN_START) startFling(vx, vy);
+        }
       }
     } else if (pointers.current.size === 1 && gesture.current === "pinch") {
       // Lift one finger mid-pinch → continue as a pan from the survivor.
@@ -184,6 +250,7 @@ export default function PanZoomImage({
   }
 
   const zoomByButton = (factor: number) => {
+    cancelFling();
     const b = box();
     if (b) setView(zoomByCenter(viewRef.current, b, factor));
   };
@@ -196,7 +263,9 @@ export default function PanZoomImage({
       {/* Sticky inside the clamped receipt scroller, so the controls stay in
           view while a tall receipt scrolls under them. h-0 keeps them out of
           the image's layout. */}
-      <div className="pointer-events-none sticky top-2 z-10 flex h-0 justify-end pr-2">
+      {/* items-start: the h-0 strip would otherwise stretch the pill to zero
+          height (flex default), collapsing it into a bar. */}
+      <div className="pointer-events-none sticky top-2 z-10 flex h-0 items-start justify-end pr-2">
         <div className="pointer-events-auto flex items-center gap-0.5 rounded-full bg-stone-900/55 p-0.5 shadow backdrop-blur-sm">
           <button
             type="button"
@@ -221,7 +290,10 @@ export default function PanZoomImage({
             <button
               type="button"
               className={ctrlBtn}
-              onClick={() => setView({ scale: 1, tx: 0, ty: 0 })}
+              onClick={() => {
+                cancelFling();
+                setView({ scale: 1, tx: 0, ty: 0 });
+              }}
               aria-label={t("resetZoom")}
               title={t("resetZoom")}
               data-testid="pan-zoom-reset"
