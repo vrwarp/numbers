@@ -24,7 +24,11 @@ async function upsertJob(receiptId: string, userId: string, priority: 0 | 1): Pr
       ...(priority === 0 ? { priority: 0 } : {}),
     },
   });
-  // Wake the in-process worker (e2e determinism rests on this, not polling).
+  wakeExtractionWorker();
+}
+
+/** Wake the in-process worker (e2e determinism rests on this, not polling). */
+export function wakeExtractionWorker(): void {
   (globalThis as { __extractWake?: () => void }).__extractWake?.();
 }
 

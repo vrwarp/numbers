@@ -59,6 +59,8 @@ test("a paused admin loses the admin area until they turn the duty back on", asy
   await page.waitForURL("/");
   const denied = await page.request.get("/api/admin/overview");
   expect(denied.status()).toBe(404);
+  expect((await page.request.get("/api/admin/extraction-jobs")).status()).toBe(404);
+  expect((await page.request.post("/api/admin/extraction-jobs", { data: {} })).status()).toBe(404);
 
   // The toggle itself is never admin-gated — unpausing restores everything.
   await page.goto("/profile");
@@ -143,6 +145,12 @@ test("an admin edits and saves the church context", async ({ page }) => {
 
   // Overview renders its server-computed health panel.
   await expect(page.getByTestId("health-panel")).toBeVisible();
+
+  // …and the background receipt-reading card: a status line + the four counts
+  // (state depends on what earlier specs left queued, so assert presence).
+  await expect(page.getByTestId("annotation-queue")).toBeVisible();
+  await expect(page.getByTestId("annotation-queue-status")).toBeVisible();
+  await expect(page.getByTestId("annotation-stat-failed")).toBeVisible();
 
   // Church Context is the main job.
   await page.getByTestId("admin-tab-context").click();

@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { HealthItem, UsageStats } from "@/lib/admin/overview";
+import AnnotationQueue from "./AnnotationQueue";
 import type { Tab } from "./AdminDashboard";
 
 const LEVEL_STYLES: Record<string, string> = {
@@ -88,6 +89,8 @@ export default function OverviewTab({ onNavigate }: { onNavigate: (t: Tab) => vo
           </ul>
         )}
       </section>
+
+      <AnnotationQueue onNavigate={onNavigate} />
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-stone-500">{t("headlineTitle")}</h2>

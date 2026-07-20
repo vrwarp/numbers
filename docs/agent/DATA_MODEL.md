@@ -182,6 +182,8 @@ durationMs, createdAt`
 - `action="remove-receipt"`: detail `{receiptId, originalName, removedLineItems[]}` — a
   receipt pulled out of a draft claim (its rows are deleted, so this is their only record).
 - `action="revert-to-draft"`: detail `{receiptIds}` — a generated claim unfrozen.
+- `action="retry-annotation"`: detail `{receiptIds}` — an admin re-queued failed
+  background-annotation jobs (`POST /api/admin/extraction-jobs`).
 - `action="restore-receipt-image"`: detail `{receiptId, originalName}` — the stored image was
   reset to the pristine upload (`/api/receipts/[id]/edit` with `{restore:true}` and no transform).
 - `action="edit-receipt-image"`: detail `{receiptId, originalName, rotate, crop}` (plus

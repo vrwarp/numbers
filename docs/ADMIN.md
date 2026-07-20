@@ -86,7 +86,7 @@ link if I'm actually an admin."
 
 | Tab | Purpose | Cadence |
 | :-- | :-- | :-- |
-| Overview | Health/"problems" cards + headline counts | every visit |
+| Overview | Health/"problems" cards + background receipt-reading queue (counts, failed receipts, retry) + headline counts | every visit |
 | Church Context | Markdown editor for the suggestion context (**the main job**) | as vocabulary changes |
 | Settings | Grouped, guard-railed editor for `config.json` env overrides | rare / setup |
 | Usage | Totals, claims by status, AI-call success/failure over time | weekly |
@@ -96,6 +96,9 @@ link if I'm actually an admin."
 ## API (`src/app/api/admin/*`, all `requireAdmin` + audited on write)
 
 - `GET /api/admin/overview` — health checks + headline stats.
+- `GET /api/admin/extraction-jobs` — background annotation queue health (counts,
+  backlog age, pace, failed receipts with errors); `POST` re-queues failed jobs
+  (`{receiptIds?}`, absent = all), `AuditEvent(retry-annotation)`.
 - `GET /api/admin/church-context` / `PUT` — read/save the context doc (16 KB
   cap, `AuditEvent(admin-church-context)`); hot-reloaded (`loadChurchContext`
   reads fresh).

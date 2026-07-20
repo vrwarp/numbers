@@ -113,6 +113,8 @@ src/lib/extraction/worker.ts    the background annotation worker: singleton loop
                                 retries (no attempt burn), backfill/GC sweep at boot + daily
 src/lib/extraction/retry.ts     pure pacing + retry-plan math (annotationRetryPlan, paceWaitMs)
 src/lib/extraction/settings.ts  EXTRACTION_* knobs, dev opt-in gate, aiCallReady()
+src/components/admin/AnnotationQueue.tsx  Overview card: annotation queue health
+                                (status line, counts, failed receipts + retry)
 src/lib/claim-stream.ts         ClaimStreamMessage — the NDJSON progress-line union shared by
                                 the claim-building routes and their client consumers
                                 (dependency-free, client-safe)
@@ -292,6 +294,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/teams` | GET PUT | the Teams catalog (SEARCH_DESIGN §6.3 team amendment): GET teams+member directory, PUT replace (archive-don't-delete, audited `admin-teams`) — Approver-or-above via `requireTeamEditor` (404 otherwise). Associations stored as budget-category CODES |
 | `/api/search` | POST | semantic + exact search (docs/SEARCH_DESIGN.md §6): scope mine/all/decided/team (mine free; all/decided role-gated by the verified mirror; team gated on live Team membership — member asking beyond their grants → 404), exact-match SQL pass + cosine over the in-memory index, degraded exact-only mode when the embed call fails, decided/team browse with cursor (decided = claims by decidedAt; team = the team receipts by createdAt). 404 while unconfigured |
 | `/api/admin/embeddings` (+ `/probe`, `/jobs`, `/rebuild`, `/test-query`) | GET PUT POST | admin search backend config (probe detects dim; GET returns key fingerprint only), queue health/failed retries, forced rebuild, scored test query — behind `requireAdmin()` |
+| `/api/admin/extraction-jobs` | GET POST | annotation-queue health for the Overview card (status counts, backlog age, pace, failed receipts w/ owner+error) and failed-job retry (`{receiptIds?}`, absent = all failed; resets attempts, bumps generation, wakes the worker; `AuditEvent(retry-annotation)`) — behind `requireAdmin()` |
 | `/api/extraction-logs` | GET | own logs, `?reimbursementId=`, newest first, summaries (kind="embedding" rows excluded — operational, §9) |
 | `/api/extraction-logs/[id]` | GET | full tuning record: log + lineItems w/ computed `corrections` + `humanCreated` + parsed auditEvents |
 
