@@ -205,7 +205,7 @@ test("draft claims index after the idle window and re-index on edit", async ({ p
   );
 });
 
-test("scopes: member cannot ask for whole-church; an approver defaults to it and can open a foreign receipt", async ({ browser }, testInfo) => {
+test("scopes: member cannot ask for whole-church; an approver widens to it explicitly and can open a foreign receipt", async ({ browser }, testInfo) => {
   const suffix = `${testInfo.project.name}-r${testInfo.retry}`;
   // Alice (member) uploads a distinctive receipt.
   const alice = await (await browser.newContext()).newPage();
@@ -226,12 +226,16 @@ test("scopes: member cannot ask for whole-church; an approver defaults to it and
   expect((await bob.request.get(`/api/receipts/${receiptId}/file`)).status()).toBe(404);
 
   // Carol (approver, granted directly in the e2e DB — the verified-mirror
-  // shortcut every role e2e uses): defaults to whole-church, sees the owner,
-  // and the ratified §6.3 grant lets her open the image.
+  // shortcut every role e2e uses): asks for whole-church EXPLICITLY (an
+  // omitted scope is "mine" for everyone), sees the owner, and the ratified
+  // §6.3 grant lets her open the image.
   const carol = await (await browser.newContext()).newPage();
   await signInAs(carol, `carol-search-${suffix}@example.com`, "Carol Approver");
   await grantRole(`carol-search-${suffix}@example.com`, "approver");
-  const carolResult = await searchUntil(carol, { query: "projector VBS" }, anyHit);
+  // Her own default scope stays "mine" — the foreign receipt is NOT there.
+  const carolMine = await (await carol.request.post("/api/search", { data: { query: "projector VBS" } })).json();
+  expect(anyHit(carolMine)).toBe(false);
+  const carolResult = await searchUntil(carol, { query: "projector VBS", scope: "all" }, anyHit);
   const items = [
     ...carolResult.exact,
     ...(carolResult.best ? [carolResult.best] : []),
@@ -336,6 +340,71 @@ test("IME safety: Enter during composition never fires a search", async ({ page 
   // A real Enter fires exactly one search.
   await page.getByTestId("search-input").press("Enter");
   await expect.poll(() => searchCalls).toBe(1);
+});
+
+test("chips stage, never search: results annotate their state and go stale until the next submit", async ({ page }, testInfo) => {
+  const email = `stale-${testInfo.project.name}-r${testInfo.retry}@example.com`;
+  await signInAs(page, email, "Stale Tester");
+  await grantRole(email, "approver"); // Where control: My items / Whole church / Claims I decided
+  await page.goto("/search");
+
+  let searchCalls = 0;
+  page.on("request", (req) => {
+    if (req.url().includes("/api/search") && req.method() === "POST") searchCalls++;
+  });
+
+  // Clicking Show/Where chips stages them without firing a search…
+  await page.getByTestId("search-type-filter").getByRole("radio", { name: "Claims" }).click();
+  await page.getByTestId("search-scope-filter").getByRole("radio", { name: "Claims I decided" }).click();
+  await page.waitForTimeout(400);
+  expect(searchCalls).toBe(0);
+  // …and with nothing searched yet there's no annotation line.
+  await expect(page.getByTestId("search-applied")).toHaveCount(0);
+
+  // The explicit submit runs the staged browse and stamps the annotation
+  // with exactly what produced the results; the button relaxes to "fresh".
+  await page.getByTestId("search-submit").click();
+  await expect.poll(() => searchCalls).toBe(1);
+  const applied = page.getByTestId("search-applied");
+  await expect(applied).toBeVisible();
+  await expect(applied).toContainText("All results");
+  await expect(applied).toContainText("Claims I decided");
+  await expect(page.getByTestId("search-submit")).toHaveAttribute("data-fresh", "true");
+  await expect(page.getByTestId("search-stale-note")).toHaveCount(0);
+
+  // Re-chipping goes visibly stale — and STILL doesn't search. The annotation
+  // keeps naming the state the on-screen results actually came from.
+  await page.getByTestId("search-scope-filter").getByRole("radio", { name: "Whole church" }).click();
+  await expect(page.getByTestId("search-stale-note")).toBeVisible();
+  await expect(page.getByTestId("search-submit")).not.toHaveAttribute("data-fresh", "true");
+  await expect(applied).toContainText("Claims I decided");
+  expect(searchCalls).toBe(1);
+
+  // The next submit applies the staged scope + query; fresh again.
+  await page.getByTestId("search-input").fill("anything at all");
+  await page.getByTestId("search-submit").click();
+  await expect.poll(() => searchCalls).toBe(2);
+  await expect(applied).toContainText("Results for “anything at all”");
+  await expect(applied).toContainText("Whole church");
+  await expect(page.getByTestId("search-submit")).toHaveAttribute("data-fresh", "true");
+  await expect(page.getByTestId("search-stale-note")).toHaveCount(0);
+
+  // Scope round-trips through the URL: the explicit "Whole church" is written
+  // (?scope=all) and survives a reload…
+  await expect.poll(() => new URL(page.url()).searchParams.get("scope")).toBe("all");
+  await page.reload();
+  await expect(
+    page.getByTestId("search-scope-filter").getByRole("radio", { name: "Whole church" })
+  ).toHaveAttribute("aria-checked", "true");
+
+  // …while "My items" is everyone's default — role-holders included — so it
+  // strips the param and still restores as the selection.
+  await page.getByTestId("search-scope-filter").getByRole("radio", { name: "My items" }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("scope")).toBe(null);
+  await page.reload();
+  await expect(
+    page.getByTestId("search-scope-filter").getByRole("radio", { name: "My items" })
+  ).toHaveAttribute("aria-checked", "true");
 });
 
 test("admin model change wipes and rebuilds; search works on the new model", async ({ page }, testInfo) => {

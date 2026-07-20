@@ -16,6 +16,13 @@ import ReceiptViewer from "@/components/ReceiptViewer";
  * notes, degraded mode, cross-device recents (server-backed, 90-day window,
  * clearable), and URL-encoded state (q/scope/type) so refresh and Back restore
  * the view without retyping.
+ *
+ * Everything runs on EXPLICIT submit — the Show/Where chips only stage the
+ * next search, they never fire one. The results keep the {query, scope, type}
+ * that actually produced them (`applied`) and are annotated with it; when the
+ * staged controls drift from `applied` the view goes visibly stale (primary
+ * Search button, note, dimmed cards) until the user submits again. Cards,
+ * paging, and the empty state all read `applied`, never the staged chips.
  */
 
 type ReceiptItem = {
@@ -61,6 +68,8 @@ type SearchResponse = {
 
 type Scope = "mine" | "all" | "decided" | "team";
 type TypeFilter = "receipt" | "claim" | null;
+/** The exact controls a displayed result set was fetched with. */
+type Applied = { q: string; scope: Scope; type: TypeFilter };
 
 /** Scopes that browse their set on an empty query ("list everything"):
  *  decided claims, and the team read grant's receipts (§6.3). */
@@ -108,9 +117,11 @@ export default function SearchClient({
   const errorMessage = useApiErrorMessage();
 
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<Scope>(canAll ? "all" : "mine");
+  const [scope, setScope] = useState<Scope>("mine");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(null);
   const [result, setResult] = useState<SearchResponse | null>(null);
+  // The controls that produced `result` — null until the first search lands.
+  const [applied, setApplied] = useState<Applied | null>(null);
   const [searching, setSearching] = useState(false);
   const [slow, setSlow] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -138,6 +149,8 @@ export default function SearchClient({
   const syncUrl = useCallback((q: string, sc: Scope, ty: TypeFilter) => {
     const sp = new URLSearchParams();
     if (q.trim()) sp.set("q", q.trim());
+    // "mine" is the default for everyone (role-holders included), so only
+    // non-default scopes are written — and always round-trip on Back/refresh.
     if (sc !== "mine") sp.set("scope", sc);
     if (ty) sp.set("type", ty);
     const qs = sp.toString();
@@ -149,11 +162,10 @@ export default function SearchClient({
     const urlQ = params.get("q") ?? "";
     const urlType = params.get("type");
     const urlScope = params.get("scope");
-    // Role-holders default to the whole-church scope (§6.1 — their canonical
-    // lookup is someone else's claim); an explicit ?scope=mine still wins.
-    let initScope: Scope = canAll ? "all" : "mine";
-    if (urlScope === "mine") initScope = "mine";
-    else if (urlScope === "all" && canAll) initScope = "all";
+    // Everyone starts in "mine" — role-holders included — and widens
+    // explicitly; a cross-tenant ?scope= is honored only with its grant.
+    let initScope: Scope = "mine";
+    if (urlScope === "all" && canAll) initScope = "all";
     else if (urlScope === "decided" && canDecided) initScope = "decided";
     else if (urlScope === "team" && canTeam) initScope = "team";
     const initType: TypeFilter =
@@ -234,6 +246,10 @@ export default function SearchClient({
           ? { ...data, groups: mergeGroups(result.groups, data.groups) }
           : data;
         setResult(merged);
+        // Record what these results were fetched with — the annotation line and
+        // the staleness check compare the staged chips against this. Paging with
+        // a cursor extends the same search, so `applied` is left untouched.
+        if (!opts.append) setApplied({ q: q.trim(), scope: useScope, type: useType });
         setShowAllExact(false);
         rememberRecent(q);
         const count =
@@ -318,14 +334,16 @@ export default function SearchClient({
     next?.click();
   }, []);
 
+  // Show/Where chips STAGE the next search — they never run one. Firing on
+  // every chip tap meant a tap sequence raced its own fetches and the pane
+  // showed whichever response landed last; now the results stay put (marked
+  // stale) until the user presses Search.
   const changeScope = useCallback(
     (next: Scope) => {
       setScope(next);
-      const q = query;
-      if (q.trim() || browsesEmpty(next)) void runSearch(q, { scope: next });
-      else syncUrl(q, next, typeFilter);
+      syncUrl(query, next, typeFilter);
     },
-    [query, runSearch, syncUrl, typeFilter]
+    [query, syncUrl, typeFilter]
   );
 
   // Three-way type filter (Both / Receipts / Claims), always available — unlike
@@ -333,11 +351,38 @@ export default function SearchClient({
   const changeType = useCallback(
     (next: TypeFilter) => {
       setTypeFilter(next);
-      if (query.trim() || browsesEmpty(scope)) void runSearch(query, { type: next });
-      else syncUrl(query, scope, next);
+      syncUrl(query, scope, next);
     },
-    [query, scope, runSearch, syncUrl]
+    [query, scope, syncUrl]
   );
+
+  // Shared chip-label lookups (segmented controls + the applied annotation).
+  const typeLabelOf = useCallback(
+    (ty: TypeFilter) =>
+      ty === "receipt" ? t("typeReceipts") : ty === "claim" ? t("typeClaims") : t("typeAll"),
+    [t]
+  );
+  const scopeLabelOf = useCallback(
+    (s: Scope) =>
+      s === "mine"
+        ? t("scopeMine")
+        : s === "all"
+          ? t("scopeAll")
+          : s === "team"
+            ? t("scopeTeam")
+            : t("scopeDecided"),
+    [t]
+  );
+
+  // Staged controls no longer match the displayed results. Suppressed while a
+  // search is in flight — the pane is already dimmed and about to be replaced.
+  const stale =
+    !searching &&
+    !!applied &&
+    (query.trim() !== applied.q || scope !== applied.scope || typeFilter !== applied.type);
+  // Results are in sync with every control — the Search button relaxes to the
+  // outline style until something changes again.
+  const fresh = !!applied && !stale && !searching;
 
   const hasResults =
     !!result &&
@@ -348,7 +393,10 @@ export default function SearchClient({
   // Year headers suppressed only when ALL results share one year (§7.2).
   const suppressYears = !!result && result.groups.length <= 1;
   const dateHint =
-    !!result && hasResults && RELATIVE_DATE_TOKENS.test(query) && result.groups.length > 1;
+    !!result &&
+    hasResults &&
+    RELATIVE_DATE_TOKENS.test(applied?.q ?? "") &&
+    result.groups.length > 1;
 
   const pendingNote = useMemo(() => {
     if (!result) return null;
@@ -391,7 +439,7 @@ export default function SearchClient({
                 className={`px-3 py-1.5 ${typeFilter === ty ? "bg-indigo-600 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
                 onClick={() => changeType(ty)}
               >
-                {ty === null ? t("typeAll") : ty === "receipt" ? t("typeReceipts") : t("typeClaims")}
+                {typeLabelOf(ty)}
               </button>
             ))}
           </div>
@@ -432,13 +480,7 @@ export default function SearchClient({
                   className={`px-3 py-1.5 ${scope === s ? "bg-indigo-600 text-white" : "bg-white text-stone-600 hover:bg-stone-50"}`}
                   onClick={() => changeScope(s)}
                 >
-                  {s === "mine"
-                    ? t("scopeMine")
-                    : s === "all"
-                      ? t("scopeAll")
-                      : s === "team"
-                        ? t("scopeTeam")
-                        : t("scopeDecided")}
+                  {scopeLabelOf(s)}
                 </button>
               ))}
             </div>
@@ -527,7 +569,12 @@ export default function SearchClient({
         </div>
         <button
           data-testid="search-submit"
-          className="btn-primary min-h-11 shrink-0 px-5"
+          // Filled while there's an unrun search (nothing yet, or the staged
+          // controls drifted from the results); relaxes to the outline style
+          // the moment results match every control, so the fill itself says
+          // "press me again".
+          data-fresh={fresh || undefined}
+          className={`${fresh ? "btn-secondary" : "btn-primary"} min-h-11 shrink-0 px-5`}
           onClick={onSubmit}
           disabled={searching || (!query.trim() && !browsesEmpty(scope))}
         >
@@ -553,6 +600,32 @@ export default function SearchClient({
         </div>
       )}
 
+      {/* What the results BELOW were actually fetched with — query plus the
+          Show/Where values — so a re-chipped control can never silently
+          relabel old results. Goes amber with a call to action when the
+          staged controls drift. */}
+      {result && applied && !searching && (
+        <div
+          data-testid="search-applied"
+          className="flex flex-wrap items-center gap-1.5 text-xs text-stone-500"
+        >
+          <span>{applied.q ? t("appliedQuery", { query: applied.q }) : t("appliedAll")}</span>
+          <span className="rounded-full bg-stone-100 px-2 py-0.5 font-medium text-stone-600">
+            {typeLabelOf(applied.type)}
+          </span>
+          {(canAll || canTeam) && (
+            <span className="rounded-full bg-stone-100 px-2 py-0.5 font-medium text-stone-600">
+              {scopeLabelOf(applied.scope)}
+            </span>
+          )}
+          {stale && (
+            <span data-testid="search-stale-note" className="font-medium text-amber-700">
+              {t("staleNote")}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* First run has no stale results to dim, so sketch the incoming list —
           a blank pane reads as "nothing happened". Announcement is handled by
           the live region above. */}
@@ -570,7 +643,15 @@ export default function SearchClient({
         </div>
       )}
 
-      <div className={searching && result ? "pointer-events-none opacity-50" : ""}>
+      <div
+        className={
+          searching && result
+            ? "pointer-events-none opacity-50"
+            : stale
+              ? "opacity-60" // stale results dim but stay usable
+              : ""
+        }
+      >
         {result && !hasResults && !searching && (
           <div data-testid="search-empty" className="card p-8 text-center text-stone-500">
             <div className="text-3xl">🔍</div>
@@ -582,7 +663,7 @@ export default function SearchClient({
             <p className="text-sm">
               {result.degraded
                 ? t("emptyDegradedBody")
-                : scope === "team" && !query.trim()
+                : applied?.scope === "team" && !applied.q
                   ? t("emptyTeamBrowse")
                   : (pendingNote ?? t("emptyBody"))}
             </p>
@@ -607,7 +688,7 @@ export default function SearchClient({
                 <SectionHeader label={t("exactMatches")} />
                 <ul className="space-y-2">
                   {(showAllExact ? result.exact : result.exact.slice(0, 3)).map((item) => (
-                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} formatDate={formatDate} onViewReceipt={setViewingReceipt} />
+                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder: canAll }} scope={applied?.scope ?? scope} t={t} tStatus={tStatus} formatDate={formatDate} onViewReceipt={setViewingReceipt} />
                   ))}
                 </ul>
                 {result.exact.length > 3 && !showAllExact && (
@@ -626,7 +707,7 @@ export default function SearchClient({
               <section data-testid="search-best-match">
                 <SectionHeader label={t("bestMatch")} />
                 <ul>
-                  <ResultCard item={result.best} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} formatDate={formatDate} onViewReceipt={setViewingReceipt} />
+                  <ResultCard item={result.best} viewer={{ userId, isRoleHolder: canAll }} scope={applied?.scope ?? scope} t={t} tStatus={tStatus} formatDate={formatDate} onViewReceipt={setViewingReceipt} />
                 </ul>
               </section>
             )}
@@ -640,7 +721,7 @@ export default function SearchClient({
                 )}
                 <ul className="space-y-2">
                   {group.items.map((item) => (
-                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder: canAll }} scope={scope} t={t} tStatus={tStatus} formatDate={formatDate} onViewReceipt={setViewingReceipt} />
+                    <ResultCard key={`${item.kind}:${item.id}`} item={item} viewer={{ userId, isRoleHolder: canAll }} scope={applied?.scope ?? scope} t={t} tStatus={tStatus} formatDate={formatDate} onViewReceipt={setViewingReceipt} />
                   ))}
                 </ul>
               </section>
@@ -650,7 +731,18 @@ export default function SearchClient({
               <button
                 data-testid="search-show-more"
                 className="btn-secondary w-full"
-                onClick={() => void runSearch(query, { cursor: result.nextCursor, append: true })}
+                // Page the search these results came from — never the staged
+                // (possibly edited) controls, which would splice two different
+                // searches into one list.
+                onClick={() =>
+                  applied &&
+                  void runSearch(applied.q, {
+                    scope: applied.scope,
+                    type: applied.type,
+                    cursor: result.nextCursor,
+                    append: true,
+                  })
+                }
               >
                 {t("showMore")}
               </button>
