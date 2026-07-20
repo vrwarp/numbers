@@ -26,6 +26,7 @@ export default function AccountMenu({
   canViewMembers,
   canManageTeams,
   menuTabs = [],
+  esignSetup = null,
 }: {
   userName: string;
   isAdmin?: boolean;
@@ -33,6 +34,11 @@ export default function AccountMenu({
   canViewMembers?: boolean;
   canManageTeams?: boolean;
   menuTabs?: Array<NavLink & { hidden?: boolean }>;
+  /** EP7 (docs/ESIGN_SETUP_DISCOVERABILITY.md §3.3): the persistent e-sign
+   *  setup door. A menu row, not a banner — never dismissible, never feeds the
+   *  avatar work-dot (that dot means pending WORK). chip null = the user opted
+   *  for paper or is revoked: the door stays, the to-do valence goes. */
+  esignSetup?: { kind: "setup" | "qr"; chip: "none" | "pending" | null } | null;
 }) {
   const t = useTranslations("NavBar");
   const pathname = usePathname();
@@ -128,6 +134,33 @@ export default function AccountMenu({
               ))}
               <div className="my-1 h-px bg-stone-100" />
             </>
+          ) : null}
+          {esignSetup ? (
+            // Label stays one line; the status chip sits on its own line below
+            // so a long chip can never clip at the popover edge. Pending chip
+            // is indigo (progress), never amber — being further along must not
+            // read as escalation.
+            <Link
+              href="/profile?open=esign"
+              className="flex flex-col items-start gap-1 rounded-lg px-2.5 py-2 text-sm text-stone-700 hover:bg-stone-100"
+              data-testid="nav-esign-setup"
+            >
+              <span className="flex items-center gap-2 whitespace-nowrap">
+                <span aria-hidden>✍️</span>
+                {esignSetup.kind === "qr" ? t("showYourCode") : t("setupSigning")}
+              </span>
+              {esignSetup.chip ? (
+                <span
+                  className={`ml-6 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                    esignSetup.chip === "pending"
+                      ? "bg-indigo-50 text-indigo-700"
+                      : "bg-stone-100 text-stone-600"
+                  }`}
+                >
+                  {esignSetup.chip === "pending" ? t("chipPending") : t("chipNone")}
+                </span>
+              ) : null}
+            </Link>
           ) : null}
           <Link href="/profile" className={itemClass}>
             {t("profile")}

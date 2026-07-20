@@ -53,11 +53,39 @@
     "search": "搜尋",
     "positions": "Positions",
     "members": "成員",
-    "teams": "Teams"
+    "teams": "Teams",
+    "setupSigning": "開通簽名",
+    "showYourCode": "出示 QR 碼",
+    "chipNone": "未開通",
+    "chipPending": "等待確認"
   },
   "Home": {
     "profileNudge": "您的<link>個人資料</link>需要填寫姓名和郵寄地址——兩者都會列印在報銷表上。",
-    "profileNudgeShort": "完善個人資料"
+    "profileNudgeShort": "完善個人資料",
+    "esignNudgeTitle": "不用印表機",
+    "esignNudgeNull": "在手機上簽署並提交報銷單。您需要再次登入 Google 帳號，約兩分鐘即可完成設定；之後由兩位會友（或一位審批人）當面確認是您本人——通常在下次聚會時。",
+    "esignNudgeNullCta": "開通簽名",
+    "esignNudgeDecline": "我用紙本就好",
+    "esignNudgePendingTitle": "就差一步",
+    "esignNudgePending": "在教會向任意兩位會友（或一位審批人）出示您的 QR 碼，即可完成確認。可能會先請您登入 Google 帳號。",
+    "esignNudgePendingCta": "出示 QR 碼",
+    "esignNudgePaperRepeat": "下一張報銷單可以直接在手機上簽署——設定一次就好。",
+    "esignNudgeCollapsed": "開通簽名",
+    "esignNudgeCollapsedPending": "在教會出示 QR 碼，完成簽名設定",
+    "esignDutyTitle": "您已被列為審批人",
+    "esignDutyNull": "開通簽名後，會友才能將報銷單送交您審批。設定可自行完成；確認需當面進行；之後由執行同工為您開啟審批職責。",
+    "esignDutyPendingTitle": "只差一次掃碼",
+    "esignDutyPending": "任何一位執行同工都能為您確認——掃一次您的 QR 碼即可。之後由執行同工開啟您的審批職責，會友就能將報銷單送交給您。",
+    "esignDutySnooze": "下週再提醒我",
+    "esignClosureTitle": "設定完成",
+    "esignClosure": "您 {date} 的報銷單（{amount}）現在可以電子簽署了。",
+    "esignClosureNoClaim": "您的下一張報銷單就可以直接在手機上電子簽署。",
+    "esignClosureVouchLine": "您也可以在教會為其他會友當面確認——就是導覽裡的「<b>擔保</b>」標籤。",
+    "esignClosureCta": "開啟報銷單",
+    "esignClosureGotIt": "知道了",
+    "esignNudgeResolved": "簽名設定提示已結束",
+    "esignDutyRecovery": "請不要跳過復原口令步驟——否則您的審批職責無法開啟。",
+    "esignNudgePaperRepeatTitle": "還在用紙本嗎？"
   },
   "SignIn": {
     "tagline": "中華歸主海沃教會費用報銷——隨手拍下收據，之後再提交申請。",
@@ -79,7 +107,10 @@
     "emptyTitle": "還沒有報銷單",
     "emptyBody": "在<link>收據</link>頁面選取收據，然後按「新增報銷單」。",
     "counts": "{items} 個項目 · {receipts, plural, other {# 張收據}}",
-    "searchPill": "搜尋報銷單…"
+    "searchPill": "搜尋報銷單…",
+    "subtitlePaper": "草稿報銷單需先核對；標為「可提交」的報銷單可以列印。",
+    "subtitleSetup": "草稿報銷單需先核對；標為「可提交」的報銷單可以列印，<link>開通簽名</link>後也可以電子簽署。",
+    "subtitlePending": "草稿報銷單需先核對；標為「可提交」的報銷單可以列印，在教會<link>當面確認</link>後也可以電子簽署。"
   },
   "Profile": {
     "title": "個人資料",
@@ -186,7 +217,8 @@
     "skipAll": "全部略過",
     "quotaRingAria": "約 {seconds, plural, other {# 秒}}後重試",
     "searchPill": "搜尋收據…",
-    "openGoneToast": "這張收據已不在你的收據頁。"
+    "openGoneToast": "這張收據已不在你的收據頁。",
+    "step4Esign": "<step>4. 完成。</step>列印填好的教會報銷表並簽名——或直接在手機上電子簽署。"
   },
   "Viewer": {
     "ariaTitle": "收據：{name}",
@@ -390,7 +422,20 @@
     "underSignatureFrozen": "簽署中——報銷文件與明細已凍結。",
     "downloadSigned": "⬇ 下載已簽署文件",
     "revertConfirmSigned": "要將這張報銷單退回草稿嗎？目前已收集的簽名將全部作廢，審批需要重新開始。",
-    "retiredOption": "{value}（已停用）"
+    "retiredOption": "{value}（已停用）",
+    "esignSetupHint": "完成這張報銷單——列印，或開通簽名。",
+    "esignSetupAction": "開通簽名",
+    "esignWaitingAction": "等待確認",
+    "esignWaitingAria": "電子簽名：等待當面確認——查看說明",
+    "esignSetupCalloutTitle": "想電子簽署這張報銷單？需要先完成一次性設定",
+    "esignSetupCalloutNull": "您需要再次登入 Google 帳號，約兩分鐘即可完成設定；之後由兩位會友（或一位審批人）當面確認是您本人——通常在下次聚會時。",
+    "esignSetupCalloutPendingTitle": "只差當面確認這一步",
+    "esignSetupCalloutPending": "在教會向兩位會友（或一位審批人）出示您的 QR 碼，之後這樣的報銷單就可以電子簽署了。",
+    "esignSetupCalloutRevokedTitle": "您的電子簽名已停用",
+    "esignSetupCalloutRevoked": "您的簽名身份已被停用。詳情請見您的個人資料頁。",
+    "esignSetupCalloutPaper": "您仍然可以用紙本方式提交——現在下載 PDF，在教會或方便的地方列印即可。",
+    "esignSetupCalloutCta": "開通簽名",
+    "esignSetupCalloutQrCta": "出示 QR 碼"
   },
   "Esign": {
     "submitForApproval": "✍️ 提交審批",
@@ -423,12 +468,11 @@
     "openApprovedPacketButton": "🖋️ 開啟已批准文件 — 含審批人簽名",
     "openOriginalPacketLink": "原始文件（提交時的版本）",
     "submitDialogTitle": "提交審批",
-    "notAttested": "你還不能簽名——請先在<link>個人資料</link>中開通簽名，然後獲得擔保。",
     "submitIntro": "你正在為這張報銷單（{amount}）申請批准。請把簽名放到表單上，選擇審批人，然後簽署。若之後報銷單有改動，你的簽名即告失效，審批需重新開始。",
     "openingForm": "正在開啟表單…",
     "prepFailed": "無法載入表單——請檢查網路後重試。",
     "retryButton": "重試",
-    "noEligibleApprovers": "目前沒有可用的審批人——所有可審批的成員都已暫停或未註冊。請與財務負責人聯繫。",
+    "noEligibleApprovers": "目前沒有可選擇的審批人。請與財務同工確認——您今天仍可以列印這張報銷單並以紙本方式提交。",
     "placeSignatureHint": "請先在上方表單上按住以放置您的簽名。",
     "approverLabel": "審批人",
     "approverPlaceholder": "請選擇審批人…",
@@ -502,7 +546,10 @@
     "waitingDays": "· 已等待 {days, plural, other {# 天}}",
     "alreadyDecidedNote": "這張報銷單已有審批結果——清單稍後會更新。",
     "assignedElsewhereNote": "這張報銷單已指派給其他審批人。",
-    "undoStroke": "復原一筆"
+    "undoStroke": "復原一筆",
+    "notAttestedNull": "要使用電子簽署，請先在<link>個人資料</link>頁開通簽名——之後由兩位會友當面確認是您本人。",
+    "notAttestedPending": "就差一步——在教會向兩位會友或一位審批人出示您的 QR 碼（在<link>個人資料</link>頁）。確認後即可簽署。",
+    "notAttestedRevoked": "您的簽名身份已被停用。詳情請見<link>個人資料</link>頁。"
   },
   "Approvals": {
     "title": "審批",
@@ -518,7 +565,10 @@
     "rejectConfirmTitle": "拒絕這份報銷單？",
     "rejectConfirmBody": "拒絕後無法復原，你之後也無法再批准這份報銷單。{name} 需要修改並重新提交，才能重新進入審批。",
     "rejectConfirmAction": "✗ 拒絕報銷單",
-    "openGone": "該報銷單已不在此清單中——可能已有審批結果。"
+    "openGone": "該報銷單已不在此清單中——可能已有審批結果。",
+    "emptyNotSetUp": "報銷單還無法送交給您——請先<link>開通簽名</link>，會友才能選您作為審批人。",
+    "emptyPendingVouch": "設定已完成——只差當面確認。請在教會<link>出示您的 QR 碼</link>；確認後會友即可將報銷單送交給您。",
+    "emptyRevoked": "您的簽名身份已被停用。詳情請見<link>個人資料</link>頁。"
   },
   "Finance": {
     "title": "財務",
@@ -543,7 +593,7 @@
   "Identity": {
     "title": "電子簽名",
     "chipReady": "可以簽署",
-    "chipPending": "等待擔保",
+    "chipPending": "等待確認",
     "chipRevoked": "已停用",
     "chipNone": "未開通",
     "loadFailed": "無法載入簽名狀態",
@@ -559,7 +609,7 @@
     "bootstrapBusy": "設定中…",
     "setupFailed": "設定失敗",
     "notSetUp": "本教會尚未設定電子簽名——請聯絡管理員。",
-    "enrollIntro": "用手機就能簽署和審批報銷——無需列印。你將同意使用電子簽名、畫下你的簽名，然後由兩位會友當面確認是你本人（掃一下 QR 碼即可）。",
+    "enrollIntro": "在手機上簽署並提交報銷單——無需列印。您將同意使用電子簽名、手寫您的簽名，然後由兩位會友（或一位審批人）當面確認是您本人——掃一次碼即可。",
     "enrollButton": "開通簽名",
     "checkingDevice": "正在檢查此裝置…",
     "yourSignature": "你的簽名",
@@ -596,7 +646,8 @@
     "scanFromVouchTab": "重要提示：請對方在本應用程式的「擔保」分頁中掃描此碼——不要用手機相機應用程式掃描。",
     "whoCanVouch": "可以為您擔保的成員：{names}{more, plural, =0 {} other { 等，還有 # 人}}。",
     "revokedBody": "您的簽名金鑰已被管理員停用。您之前簽署的內容仍然有效，但若要再次簽署，需要重新設定簽名並再次當面獲得擔保。",
-    "reEnrollButton": "重新設定簽名"
+    "reEnrollButton": "重新設定簽名",
+    "connectFraming": "請先用您在本應用程式使用的同一個 Google 帳號登入。"
   },
   "Devices": {
     "newDeviceTitle": "這似乎是一台新裝置。",
@@ -832,7 +883,8 @@
       "notAllowed": "您的帳號尚未開通電子簽名",
       "approverUnavailable": "該審批人目前不接收新的審批請求——請改選其他人",
       "approverRoleLost": "您的審批人角色已被移除——您可以拒絕，但無法批准",
-      "decisionNotBinding": "已簽署的決定未能在帳本上生效——請重新整理本報銷單後重試，或請提交人改選其他審批人"
+      "decisionNotBinding": "已簽署的決定未能在帳本上生效——請重新整理本報銷單後重試，或請提交人改選其他審批人",
+      "invalidNudge": "此更新未能儲存。"
     },
     "admin": {
       "contentString": "內容必須為文字。",
@@ -857,7 +909,8 @@
       "unknownMember": "One of the selected people couldn’t be found. Refresh and try again."
     },
     "searchInvalid": "無法理解該搜尋——請調整後重試",
-    "searchEmptyQuery": "請先輸入要搜尋的內容"
+    "searchEmptyQuery": "請先輸入要搜尋的內容",
+    "invalidMemberUpdate": "此成員更新未能儲存。"
   },
   "AddReceipts": {
     "title": "向這張報銷單新增收據",
@@ -1125,7 +1178,13 @@
     "action_admin_church_context": "編輯了教會背景資料",
     "action_update_embedding_config": "變更了搜尋設定",
     "action_rebuild_embeddings": "重建了搜尋索引",
-    "action_retry_embedding": "重試了失敗的索引"
+    "action_retry_embedding": "重試了失敗的索引",
+    "fields": {
+      "ESIGN_NUDGES_OFF": {
+        "label": "暫停開通提示",
+        "help": "對所有人隱藏首頁的電子簽名開通與完成提示卡。按鈕、選單入口與狀態提示仍保留。"
+      }
+    }
   },
   "Ministries": {
     "title": "Budget categories",
@@ -1287,13 +1346,12 @@
     "attestedTitle": "已認證會友",
     "othersTitle": "其他成員",
     "othersEmpty": "名錄中的所有成員均已認證。",
-    "statusPending": "等待擔保",
+    "statusPending": "等待確認",
     "statusRevoked": "金鑰已吊銷",
     "statusNone": "尚未開通電子簽名",
     "accessAlwaysOn": "永遠開啟",
     "accessGrant": "授予電子簽名權限",
     "accessCancel": "取消電子簽名權限",
-    "pendingHint": "等待擔保的成員需當面完成認證——請前往<link>為會友擔保</link>頁面。",
     "roleLabel": "角色",
     "roleDialogTitle": "變更 {name} 的角色",
     "roleDialogFromTo": "這會將他們的角色從 <b>{from}</b> 變更為 <b>{to}</b>。",
@@ -1308,7 +1366,23 @@
     "keyDialogBody": "僅當能以他身分簽名的裝置遺失或被盜時才這樣做。他已簽署的內容依然有效，但該金鑰將立即在所有地方失效——他需要重新開通簽名，並再次當面獲得擔保。",
     "attestedSince": "認證於 {date}",
     "statusRevokedHint": "其簽名金鑰已停用。若要再次簽署，需在其個人資料頁重新設定簽名並再次當面獲得擔保。",
-    "statusNoneHint": "尚未設定電子簽名。可從其個人資料頁開始設定。"
+    "statusNoneHint": "尚未設定電子簽名。可從其個人資料頁開始設定。",
+    "tallySetUp": "{count} 人已開通",
+    "tallyNotYet": "{count} 人尚未開通",
+    "tallyPaper": "{count} 人選擇紙本",
+    "tallyStalePending": "{count} 人等待確認已超過兩週",
+    "selfVouchHint": "您可以親自為等待中的會友確認——在<link>擔保</link>頁各掃一次 QR 碼即可。",
+    "selfVouchBlocked": "等待中的會友需要已認證的擔保人——請先<link>開通簽名</link>，就能親自為他們確認。",
+    "awaitingDutyHint": "已完成確認並擔任職位，但審批人角色尚未授予——授予前，報銷單無法送交給他們。可使用本列的角色控制項授予。",
+    "prefersPaperChip": "選擇紙本",
+    "prefersPaperSet": "記錄選擇紙本",
+    "prefersPaperClear": "取消選擇紙本",
+    "prefersPaperHint": "請在與本人交談後再記錄——記錄後應用程式將不再向其提示開通簽名。紙本方式始終可用。",
+    "helpTitle": "如何協助會友開通",
+    "helpScriptPrivacy": "有些會友可能已在應用程式裡選擇繼續用紙本——您不會收到通知。請先詢問：「需要幫您開通嗎，還是繼續用紙本？」並在此記錄。",
+    "helpScriptSetup": "開通入口在每位會友的個人資料頁；當面確認只需掃一次 QR 碼。",
+    "helpScriptSeniors": "年長會友可能需要有人協助完成 Google 登入——聚會後每人預留一分鐘即可。",
+    "helpScriptPaper": "紙本方式始終完全可用。推廣初期，所有確認都要經過少數已認證的會友——請據此安排聚會後的服務台。"
   },
   "Teams": {
     "title": "Teams",

@@ -44,6 +44,17 @@ model User {
   // certificate are opt-in. Plain UI preference, never audited.
   printIncludeReceipts    Boolean @default(false)
   printIncludeCertificate Boolean @default(false)
+  // E-sign setup-nudge state (docs/ESIGN_SETUP_DISCOVERABILITY.md): JSON object
+  // of self-serve dismissal/decay/one-shot marks, written ONLY through the
+  // per-key monotonic merge in PATCH /api/esign/nudges. Plain UI preference —
+  // never audited, and NEVER surfaced to admins (a declined nudge must not
+  // become a visible refusal list).
+  esignNudgesJson         String  @default("{}")
+  // "Prefers paper" — recorded by an officer AFTER a real conversation (the
+  // Members page). Silences every setup nudge for this user. Deliberately a
+  // human-entered fact, never inferred from in-app dismissals; writes are
+  // audited with the target user id (allowlist precedent).
+  prefersPaper            Boolean @default(false)
   createdAt      DateTime        @default(now())
   receipts       Receipt[]
   reimbursements Reimbursement[]
@@ -151,6 +162,11 @@ model Reimbursement {
   // Preflight-pinned pending ceremony payloads, JSON object keyed by signer
   // userId — at most one pending action per (claim, signer). See §5.5.
   pendingActionsJson String  @default("{}")
+  // Stamped on every successful PDF generation (draft → generated). The
+  // discoverability metrics and the paper-repeat nudge key on it — there is
+  // deliberately no AuditEvent for generation (the evidentiary trail is not
+  // telemetry), so this timestamp is the one record of when a packet was built.
+  generatedAt DateTime?
   submittedAt DateTime?
   decidedAt   DateTime?
   paidAt      DateTime?

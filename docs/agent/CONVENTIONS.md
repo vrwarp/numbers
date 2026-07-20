@@ -131,6 +131,18 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   mode-switch-dialog, mode-switch-confirm, mode-switch-cancel, split-mode-dialog,
   split-mode-switch, split-mode-cancel, fanout-toast, fanout-undo,
   receipt-annotation-<id> (card chip; data-state = ready|pending|failed)`.
+  E-sign setup discoverability (docs/ESIGN_SETUP_DISCOVERABILITY.md):
+  `esign-setup-button, esign-setup-callout, esign-setup-callout-close,
+  esign-setup-callout-cta, esign-nudge-member, esign-nudge-duty,
+  esign-nudge-closure, esign-nudge-cta, esign-nudge-decline, esign-nudge-snooze,
+  esign-nudge-closure-cta, esign-nudge-closure-gotit, esign-nudge-collapsed,
+  esign-nudge-duty-collapsed, esign-nudge-live, nav-esign-setup,
+  claims-subtitle, claims-subtitle-esign-link, connect-framing, members-tally,
+  self-vouch-hint, self-vouch-blocked, awaiting-duty-<id>, prefers-paper-<id>,
+  prefers-paper-chip-<id>, empty-not-set-up, empty-pending-vouch,
+  empty-revoked`. ⚠ `submit-for-approval` stays THE real ceremony button
+  (both emulator e2e suites click it) — the demoted un-attested button is
+  `esign-setup-button`, never a relabeled `submit-for-approval`.
 - The claim-level ministry select is labeled "Claim ministry" ON PURPOSE — e2e loops over
   `getByLabel("Ministry", { exact: true })` to reach the per-row selects (multi mode only)
   and must not catch the claim-level one.

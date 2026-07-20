@@ -64,6 +64,11 @@ export const ADMIN_CONFIG_FIELDS: readonly AdminConfigField[] = [
   // --- E-signatures ---------------------------------------------------------
   { key: "ESIGN_ROOT_EMAIL", group: "esign", type: "text", placeholder: "root@example.org" },
   { key: "ESIGN_ROOT_FINGERPRINT", group: "esign", type: "text" },
+  // Persuasion-layer kill-switch (docs/ESIGN_SETUP_DISCOVERABILITY.md §2):
+  // pauses the home setup/closure cards only. The honesty layer (claim-review
+  // buttons, subtitles, menu row) never reads it — switching persuasion off
+  // must not reintroduce the lies those surfaces repair.
+  { key: "ESIGN_NUDGES_OFF", group: "esign", type: "boolean", onValue: "1" },
 
   // --- Firebase auth --------------------------------------------------------
   // A Firebase web API key is a PUBLIC client identifier (relayed to every

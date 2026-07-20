@@ -17,6 +17,8 @@ interface Badges {
   approvalsPaused?: boolean;
   finance?: number | null;
   vouch?: boolean;
+  /** EP7 wayfinding row for the account menu (null = attested / ineligible). */
+  setup?: { kind: "setup" | "qr"; chip: "none" | "pending" | null } | null;
 }
 
 function sameArray(a: string[], b: string[]): boolean {
@@ -126,6 +128,7 @@ export default function NavBar({
           canViewMembers={canViewMembers}
           canManageTeams={canManageTeams}
           menuTabs={menuTabs}
+          esignSetup={badges.enabled ? (badges.setup ?? null) : null}
         />
       </div>
     </header>

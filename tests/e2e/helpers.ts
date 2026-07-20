@@ -105,13 +105,13 @@ export async function completeProfile(
   expect(res.ok()).toBeTruthy();
 }
 
-/** Hydration guard for the Shoebox: the loading placeholder disappears only
- *  after the client fetch resolves, so React is interactive and the hidden
- *  file input's onChange is wired. A pick dispatched before that is silently
- *  dropped — the prepare dialog never opens and the spec dies at its first
- *  toBeVisible. Call before driving `file-input` directly. */
+/** Hydration guard for the Shoebox: the dropzone stamps `data-hydrated` after
+ *  mount, so React is interactive and the hidden file input's onChange is
+ *  wired. A pick dispatched before that is silently dropped — the prepare
+ *  dialog never opens and the spec dies at its first toBeVisible. Call before
+ *  driving `file-input` directly. */
 export async function shoeboxReady(page: Page): Promise<void> {
-  await expect(page.getByTestId("receipts-loading")).toBeHidden({ timeout: 15_000 });
+  await page.locator('[data-testid="shoebox-dropzone"][data-hydrated]').waitFor({ timeout: 15_000 });
 }
 
 /** Upload fixture files through the Shoebox file input. Picking files opens a

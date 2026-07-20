@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useOpenParam } from "@/lib/use-open-param";
 import {
   backendNeedsPopup,
   bootstrapRegistry,
@@ -168,6 +169,18 @@ export default function SigningIdentityCard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, env?.rosterLedgerId, env?.rosterLedgerKey, env?.me.identityStatus, env?.enabled, env?.backend, refresh]);
 
+  // PRE-B (docs/ESIGN_SETUP_DISCOVERABILITY.md §3.4): every nudge CTA lands on
+  // /profile?open=esign — adopt the app-wide open-param contract (scroll +
+  // pulse). `ready` waits for the env load so the card exists to land on; an
+  // ineligible visitor's card renders null and the miss just strips the param.
+  useOpenParam({
+    ready: env !== null,
+    exists: (id) =>
+      id === "esign" &&
+      !!env &&
+      !(env.bootstrapped && (!env.enabled || env.allowed === false) && !env.canToggle),
+  });
+
   const vouchUrl = useMemo(() => {
     if (!env?.me.publicKey) return null;
     const payload = {
@@ -204,11 +217,13 @@ export default function SigningIdentityCard() {
   if (env.bootstrapped && (!env.enabled || env.allowed === false) && !env.canToggle) return null;
 
   const status = env.me.identityStatus;
+  // Pending is PROGRESS, so its chip is indigo like every other member-facing
+  // pending surface — amber would read as escalation for being further along.
   const statusChip =
     status === "attested" ? (
       <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">{t("chipReady")}</span>
     ) : status === "pending" ? (
-      <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">{t("chipPending")}</span>
+      <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">{t("chipPending")}</span>
     ) : status === "revoked" ? (
       <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">{t("chipRevoked")}</span>
     ) : (
@@ -223,14 +238,25 @@ export default function SigningIdentityCard() {
   const mustConnect = backendNeedsPopup(env) && phase !== "ready";
   const connectGate =
     phase === "connect" ? (
-      <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
+      <div className="space-y-2">
+        {/* Connect-gate framing (§3.4): the nudges promise "about two minutes";
+            on production the FIRST tap is a Google popup — say so in plain
+            words before the credential card, for the null and pending paths
+            alike, so the promise survives the landing. */}
+        <p className="text-sm text-stone-600" data-testid="connect-framing">
+          {t("connectFraming")}
+        </p>
+        <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
+      </div>
     ) : (
       <p className="text-sm text-stone-400">{t("checkingDevice")}</p>
     );
 
   return (
-    <div className="card space-y-4 p-5" data-testid="signing-identity-card">
-      <div className="flex items-center justify-between">
+    <div className="card space-y-4 p-5" data-testid="signing-identity-card" data-open-id="esign">
+      {/* flex-wrap: at 390px a long chip drops cleanly below the title instead
+          of squeezing both into a four-line pile. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <h2 className="text-lg font-bold">{t("title")}</h2>
         {/* While the system is off, an attestation chip would contradict the
             switch row right below it. */}
