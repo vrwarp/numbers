@@ -28,6 +28,14 @@ export EMBEDDING_DIM="$(node -e "process.stdout.write(String(JSON.parse(require(
 export EMBEDDING_MIN_SCORE="0.15"
 export EMBEDDING_DRAFT_IDLE_MS="1500"
 export EMBEDDING_POLL_MS="500"
+# Background receipt annotation: DORMANT by default (a pace far longer than
+# the run, gating the first call too) so every spec runs with deterministic
+# claim-time inline extraction — the drip would otherwise stamp merchants on
+# other specs' receipts at unpredictable moments (chip counts, search exact
+# matches). background-annotation.spec.ts flips the pace to 0 through the
+# DATA_DIR config.json hot-reload for its own scenario and restores it after.
+export EXTRACTION_PACE_MS="900000"
+export EXTRACTION_POLL_MS="250"
 export PORT=3100
 
 rm -rf .e2e-data

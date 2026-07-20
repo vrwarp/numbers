@@ -45,6 +45,7 @@ export const ADMIN_CONFIG_FIELDS: readonly AdminConfigField[] = [
   { key: "AI_RPM_TARGET", group: "ai", type: "number", min: 1, max: 1000 },
   { key: "AI_QUOTA_COOLDOWN_MS", group: "ai", type: "number", min: 0, max: 600000 },
   { key: "AI_QUOTA_MAX_RETRIES", group: "ai", type: "number", min: 0, max: 20 },
+  { key: "EXTRACTION_PACE_MS", group: "ai", type: "number", min: 0, max: 3600000 },
 
   // --- Deployment -----------------------------------------------------------
   { key: "PUBLIC_BASE_URL", group: "deployment", type: "text", placeholder: "https://numbers.example.org" },

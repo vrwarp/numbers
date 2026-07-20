@@ -7,6 +7,7 @@ import { readStoredFile, saveReceiptFile } from "@/lib/storage";
 import { ImageTransformError, transformReceiptImage } from "@/lib/image";
 import { createHash } from "crypto";
 import { enqueueReceiptEmbedding } from "@/lib/embeddings/queue";
+import { enqueueReceiptAnnotation } from "@/lib/extraction/queue";
 
 export const runtime = "nodejs";
 
@@ -138,6 +139,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       );
     }
 
+    // An AI annotation read the PREVIOUS image — a crop can remove the very
+    // numbers it transcribed — so the edit invalidates it and queues a re-read.
+    // A HUMAN transcription survives: the person read the paper receipt, not
+    // the pixels, and the worker must never overwrite manual entry.
+    const invalidateAnnotation = receipt.annotationSource !== "manual";
     await saveReceiptFile(userId, path.basename(receipt.filePath), output);
     const updated = await prisma.receipt.update({
       where: { id },
@@ -147,10 +153,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         mimeType: detectImageMime(output, receipt.mimeType),
         // File bytes changed → new hash → the search sweep/worker see it stale.
         fileSha256: createHash("sha256").update(output).digest("hex"),
+        ...(invalidateAnnotation ? { annotatedAt: null, annotationSource: "" } : {}),
       },
       select: { id: true, sizeBytes: true },
     });
     enqueueReceiptEmbedding(id, userId);
+    if (invalidateAnnotation) enqueueReceiptAnnotation(id, userId);
 
     const pureRestore = restore && !hasTransform;
     await prisma.auditEvent.create({

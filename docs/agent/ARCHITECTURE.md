@@ -92,11 +92,29 @@ src/lib/image.ts                compressReceiptImage: rotate() → ≤1600px →
                                 frame) → same ladder; ImageTransformError → 400
 src/lib/audit.ts                computeLineItemChanges(before, patch) → {field:{from,to}}
 src/lib/claims.ts               shared claim-building machinery (SERVER ONLY): extractClaimRows
-                                (per-receipt extraction → line-item/receipt-update row data; a
-                                read failure degrades to a blank manual-entry row, quota errors
-                                stay all-or-nothing 429), manualClaimRows (all-blank rows, no AI
-                                — the manual escape hatch), extractionLogRow, claimProgressStream
-                                (NDJSON progress response), apiErrorJson
+                                (stored annotations consumed with NO AI call; only never-
+                                annotated receipts get a per-receipt extraction; a read failure
+                                degrades to a blank manual-entry row, quota errors stay
+                                all-or-nothing 429), recordClaimExtractions (post-commit: log
+                                fresh calls, ADOPT the batch's unlinked background logs onto the
+                                claim, complete queue jobs), manualClaimRows (all-blank rows, no
+                                AI — the manual escape hatch), extractionLogRow,
+                                claimProgressStream (NDJSON progress response), apiErrorJson
+src/lib/claims-rows.ts          pure row builders (unit-testable, no prisma):
+                                annotationClaimRow (Receipt annotation → row; "manual" source ⇒
+                                original* NULL), outcomeClaimRow (fresh outcome → row +
+                                receiptUpdate that stamps the annotation), isAnnotated
+src/lib/extraction/queue.ts     fire-and-forget ExtractionJob enqueues (upload/image-edit),
+                                completeAnnotationJobs (manual entry / inline extraction
+                                supersede the queue), deleteAnnotationJob
+src/lib/extraction/worker.ts    the background annotation worker: singleton loop, claims one
+                                job at a time, ≤1 provider call per EXTRACTION_PACE_MS (the
+                                1/minute drip), generation-conditional finalize, quota-aware
+                                retries (no attempt burn), backfill/GC sweep at boot + daily
+src/lib/extraction/retry.ts     pure pacing + retry-plan math (annotationRetryPlan, paceWaitMs)
+src/lib/extraction/settings.ts  EXTRACTION_* knobs, dev opt-in gate, aiCallReady()
+src/components/admin/AnnotationQueue.tsx  Overview card: annotation queue health
+                                (status line, counts, failed receipts + retry)
 src/lib/claim-stream.ts         ClaimStreamMessage — the NDJSON progress-line union shared by
                                 the claim-building routes and their client consumers
                                 (dependency-free, client-safe)
@@ -194,15 +212,18 @@ src/components/SignInCard.tsx   client: Firebase Google popup → POST idToken t
 src/app/claims|profile          thin server components: currentUserId() → redirect("/signin")
                                 → render client component
 assets/cfcc-form-template.pdf   the real church AcroForm — DO NOT regenerate or optimize
-assets/cfcc-form-template-{2,4,8}row.pdf
+assets/cfcc-form-template-{5,9}row.pdf
                                 large-row legibility variants: same table area, form
-                                fields and names, but 2/4/8 taller rows (rebuild with
-                                scripts/make-row-variants.mjs — never edit by hand).
-                                Packet generation auto-picks the smallest variant a
-                                claim fits on (loadTemplate.ts variantRowsFor; ≥9 rows
-                                or a configured TEMPLATE_PDF → official form), which
-                                never changes the packet's form-page count; generate.ts
-                                scales row font sizes to the taller cells (14pt cap)
+                                fields and names, but 5/9 taller rows (rebuild with
+                                scripts/make-row-variants.mjs — never edit by hand;
+                                it whites out the row band and redraws every rule
+                                fresh so borders stay crisp). Packet generation
+                                auto-picks the smallest variant a claim fits on
+                                (loadTemplate.ts variantRowsFor; ≥10 rows or a
+                                configured TEMPLATE_PDF → official form), which never
+                                changes the packet's form-page count; generate.ts
+                                scales row font sizes to the taller cells (10pt cap,
+                                ~ the form's own printed text)
 prisma/schema.prisma            data model (see DATA_MODEL.md)
 tests/unit/*.test.ts            Vitest; tests/e2e/*.spec.ts Playwright (see TESTING.md)
 src/lib/embeddings/             semantic search (docs/SEARCH_DESIGN.md): provider.ts
@@ -216,8 +237,9 @@ src/lib/embeddings/             semantic search (docs/SEARCH_DESIGN.md): provide
                                 Float32 matrix), exact.ts + normalize.ts (NFKC
                                 tokenized LIKE pass), search.ts (the §6 engine),
                                 query-cache.ts (query-embedding LRU)
-src/instrumentation.ts          starts the embedding worker (nodejs runtime only,
-                                never at build, dev needs EMBEDDING_DEV/MOCK)
+src/instrumentation.ts          starts the annotation + embedding workers (nodejs
+                                runtime only, never at build; dev needs
+                                EXTRACTION_DEV/AI_MOCK resp. EMBEDDING_DEV/MOCK)
 src/lib/use-open-param.ts       the ?open=<id> deep-link contract (see CONVENTIONS)
 src/lib/roles.ts                hasRoleReadGrant() — the ratified §6.3 role-read grant
 src/components/SearchClient.tsx /search screen (IME-safe submit, exact strip, best
@@ -246,16 +268,16 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/auth/session` | POST | `{idToken}` → verifyFirebaseIdToken (verified email required) → upsert User by email (stores firebaseUid) → set session cookie. No requireUserId (this IS login) |
 | | DELETE | clear session cookie (sign out) |
 | `/api/auth/test-login` | POST | `{email,name}` → upsert + cookie; 404 unless AUTH_TEST_MODE=1 |
-| `/api/receipts` | GET | list own receipts (+ `claims: {id,status,createdAt}[]` each receipt is on, + `merchant` — feeds the Shoebox merchant filter chips); `?status=` filter |
-| | POST | multipart field `files` (+ optional `note` text stored on every receipt in the batch — the Shoebox prepare step uploads one file per POST with its note); images → compressReceiptImage (the Shoebox client already downscaled to the 1600px cap; the route still enforces its own budget), pdf → as-is; creates Receipt(unassigned); 415 unsupported, 400 empty |
+| `/api/receipts` | GET | list own receipts (+ `claims: {id,status,createdAt}[]` each receipt is on, + `merchant` — feeds the Shoebox merchant filter chips — + `annotation: ready\|pending\|failed` + extracted*Cents for the card's read-status chip); `?status=` filter |
+| | POST | multipart field `files` (+ optional `note` text stored on every receipt in the batch — the Shoebox prepare step uploads one file per POST with its note); images → compressReceiptImage (the Shoebox client already downscaled to the 1600px cap; the route still enforces its own budget), pdf → as-is; creates Receipt(unassigned) + enqueues its background annotation job; 415 unsupported, 400 empty |
 | `/api/receipts/[id]` | PATCH | `{note}` (≤300 chars) — user metadata, editable in any state, no AuditEvent (not part of the claim trail) |
-| | DELETE | only if not in any claim (409 otherwise); removes file + preserved original + any cached PDF preview |
+| | DELETE | only if not in any claim (409 otherwise); removes file + preserved original + any cached PDF preview + embedding rows + annotation job |
 | `/api/receipts/[id]/file` | GET | serve stored bytes, owner only; `?original=1` serves the preserved pristine upload (sidecar), falling back to the current file |
 | `/api/receipts/[id]/preview` | GET | PDF receipts only: raster preview (mobile browsers won't render an embedded PDF). No query → JSON manifest `{pages, omitted}`; `?page=N` → that page as WebP. All pages rendered+cached beside the original on first request (`<id>.preview.json` + `<id>.preview-pN.webp`) via `src/lib/pdf/preview.ts`. 400 for non-PDF receipts or an out-of-range page |
 | `/api/receipts/[id]/edit` | GET | `→ {hasOriginal}` — whether a pristine upload is preserved to restore |
-| | POST | `{rotate: 0|90|180|270, crop?: {left,top,width,height} fractions of the ROTATED frame, restore?, reimbursementId?}` → sharp rotate→crop → compression ladder → overwrite stored file + sizeBytes. Source is the current file, or the preserved original when `restore:true` (rotate/crop still apply on top). A normal first edit copies the pristine upload to `<id>.orig.<ext>` (`originalFilePath`); `{restore:true}` with no transform is a plain restore. AuditEvent(edit-receipt-image / restore-receipt-image). 400 PDFs/no-op/too-small crop/nothing-to-restore; 409 while receipt is `processed` (a generated claim's packet must re-download unchanged) |
+| | POST | `{rotate: 0|90|180|270, crop?: {left,top,width,height} fractions of the ROTATED frame, restore?, reimbursementId?}` → sharp rotate→crop → compression ladder → overwrite stored file + sizeBytes. Source is the current file, or the preserved original when `restore:true` (rotate/crop still apply on top). A normal first edit copies the pristine upload to `<id>.orig.<ext>` (`originalFilePath`); `{restore:true}` with no transform is a plain restore. An AI annotation is invalidated (annotatedAt cleared) + re-queued — a crop can remove the numbers it transcribed; a "manual" annotation survives (human read the paper, not the pixels). AuditEvent(edit-receipt-image / restore-receipt-image). 400 PDFs/no-op/too-small crop/nothing-to-restore; 409 while receipt is `processed` (a generated claim's packet must re-download unchanged) |
 | `/api/reimbursements` | GET | list own claims with counts |
-| | POST | `{receiptIds[], manual?}` → validates ownership (404 else; ANY status is allowed — a receipt may go on many claims and is re-extracted each time) → extractReceipts (one call per receipt) → create draft + ONE line item per receipt (composed description, amount = total − refunds, original* snapshot) + stamp Receipt merchant/purchaseDate/extracted*Cents + one ExtractionLog per call. A read failure degrades to a BLANK manual-entry row (no receiptUpdate, original* NULL) instead of failing the batch; only a quota/rate-limit error is all-or-nothing (log ALL + 429, no claim). `manual:true` skips AI entirely → all-blank rows, no ExtractionLogs (the rate-limit escape hatch) |
+| | POST | `{receiptIds[], manual?}` → validates ownership (404 else; ANY status is allowed — a receipt may go on many claims) → ANNOTATED receipts (normally all of them — the background worker runs at upload) become rows straight from the stored annotation, NO AI call; only never-annotated ones go through extractReceipts (one call each, and the success stamps the annotation + marks the queue job done) → create draft + ONE line item per receipt (composed description, amount = total − refunds, original* snapshot — NULL original* when the annotation is human-typed) + one ExtractionLog per fresh call, plus ADOPTION of the batch's unlinked background logs (reimbursementId stamped onto them) so per-claim telemetry stays complete. A read failure degrades to a BLANK manual-entry row (no receiptUpdate, original* NULL) instead of failing the batch; only a quota/rate-limit error is all-or-nothing (log ALL + 429, no claim). `manual:true` skips annotations AND AI entirely → all-blank rows, no ExtractionLogs, no adoption (the rate-limit escape hatch) |
 | `/api/reimbursements/[id]` | GET | claim + lineItems(sortOrder asc) + receipts join + `approverInfo` (A9/A10 availability) + `suggestedApproverUserId`/`suggestedApproverPosition` (Positions pre-fill: pre-submit statuses only, fail-open — the largest-dollar category's default Position → its first approval-eligible non-owner holder; never assigns) |
 | | PATCH | zod partial {singleMinistry, claimMinistry, claimEvent, claimDescription}; draft only (409). When single mode is on and the mirrored values were touched (or the mode was just enabled), FANS claimMinistry/claimEvent out onto every non-excluded row — each touched row is un-verified and gets its own AuditEvent(update, source:"claim-ministry") — plus one AuditEvent(update-claim) for the settings diff. Multi→single with no explicit claimMinistry adopts `mostCommonMinistryEvent(rows)`. Returns the full refreshed claim (GET shape). Single mode is a mirror, not a lock: row PATCHes stay allowed |
 | | DELETE | draft only (409 else); receipts return to shoebox |
@@ -263,8 +285,8 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/reimbursements/[id]/pdf` | POST | gate: ≥1 active row, all active verified (400 else) → mint `publicToken` if absent (24 random bytes base64url; stable thereafter) → generateClaimPdf (packet appends only receipts with ≥1 non-excluded row; QR self-link stamp on each form page when `PUBLIC_BASE_URL` is set) → packet saved to `generated/<userId>/<claimId>.pdf` → claim=generated (+publicToken), receipts=processed → returns application/pdf. Re-POST on generated claim regenerates + re-downloads |
 | `/c/[token]` | GET | **no auth — the QR capability link.** The unguessable `publicToken` is the credential; serves the LATEST stored packet (`generated/<userId>/<claimId>.pdf`, overwritten on every generation) inline with `Cache-Control: no-store`. Unknown/malformed token or missing file → plain 404. The one deliberate exception to the requireUserId rule |
 | `/__/auth/*`, `/__/firebase/*` | GET/POST | **no auth — Firebase's sign-in helper, reverse-proxied** to `<FIREBASE_PROJECT_ID>.firebaseapp.com` (rewritten onto the `/fbauth/[...path]` route). Only reached when `FIREBASE_AUTH_PROXY=1` points the client `authDomain` at this origin; makes Google sign-in first-party for iOS/WebKit. Another deliberate exception to requireUserId (it is the sign-in endpoint) |
-| `/api/reimbursements/[id]/receipts` | POST | `{receiptIds[], manual?}` → add receipts to a DRAFT claim (409 generated; 409 if any receipt is already on it; 404 foreign/unknown) → same extraction pipeline as create (read failure → blank manual-entry row; quota all-or-nothing; `manual:true` skips AI; ONE line item per receipt appended after existing sortOrders, inheriting the claim's ministry/event when the claim is in single-ministry mode; Receipt extraction fields stamped) → AuditEvent(add-receipt) + ExtractionLog per call + totalCents recompute. Returns `{ok, totalCents}` or NDJSON progress per Accept header |
-| `/api/reimbursements/[id]/receipts/[receiptId]` | PATCH | manual entry for a failed-extraction placeholder: `{merchant, purchaseDate, totalAmount, refundAmount, summary}` (dollars) → draft only (409); receipt must be on the claim (404) with exactly ONE un-split row (409 else) → stamps Receipt + fills the row (composed description, amount = total − refund; still unverified, original* stay NULL) → AuditEvent(manual-entry) + totalCents recompute |
+| `/api/reimbursements/[id]/receipts` | POST | `{receiptIds[], manual?}` → add receipts to a DRAFT claim (409 generated; 409 if any receipt is already on it; 404 foreign/unknown) → same annotation-consuming pipeline as create (stored annotations → rows with no AI call + log adoption; the rest extract inline; read failure → blank manual-entry row; quota all-or-nothing; `manual:true` skips both; ONE line item per receipt appended after existing sortOrders, inheriting the claim's ministry/event when the claim is in single-ministry mode) → AuditEvent(add-receipt) + ExtractionLog per fresh call + totalCents recompute. Returns `{ok, totalCents}` or NDJSON progress per Accept header |
+| `/api/reimbursements/[id]/receipts/[receiptId]` | PATCH | manual entry for a failed-extraction placeholder: `{merchant, purchaseDate, totalAmount, refundAmount, summary}` (dollars) → draft only (409); receipt must be on the claim (404) with exactly ONE un-split row (409 else) → stamps Receipt (incl. the durable annotation, source "manual" — the background worker never overwrites it and future claims consume it) + fills the row (composed description, amount = total − refund; still unverified, original* stay NULL) → AuditEvent(manual-entry) + totalCents recompute + queue job superseded |
 | | DELETE | draft only (409); refuses the last receipt (409 — discard the claim instead); deletes the receipt's line items + join row (receipt returns to Shoebox — status never left `unassigned`); AuditEvent(remove-receipt); recomputes totalCents |
 | `/api/reimbursements/[id]/revert` | POST | generated only (409 else); claim → draft; receipts → unassigned unless another GENERATED claim still holds them; AuditEvent(revert-to-draft). Rows keep isVerified (values were frozen; edits still revoke) |
 | `/api/line-items/[id]` | PATCH | zod partial {description,amountCents,ministry,event,isVerified,isExcluded}; draft only (409); isVerified:true refused (400) while ministry is empty (event is always optional); content change ⇒ isVerified=false unless patch sets it; un-excluding a row on a single-ministry claim stamps the claim's ministry/event onto it (it missed any fan-outs while excluded); writes AuditEvent(update) when changes non-empty; recomputes totalCents; returns {lineItem, totalCents} |
@@ -275,6 +297,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/teams` | GET PUT | the Teams catalog (SEARCH_DESIGN §6.3 team amendment): GET teams+member directory, PUT replace (archive-don't-delete, audited `admin-teams`) — Approver-or-above via `requireTeamEditor` (404 otherwise). Associations stored as budget-category CODES |
 | `/api/search` | POST | semantic + exact search (docs/SEARCH_DESIGN.md §6): scope mine/all/decided/team (mine free; all/decided role-gated by the verified mirror; team gated on live Team membership — member asking beyond their grants → 404), exact-match SQL pass + cosine over the in-memory index, degraded exact-only mode when the embed call fails, decided/team browse with cursor (decided = claims by decidedAt; team = the team receipts by createdAt). 404 while unconfigured |
 | `/api/admin/embeddings` (+ `/probe`, `/jobs`, `/rebuild`, `/test-query`) | GET PUT POST | admin search backend config (probe detects dim; GET returns key fingerprint only), queue health/failed retries, forced rebuild, scored test query — behind `requireAdmin()` |
+| `/api/admin/extraction-jobs` | GET POST | annotation-queue health for the Overview card (status counts, backlog age, pace, failed receipts w/ owner+error) and failed-job retry (`{receiptIds?}`, absent = all failed; resets attempts, bumps generation, wakes the worker; `AuditEvent(retry-annotation)`) — behind `requireAdmin()` |
 | `/api/extraction-logs` | GET | own logs, `?reimbursementId=`, newest first, summaries (kind="embedding" rows excluded — operational, §9) |
 | `/api/extraction-logs/[id]` | GET | full tuning record: log + lineItems w/ computed `corrections` + `humanCreated` + parsed auditEvents |
 
@@ -286,23 +309,40 @@ never uploads; Save/Skip POSTs), while PDFs POST immediately so their dialog can
 server raster → FormData → isSupportedUpload → (image? compress to jpeg) → saveReceiptFile
 `uploads/<userId>/<cuid>.<jpg|pdf>` → prisma.receipt.create.
 
-**Claim creation**: receiptIds → ownership/status checks → `extractReceipts` (mock if
-AI_MOCK=1; else one provider call PER receipt — OpenRouter chat/completions with the image/PDF
-inline as data-URI, or Google AI Studio generateContent with inline_data;
-receipt id stamped server-side. Calls are throttled to `AI_RPM_TARGET`/min by a shared limiter
-and retried on quota errors — see `src/lib/ai/throttle.ts`) → parse+validate → create
-Reimbursement + ONE LineItem per receipt (description = composeDescription(merchant/date/summary);
-amountCents = totalAmount − refundAmount in cents; ministry starts empty — the user must pick one
-per row during review; original*=composed/net values) + stamp
-Receipt.merchant/purchaseDate/extracted*Cents in the same transaction → ExtractionLog. The review
-UI shows the net-amount derivation ("charged X − refunded Y") from the Receipt columns; Split
-divides a row for multi-ministry receipts. The POST returns the classic `{reimbursement}` 201 JSON,
-**or** streams newline-delimited progress (per-receipt completion, quota-wait notices) when the
-client sends `Accept: application/x-ndjson` — the Shoebox uses this to show live status.
-Adding receipts to an existing draft (`POST /api/reimbursements/[id]/receipts`, driven by the
-review screen's "＋ Add receipts" dialog) runs the same extraction pipeline via
-`src/lib/claims.ts` and appends the rows, re-checking that the claim is still a draft after
-the (possibly slow) extraction before writing.
+**Background annotation** (the normal path): upload enqueues an `ExtractionJob`; the singleton
+worker (started from `src/instrumentation.ts`) drains the queue at ≤1 provider call per
+`EXTRACTION_PACE_MS` (default one receipt/minute — deliberately slow so `AI_RPM_TARGET`
+headroom stays with user-initiated calls, which ALSO flow through the same shared limiter).
+Each job runs `extractReceipt` (mock if AI_MOCK=1; quota retries disabled — the queue
+reschedule, without burning an attempt, is the retry) → stamps
+Receipt.merchant/purchaseDate/extracted*Cents/extractedSummary + `annotatedAt`
+(`annotationSource:"ai"`) under a generation-conditional finalize → ExtractionLog
+(kind:"receipt", `receiptId` set, reimbursementId NULL until a claim adopts it) → re-embed
+enqueue. Failures back off exponentially to a terminal `failed` after 5 attempts
+(`failedFileSha256` guards the sweep from re-burning unreadable receipts); a boot+daily sweep
+backfills never-annotated receipts at priority 1 and GCs orphan jobs. The Shoebox card chip
+(`receipt-annotation-<id>`) shows ready/pending/failed.
+
+**Claim creation**: receiptIds → ownership/status checks → ANNOTATED receipts become rows
+directly from the stored annotation (no provider call; their upload-time logs are adopted onto
+the claim) → only never-annotated ones go through `extractReceipts` (one provider call PER
+receipt — OpenRouter chat/completions with the image/PDF inline as data-URI, or Google AI
+Studio generateContent with inline_data; receipt id stamped server-side. Calls are throttled
+to `AI_RPM_TARGET`/min by a shared limiter and retried on quota errors — see
+`src/lib/ai/throttle.ts`) → parse+validate → create Reimbursement + ONE LineItem per receipt
+(description = composeDescription(merchant/date/summary); amountCents = totalAmount −
+refundAmount in cents; ministry starts empty — the user must pick one per row during review;
+original*=composed/net values, NULL when the annotation was human-typed) + stamp the freshly
+extracted receipts' annotation columns in the same transaction → ExtractionLog per fresh call
++ background-log adoption + queue jobs completed. The review UI shows the net-amount
+derivation ("charged X − refunded Y") from the Receipt columns; Split divides a row for
+multi-ministry receipts. The POST returns the classic `{reimbursement}` 201 JSON, **or**
+streams newline-delimited progress (consumed annotations complete instantly, then per-receipt
+completion and quota-wait notices) when the client sends `Accept: application/x-ndjson` — the
+Shoebox uses this to show live status. Adding receipts to an existing draft
+(`POST /api/reimbursements/[id]/receipts`, driven by the review screen's "＋ Add receipts"
+dialog) runs the same pipeline via `src/lib/claims.ts` and appends the rows, re-checking that
+the claim is still a draft after the (possibly slow) extraction before writing.
 
 **PDF**: gate check → read receipt files → mint/reuse `publicToken` →
 `generateClaimPdf({requesterName, requesterAddress, dateString(MM/DD/YYYY), items(active only),
@@ -367,6 +407,9 @@ through `configValue()`; add new ones the same way.
 | `AI_RPM_TARGET` (default `15`) | requests/minute the server paces provider calls to (a shared rolling-window limiter in `src/lib/ai/throttle.ts`; Gemini's free tier is 15/min) |
 | `AI_QUOTA_COOLDOWN_MS` (default `60000`), `AI_QUOTA_MAX_RETRIES` (default `3`) | on a quota/rate-limit error (429) wait this long and retry this many times; each wait is surfaced to the user |
 | `AI_MOCK=1` | deterministic extraction + suggestions, no network (tests/dev) — bypasses throttle/retry |
+| `EXTRACTION_PACE_MS` (default `60000`) | minimum gap between the background annotation worker's provider calls — "at most one receipt a minute"; 0 disables pacing (e2e uses `1000`) |
+| `EXTRACTION_POLL_MS` (default `15000`) | annotation worker idle poll (wake-on-enqueue covers the live path) |
+| `EXTRACTION_DEV=1` | opt-in to run the annotation worker in `next dev` with a REAL provider key (AI_MOCK needs no opt-in) — mirrors EMBEDDING_DEV |
 | `CHURCH_CONTEXT_PATH` | operator-authored church vocabulary markdown fed into suggestion prompts; default `<DATA_DIR>/church-context.md`; feature degrades gracefully when absent. Contents are sent to the AI provider |
 | `AUTH_TEST_MODE=1` | enables dev login (tests/dev only) |
 | `EMBEDDING_ENDPOINT`, `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`, `EMBEDDING_DIM`, `EMBEDDING_QUERY_PREFIX`, `EMBEDDING_MIN_SCORE` | semantic search backend — SEEDS ONLY: first read creates the admin-editable `EmbeddingSettings` row, which is authoritative thereafter (docs/SEARCH_DESIGN.md §3.2) |

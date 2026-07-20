@@ -8,8 +8,8 @@ import {
   apiErrorJson,
   claimProgressStream,
   extractClaimRows,
-  extractionLogRow,
   manualClaimRows,
+  recordClaimExtractions,
 } from "@/lib/claims";
 
 import { enqueueReceiptEmbedding, enqueueClaimEmbeddingDebounced } from "@/lib/embeddings/queue";
@@ -51,15 +51,18 @@ async function loadSelectedReceipts(
     throw new ApiError(404, "One or more receipts were not found", "receiptsNotFound");
   }
   // A receipt may go on any number of claims (e.g. one purchase split across
-  // two filings) — processed receipts are deliberately allowed. Each claim
-  // re-extracts, overwriting the receipt's extraction metadata.
+  // two filings) — processed receipts are deliberately allowed. Its stored
+  // annotation (normally written by the background worker soon after upload)
+  // is reused as-is; only never-annotated receipts are extracted here.
   return { receipts, manual: body.data.manual ?? false };
 }
 
 /**
- * Build the draft claim from the selected receipts: extract each with AI (see
- * extractClaimRows for how read failures degrade to manual rows), or, in manual
- * mode, skip AI entirely and start every row blank for the user to fill in.
+ * Build the draft claim from the selected receipts: consume each receipt's
+ * stored background annotation, extracting with AI only the ones the worker
+ * hasn't reached (see extractClaimRows for how read failures degrade to manual
+ * rows) — or, in manual mode, skip both entirely and start every row blank for
+ * the user to fill in.
  */
 async function generateClaim(
   userId: string,
@@ -97,11 +100,9 @@ async function generateClaim(
       }),
   ]);
 
-  if (outcomes.length > 0) {
-    await prisma.extractionLog.createMany({
-      data: outcomes.map((o) => extractionLogRow(userId, o, reimbursement.id)),
-    });
-  }
+  // Log fresh calls against the claim, adopt the background-annotation logs
+  // that produced the consumed rows, and mark those receipts' queue jobs done.
+  if (!manual) await recordClaimExtractions(userId, reimbursement.id, receipts, outcomes);
 
   // Search triggers (docs/SEARCH_DESIGN.md §5.2): the new draft debounces;
   // extraction restamped merchant/purchaseDate on the receipts → re-embed them.

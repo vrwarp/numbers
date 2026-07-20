@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   sha256Hex,
   receiptPromptText,
+  receiptFingerprint,
   receiptYear,
   buildClaimComposite,
   claimFingerprint,
   claimYear,
   type ClaimContent,
+  type ReceiptContent,
 } from "@/lib/embeddings/content";
 
 /**
@@ -34,25 +36,72 @@ describe("sha256Hex", () => {
 });
 
 describe("receiptPromptText — optional fields", () => {
+  const blank = { merchant: "", note: "", extractedSummary: "" };
+
   it("always leads with the fixed sentence", () => {
-    expect(receiptPromptText({ merchant: "", note: "" })).toBe(
-      "A photographed purchase receipt."
-    );
+    expect(receiptPromptText({ ...blank })).toBe("A photographed purchase receipt.");
   });
 
   it("appends merchant before note when both present", () => {
-    expect(receiptPromptText({ merchant: "Costco", note: "tables" })).toBe(
+    expect(receiptPromptText({ ...blank, merchant: "Costco", note: "tables" })).toBe(
       "A photographed purchase receipt. Merchant: Costco. User note: tables."
     );
   });
 
   it("omits the empty half", () => {
-    expect(receiptPromptText({ merchant: "Costco", note: "" })).toBe(
+    expect(receiptPromptText({ ...blank, merchant: "Costco" })).toBe(
       "A photographed purchase receipt. Merchant: Costco."
     );
-    expect(receiptPromptText({ merchant: "", note: "tables" })).toBe(
+    expect(receiptPromptText({ ...blank, note: "tables" })).toBe(
       "A photographed purchase receipt. User note: tables."
     );
+  });
+
+  it("includes the AI-extracted item summary between merchant and note", () => {
+    expect(
+      receiptPromptText({
+        merchant: "Amazon",
+        note: "for VBS",
+        extractedSummary: "rulers, duct tape, clothespins",
+      })
+    ).toBe(
+      "A photographed purchase receipt. Merchant: Amazon. " +
+        "Items: rulers, duct tape, clothespins. User note: for VBS."
+    );
+  });
+
+  it("carries the summary alone when nothing else is extracted yet", () => {
+    expect(receiptPromptText({ ...blank, extractedSummary: "folding chairs" })).toBe(
+      "A photographed purchase receipt. Items: folding chairs."
+    );
+  });
+});
+
+describe("receiptFingerprint", () => {
+  const base: ReceiptContent = {
+    fileSha256: "abc",
+    note: "chairs",
+    merchant: "Costco",
+    extractedSummary: "6ft folding table, paper towels",
+    purchaseDate: "2024-05-12",
+    createdAt: new Date("2026-03-04T00:00:00Z"),
+  };
+
+  it("is stable for identical content", () => {
+    expect(receiptFingerprint({ ...base })).toBe(receiptFingerprint({ ...base }));
+  });
+
+  it("changes when the AI-extracted summary changes (a re-annotation)", () => {
+    expect(receiptFingerprint({ ...base, extractedSummary: "snacks" })).not.toBe(
+      receiptFingerprint(base)
+    );
+  });
+
+  it("changes when the merchant, note (description), or purchaseDate changes", () => {
+    const fp = receiptFingerprint(base);
+    expect(receiptFingerprint({ ...base, merchant: "Amazon" })).not.toBe(fp);
+    expect(receiptFingerprint({ ...base, note: "tables" })).not.toBe(fp);
+    expect(receiptFingerprint({ ...base, purchaseDate: "2024-05-13" })).not.toBe(fp);
   });
 });
 

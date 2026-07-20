@@ -1,5 +1,5 @@
 import { test, expect, Page } from "@playwright/test";
-import { makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
+import { makeReceiptFixture, shoeboxReady, signInAs, uploadReceipts } from "./helpers";
 
 /**
  * Limited-height guardrail (docs/MOBILE_LIMITED_HEIGHT_UX.md). Runs under the
@@ -68,6 +68,7 @@ test("upload-note dialog keeps its note field and Save reachable at keyboard hei
   await page.setViewportSize(KEYBOARD);
   await page.goto("/");
 
+  await shoeboxReady(page);
   await page.getByTestId("file-input").setInputFiles([await makeReceiptFixture("costco.jpg")]);
 
   // The dialog is named for its note field; both it and Save must be reachable

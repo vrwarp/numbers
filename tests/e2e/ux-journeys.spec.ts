@@ -1,5 +1,5 @@
 import { test, expect, Page, TestInfo } from "@playwright/test";
-import { makeReceiptFixture, signInAs, uploadReceipts, completeProfile } from "./helpers";
+import { makeReceiptFixture, shoeboxReady, signInAs, uploadReceipts, completeProfile } from "./helpers";
 
 /**
  * Journeys over recently shipped UX fixes: the profile→PDF gate round-trip,
@@ -241,6 +241,7 @@ test("a picked-but-unsaved photo survives a reload via the prepare dialog", asyn
   await signInAs(page, email("restore", testInfo));
 
   const fixture = await makeReceiptFixture("uxj-restore.jpg");
+  await shoeboxReady(page);
   await page.getByTestId("file-input").setInputFiles(fixture);
   await expect(page.getByTestId("upload-note")).toBeVisible();
   // The IndexedDB stash is fire-and-forget at pick time — give it a beat

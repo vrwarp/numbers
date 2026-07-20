@@ -103,14 +103,27 @@ model Receipt {
   // Optional user-written description, set at upload or edited on the card;
   // shown everywhere the receipt is shown (Shoebox, review, PDF appendix).
   note           String                 @default("")
-  // Stamped by AI extraction at claim creation; empty/null until then.
-  // purchaseDate is a transcription of what is printed ("YYYY-MM-DD"), never
-  // used for arithmetic. extracted*Cents feed the review UI's net-amount
-  // derivation ("charged X − refunded Y"). Overwritten on re-extraction.
+  // Stamped by AI annotation — normally by the background ExtractionJob worker
+  // shortly after upload, else inline at claim creation for receipts the worker
+  // hasn't reached; empty/null until then. purchaseDate is a transcription of
+  // what is printed ("YYYY-MM-DD"), never used for arithmetic. extracted*Cents
+  // feed the review UI's net-amount derivation ("charged X − refunded Y").
   merchant             String  @default("")
   purchaseDate         String  @default("")
   extractedTotalCents  Int?
   extractedRefundCents Int?
+  // One-line "what was purchased" transcription; with merchant/purchaseDate it
+  // composes the initial line-item description when the receipt joins a claim.
+  extractedSummary     String  @default("")
+  // When the current annotation (the five fields above) was produced; NULL =
+  // never annotated → claim creation falls back to inline extraction. An image
+  // edit clears it (a crop can change what the receipt says) unless the
+  // annotation is human-typed.
+  annotatedAt          DateTime?
+  // "ai" | "manual" ("" until annotated). "manual" (the review screen's
+  // manual-entry dialog) outranks the worker: the background job never
+  // overwrites a human transcription.
+  annotationSource     String  @default("")
   // sha256 (hex) of the stored file bytes, stamped wherever the file is
   // (re)written — upload, image edit, restore — and lazily at first embed for
   // pre-feature rows. Lets the search reconcile sweep detect staleness without
@@ -368,6 +381,11 @@ model ExtractionLog {
   // What kind of AI call this was: "receipt" (vision extraction) or
   // "suggestion" (text-only ministry/event suggestion).
   kind            String         @default("receipt")
+  // Which receipt a kind="receipt" call read (no FK — logs outlive receipts).
+  // A background-annotation log starts with reimbursementId NULL; when a claim
+  // consumes the stored annotation it adopts the unlinked logs for its
+  // receipts, so per-claim telemetry stays complete without a second AI call.
+  receiptId       String?
   model           String // e.g. "google/gemini-3.1-flash-lite" or "mock"
   prompt          String
   receiptsJson    String? // metadata of the receipts sent (id, name, mime, size) — not the image bytes. Null on suggestion calls.
@@ -380,6 +398,42 @@ model ExtractionLog {
 
   @@index([userId, createdAt])
   @@index([reimbursementId])
+  @@index([receiptId])
+}
+
+// Background receipt-annotation queue: one job per receipt, processed by the
+// singleton worker (src/lib/extraction/worker.ts) at a deliberately slow pace
+// (EXTRACTION_PACE_MS, default one receipt/minute) so the AI provider's request
+// budget stays available for user-initiated calls. Same crash-safety shape as
+// EmbeddingJob: generation-conditional finalize, lease reclaim, bounded
+// retries. No FK to Receipt — the delete route and the sweep GC job rows.
+model ExtractionJob {
+  id             String    @id @default(cuid())
+  receiptId      String    @unique
+  // Denormalized owner: jobs are enqueued/read outside receipt transactions.
+  userId         String
+  status         String    @default("queued") // queued | running | done | failed
+  // Bumped by every enqueue-upsert and by manual-entry supersede; the worker's
+  // terminal write is conditional on it, so a newer intent (re-annotate after
+  // an image edit, or a human transcription) can never be clobbered by a
+  // still-running older job.
+  generation     Int       @default(0)
+  // 0 = fresh upload, 1 = backfill sweep (drained after priority 0).
+  priority       Int       @default(0)
+  attempts       Int       @default(0)
+  nextAttemptAt  DateTime  @default(now())
+  // Crash-safety lease: a "running" row whose lease expired is reclaimable.
+  leaseExpiresAt DateTime?
+  lastError      String    @default("")
+  // Receipt.fileSha256 at terminal failure: the sweep re-enqueues a failed job
+  // ONLY when the file changed — permanently unreadable receipts must not
+  // re-burn provider calls on every sweep.
+  failedFileSha256 String  @default("")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status, priority, nextAttemptAt])
+  @@index([userId, status])
 }
 
 // Every manual change a user makes during review (edit, verify, exclude,

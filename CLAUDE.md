@@ -2,8 +2,11 @@
 
 Church reimbursement app: photograph receipts (the "Shoebox" — UI label: "Receipts") → receipt-level LLM extraction
 (merchant, date, printed total, refund total, item summary — ONE line item per receipt;
-OpenRouter or Google AI Studio, per `AI_PROVIDER`) → human verifies every row → filled official
-CFCC PDF form + receipts appended. Splitting a row is the multi-ministry mechanism; there is no
+OpenRouter or Google AI Studio, per `AI_PROVIDER`), run by a BACKGROUND worker shortly after
+upload (≤1 receipt per `EXTRACTION_PACE_MS`, default 1/min, so provider quota stays with
+user-initiated calls; claim creation consumes the stored annotation and extracts inline only
+what the worker hasn't reached — src/lib/extraction/) → human verifies every row → filled
+official CFCC PDF form + receipts appended. Splitting a row is the multi-ministry mechanism; there is no
 per-item extraction. UI in en/zh-Hans/zh-Hant (next-intl; catalogs in `messages/`). Next.js 15
 App Router, SQLite + Prisma, Firebase Auth (+ self-issued session cookie), sharp, pdf-lib.
 Single Docker container, `/data` volume.
@@ -55,14 +58,18 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    (any frozen-but-unpaid claim → draft, voiding collected signatures by hash mismatch;
    receipts released unless another FROZEN claim holds them). Paid is terminal.
 7. **Telemetry**: every AI call (success AND failure) writes an `ExtractionLog` — receipt
-   extraction `kind="receipt"`, ministry suggestions `kind="suggestion"`; every manual edit
+   extraction `kind="receipt"` (background worker logs carry `receiptId` with
+   `reimbursementId` NULL until the claim that consumes the annotation ADOPTS them),
+   ministry suggestions `kind="suggestion"`; every manual edit
    writes an `AuditEvent` with field diffs (`update-claim` for claim-level settings; fan-out
    row updates carry `source:"claim-ministry"`); `LineItem.original*` freezes AI values
-   at creation (NULL = human-created row, e.g. a split half); the printed totals behind the
-   AI's net amount live in `Receipt.extractedTotalCents/extractedRefundCents`. New mutation
+   at creation (NULL = human-created row, e.g. a split half or a row built from a MANUAL
+   annotation); the printed totals behind the
+   AI's net amount live in `Receipt.extractedTotalCents/extractedRefundCents`. A human
+   annotation (`annotationSource:"manual"`) is never overwritten by the worker. New mutation
    paths must keep this trail complete.
 8. **The PDF is an AcroForm fill** of `assets/cfcc-form-template.pdf` (13 rows/page; claims
-   of ≤8 rows auto-fill a taller-row legibility variant — same field names, never a
+   of ≤9 rows auto-fill a taller-row legibility variant — same field names, never a
    different form-page count, see `variantRowsFor`). Field
    names are the contract — see `docs/agent/ARCHITECTURE.md` for the exact list (note the
    double space in `For Ministry  EventRow{n}`). Values Helvetica can't encode (Chinese

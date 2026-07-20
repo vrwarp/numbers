@@ -5,18 +5,21 @@ import zlib from "zlib";
 import { PDFDocument } from "pdf-lib";
 import { generateClaimPdf, type PdfLineItem } from "@/lib/pdf/generate";
 import { paginateItems } from "@/lib/pdf/paginate";
-import { variantRowsFor } from "@/lib/pdf/loadTemplate";
+import { variantRowsFor, VARIANT_ROW_OPTIONS } from "@/lib/pdf/loadTemplate";
 import { FORM_ROWS_PER_PAGE } from "@/lib/config";
 
 /**
  * Large-row template variants (scripts/make-row-variants.mjs): the official
- * 13-row table redistributed over the same table area as 2/4/8 taller rows.
- * These tests pin the contract generate.ts relies on — official field names,
- * exactly N rows, rows sharing the official table band — and that filling a
- * variant actually produces the bigger row text the variants exist for.
+ * 13-row table redistributed over the same table area as fewer, taller rows
+ * (5 and 9). These tests pin the contract generate.ts relies on — official
+ * field names, exactly N rows, rows sharing the official table band — and that
+ * filling a variant grows the row text toward the legibility cap.
  */
 
-const VARIANTS = [2, 4, 8] as const;
+const VARIANTS = VARIANT_ROW_OPTIONS;
+// Grown row values top out at this cap (generate.ts VARIANT_ROW_MAX_FONT_SIZE),
+// ~ the size of the form's own printed name/date fields.
+const GROWN_CAP = 10;
 // Official table geometry (see scripts/make-row-variants.mjs).
 const BAND_TOP_Y = 563.04;
 const BAND_H = 251.16;
@@ -110,21 +113,19 @@ describe.each(VARIANTS)("%i-row template variant", (rows) => {
     const pdf = await generateClaimPdf(claimInput(variantBytes[rows], rows));
     const doc = await PDFDocument.load(pdf);
     expect(doc.getPageCount()).toBe(1);
-    // 8-row cells grow 8pt → 13pt; 4- and 2-row cells hit the 14pt cap.
-    const grownSize = rows === 8 ? 13 : 14;
-    expect(inflatedPdf(pdf)).toMatch(new RegExp(` ${grownSize} Tf`));
+    // Both variants' cells are tall enough that short row values reach the cap.
+    expect(inflatedPdf(pdf)).toMatch(new RegExp(` ${GROWN_CAP} Tf`));
   });
 });
 
 describe("variantRowsFor (packet auto-pick)", () => {
   it("picks the smallest variant the whole claim fits on, else the official form", () => {
-    expect(variantRowsFor(1)).toBe(2);
-    expect(variantRowsFor(2)).toBe(2);
-    expect(variantRowsFor(3)).toBe(4);
-    expect(variantRowsFor(4)).toBe(4);
-    expect(variantRowsFor(5)).toBe(8);
-    expect(variantRowsFor(8)).toBe(8);
-    expect(variantRowsFor(9)).toBe(13);
+    expect(variantRowsFor(1)).toBe(5);
+    expect(variantRowsFor(5)).toBe(5);
+    expect(variantRowsFor(6)).toBe(9);
+    expect(variantRowsFor(9)).toBe(9);
+    expect(variantRowsFor(10)).toBe(13);
+    expect(variantRowsFor(13)).toBe(13);
     expect(variantRowsFor(14)).toBe(13);
     expect(variantRowsFor(0)).toBe(13);
   });
@@ -141,10 +142,24 @@ describe("variantRowsFor (packet auto-pick)", () => {
   });
 });
 
-it("official 13-row template still renders row values at the design size", async () => {
-  const officialBytes = new Uint8Array(await fs.readFile(asset("cfcc-form-template.pdf")));
-  const pdf = await generateClaimPdf(claimInput(officialBytes, 13));
-  // The template's static header labels are 11.5pt; grown row sizes (13/14pt)
-  // must not appear anywhere on the official form's fill.
-  expect(inflatedPdf(pdf)).not.toMatch(/ 1[34] Tf/);
+describe("official 13-row template is untouched by the growth feature", () => {
+  it("keeps its rows at the height the growth gate treats as ungrown", async () => {
+    const officialBytes = new Uint8Array(await fs.readFile(asset("cfcc-form-template.pdf")));
+    const rect = (await PDFDocument.load(officialBytes))
+      .getForm()
+      .getTextField("Description QuantityRow1")
+      .acroField.getWidgets()[0]!
+      .getRectangle();
+    // == generate.ts OFFICIAL_ROW_FIELD_HEIGHT, so rect.height > it is false and
+    // no row value is ever scaled up on the official form.
+    expect(rect.height).toBeCloseTo(17.76, 2);
+  });
+
+  it("never blows a row value up past the form's own text sizes", async () => {
+    const officialBytes = new Uint8Array(await fs.readFile(asset("cfcc-form-template.pdf")));
+    const pdf = await generateClaimPdf(claimInput(officialBytes, 13));
+    // Fields top out at 10pt and the static header at 11.5pt; no integer Tf of
+    // 11–14pt should ever appear (would mean a row was scaled up).
+    expect(inflatedPdf(pdf)).not.toMatch(/ 1[1-4] Tf/);
+  });
 });

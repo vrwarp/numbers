@@ -7,6 +7,7 @@ import { computeLineItemChanges } from "@/lib/audit";
 import { parseDollarsToCents } from "@/lib/money";
 
 import { enqueueClaimEmbeddingDebounced, enqueueReceiptEmbedding } from "@/lib/embeddings/queue";
+import { completeAnnotationJobs } from "@/lib/extraction/queue";
 
 export const runtime = "nodejs";
 
@@ -81,6 +82,9 @@ export async function PATCH(
     const changes = computeLineItemChanges(row, patch);
 
     const [, updated] = await prisma.$transaction([
+      // The human transcription becomes the receipt's durable annotation:
+      // future claims consume it directly, and source="manual" tells the
+      // background worker this row is never its to overwrite.
       prisma.receipt.update({
         where: { id: receiptId },
         data: {
@@ -88,6 +92,9 @@ export async function PATCH(
           purchaseDate,
           extractedTotalCents: totalCents,
           extractedRefundCents: refundCents,
+          extractedSummary: summary,
+          annotatedAt: new Date(),
+          annotationSource: "manual",
         },
       }),
       prisma.lineItem.update({ where: { id: row.id }, data: patch }),
@@ -109,6 +116,8 @@ export async function PATCH(
     // Manual entry restamps the receipt + changes draft content (§5.2).
     enqueueReceiptEmbedding(receiptId, userId);
     enqueueClaimEmbeddingDebounced(id, userId);
+    // The human transcription supersedes any queued/running AI read.
+    completeAnnotationJobs([receiptId]);
     return NextResponse.json({ lineItem: updated, totalCents: totalClaimCents });
   });
 }

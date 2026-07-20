@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { completeProfile, makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
+import { completeProfile, makeReceiptFixture, shoeboxReady, signInAs, uploadReceipts } from "./helpers";
 
 test("unauthenticated visitors are redirected to sign-in and APIs return 401", async ({ page }) => {
   await page.goto("/");
@@ -155,6 +155,7 @@ test("receipt notes are visible everywhere and receipts can go on multiple claim
   // Picking a file opens the prepare dialog BEFORE anything uploads, with the
   // rotate/crop editor embedded in place of the preview. (Driven manually here
   // instead of via the helper to also assert the dialog and screenshot it.)
+  await shoeboxReady(page);
   await page.getByTestId("file-input").setInputFiles([await makeReceiptFixture("note-me.jpg")]);
   await expect(page.getByTestId("upload-note")).toBeVisible();
   await expect(page.getByTestId("image-editor-stage")).toBeVisible();
