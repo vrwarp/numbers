@@ -39,6 +39,25 @@ test("receipt viewer opens, zooms, and closes without selecting the card", async
   await expect(page.getByText(/receipt.*selected/i)).toHaveCount(0);
 });
 
+// The platform back gesture (browser/OS back) closes the viewer rather than
+// leaving the receipts page.
+test("browser back closes the receipt viewer without leaving the page", async ({
+  page,
+}, testInfo) => {
+  await signInAs(page, `viewer-back-${testInfo.project.name}@example.com`, "Back Tester");
+  await page.goto("/");
+  await uploadReceipts(page, [await makeReceiptFixture("costco.jpg")]);
+
+  await page.locator('[data-testid^="receipt-view-"]').first().click();
+  const viewer = page.getByTestId("receipt-viewer");
+  await expect(viewer).toBeVisible();
+
+  await page.goBack();
+  await expect(viewer).toHaveCount(0);
+  // Still on the receipts page, not navigated away.
+  await expect(page.locator('[data-testid^="receipt-view-"]').first()).toBeVisible();
+});
+
 test("receipt viewer can rotate/crop an image, and hides the tool for PDFs", async ({
   page,
 }, testInfo) => {

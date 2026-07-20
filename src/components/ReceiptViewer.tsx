@@ -46,6 +46,8 @@ export default function ReceiptViewer({
   const [editing, setEditing] = useState(false);
   const editingRef = useRef(editing);
   editingRef.current = editing;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const src = `/api/receipts/${receipt.id}/file${version ? `?v=${version}` : ""}`;
   // PDFs display as server-rasterized page images (mobile browsers won't render
   // an embedded PDF); the ↗ link below still opens the real PDF via `src`.
@@ -110,6 +112,31 @@ export default function ReceiptViewer({
       document.body.style.overflow = prevOverflow;
     };
   }, [onClose]);
+
+  // Back gesture / hardware back button dismiss the viewer (like Escape and ✕)
+  // instead of navigating away from the receipts page. Push one history entry
+  // on open so the platform back pops it; on any other close path (✕, Escape,
+  // parent unmount) consume that entry so we don't strand a forward step.
+  useEffect(() => {
+    const poppedByBack = { current: false };
+    window.history.pushState({ receiptViewer: true }, "");
+    const onPop = () => {
+      // Mirror Escape: while editing, back dismisses the editor first, so
+      // re-push the entry it just consumed to keep the viewer's back guard.
+      if (editingRef.current) {
+        setEditing(false);
+        window.history.pushState({ receiptViewer: true }, "");
+        return;
+      }
+      poppedByBack.current = true;
+      onCloseRef.current();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      if (!poppedByBack.current) window.history.back();
+    };
+  }, []);
 
   // Native (non-passive) wheel listener so we can preventDefault the page
   // scroll. Images only — a PDF's page column scrolls natively instead.
