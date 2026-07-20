@@ -582,9 +582,9 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "ReceiptGrid.meta": {
-    "source": "{date} · {kb} KB",
-    "context": "Card meta line: upload date · file size. Keep the ' · ' separators and 'KB'.",
+  "ReceiptGrid.caption": {
+    "source": "{date} · {name}",
+    "context": "Tiny grey caption under each receipt tile: upload-date label (may render as 'Today') then the file name (data, untranslated). Keep the ' · ' separator and both arguments verbatim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -858,15 +858,39 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Shoebox.filterAll": {
+    "source": "All ({count})",
+    "context": "Filter chip above the receipt wall on the Receipts page; shows every receipt. {count} = how many receipts. Keep it chip-short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.filterUnassigned": {
+    "source": "Not yet claimed ({count})",
+    "context": "Filter chip beside 'Processed receipts': receipts not yet on any generated claim (glossary term 'not on a claim'). {count} = how many.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.filterPdf": {
+    "source": "PDFs ({count})",
+    "context": "Filter chip: receipts that were uploaded as PDF files. Keep 'PDF' untranslated. {count} = how many.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Shoebox.processedSummary": {
     "source": "Processed receipts ({count})",
-    "context": "Collapsible section heading for receipts already on generated claims; {count}.",
+    "context": "Filter chip above the receipt wall (doubles as the count of filed receipts): receipts already on a generated claim. {count} = how many.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Shoebox.processedNote": {
     "source": "Already on a generated claim. You can still pick it if part of the purchase belongs on another claim.",
     "context": "Fine print under that heading: processed receipts stay selectable.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Shoebox.filterGroupAria": {
+    "source": "Filter receipts",
+    "context": "aria-label of the filter-chip row on the Receipts page (screen readers only). Short verb phrase.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
