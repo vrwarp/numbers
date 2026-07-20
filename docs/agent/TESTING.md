@@ -42,12 +42,14 @@ content"), or rasterize with `scripts/render-pdf.mjs` / `scripts/verify-cjk-pdf.
 **Harness**: `playwright.config.ts` boots `tests/e2e/start-server.sh` once per run → wipes
 `.e2e-data/`, `prisma generate`, builds if needed (`E2E_FORCE_BUILD=1` forces), `prisma db push`,
 `next start -p 3100` with `AI_MOCK=1 AUTH_TEST_MODE=1`. `workers: 1` (shared SQLite).
-`reuseExistingServer` when not CI. The background annotation worker runs with a fast drip
-(`EXTRACTION_PACE_MS=1000`), so most receipts are annotated before their claim is created;
-claim rows and per-claim log counts are IDENTICAL whichever side wins that race (consumed
-annotations adopt their upload-time log; pending receipts extract inline with a claim-linked
-log) — do not write assertions that distinguish the two paths, except in
-`background-annotation.spec.ts` which pins the background path down deterministically.
+`reuseExistingServer` when not CI. The background annotation worker is kept DORMANT
+(`EXTRACTION_PACE_MS=900000`; the pace gates the first call too), so every spec runs on
+deterministic claim-time inline extraction — a live drip would stamp merchants on other
+specs' receipts at unpredictable moments and shift merchant-chip counts and search exact
+matches. `background-annotation.spec.ts` is the one spec that exercises the worker: it
+flips the pace to 0 through the `.e2e-data/config.json` hot-reload and restores it in
+`afterEach`. Claim rows are identical either way (a consumed annotation adopts its
+upload-time log; a pending receipt extracts inline with a claim-linked log).
 
 **Projects** (matrix): `chromium-desktop`, `webkit-desktop` run every non-mobile spec
 (`journey.spec.ts`, `security.spec.ts`, `image-edit.spec.ts`); `chromium-mobile` (Pixel 7),

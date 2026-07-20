@@ -1,13 +1,33 @@
 import { test, expect } from "@playwright/test";
+import fs from "fs/promises";
+import path from "path";
 import { makeReceiptFixture, signInAs, uploadReceipts } from "./helpers";
 
 /**
- * The background annotation pipeline: the worker (AI_MOCK, fast-dripped via
- * EXTRACTION_PACE_MS in start-server.sh) reads a receipt shortly after upload,
- * the Shoebox card surfaces what was read, and claim creation consumes the
- * stored annotation WITHOUT a fresh AI call — the upload-time extraction log
- * is adopted by the claim that used it.
+ * The background annotation pipeline. The e2e server keeps the worker DORMANT
+ * (EXTRACTION_PACE_MS=900000 in start-server.sh) so every other spec runs on
+ * deterministic claim-time extraction; this spec wakes it by flipping the pace
+ * to 0 through the DATA_DIR config.json hot-reload (the documented runtime
+ * override), and restores the file afterwards. While awake the worker reads
+ * the upload, the Shoebox tile surfaces what was read, and claim creation
+ * consumes the stored annotation WITHOUT a fresh AI call — the upload-time
+ * extraction log is adopted by the claim that used it.
  */
+
+const CONFIG_FILE = path.join(process.cwd(), ".e2e-data", "config.json");
+
+async function setExtractionPace(paceMs: number | null): Promise<void> {
+  await fs.writeFile(
+    CONFIG_FILE,
+    JSON.stringify(paceMs === null ? {} : { EXTRACTION_PACE_MS: String(paceMs) }) + "\n",
+    "utf8"
+  );
+}
+
+// Restore the env-configured dormancy even if the test fails mid-way.
+test.afterEach(async () => {
+  await setExtractionPace(null).catch(() => {});
+});
 
 test("receipts are read in the background and claims reuse the stored annotation", async ({
   page,
@@ -18,6 +38,9 @@ test("receipts are read in the background and claims reuse the stored annotation
     "Backy Ground"
   );
 
+  // Wake the drip: the worker re-reads the pace every poll (≤250ms in e2e).
+  await setExtractionPace(0);
+
   await page.goto("/shoebox");
   await uploadReceipts(page, [await makeReceiptFixture("costco.jpg")]);
   const receipts = (await (await page.request.get("/api/receipts")).json()).receipts as {
@@ -26,7 +49,7 @@ test("receipts are read in the background and claims reuse the stored annotation
   }[];
   const costco = receipts[0];
 
-  // The worker annotates it within the drip pace; the API flips to "ready".
+  // The worker annotates it shortly after upload; the API flips to "ready".
   await expect
     .poll(
       async () =>
@@ -46,7 +69,7 @@ test("receipts are read in the background and claims reuse the stored annotation
   expect(preLogs).toHaveLength(1);
   expect(preLogs[0].reimbursementId).toBeNull();
 
-  // The card chip shows what was read (merchant · net amount).
+  // The tile chip shows what was read (merchant · net amount).
   await page.reload();
   const chip = page.getByTestId(`receipt-annotation-${costco.id}`);
   await expect(chip).toHaveAttribute("data-state", "ready");

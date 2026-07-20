@@ -235,7 +235,10 @@ export function startExtractionWorker(): ExtractionWorkerHandle {
   let stopped = false;
   let wake: (() => void) | null = null;
   let sweptAt = 0;
-  let lastCallAt = 0;
+  // Start the drip clock at boot: the FIRST call also waits out the pace, so
+  // a restart (or crash loop) can never burst calls, and a paused worker (a
+  // huge pace — how the e2e suite keeps it dormant) stays genuinely paused.
+  let lastCallAt = Date.now();
 
   (globalThis as { __extractWake?: () => void }).__extractWake = () => wake?.();
 

@@ -59,7 +59,7 @@ describe("annotationRetryPlan", () => {
 });
 
 describe("paceWaitMs (the ≤1-receipt-per-minute drip)", () => {
-  it("lets the first call through immediately", () => {
+  it("treats an unset last-call time as clear-to-call (the worker seeds it at boot, so a real first call still waits out the pace)", () => {
     expect(paceWaitMs(0, NOW, 60_000)).toBe(0);
   });
 
