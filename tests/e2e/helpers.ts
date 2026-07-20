@@ -26,10 +26,12 @@ export async function makePdfFixture(
   return filePath;
 }
 
-/** Render a realistic-looking receipt photo (JPEG) for upload fixtures. */
+/** Render a realistic-looking receipt photo (JPEG) for upload fixtures.
+ *  `heightPx` pads the canvas taller (long thermal-paper receipt) — the zoom
+ *  tests need an image far taller than the review screen's clamp window. */
 export async function makeReceiptFixture(
   fileName: string,
-  opts: { refund?: boolean } = {}
+  opts: { refund?: boolean; heightPx?: number } = {}
 ): Promise<string> {
   const lines = opts.refund
     ? [
@@ -65,7 +67,7 @@ export async function makeReceiptFixture(
     })
     .join("");
 
-  const height = 220 + lines.length * 44;
+  const height = Math.max(220 + lines.length * 44, opts.heightPx ?? 0);
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="${height}">
     <rect width="800" height="${height}" fill="#fdfdf8"/>
     <text x="400" y="80" font-family="monospace" font-size="34" font-weight="bold" fill="#111" text-anchor="middle">RECEIPT</text>
@@ -108,6 +110,11 @@ export async function completeProfile(
  *  Save sends that file — fill the optional note on the first, save through the
  *  rest, then wait for the cards to land. */
 export async function uploadReceipts(page: Page, filePaths: string[], note?: string): Promise<void> {
+  // setInputFiles dispatches a native change event; if it lands before React
+  // hydrates the page there is no handler and the prepare dialog never opens
+  // (intermittent under CI load since the Receipts page grew). Wait for the
+  // dropzone's post-mount marker before touching the input.
+  await page.locator('[data-testid="shoebox-dropzone"][data-hydrated]').waitFor({ timeout: 15_000 });
   const before = await page.locator('[data-testid^="receipt-card-"]').count();
   await page.getByTestId("file-input").setInputFiles(filePaths);
   const noteInput = page.getByTestId("upload-note");

@@ -148,7 +148,10 @@ src/lib/image-client.ts         DOM-only canvas helpers for the pre-upload prepa
                                 transformReceiptImage) and prepareImageUpload (downscale to
                                 the 1600px cap; undecodable files fall through untouched)
 src/components/NavBar.tsx       top nav (client); hidden when signed out
-src/components/Shoebox.tsx      upload input, selection bar, generate-claim POST;
+src/components/Shoebox.tsx      upload input, selection bar, generate-claim POST; filter
+                                chips over the wall (All / Not yet claimed / Processed /
+                                PDFs / top AI-stamped merchants — client-side slices of
+                                the one loaded list, single-select, tap-again to clear);
                                 per-card expand button opens ReceiptViewer. Picked images
                                 queue through a PREPARE dialog (local preview + optional
                                 note + client-side rotate/crop on the full-res original);
@@ -157,7 +160,9 @@ src/components/Shoebox.tsx      upload input, selection bar, generate-claim POST
                                 un-uploaded images are queued). Picked PDFs upload
                                 IMMEDIATELY instead (no local thumbnail possible) and
                                 their dialog shows the server raster + note-only
-src/components/ReceiptGrid.tsx  the selectable receipt-card grid (Shoebox + AddReceiptsDialog);
+src/components/ReceiptGrid.tsx  the selectable receipt wall (Shoebox + AddReceiptsDialog): a
+                                masonry of photo-first tiles (CSS columns, container-query
+                                column count, natural image aspect clamped for till-rolls);
                                 exports ReceiptSummary (the GET /api/receipts row shape)
 src/components/AddReceiptsDialog.tsx  review-screen modal: pick Shoebox receipts / upload new
                                 ones → POST /api/reimbursements/[id]/receipts (streamed)
@@ -241,7 +246,7 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/auth/session` | POST | `{idToken}` → verifyFirebaseIdToken (verified email required) → upsert User by email (stores firebaseUid) → set session cookie. No requireUserId (this IS login) |
 | | DELETE | clear session cookie (sign out) |
 | `/api/auth/test-login` | POST | `{email,name}` → upsert + cookie; 404 unless AUTH_TEST_MODE=1 |
-| `/api/receipts` | GET | list own receipts (+ `claims: {id,status,createdAt}[]` each receipt is on); `?status=` filter |
+| `/api/receipts` | GET | list own receipts (+ `claims: {id,status,createdAt}[]` each receipt is on, + `merchant` — feeds the Shoebox merchant filter chips); `?status=` filter |
 | | POST | multipart field `files` (+ optional `note` text stored on every receipt in the batch — the Shoebox prepare step uploads one file per POST with its note); images → compressReceiptImage (the Shoebox client already downscaled to the 1600px cap; the route still enforces its own budget), pdf → as-is; creates Receipt(unassigned); 415 unsupported, 400 empty |
 | `/api/receipts/[id]` | PATCH | `{note}` (≤300 chars) — user metadata, editable in any state, no AuditEvent (not part of the claim trail) |
 | | DELETE | only if not in any claim (409 otherwise); removes file + preserved original + any cached PDF preview |
@@ -353,6 +358,7 @@ through `configValue()`; add new ones the same way.
 | `DATA_DIR` | upload root; `./data` dev, `/data` in image. Bootstrap-only (locates `config.json`), so it must come from the real environment |
 | `AUTH_SECRET` | signs the session cookie — required |
 | `PUBLIC_BASE_URL` | externally-reachable origin (e.g. `https://numbers.example.org`); enables the QR self-link stamp on generated PDFs (`<base>/c/<publicToken>`). Unset → PDFs carry no stamp (the /c route still works if a token was ever minted) |
+| `TIME_ZONE` | IANA zone human-facing calendar dates are computed in (`appTimeZone()`; "Today"/"Yesterday" labels, the MM/DD/YYYY stamped on claim packets + approval marks, admin usage-chart day buckets, search-index year keys + claim-composite MM/YYYY — see SEARCH_DESIGN §6.5) — carried to the client as next-intl's global `timeZone`. Default/invalid → `America/Los_Angeles` (Hayward, CA). Admin-editable (Settings → Deployment); changing it re-embeds/re-buckets affected search rows via the normal sweep |
 | `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID` (+optional `FIREBASE_APP_ID`) | Firebase web config; Google button rendered only if all three present. Client-safe values, relayed at runtime (not NEXT_PUBLIC_*, so one Docker image works everywhere) |
 | `FIREBASE_AUTH_PROXY=1` | serve Firebase's `/__/auth` sign-in helper from this origin (reverse-proxied to `<FIREBASE_PROJECT_ID>.firebaseapp.com` via the `/fbauth` route + next.config rewrites) and set the client `authDomain` to `PUBLIC_BASE_URL`'s host, so the sign-in iframe/redirect is first-party — fixes iOS/WebKit storage-partitioning sign-in failures (`auth/popup-blocked`, "missing initial state"). The upstream is derived from `FIREBASE_PROJECT_ID` (not `FIREBASE_AUTH_DOMAIN`, which operators repoint at their own host → self-loop); override with `FIREBASE_AUTH_UPSTREAM_HOST`. Needs `PUBLIC_BASE_URL` + the OAuth redirect URI (`<host>/__/auth/handler`) and authorized domain registered in the console |
 | `AI_PROVIDER` (`openrouter` default, or `google`) | which extraction backend to call |

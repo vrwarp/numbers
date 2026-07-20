@@ -58,7 +58,7 @@ describe("receiptPromptText — optional fields", () => {
 
 describe("receiptYear — boundaries", () => {
   const upload = new Date("2026-03-04T00:00:00Z");
-  const y = (purchaseDate: string) => receiptYear({ purchaseDate, createdAt: upload });
+  const y = (purchaseDate: string) => receiptYear({ purchaseDate, createdAt: upload }, "UTC");
 
   it("reads a plausible YYYY prefix from a full date", () => {
     expect(y("2024-05-12")).toBe(2024);
@@ -80,6 +80,15 @@ describe("receiptYear — boundaries", () => {
     expect(y("2024-05")).toBe(2026); // regex needs YYYY-MM-DD
     expect(y("May 2024")).toBe(2026);
   });
+
+  it("the fallback reads the upload instant in the app zone; a transcribed date is zone-free", () => {
+    const newYearsEveUpload = new Date("2026-01-01T05:00:00Z"); // Dec 31 21:00 PST
+    expect(receiptYear({ purchaseDate: "", createdAt: newYearsEveUpload }, "America/Los_Angeles")).toBe(2025);
+    expect(receiptYear({ purchaseDate: "", createdAt: newYearsEveUpload }, "UTC")).toBe(2026);
+    expect(
+      receiptYear({ purchaseDate: "2024-05-12", createdAt: newYearsEveUpload }, "America/Los_Angeles")
+    ).toBe(2024);
+  });
 });
 
 function claim(over: Partial<ClaimContent> = {}): ClaimContent {
@@ -97,12 +106,12 @@ function claim(over: Partial<ClaimContent> = {}): ClaimContent {
 
 describe("buildClaimComposite — sparse / branch coverage", () => {
   it("a minimal empty-field claim omits description, ministries, merchants and items", () => {
-    const text = buildClaimComposite(claim());
+    const text = buildClaimComposite(claim(), "UTC");
     expect(text).toBe("Reimbursement claim by Grace Lee. Total $1.00. 06/2026.");
   });
 
   it("includes the description clause only when present", () => {
-    expect(buildClaimComposite(claim({ claimDescription: "Retreat" }))).toContain(
+    expect(buildClaimComposite(claim({ claimDescription: "Retreat" }), "UTC")).toContain(
       "by Grace Lee. Retreat."
     );
   });
@@ -115,7 +124,8 @@ describe("buildClaimComposite — sparse / branch coverage", () => {
           { description: "b", amountCents: 100, ministry: "", event: "Retreat", isExcluded: false },
           { description: "c", amountCents: 100, ministry: "Music", event: "Concert", isExcluded: false },
         ],
-      })
+      }),
+      "UTC"
     );
     expect(text).toContain("Ministries: 210 Youth; Retreat; Music — Concert.");
   });
@@ -126,7 +136,8 @@ describe("buildClaimComposite — sparse / branch coverage", () => {
         lineItems: [
           { description: "a", amountCents: 100, ministry: "", event: "", isExcluded: false },
         ],
-      })
+      }),
+      "UTC"
     );
     expect(text).not.toContain("Ministries:");
   });
@@ -139,7 +150,8 @@ describe("buildClaimComposite — sparse / branch coverage", () => {
           { description: "b", amountCents: 100, ministry: "210 Youth", event: "", isExcluded: false },
         ],
         merchants: ["Costco", "Costco", "Amazon"],
-      })
+      }),
+      "UTC"
     );
     expect(text).toContain("Ministries: 210 Youth.");
     expect(text).toContain("Merchants: Costco, Amazon.");
@@ -151,7 +163,8 @@ describe("buildClaimComposite — sparse / branch coverage", () => {
         lineItems: [
           { description: "snacks", amountCents: 500, ministry: "", event: "", isExcluded: true },
         ],
-      })
+      }),
+      "UTC"
     );
     expect(text).not.toContain("Items:");
     expect(text).not.toContain("snacks");
@@ -164,35 +177,56 @@ describe("buildClaimComposite — sparse / branch coverage", () => {
           { description: "tables", amountCents: 10210, ministry: "", event: "", isExcluded: false },
           { description: "plates", amountCents: 3095, ministry: "", event: "", isExcluded: false },
         ],
-      })
+      }),
+      "UTC"
     );
     expect(text).toContain("Items: tables ($102.10); plates ($30.95).");
     expect(text).not.toMatch(/more items/);
   });
 
-  it("uses submittedAt for mm/yyyy when set, else createdAt (UTC)", () => {
-    expect(buildClaimComposite(claim())).toContain("06/2026.");
+  it("uses submittedAt for mm/yyyy when set, else createdAt, in the given zone", () => {
+    expect(buildClaimComposite(claim(), "UTC")).toContain("06/2026.");
     expect(
-      buildClaimComposite(claim({ submittedAt: new Date("2027-01-15T00:00:00Z") }))
+      buildClaimComposite(claim({ submittedAt: new Date("2027-01-15T00:00:00Z") }), "UTC")
     ).toContain("01/2027.");
   });
 });
 
 describe("claimFingerprint / claimYear", () => {
-  it("fingerprint equals sha256 of the composite", () => {
+  it("fingerprint equals sha256 of the composite (same zone)", () => {
     const c = claim({ claimDescription: "Retreat" });
-    expect(claimFingerprint(c)).toBe(sha256Hex(buildClaimComposite(c)));
+    expect(claimFingerprint(c, "UTC")).toBe(sha256Hex(buildClaimComposite(c, "UTC")));
   });
 
-  it("year prefers submittedAt and reads it in UTC", () => {
+  it("the zone is part of the fingerprint input when it shifts the month label", () => {
+    const c = claim({ submittedAt: new Date("2026-07-01T02:00:00Z") }); // Jun 30 19:00 PDT
+    expect(buildClaimComposite(c, "America/Los_Angeles")).toContain("06/2026.");
+    expect(buildClaimComposite(c, "UTC")).toContain("07/2026.");
+    expect(claimFingerprint(c, "America/Los_Angeles")).not.toBe(claimFingerprint(c, "UTC"));
+  });
+
+  it("year prefers submittedAt and reads it in the app zone", () => {
     expect(
-      claimYear({ createdAt: new Date("2025-12-31T23:00:00Z"), submittedAt: null })
+      claimYear({ createdAt: new Date("2025-12-31T23:00:00Z"), submittedAt: null }, "UTC")
     ).toBe(2025);
     expect(
-      claimYear({
-        createdAt: new Date("2025-12-31T23:00:00Z"),
-        submittedAt: new Date("2026-01-01T00:30:00Z"),
-      })
+      claimYear(
+        {
+          createdAt: new Date("2025-12-31T23:00:00Z"),
+          submittedAt: new Date("2026-01-01T00:30:00Z"),
+        },
+        "UTC"
+      )
     ).toBe(2026);
+    // The same submit instant is still 2025 in Hayward.
+    expect(
+      claimYear(
+        {
+          createdAt: new Date("2025-12-31T23:00:00Z"),
+          submittedAt: new Date("2026-01-01T00:30:00Z"),
+        },
+        "America/Los_Angeles"
+      )
+    ).toBe(2025);
   });
 });

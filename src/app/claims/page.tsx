@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getFormatter, getTranslations } from "next-intl/server";
+import { getFormatter, getTimeZone, getTranslations } from "next-intl/server";
 import { currentUserId, signInPath } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { formatCents } from "@/lib/money";
 import { relativeDateLabel } from "@/lib/date-label";
 import { embeddingEnabled } from "@/lib/embeddings/settings";
+import { esignSetupSnapshot } from "@/lib/esign/nudge-server";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +32,25 @@ export default async function ClaimsPage() {
     include: { _count: { select: { lineItems: true, receipts: true } } },
   });
   const searchEnabled = await embeddingEnabled().catch(() => false);
+  // EP3 (docs/ESIGN_SETUP_DISCOVERABILITY.md §3.2): the subtitle is
+  // state-aware. Today's copy promised "or sent for approval" to everyone —
+  // including users outside the switch/allowlist (for whom the promise leaks a
+  // feature they don't have) and un-set-up users (for whom the tap dead-ends).
+  const esign = await esignSetupSnapshot(userId).catch(() => null);
+  const subtitleKey = !esign?.eligible
+    ? ("subtitlePaper" as const)
+    : esign.identityStatus === "attested"
+      ? ("subtitle" as const)
+      : esign.identityStatus === "pending"
+        ? ("subtitlePending" as const)
+        : esign.identityStatus === "revoked"
+          ? ("subtitlePaper" as const)
+          : ("subtitleSetup" as const);
   const t = await getTranslations("Claims");
   const tStatus = await getTranslations("Common.status");
   const tDate = await getTranslations("Common.date");
   const format = await getFormatter();
+  const timeZone = await getTimeZone();
   const now = new Date();
   const dateLabels = { today: tDate("today"), yesterday: tDate("yesterday") };
 
@@ -43,7 +59,21 @@ export default async function ClaimsPage() {
       <div>
         <h1 className="keyboard-smooth text-2xl font-bold short:text-lg">{t("title")}</h1>
         <div className="collapse-short">
-          <p className="text-sm text-stone-500">{t("subtitle")}</p>
+          <p className="text-sm text-stone-500" data-testid="claims-subtitle">
+            {subtitleKey === "subtitlePaper" || subtitleKey === "subtitle"
+              ? t(subtitleKey)
+              : t.rich(subtitleKey, {
+                  link: (chunks) => (
+                    <Link
+                      href="/profile?open=esign"
+                      className="text-indigo-600 underline"
+                      data-testid="claims-subtitle-esign-link"
+                    >
+                      {chunks}
+                    </Link>
+                  ),
+                })}
+          </p>
         </div>
       </div>
 
@@ -78,7 +108,7 @@ export default async function ClaimsPage() {
               <Link href={`/claims/${c.id}`} className="card card-lift pressable flex items-center justify-between p-4 short:py-2.5" data-testid={`claim-${c.id}`}>
                 <div>
                   <div className="font-semibold">
-                    {relativeDateLabel(new Date(c.createdAt), now, dateLabels, (d) =>
+                    {relativeDateLabel(new Date(c.createdAt), now, timeZone, dateLabels, (d) =>
                       format.dateTime(d, { year: "numeric", month: "long", day: "numeric" })
                     )}
                   </div>

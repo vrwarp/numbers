@@ -566,14 +566,25 @@ export function SubmitDialog({
       <div className="max-h-[92dvh] w-full max-w-lg space-y-4 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:rounded-2xl sm:pb-6">
         <h3 className="text-lg font-bold">{t("submitDialogTitle")}</h3>
         {!enrolled ? (
+          // Server-truth backstop: EP4's gated action bar makes this branch
+          // unreachable from the owner path, but a stale tab still lands here
+          // instead of a ceremony it can't run. State-branched (P5): a pending
+          // member must never be told to enroll again.
           <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
-            {t.rich("notAttested", {
-              link: (chunks) => (
-                <Link href="/profile" className="underline">
-                  {chunks}
-                </Link>
-              ),
-            })}
+            {t.rich(
+              env.me.identityStatus === "pending"
+                ? "notAttestedPending"
+                : env.me.identityStatus === "revoked"
+                  ? "notAttestedRevoked"
+                  : "notAttestedNull",
+              {
+                link: (chunks) => (
+                  <Link href="/profile?open=esign" className="underline">
+                    {chunks}
+                  </Link>
+                ),
+              }
+            )}
           </p>
         ) : phase !== "ready" ? (
           // Establish the signing session before showing the sign controls, so

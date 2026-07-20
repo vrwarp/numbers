@@ -10,7 +10,8 @@ import { readStoredFile } from "@/lib/storage";
 import { generateClaimPdf } from "@/lib/pdf/generate";
 import { loadTemplateForRows } from "@/lib/pdf/loadTemplate";
 import { formatMinistryEvent } from "@/lib/ministries";
-import { publicBaseUrl } from "@/lib/config";
+import { appTimeZone, publicBaseUrl } from "@/lib/config";
+import { formatDateMMDDYYYY } from "@/lib/timezone";
 import type { SignaturePlacement } from "@/lib/esign/placement";
 
 type ClaimForPacket = {
@@ -38,10 +39,9 @@ export async function buildClaimPdfBytes(
     });
   }
 
-  const now = new Date();
-  const dateString = `${String(now.getMonth() + 1).padStart(2, "0")}/${String(
-    now.getDate()
-  ).padStart(2, "0")}/${now.getFullYear()}`;
+  // The form's date line carries the requestor's calendar day — the app time
+  // zone, not the container's (UTC would post-date evening claims).
+  const dateString = formatDateMMDDYYYY(new Date(), appTimeZone());
   const base = publicBaseUrl();
   // Small claims fill the large-row legibility variant they fit on; the
   // choice never changes the packet's form-page count (see variantRowsFor).

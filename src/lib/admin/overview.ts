@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { configValue } from "@/lib/config-file";
-import { isAiMock, isAuthTestMode } from "@/lib/config";
+import { appTimeZone, isAiMock, isAuthTestMode } from "@/lib/config";
+import { zonedDayKey } from "@/lib/timezone";
 import { getRegistry } from "@/lib/esign/server";
 
 /**
@@ -82,17 +83,15 @@ export interface UsageStats {
     success: number;
     error: number;
     byKind: Record<string, number>;
-    /** UTC-day buckets over the last 30 days (oldest → newest). */
+    /** App-time-zone day buckets over the last 30 days (oldest → newest). */
     daily: { date: string; success: number; error: number }[];
   };
   provider: { name: string; model: string; mock: boolean };
 }
 
-function utcDay(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
 export async function computeStats(): Promise<UsageStats> {
+  const timeZone = appTimeZone();
+  const day = (d: Date) => zonedDayKey(d, timeZone);
   const now = Date.now();
   const since30 = new Date(now - 30 * DAY_MS);
   const since7 = new Date(now - 7 * DAY_MS);
@@ -119,12 +118,12 @@ export async function computeStats(): Promise<UsageStats> {
   const byKind: Record<string, number> = {};
   const dayMap = new Map<string, { success: number; error: number }>();
   // Seed every day so the chart has no gaps.
-  for (let i = 29; i >= 0; i--) dayMap.set(utcDay(new Date(now - i * DAY_MS)), { success: 0, error: 0 });
+  for (let i = 29; i >= 0; i--) dayMap.set(day(new Date(now - i * DAY_MS)), { success: 0, error: 0 });
   let success = 0;
   let error = 0;
   for (const log of logs) {
     byKind[log.kind] = (byKind[log.kind] ?? 0) + 1;
-    const bucket = dayMap.get(utcDay(log.createdAt));
+    const bucket = dayMap.get(day(log.createdAt));
     if (log.status === "success") {
       success++;
       if (bucket) bucket.success++;

@@ -20,11 +20,13 @@ import { embedCjkFont } from "@/lib/pdf/fonts";
 import { stampSignatureAt, toEncodableText } from "@/lib/pdf/generate";
 import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
 import { FORM_ROWS_PER_PAGE } from "@/lib/config";
+import { formatDateMMDDYYYY } from "@/lib/timezone";
 
-/** The signing-time date the marks carry, matching the payload's `ts`. */
-export function formatApprovalDate(tsMs: number): string {
-  const d = new Date(tsMs);
-  return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+/** The signing-time date the marks carry, matching the payload's `ts` —
+ *  rendered in the app time zone (TIME_ZONE) so the stamped day agrees with
+ *  what the approver saw on screen, not the server's UTC day. */
+export function formatApprovalDate(tsMs: number, timeZone: string): string {
+  return formatDateMMDDYYYY(new Date(tsMs), timeZone);
 }
 
 /** Decode a stored hand-drawn signature; null when absent or not a PNG. */

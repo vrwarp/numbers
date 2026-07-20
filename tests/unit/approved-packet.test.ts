@@ -54,7 +54,7 @@ describe("deriveApprovedPacket", () => {
       activeRowCount: 2,
       marks: {
         typedName: "Shirley Che",
-        dateString: formatApprovalDate(Date.UTC(2026, 6, 12)),
+        dateString: formatApprovalDate(Date.UTC(2026, 6, 12), "UTC"),
         signaturePng: pngFromDataUrl(INK_PNG_DATA_URL),
         placement: anchor,
       },

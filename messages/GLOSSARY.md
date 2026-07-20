@@ -56,7 +56,8 @@ zh-Hans (登录→登錄 would be wrong; Taiwan says 登入).
 | secretary (board) | 文书 | 文書 | executive officer; church register, not office 秘书 |
 | executive officer | 执行同工 | 執行同工 | the board's chairman / secretary / treasurer |
 | admin / administrator | 管理员 | 管理員 | |
-| vouch | 担保 | 擔保 | in-person identity confirmation by a member |
+| vouch (voucher-facing) | 担保 | 擔保 | the VOUCHER's act and ceremony surfaces only — the voucher is taking responsibility, so the guarantor register is correct there |
+| vouch (candidate-facing) | 当面确认 | 當面確認 | what the CANDIDATE experiences: “two members confirm it's really you, in person”. Never 担保/擔保 on candidate-facing setup/nudge surfaces — to a member that word reads as co-signing a loan |
 | attest / attested | 认证 / 已认证 | 認證 / 已認證 | roster status after enough vouches |
 | enroll (in signing) | 开通 | 開通 | friendlier than 注册 for church members |
 | certificate (approval) | 批准证书 | 批准證書 | the PDF cover artifact |
@@ -67,6 +68,10 @@ zh-Hans (登录→登錄 would be wrong; Taiwan says 登入).
 | recovery phrase / sheet | 恢复短语 / 恢复单 | 復原口令 / 復原單 | 24 English BIP39 words — the words themselves stay English |
 | withdraw (a submission) | 撤回 | 撤回 | |
 | check (payment) | 支票 | 支票 | check number = 支票号码 / 支票號碼 |
+
+Register: new member-facing nudge/duty surfaces (the e-sign setup
+discoverability set) address the reader as 您 — they speak to elders and
+officers directly. Follow suit when extending them.
 
 Never translated: **Numbers** (app name), ministry canonical values
 (`237 Office Supplies` — they are stored data, printed on the official form,

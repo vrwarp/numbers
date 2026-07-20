@@ -1,6 +1,7 @@
 import { getRequestConfig } from "next-intl/server";
 import { cookies, headers } from "next/headers";
 import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale, negotiateLocale, type Locale } from "@/lib/locales";
+import { appTimeZone } from "@/lib/config";
 
 /**
  * Locale resolution, no URL routing (every existing URL, bookmark and QR link
@@ -23,5 +24,9 @@ export default getRequestConfig(async () => {
   return {
     locale,
     messages: (await import(`../../messages/${locale}.json`)).default,
+    // The configured deployment zone (TIME_ZONE) — makes every next-intl
+    // date formatter (server AND client, via the provider) render calendar
+    // dates in the same zone instead of the container's UTC / the browser's.
+    timeZone: appTimeZone(),
   };
 });

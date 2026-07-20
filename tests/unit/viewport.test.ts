@@ -4,13 +4,20 @@ import {
   ZOOM_STEP,
   beginPinch,
   clampView,
+  clampViewIn,
+  containScale,
   contentPointUnder,
+  fitScales,
   isIdentity,
   panStep,
+  panStepIn,
   panView,
   pinchView,
   zoomAbout,
+  zoomAboutIn,
   zoomByCenter,
+  zoomByCenterIn,
+  type Frame,
   type View,
 } from "@/lib/esign/viewport";
 
@@ -135,6 +142,83 @@ describe("panStep — incremental pan that chains vertical overflow", () => {
     const { view, overflowY } = panStep(atBottom, BOX, 0, -25);
     expect(view.ty).toBe(BOX.height * (1 - 2));
     expect(overflowY).toBe(-25);
+  });
+});
+
+/**
+ * Frame-based math (the receipt viewer): the content's layout size differs
+ * from the visible box and the scale may drop below 1 to fit the whole image.
+ * A tall receipt at fit-width in a clamped window is the canonical case.
+ */
+describe("Frame math (content ≠ box, min scale < 1)", () => {
+  // 400-wide column, 300-tall clamp window, image laid out 400×1000.
+  const TALL: Frame = {
+    box: { width: 400, height: 300 },
+    content: { width: 400, height: 1000 },
+    minScale: 0.3,
+    maxScale: MAX_SCALE,
+  };
+
+  it("fitScales reports each axis's fit; containScale is the smaller", () => {
+    const { fitWidth, fitHeight } = fitScales(TALL.box, TALL.content);
+    expect(fitWidth).toBe(1);
+    expect(fitHeight).toBeCloseTo(0.3, 6);
+    expect(containScale(TALL.box, TALL.content)).toBeCloseTo(0.3, 6);
+  });
+
+  it("fitScales snaps a hair-off fit to exactly 1 (sub-pixel layout jitter)", () => {
+    const { fitWidth } = fitScales({ width: 400, height: 300 }, { width: 401, height: 1000 });
+    expect(fitWidth).toBe(1);
+  });
+
+  it("centers the content on any axis it doesn't fill", () => {
+    // At the contain fit the image is 120×300: letterboxed horizontally,
+    // exactly filling vertically — both translations are forced.
+    const v = clampViewIn(TALL, { scale: 0.3, tx: -999, ty: 999 });
+    expect(v.tx).toBe((400 - 120) / 2);
+    expect(v.ty).toBe(0);
+  });
+
+  it("pins a within-half-a-pixel fit to translation 0, not a fractional center", () => {
+    const f: Frame = { ...TALL, box: { width: 400, height: 300.3 }, minScale: 0.3 };
+    const v = clampViewIn(f, { scale: 0.3, tx: 0, ty: 5 });
+    expect(v.ty).toBe(0);
+  });
+
+  it("clamps the overflowing axis to the box edges as before", () => {
+    // At fit-width (scale 1) the image is 400×1000: x pinned, y drags in
+    // [box−content, 0].
+    const v = clampViewIn(TALL, { scale: 1, tx: -50, ty: -5000 });
+    expect(v.tx).toBe(0);
+    expect(v.ty).toBe(300 - 1000);
+    expect(clampViewIn(TALL, { scale: 1, tx: 0, ty: -200 }).ty).toBe(-200);
+  });
+
+  it("zoomAboutIn floors at the frame's contain fit, not at 1", () => {
+    expect(zoomAboutIn(TALL, { scale: 1, tx: 0, ty: 0 }, 200, 150, 0.01).scale).toBeCloseTo(0.3, 6);
+    expect(zoomAboutIn(TALL, { scale: 1, tx: 0, ty: 0 }, 200, 150, 99).scale).toBe(MAX_SCALE);
+  });
+
+  it("zoomByCenterIn steps the scale and re-centers what fits", () => {
+    const v = zoomByCenterIn(TALL, { scale: 0.3, tx: 140, ty: 0 }, ZOOM_STEP);
+    expect(v.scale).toBeCloseTo(0.45, 6);
+    expect(v.tx).toBeCloseTo((400 - 400 * 0.45) / 2, 6); // still letterboxed → centered
+  });
+
+  it("panStepIn overflows the whole delta at the contain fit (drag scrolls the page)", () => {
+    const at = clampViewIn(TALL, { scale: 0.3, tx: 0, ty: 0 });
+    const { view, overflowY } = panStepIn(TALL, at, 10, 40);
+    expect(view).toEqual(at);
+    expect(overflowY).toBe(40);
+  });
+
+  it("panStepIn absorbs while the zoomed content has room, then chains the rest", () => {
+    const mid = { scale: 1, tx: 0, ty: -350 };
+    expect(panStepIn(TALL, mid, 0, 30)).toEqual({ view: { scale: 1, tx: 0, ty: -320 }, overflowY: 0 });
+    const nearTop = { scale: 1, tx: 0, ty: -10 };
+    const { view, overflowY } = panStepIn(TALL, nearTop, 0, 30);
+    expect(view.ty).toBe(0);
+    expect(overflowY).toBe(20);
   });
 });
 

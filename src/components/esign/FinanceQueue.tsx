@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useOpenParam } from "@/lib/use-open-param";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
-import { useTranslations } from "next-intl";
+import { useTimeZone, useTranslations } from "next-intl";
 import { LedgerCommittedError, runPaidCeremony, warmClaimVerification } from "@/lib/esign/client";
 import { useApiErrorMessage, useThrownErrorMessage } from "@/lib/use-api-error";
 import { AuditDetails, ChainAlert, PacketLink, ThreadSignatures, chainLooksGood, useClaimChain } from "./chain";
@@ -20,9 +20,11 @@ import ClaimSummaryRow from "./ClaimSummaryRow";
 import PdfLink from "@/components/PdfLink";
 import { deliverPdf, downloadBlob, isIosStandalonePwa, pdfFile, sharePdf } from "@/lib/pdf-delivery";
 import { relativeDay } from "@/lib/date-label";
+import { DEFAULT_TIME_ZONE } from "@/lib/timezone";
 
 export default function FinanceQueue() {
   const t = useTranslations("Finance");
+  const timeZone = useTimeZone() ?? DEFAULT_TIME_ZONE;
   const tEsign = useTranslations("Esign");
   const tCommon = useTranslations("Common");
   const apiError = useApiErrorMessage();
@@ -111,10 +113,10 @@ export default function FinanceQueue() {
   const paid = list.filter((c) => c.status === "paid");
   // The treasurer's print batch is almost always "what I just marked paid this
   // sitting" — older rows went to the printer in a previous session. So the
-  // bulk-select affordance grabs today's payments (local calendar day, the
-  // same frame as the row's "Paid Today" label), not the whole history.
+  // bulk-select affordance grabs today's payments (app-time-zone calendar day,
+  // the same frame as the row's "Paid Today" label), not the whole history.
   const paidToday = paid.filter(
-    (c) => c.paidAt && relativeDay(new Date(c.paidAt), new Date()) === "today"
+    (c) => c.paidAt && relativeDay(new Date(c.paidAt), new Date(), timeZone) === "today"
   );
 
   const toggle = (id: string) =>

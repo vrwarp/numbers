@@ -53,9 +53,11 @@ CREATE TABLE "new_User" (
     "notifySecurity" BOOLEAN NOT NULL DEFAULT true,
     "notifyDiscreet" BOOLEAN NOT NULL DEFAULT false,
     "notifyUiStateJson" TEXT NOT NULL DEFAULT '{}',
+    "esignNudgesJson" TEXT NOT NULL DEFAULT '{}',
+    "prefersPaper" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-INSERT INTO "new_User" ("adminPaused", "approvalsPaused", "createdAt", "email", "esignAllowed", "financePaused", "firebaseUid", "fullName", "id", "locale", "mailingAddress", "printIncludeCertificate", "printIncludeReceipts", "role") SELECT "adminPaused", "approvalsPaused", "createdAt", "email", "esignAllowed", "financePaused", "firebaseUid", "fullName", "id", "locale", "mailingAddress", "printIncludeCertificate", "printIncludeReceipts", "role" FROM "User";
+INSERT INTO "new_User" ("adminPaused", "approvalsPaused", "createdAt", "email", "esignAllowed", "esignNudgesJson", "financePaused", "firebaseUid", "fullName", "id", "locale", "mailingAddress", "prefersPaper", "printIncludeCertificate", "printIncludeReceipts", "role") SELECT "adminPaused", "approvalsPaused", "createdAt", "email", "esignAllowed", "esignNudgesJson", "financePaused", "firebaseUid", "fullName", "id", "locale", "mailingAddress", "prefersPaper", "printIncludeCertificate", "printIncludeReceipts", "role" FROM "User";
 DROP TABLE "User";
 ALTER TABLE "new_User" RENAME TO "User";
 CREATE UNIQUE INDEX "User_firebaseUid_key" ON "User"("firebaseUid");

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { currentUserId, signInPath } from "@/auth";
 import { pushWebConfig } from "@/lib/notifications/settings";
-import ProfileForm from "@/components/ProfileForm";
+import ProfileForm, { MobileSignOut } from "@/components/ProfileForm";
 import SigningIdentityCard from "@/components/esign/SigningIdentityCard";
 import NotificationsCard from "@/components/notifications/NotificationsCard";
 
@@ -15,6 +15,7 @@ export default async function ProfilePage() {
       <ProfileForm />
       <NotificationsCard pushConfig={pushWebConfig()} />
       <SigningIdentityCard />
+      <MobileSignOut />
     </div>
   );
 }

@@ -54,11 +54,39 @@
     "search": "Search",
     "positions": "Positions",
     "members": "Members",
-    "teams": "Teams"
+    "teams": "Teams",
+    "setupSigning": "Set up signing",
+    "showYourCode": "Show your QR code",
+    "chipNone": "Not set up",
+    "chipPending": "Waiting for confirmation"
   },
   "Home": {
     "profileNudge": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
-    "profileNudgeShort": "Finish your profile"
+    "profileNudgeShort": "Finish your profile",
+    "esignNudgeTitle": "Skip the printer",
+    "esignNudgeNull": "Sign and submit claims from your phone. You'll sign in with Google again, set up in about two minutes, and then two members (or one approver) confirm it's really you in person — usually at the next service.",
+    "esignNudgeNullCta": "Set up signing",
+    "esignNudgeDecline": "I'll stick with paper",
+    "esignNudgePendingTitle": "Almost there",
+    "esignNudgePending": "Show your QR code to any two members (or one approver) at church and you're confirmed. You may be asked to sign in with Google first.",
+    "esignNudgePendingCta": "Show your QR code",
+    "esignNudgePaperRepeat": "The next one can be signed from your phone — set up once.",
+    "esignNudgeCollapsed": "Set up signing",
+    "esignNudgeCollapsedPending": "Show your QR code at church to finish signing setup",
+    "esignDutyTitle": "You're listed as an approver",
+    "esignDutyNull": "Set up signing so members can send you claims to approve. Setup is self-service; confirmation happens in person; then an officer switches on your approver duty.",
+    "esignDutyPendingTitle": "One scan left",
+    "esignDutyPending": "Any officer can confirm you — a single scan of your QR code. After that an officer switches on your approver duty and members can send you claims.",
+    "esignDutySnooze": "Remind me next week",
+    "esignClosureTitle": "You're set up",
+    "esignClosure": "Your claim from {date} ({amount}) can now be e-signed.",
+    "esignClosureNoClaim": "Your next claim can be e-signed right from your phone.",
+    "esignClosureVouchLine": "You can also confirm others at church — that's your <b>Vouch</b> tab.",
+    "esignClosureCta": "Open the claim",
+    "esignClosureGotIt": "Got it",
+    "esignNudgeResolved": "Signing setup suggestion resolved",
+    "esignDutyRecovery": "Don't skip the recovery step — your approver duty can't be switched on without it.",
+    "esignNudgePaperRepeatTitle": "Finishing on paper?"
   },
   "SignIn": {
     "tagline": "CFCC expense reimbursements — snap receipts now, file the claim later.",
@@ -79,8 +107,11 @@
     "subtitle": "Draft claims need review; claims marked “Ready to submit” can be printed or sent for approval.",
     "emptyTitle": "No claims yet",
     "emptyBody": "Select receipts on the <link>Receipts</link> page and hit “New Claim”.",
-    "counts": "{items} items · {receipts, plural, one {# receipt} other {# receipts}}",
-    "searchPill": "Search claims…"
+    "counts": "{items, plural, one {# item} other {# items}} · {receipts, plural, one {# receipt} other {# receipts}}",
+    "searchPill": "Search claims…",
+    "subtitlePaper": "Draft claims need review; claims marked “Ready to submit” can be printed.",
+    "subtitleSetup": "Draft claims need review; claims marked “Ready to submit” can be printed — or e-signed once you <link>set up signing</link>.",
+    "subtitlePending": "Draft claims need review; claims marked “Ready to submit” can be printed — or e-signed after you're <link>confirmed in person</link> at church."
   },
   "Profile": {
     "title": "Profile",
@@ -119,7 +150,7 @@
     "viewLargerTitle": "View larger",
     "notePlaceholder": "Add description…",
     "noteAria": "Description for {name}",
-    "meta": "{date} · {kb} KB",
+    "caption": "{date} · {name}",
     "processedSuffix": " · processed",
     "claimChip": "Claim"
   },
@@ -169,8 +200,12 @@
     "step2": "<step>2. Batch.</step> Later, when you're ready, select receipts and hit New Claim.",
     "step3": "<step>3. Verify.</step> Check every row against the receipt. Fix, split, or exclude items.",
     "step4": "<step>4. Print.</step> Download the filled CFCC form with receipts attached, sign, and drop it off.",
+    "filterAll": "All ({count})",
+    "filterUnassigned": "Not yet claimed ({count})",
+    "filterPdf": "PDFs ({count})",
     "processedSummary": "Processed receipts ({count})",
     "processedNote": "Already on a generated claim. You can still pick it if part of the purchase belongs on another claim.",
+    "filterGroupAria": "Filter receipts",
     "prepareTitle": "Describe this receipt",
     "prepareLeft": "({count} left)",
     "noteLabel": "Description (optional)",
@@ -180,7 +215,8 @@
     "skipAll": "Skip all",
     "quotaRingAria": "Retrying in about {seconds, plural, one {# second} other {# seconds}}",
     "searchPill": "Search receipts…",
-    "openGoneToast": "That receipt is no longer in your Receipts."
+    "openGoneToast": "That receipt is no longer in your Receipts.",
+    "step4Esign": "<step>4. Finish.</step> Print and sign the filled CFCC form — or e-sign it right from your phone."
   },
   "Viewer": {
     "ariaTitle": "Receipt: {name}",
@@ -197,6 +233,10 @@
     "zoomOut": "Zoom out",
     "zoomIn": "Zoom in",
     "resetZoom": "Reset zoom",
+    "fitImage": "Fit whole image",
+    "fitHeight": "Fit height",
+    "fitWidth": "Fit width",
+    "zoom2x": "Zoom to 2×",
     "zoomLevel": "{percent}%"
   },
   "ManualEntry": {
@@ -380,7 +420,20 @@
     "underSignatureFrozen": "Under signature — packet and rows are frozen.",
     "downloadSigned": "⬇ Download signed packet",
     "revertConfirmSigned": "Revert this claim to draft? Every signature collected so far becomes void, and approval starts over.",
-    "retiredOption": "{value} (retired)"
+    "retiredOption": "{value} (retired)",
+    "esignSetupHint": "Finish this claim — print it, or set up signing.",
+    "esignSetupAction": "Set up signing",
+    "esignWaitingAction": "Waiting for confirmation",
+    "esignWaitingAria": "E-signing: waiting for in-person confirmation — details",
+    "esignSetupCalloutTitle": "E-sign this claim? One-time setup first",
+    "esignSetupCalloutNull": "You'll sign in with Google again, set up in about two minutes, and then two members (or one approver) confirm it's really you in person — usually at the next service.",
+    "esignSetupCalloutPendingTitle": "One in-person step left",
+    "esignSetupCalloutPending": "Show your QR code to two members (or one approver) at church — after that, claims like this can be e-signed.",
+    "esignSetupCalloutRevokedTitle": "Electronic signing is turned off for you",
+    "esignSetupCalloutRevoked": "Your signing identity was turned off. See your profile for details.",
+    "esignSetupCalloutPaper": "You can still hand this claim in on paper — download the PDF now and print it at church or wherever's easy.",
+    "esignSetupCalloutCta": "Set up signing",
+    "esignSetupCalloutQrCta": "Show your QR code"
   },
   "Esign": {
     "submitForApproval": "✍️ Submit for approval",
@@ -413,12 +466,11 @@
     "openApprovedPacketButton": "🖋️ Open approved packet — with approver's signature",
     "openOriginalPacketLink": "Original (as submitted)",
     "submitDialogTitle": "Submit for approval",
-    "notAttested": "You can't sign yet — turn on signing on your <link>profile</link>, then get vouched.",
     "submitIntro": "You're asking for approval of this claim ({amount}). Place your signature on the form, pick who should approve it, and sign. If the claim changes later, your signature stops counting and approval starts over.",
     "openingForm": "Opening the form…",
     "prepFailed": "Couldn’t load the form — check your connection and try again.",
     "retryButton": "Retry",
-    "noEligibleApprovers": "No approver is available right now — everyone who could approve is paused or unenrolled. Check with your treasurer.",
+    "noEligibleApprovers": "No approver is available to pick right now. Check with your treasurer — and you can still print this claim and hand it in on paper today.",
     "placeSignatureHint": "Press and hold on the form above to place your signature first.",
     "approverLabel": "Approver",
     "approverPlaceholder": "Choose an approver…",
@@ -493,7 +545,10 @@
     "alreadyDecidedNote": "This claim has already been decided — the list will update in a moment.",
     "assignedElsewhereNote": "This claim is assigned to a different approver.",
     "undoStroke": "Undo stroke",
-    "stalledNote": "Waiting for a signature for {days, plural, one {# day} other {# days}}. Notifications are often missed — phones get muted, batteries die. You can withdraw and pick a different approver at any time."
+    "stalledNote": "Waiting for a signature for {days, plural, one {# day} other {# days}}. Notifications are often missed — phones get muted, batteries die. You can withdraw and pick a different approver at any time.",
+    "notAttestedNull": "To e-sign, first set up signing on your <link>profile</link> — then two members confirm it's really you in person.",
+    "notAttestedPending": "Almost there — show your QR code (it's on your <link>profile</link>) to two members or one approver at church. After that you can sign.",
+    "notAttestedRevoked": "Your signing identity was turned off. See your <link>profile</link> for details."
   },
   "Approvals": {
     "title": "Approvals",
@@ -509,7 +564,10 @@
     "rejectConfirmTitle": "Reject this claim?",
     "rejectConfirmBody": "Rejecting is final — you won't be able to undo it or approve this claim later. {name} will have to revise and resubmit the claim for a new approval.",
     "rejectConfirmAction": "✗ Reject claim",
-    "openGone": "That claim isn’t in this list anymore — the owner may have withdrawn or reassigned it, which is routine."
+    "openGone": "That claim isn’t in this list anymore — the owner may have withdrawn or reassigned it, which is routine.",
+    "emptyNotSetUp": "Claims can't be sent to you yet — <link>set up signing</link> so members can pick you as their approver.",
+    "emptyPendingVouch": "Setup done — one in-person confirmation left. <link>Show your QR code</link> at church; after that members can send you claims.",
+    "emptyRevoked": "Your signing identity was turned off. See your <link>profile</link> for details."
   },
   "Finance": {
     "title": "Finance",
@@ -534,7 +592,7 @@
   "Identity": {
     "title": "Electronic signing",
     "chipReady": "Ready to sign",
-    "chipPending": "Waiting for vouches",
+    "chipPending": "Waiting for confirmation",
     "chipRevoked": "Turned off",
     "chipNone": "Not set up",
     "loadFailed": "Could not load signing status",
@@ -550,7 +608,7 @@
     "bootstrapBusy": "Setting up…",
     "setupFailed": "Setup failed",
     "notSetUp": "Electronic signing isn't set up for this church yet — ask your administrator.",
-    "enrollIntro": "Sign and approve reimbursements from your phone — no printing. You'll agree to sign electronically, draw your signature, and then two members confirm it's really you (in person, one quick scan).",
+    "enrollIntro": "Sign and submit claims from your phone — no printing. You'll agree to sign electronically, draw your signature, and then two members (or one approver) confirm it's really you in person — one quick scan.",
     "enrollButton": "Set up signing",
     "checkingDevice": "Checking this device…",
     "yourSignature": "Your signature",
@@ -587,7 +645,8 @@
     "scanFromVouchTab": "Important: they should scan this from the Vouch tab inside this app — not with their phone’s camera app.",
     "whoCanVouch": "Members who can vouch for you: {names}{more, plural, =0 {} other { and # more}}.",
     "revokedBody": "Your signing key was retired by an administrator. Everything you signed before stays valid, but to sign again you’ll need to set up signing afresh and be vouched in person again.",
-    "reEnrollButton": "Set up signing again"
+    "reEnrollButton": "Set up signing again",
+    "connectFraming": "First, sign in with the same Google account you use for this app."
   },
   "Devices": {
     "newDeviceTitle": "This looks like a new device.",
@@ -823,7 +882,8 @@
       "notAllowed": "Electronic signing is not enabled for your account",
       "approverUnavailable": "That approver isn't taking new approval requests right now — pick someone else",
       "approverRoleLost": "Your approver role has been removed — you can decline, but not approve",
-      "decisionNotBinding": "The signed decision doesn't bind on the ledger — reload this claim and try again, or ask its owner to reassign it"
+      "decisionNotBinding": "The signed decision doesn't bind on the ledger — reload this claim and try again, or ask its owner to reassign it",
+      "invalidNudge": "That update couldn't be saved."
     },
     "admin": {
       "contentString": "Content must be text.",
@@ -849,6 +909,7 @@
     "searchInvalid": "That search couldn’t be understood — adjust it and try again",
     "searchEmptyQuery": "Type something to search for first",
     "admin.selfLockout": "This change would remove your own admin access — keep your email in the list",
+    "invalidMemberUpdate": "That member update couldn't be saved.",
     "push": {
       "invalidToken": "That notification registration is invalid.",
       "invalidHint": "That notification hint is invalid.",
@@ -1036,6 +1097,8 @@
     "fields_FIREBASE_AUTH_UPSTREAM_HOST_help": "Advanced. The host the first-party sign-in proxy forwards to. Blank derives it from the project id (project.firebaseapp.com), which is right for normal projects — set this only for unusual Firebase setups.",
     "fields_ADMIN_EMAILS_label": "Admin emails",
     "fields_ADMIN_EMAILS_help": "Emails that get admin access to this area, comma-separated — the way to add admins without the e-sign roster. It’s app-access only and never changes anyone’s signing role. Takes effect immediately; keep your own email here so you don’t lock yourself out.",
+    "fields_TIME_ZONE_label": "Time zone",
+    "fields_TIME_ZONE_help": "The time zone dates are shown and stamped in: “Today” labels, the date printed on generated and approved claim forms, and the usage chart’s days. An IANA name like America/Los_Angeles. Blank uses America/Los_Angeles (Hayward). Takes effect immediately.",
     "tab_search": "Search",
     "search": {
       "loading": "Loading…",
@@ -1135,7 +1198,13 @@
     "pushHealthFewer": "Fewer than 5",
     "pushHealthSa": "Service account",
     "pushHealthScopeBroad": "This service account can do more than send messages — that weakens the e-sign security model. Recreate it with ONLY the custom messaging role (docs/PUSH_SETUP.md).",
-    "pushHealthScopeOk": "Service account is messaging-only — as designed."
+    "pushHealthScopeOk": "Service account is messaging-only — as designed.",
+    "fields": {
+      "ESIGN_NUDGES_OFF": {
+        "label": "Pause setup suggestions",
+        "help": "Hides the home-page e-sign setup and closure cards for everyone. Honest buttons, menu rows, and status lines stay."
+      }
+    }
   },
   "Ministries": {
     "title": "Budget categories",
@@ -1297,13 +1366,12 @@
     "attestedTitle": "Attested members",
     "othersTitle": "Everyone else",
     "othersEmpty": "Everyone in the directory has been attested.",
-    "statusPending": "Awaiting vouches",
+    "statusPending": "Awaiting confirmation",
     "statusRevoked": "Key revoked",
     "statusNone": "No e-sign yet",
     "accessAlwaysOn": "Always on",
     "accessGrant": "Grant e-sign access",
     "accessCancel": "Cancel e-sign access",
-    "pendingHint": "People awaiting vouches become attested in person — see <link>Vouch for a member</link>.",
     "roleLabel": "Role",
     "roleDialogTitle": "Change {name}'s role",
     "roleDialogFromTo": "This changes their role from <b>{from}</b> to <b>{to}</b>.",
@@ -1318,7 +1386,23 @@
     "keyDialogBody": "Do this only when a device that could sign as them was lost or stolen. Everything they've already signed stays valid, but the key stops working everywhere — they'll set up signing again and get vouched back in person.",
     "attestedSince": "Attested {date}",
     "statusRevokedHint": "Their signing key was retired. To sign again they must set up signing afresh on their Profile and be vouched in person.",
-    "statusNoneHint": "They haven’t set up electronic signing. It starts from their own Profile page."
+    "statusNoneHint": "They haven’t set up electronic signing. It starts from their own Profile page.",
+    "tallySetUp": "{count} set up",
+    "tallyNotYet": "{count} not yet",
+    "tallyPaper": "{count} prefer paper",
+    "tallyStalePending": "{count} waiting over two weeks",
+    "selfVouchHint": "You can confirm waiting members yourself — one scan each on the <link>Vouch</link> page.",
+    "selfVouchBlocked": "Waiting members need an attested voucher — <link>set up signing</link> to confirm them yourself.",
+    "awaitingDutyHint": "Confirmed and holds a Position, but the approver role hasn't been granted yet — until it is, claims can't be routed to them. Grant it with the Role control on this row.",
+    "prefersPaperChip": "Prefers paper",
+    "prefersPaperSet": "Set prefers paper",
+    "prefersPaperClear": "Clear prefers paper",
+    "prefersPaperHint": "Record this after a real conversation — it stops the app's setup suggestions for this member. Paper is always fine.",
+    "helpTitle": "Helping members set up",
+    "helpScriptPrivacy": "Some members may have chosen paper in the app — they won't have told you. Ask first: “Want help setting up, or are you set with paper?” and record it here.",
+    "helpScriptSetup": "Setup lives on each member's Profile page; the in-person confirmation is one QR scan.",
+    "helpScriptSeniors": "Seniors may need a hand with the Google sign-in step — plan a minute per person after the service.",
+    "helpScriptPaper": "Paper remains completely fine. Early on, every confirmation goes through the few attested members — plan the after-service table accordingly."
   },
   "Teams": {
     "title": "Teams",

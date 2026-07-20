@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useOpenParam } from "@/lib/use-open-param";
 import { useRouter } from "next/navigation";
@@ -44,7 +44,19 @@ interface UploadedPending {
 
 type PendingItem = LocalPending | UploadedPending;
 
-export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) {
+export default function Shoebox({
+  searchEnabled,
+  esignOffered,
+  nudgeSlot,
+}: {
+  searchEnabled?: boolean;
+  /** Page-computed (A5/A8 predicate, docs/ESIGN_SETUP_DISCOVERABILITY.md §3.5):
+   *  branches the first-run guide's finish step. Outcome-neutral wording only —
+   *  users outside the switch/allowlist must never read the word "e-sign". */
+  esignOffered?: boolean;
+  /** The home nudge card (server-decided), rendered below the header. */
+  nudgeSlot?: ReactNode;
+}) {
   const t = useTranslations("Shoebox");
   const tCommon = useTranslations("Common");
   const tErrors = useTranslations("Errors");
@@ -88,6 +100,10 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
   const [showSelectHint, setShowSelectHint] = useState(false);
   const selectHintTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Active chip in the filter row: "all" | "unassigned" | "processed" | "pdf"
+  // | "merchant:<name>". Purely client-side — the chips slice the one loaded
+  // list, they never refetch.
+  const [filter, setFilter] = useState<string>("all");
   const [viewing, setViewing] = useState<Receipt | null>(null);
   // Receipt id awaiting delete confirmation (the ConfirmDialog is open).
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -96,6 +112,9 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
   const [dragging, setDragging] = useState(false);
   // Depth counter so nested dragenter/dragleave don't flicker the overlay.
   const dragDepth = useRef(0);
+  // Flips after mount — the e2e hydration gate (see the dropzone attribute).
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/receipts");
@@ -338,11 +357,12 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
   }
 
   /** One tap for the common "file everything I've collected" case. Only the
-   *  unassigned section — re-claiming processed receipts stays deliberate. */
+   *  unassigned receipts currently in view — re-claiming processed receipts
+   *  stays deliberate, and an active filter chip scopes the sweep with it. */
   function selectAllUnassigned() {
     setSelected((prev) => {
       const next = new Set(prev);
-      for (const r of unassigned) next.add(r.id);
+      for (const r of visibleUnassigned) next.add(r.id);
       return next;
     });
   }
@@ -495,25 +515,77 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
     }
   }
 
-  const unassigned = (receipts ?? []).filter((r) => r.status === "unassigned");
-  const processed = (receipts ?? []).filter((r) => r.status !== "unassigned");
-  const hasClaimBar = receipts !== null && (unassigned.length > 0 || processed.length > 0);
+  const all = receipts ?? [];
+  const unassigned = all.filter((r) => r.status === "unassigned");
+  const processed = all.filter((r) => r.status !== "unassigned");
+  const hasClaimBar = receipts !== null && all.length > 0;
   const barEmpty = selected.size === 0;
-  const canSelectAll = unassigned.some((r) => !selected.has(r.id));
+
+  // The Google-Images-style chip row over the receipt wall. Every chip is
+  // guaranteed ≥1 match (each is gated on its own count), and a chip is only
+  // offered when it would actually narrow the wall; a lone "All" renders no
+  // row. Merchant chips surface the AI-transcribed merchant names — data, so
+  // never translated.
+  const pdfCount = all.filter((r) => r.mimeType === "application/pdf").length;
+  const merchantCounts = new Map<string, number>();
+  for (const r of all) {
+    if (r.merchant) merchantCounts.set(r.merchant, (merchantCounts.get(r.merchant) ?? 0) + 1);
+  }
+  const merchants = [...merchantCounts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 8)
+    .map(([name]) => name);
+  const chips: { key: string; label: string; testId: string }[] = [
+    { key: "all", label: t("filterAll", { count: all.length }), testId: "all" },
+  ];
+  if (processed.length > 0 && unassigned.length > 0) {
+    chips.push({
+      key: "unassigned",
+      label: t("filterUnassigned", { count: unassigned.length }),
+      testId: "unassigned",
+    });
+  }
+  if (processed.length > 0) {
+    chips.push({
+      key: "processed",
+      label: t("processedSummary", { count: processed.length }),
+      testId: "processed",
+    });
+  }
+  if (pdfCount > 0 && pdfCount < all.length) {
+    chips.push({ key: "pdf", label: t("filterPdf", { count: pdfCount }), testId: "pdf" });
+  }
+  merchants.forEach((name, i) => {
+    chips.push({ key: `merchant:${name}`, label: name, testId: `merchant-${i}` });
+  });
+  // If the active chip's receipts left (deleted, reverted, re-listed), fall
+  // back to All instead of stranding the user on an empty wall.
+  const validFilter = chips.some((c) => c.key === filter) ? filter : "all";
+  const visible = all.filter((r) => {
+    switch (validFilter) {
+      case "all":
+        return true;
+      case "unassigned":
+        return r.status === "unassigned";
+      case "processed":
+        return r.status !== "unassigned";
+      case "pdf":
+        return r.mimeType === "application/pdf";
+      default:
+        return `merchant:${r.merchant}` === validFilter;
+    }
+  });
+  const visibleUnassigned = visible.filter((r) => r.status === "unassigned");
+  const canSelectAll = visibleUnassigned.some((r) => !selected.has(r.id));
 
   // ?open=<id> deep-link landing (search results → "Find in Receipts"):
-  // auto-expand the processed section when the target lives there, scroll +
-  // pulse, toast on a miss. Shared contract in src/lib/use-open-param.ts.
-  const processedDetails = useRef<HTMLDetailsElement>(null);
+  // scroll + pulse, toast on a miss. The wall always mounts on the "All" chip,
+  // so the target card is present without any section to expand. Shared
+  // contract in src/lib/use-open-param.ts.
   const [openGone, setOpenGone] = useState(false);
   useOpenParam({
     ready: receipts !== null,
-    exists: (id) => (receipts ?? []).some((r) => r.id === id),
-    beforeScroll: (id) => {
-      if ((receipts ?? []).find((r) => r.id === id)?.status !== "unassigned") {
-        processedDetails.current?.setAttribute("open", "");
-      }
-    },
+    exists: (id) => all.some((r) => r.id === id),
     onGone: () => setOpenGone(true),
   });
 
@@ -525,6 +597,12 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      // A change event fired into the file input BEFORE React hydrates does
+      // nothing — no handler is attached yet, so the prepare dialog never
+      // opens. This attribute flips on after mount so tests (helpers.ts
+      // uploadReceipts) can wait for interactivity instead of racing it; it
+      // went intermittent once the page grew (masonry wall + nudge slot).
+      data-hydrated={hydrated ? "" : undefined}
       data-testid="shoebox-dropzone"
     >
       {dragging && (
@@ -540,9 +618,13 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
         </div>
       )}
       <div>
-        <div className="flex items-center justify-between gap-3">
+        {/* flex-wrap + ml-auto (not justify-between): title, camera, and
+            Upload can't all fit a phone's width, and the buttons must not
+            shrink — so the group wraps to its own right-aligned line instead
+            of stretching the document sideways and cropping Upload. */}
+        <div className="flex flex-wrap items-center gap-3">
           <h1 className="keyboard-smooth text-3xl font-bold short:text-xl">{t("title")}</h1>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             <input
               ref={fileInput}
               type="file"
@@ -592,6 +674,12 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
           <p className="pt-1.5 text-sm text-stone-500">{t("intro")}</p>
         </div>
       </div>
+
+      {/* The home nudge slot (docs/ESIGN_SETUP_DISCOVERABILITY.md §3.5) sits
+          BELOW the page's own identity — a dismissible invitation must never
+          outrank the H1. The page decides WHAT renders here (P1 arbitration);
+          this component only owns the placement. */}
+      {nudgeSlot}
 
       {error && (
         <div className="card border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
@@ -745,19 +833,54 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
             <LocaleSwitcher signedIn variant="prominent" />
           </div>
           <ol className="mx-auto mt-8 grid max-w-3xl gap-3 text-left text-sm text-stone-600 sm:grid-cols-4">
-            {(["step1", "step2", "step3", "step4"] as const).map((step) => (
-              <li key={step}>
-                {t.rich(step, {
-                  step: (chunks) => <span className="font-semibold text-indigo-700">{chunks}</span>,
-                })}
-              </li>
-            ))}
+            {(["step1", "step2", "step3", esignOffered ? "step4Esign" : "step4"] as const).map(
+              (step) => (
+                <li key={step}>
+                  {t.rich(step, {
+                    step: (chunks) => <span className="font-semibold text-indigo-700">{chunks}</span>,
+                  })}
+                </li>
+              )
+            )}
           </ol>
         </div>
       ) : (
-        <>
+        <div className="space-y-3">
+          {chips.length > 1 && (
+            <div
+              role="group"
+              aria-label={t("filterGroupAria")}
+              data-testid="receipt-filters"
+              className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 py-0.5"
+            >
+              {chips.map((c) => {
+                const active = validFilter === c.key;
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    aria-pressed={active}
+                    // Re-tapping the active chip clears it (back to All),
+                    // Google-style.
+                    onClick={() => setFilter(active ? "all" : c.key)}
+                    data-testid={`receipt-filter-${c.testId}`}
+                    className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition duration-150 ease-out ${
+                      active
+                        ? "border-stone-900 bg-stone-900 text-white"
+                        : "border-stone-300 bg-white text-stone-600 hover:border-stone-400 hover:bg-stone-50 hover:text-stone-900"
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {validFilter === "processed" && (
+            <p className="text-xs text-stone-400">{t("processedNote")}</p>
+          )}
           <ReceiptGrid
-            receipts={unassigned}
+            receipts={visible}
             selectable
             selected={selected}
             onToggle={toggle}
@@ -767,27 +890,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
             onView={setViewing}
             nudgeSelect={showSelectHint}
           />
-          {processed.length > 0 && (
-            <details className="pt-2" ref={processedDetails}>
-              <summary className="cursor-pointer text-sm font-medium text-stone-500">
-                {t("processedSummary", { count: processed.length })}
-              </summary>
-              <p className="mt-1 text-xs text-stone-400">{t("processedNote")}</p>
-              <div className="mt-3">
-                <ReceiptGrid
-                  receipts={processed}
-                  selectable
-                  selected={selected}
-                  onToggle={toggle}
-                  onDelete={deleteReceipt}
-                  onSaveNote={saveNote}
-                  fileUrl={fileUrl}
-                  onView={setViewing}
-                />
-              </div>
-            </details>
-          )}
-        </>
+        </div>
       )}
 
       {preparing && (

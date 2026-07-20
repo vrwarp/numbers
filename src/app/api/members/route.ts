@@ -28,7 +28,12 @@ export async function GET() {
           fullName: true,
           role: true,
           esignAllowed: true,
-          signerIdentity: { select: { status: true, attestedAt: true, publicKey: true } },
+          prefersPaper: true,
+          // NOTE (P8): esignNudgesJson (self-serve dismissals) must NEVER join
+          // this select — a declined nudge is not admin-visible data.
+          signerIdentity: {
+            select: { status: true, attestedAt: true, createdAt: true, publicKey: true },
+          },
         },
       }),
       loadMemberPositionNames(),
@@ -48,8 +53,11 @@ export async function GET() {
         role: u.role,
         position: positionNames.get(u.id) ?? null,
         allowed: u.esignAllowed,
+        prefersPaper: u.prefersPaper,
         identityStatus: u.signerIdentity?.status ?? null,
         attestedAt: u.signerIdentity?.attestedAt ?? null,
+        // Pending-age for the rollout tally ("waiting more than two weeks").
+        identityCreatedAt: u.signerIdentity?.createdAt ?? null,
         publicKey: u.signerIdentity?.publicKey ?? null,
         fingerprint: u.signerIdentity?.publicKey
           ? await keyFingerprint(u.signerIdentity.publicKey)

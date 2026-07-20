@@ -84,7 +84,11 @@ export async function POST(_req: Request, ctx: { params: Promise<{ id: string }>
     await prisma.$transaction([
       prisma.reimbursement.update({
         where: { id },
-        data: { status: "generated", totalCents, publicToken },
+        // generatedAt: the one durable record of when a packet was built
+        // (deliberately no AuditEvent — the evidentiary trail is not
+        // telemetry). Re-stamped on regeneration; discoverability metrics and
+        // the paper-repeat nudge key on it.
+        data: { status: "generated", totalCents, publicToken, generatedAt: new Date() },
       }),
       prisma.receipt.updateMany({
         where: { id: { in: reimbursement.receipts.map((rr) => rr.receiptId) } },

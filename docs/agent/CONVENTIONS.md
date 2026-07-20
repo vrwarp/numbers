@@ -118,6 +118,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   subtotal-<receiptId>, group-<receiptId>,
   derivation-<receiptId>, remove-receipt-<receiptId>, revert-claim, upload-note,
   upload-note-confirm, upload-note-cancel, receipt-note-<receiptId>,
+  receipt-filters, receipt-filter-<all|unassigned|processed|pdf|merchant-<n>>,
   claim-link-<receiptId>-<claimId>, split-first-amount, split-confirm, profile-name,
   profile-address, profile-save, dev-email, dev-name, dev-signin,
   edit-image-<receiptId>, edit-image-pending-<n>, image-editor-stage, crop-box,
@@ -129,6 +130,18 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   suggestion-banner, suggestion-apply, suggestion-dismiss, row-ministry-badge-<id>,
   mode-switch-dialog, mode-switch-confirm, mode-switch-cancel, split-mode-dialog,
   split-mode-switch, split-mode-cancel, fanout-toast, fanout-undo`.
+  E-sign setup discoverability (docs/ESIGN_SETUP_DISCOVERABILITY.md):
+  `esign-setup-button, esign-setup-callout, esign-setup-callout-close,
+  esign-setup-callout-cta, esign-nudge-member, esign-nudge-duty,
+  esign-nudge-closure, esign-nudge-cta, esign-nudge-decline, esign-nudge-snooze,
+  esign-nudge-closure-cta, esign-nudge-closure-gotit, esign-nudge-collapsed,
+  esign-nudge-duty-collapsed, esign-nudge-live, nav-esign-setup,
+  claims-subtitle, claims-subtitle-esign-link, connect-framing, members-tally,
+  self-vouch-hint, self-vouch-blocked, awaiting-duty-<id>, prefers-paper-<id>,
+  prefers-paper-chip-<id>, empty-not-set-up, empty-pending-vouch,
+  empty-revoked`. ⚠ `submit-for-approval` stays THE real ceremony button
+  (both emulator e2e suites click it) — the demoted un-attested button is
+  `esign-setup-button`, never a relabeled `submit-for-approval`.
 - The claim-level ministry select is labeled "Claim ministry" ON PURPOSE — e2e loops over
   `getByLabel("Ministry", { exact: true })` to reach the per-row selects (multi mode only)
   and must not catch the claim-level one.
@@ -160,7 +173,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
 `?open=<id>` is THE app-wide land-on-a-list-item contract (src/lib/use-open-param.ts,
 minted by search): wait for the list's data, expand the enclosing section if needed
-(Shoebox processed `<details>`, approvals row), `scrollIntoView` + a ~3 s
+(approvals row; the Shoebox wall mounts unfiltered so every card is present), `scrollIntoView` + a ~3 s
 `.highlight-pulse` ring on the element carrying `data-open-id="<id>"`, strip the param
 (back/refresh must not re-scroll), toast on a miss. New list surfaces reuse the hook —
 never mint a second param name for the same interaction.
