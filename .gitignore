@@ -11,6 +11,8 @@ next-env.d.ts
 
 # local data (SQLite db, uploaded receipts)
 /data
+# The dev SQLite db when DATABASE_URL is prisma-schema-relative (file:./data/…)
+/prisma/data/
 *.db
 *.db-journal
 

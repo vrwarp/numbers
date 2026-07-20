@@ -1,10 +1,15 @@
 import { createHash } from "crypto";
 import { centsToDollarString } from "@/lib/money";
+import { formatMonthMMYYYY, zonedYear } from "@/lib/timezone";
 
 /**
  * Pure builders for embedding inputs and staleness fingerprints
  * (docs/SEARCH_DESIGN.md §4/§5.1). Everything here is deterministic data → the
  * daily reconcile sweep rebuilds these from DB columns only and compares.
+ * Calendar reads (year buckets, the composite's MM/YYYY) take the app time
+ * zone explicitly (callers pass appTimeZone()) — changing TIME_ZONE therefore
+ * shifts some fingerprints, and the normal staleness sweep re-embeds exactly
+ * the affected rows.
  */
 
 export const COMPOSITE_BYTE_BUDGET = 4000;
@@ -37,15 +42,18 @@ export function receiptPromptText(r: Pick<ReceiptContent, "note" | "merchant">):
   return parts.join(" ");
 }
 
-/** Year bucket: purchaseDate transcription prefix when date-like, else upload
- *  year. A substring read for display bucketing — never date arithmetic. */
-export function receiptYear(r: Pick<ReceiptContent, "purchaseDate" | "createdAt">): number {
+/** Year bucket: purchaseDate transcription prefix when date-like (a substring
+ *  read, timezone-free), else the upload instant's year in the app zone. */
+export function receiptYear(
+  r: Pick<ReceiptContent, "purchaseDate" | "createdAt">,
+  timeZone: string
+): number {
   const m = /^(\d{4})-\d{2}-\d{2}/.exec(r.purchaseDate);
   if (m) {
     const y = Number(m[1]);
     if (y >= 1990 && y <= 2100) return y;
   }
-  return r.createdAt.getUTCFullYear();
+  return zonedYear(r.createdAt, timeZone);
 }
 
 // --- Claims ---------------------------------------------------------------------
@@ -77,15 +85,14 @@ function formatMinistryEventLocal(ministry: string, event: string): string {
  * Capped at COMPOSITE_BYTE_BUDGET UTF-8 bytes (server context math, §3.1):
  * the items list truncates with an "… and N more items" tail.
  */
-export function buildClaimComposite(c: ClaimContent): string {
+export function buildClaimComposite(c: ClaimContent, timeZone: string): string {
   const active = c.lineItems.filter((i) => !i.isExcluded);
   const ministries = [
     ...new Set(
       active.map((i) => formatMinistryEventLocal(i.ministry, i.event)).filter(Boolean)
     ),
   ];
-  const when = c.submittedAt ?? c.createdAt;
-  const mmYyyy = `${String(when.getUTCMonth() + 1).padStart(2, "0")}/${when.getUTCFullYear()}`;
+  const mmYyyy = formatMonthMMYYYY(c.submittedAt ?? c.createdAt, timeZone);
 
   const head =
     `Reimbursement claim by ${c.ownerName}.` +
@@ -114,10 +121,13 @@ export function buildClaimComposite(c: ClaimContent): string {
   return head + itemsPart + tail;
 }
 
-export function claimFingerprint(c: ClaimContent): string {
-  return sha256Hex(buildClaimComposite(c));
+export function claimFingerprint(c: ClaimContent, timeZone: string): string {
+  return sha256Hex(buildClaimComposite(c, timeZone));
 }
 
-export function claimYear(c: Pick<ClaimContent, "createdAt" | "submittedAt">): number {
-  return (c.submittedAt ?? c.createdAt).getUTCFullYear();
+export function claimYear(
+  c: Pick<ClaimContent, "createdAt" | "submittedAt">,
+  timeZone: string
+): number {
+  return zonedYear(c.submittedAt ?? c.createdAt, timeZone);
 }

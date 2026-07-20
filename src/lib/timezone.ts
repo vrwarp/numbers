@@ -66,3 +66,14 @@ export function formatDateMMDDYYYY(date: Date, timeZone: string): string {
   const { year, month, day } = partsIn(date, timeZone);
   return `${month}/${day}/${year}`;
 }
+
+/** The calendar year `date` falls in in `timeZone` (search-index year keys). */
+export function zonedYear(date: Date, timeZone: string): number {
+  return Number(partsIn(date, timeZone).year);
+}
+
+/** MM/YYYY in `timeZone` — the month label inside claim embedding composites. */
+export function formatMonthMMYYYY(date: Date, timeZone: string): string {
+  const { year, month } = partsIn(date, timeZone);
+  return `${month}/${year}`;
+}
