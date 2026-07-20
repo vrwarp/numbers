@@ -4919,6 +4919,18 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Errors.admin.invalidValidation": {
+    "source": "That test request was invalid.",
+    "context": "API error: the wizard test request was malformed.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.admin.unknownService": {
+    "source": "Unknown service to test.",
+    "context": "API error: asked to test a service that has no wizard.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "Errors.ministry.invalid": {
     "source": "Those budget categories couldn’t be saved — check the form and try again.",
     "zh-Hans": "todo",
@@ -6505,6 +6517,489 @@
     "context": "Admin settings help text for the nudge kill-switch.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Admin.tab_setup": {
+    "source": "Setup",
+    "context": "Admin dashboard tab label for the guided setup wizards. One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.setupIntro": {
+    "source": "Guided, step-by-step configuration for each optional service — with a dry-run test where one applies. Once a service is set up, day-to-day tweaks live in Settings and Search.",
+    "context": "Intro paragraph under the Setup tab.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizardSetUp": {
+    "source": "Set up",
+    "context": "Button on a service card that opens its setup wizard. Two words max.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizardReconfigure": {
+    "source": "Reconfigure",
+    "context": "Button label when a service is already configured (re-open its wizard). One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizardConfigured": {
+    "source": "Configured",
+    "context": "Status badge: this service is already set up. One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizardNeedsSetup": {
+    "source": "Not set up",
+    "context": "Status badge: this service is not configured yet. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizardMock": {
+    "source": "Mock mode",
+    "context": "Status badge: the service is running in test/mock mode. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizardStepOf": {
+    "source": "Step {n} of {total}",
+    "context": "Progress label inside a wizard; {n} current step number, {total} total steps.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizardTest": {
+    "source": "Test this step",
+    "context": "Button that runs a dry-run validation of the current wizard step. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizardTesting": {
+    "source": "Testing…",
+    "context": "Busy label on the test button while it runs. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizardTestFailed": {
+    "source": "The test couldn't run — check the values and try again.",
+    "context": "Error shown when the dry-run test request itself fails.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizardBack": {
+    "source": "Back",
+    "context": "Wizard navigation: go to the previous step. One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizardSaveNext": {
+    "source": "Save & continue",
+    "context": "Wizard button: save this step and go to the next. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizardSaveFinish": {
+    "source": "Save & finish",
+    "context": "Wizard button on the LAST step: save and finish. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizardFinish": {
+    "source": "Done",
+    "context": "Button on the wizard's done screen that closes it. One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizardCancel": {
+    "source": "Close",
+    "context": "Button that closes the wizard without finishing. One word ('Close').",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.push.title": {
+    "source": "Push notifications",
+    "context": "Setup-wizard title for the push-notifications service. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.push.blurb": {
+    "source": "Let approvers, owners, and treasurers hear when a claim needs them.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.push.done": {
+    "source": "Push notifications are configured. Send yourself a test from Profile → Notifications to confirm the whole path.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.push.steps.keys.title": {
+    "source": "Web Push keys",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.push.steps.keys.intro": {
+    "source": "From the Firebase console → Project settings → Cloud Messaging. Both values are client-safe.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.push.steps.account.title": {
+    "source": "Sending credential",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.push.steps.account.intro": {
+    "source": "Paste the whole JSON key of the messaging-only service account. The test checks that its role is scoped to sending messages and nothing more.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.push.steps.delivery.title": {
+    "source": "Delivery options",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.push.steps.delivery.intro": {
+    "source": "Optional. Quiet hours hold claim notifications inside a window; the pause switch stops all sending without losing the in-app activity list.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.ai.title": {
+    "source": "Receipt reading (AI)",
+    "context": "Setup-wizard title for receipt reading (the AI vision model). Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.ai.blurb": {
+    "source": "The vision model that drafts line items from receipt photos.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.ai.done": {
+    "source": "Receipt reading is configured. Generate a claim to see it in action.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.ai.steps.provider.title": {
+    "source": "Provider",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.ai.steps.provider.intro": {
+    "source": "Choose which backend reads receipts — OpenRouter or Google AI Studio.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.ai.steps.credentials.title": {
+    "source": "API key & model",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.ai.steps.credentials.intro": {
+    "source": "Enter the key and model for the provider you chose above. The test makes one tiny call to confirm they work.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.ai.steps.limits.title": {
+    "source": "Rate limits",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.ai.steps.limits.intro": {
+    "source": "Optional. How fast to call the model and how to back off when the provider is busy.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.firebase.title": {
+    "source": "Sign-in (Firebase)",
+    "context": "Setup-wizard title for Google/Firebase sign-in. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.firebase.blurb": {
+    "source": "Google sign-in — the identity layer the whole app sits on.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.firebase.done": {
+    "source": "Sign-in is configured. Open the app in a private window to try signing in.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.firebase.steps.webconfig.title": {
+    "source": "Web app config",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.firebase.steps.webconfig.intro": {
+    "source": "From the Firebase console → Project settings → Your apps. These values are client-safe.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.firebase.steps.ios.title": {
+    "source": "iPhone sign-in",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.firebase.steps.ios.intro": {
+    "source": "Optional but recommended if members use iPhones: serve Firebase's sign-in helper from your own origin so WebKit's storage rules don't break it. Requires your public URL plus two console entries.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.search.title": {
+    "source": "Semantic search",
+    "context": "Setup-wizard title for semantic search. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.search.blurb": {
+    "source": "Natural-language search over receipts and claims.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.search.done": {
+    "source": "Search is set up. It indexes existing content in the background; new receipts index within seconds.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.search.steps.endpoint.title": {
+    "source": "Embedding endpoint",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.search.steps.endpoint.intro": {
+    "source": "The address of your embedding server and its model. The test connects and detects the vector size for you.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.search.steps.enable.title": {
+    "source": "Turn it on",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.wizard.search.steps.enable.intro": {
+    "source": "Enable search and set how close a match has to be to show up. Saving here starts the first index build.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.push.mock": {
+    "source": "Mock mode — deliveries are recorded locally, no real sending.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.push.vapidPresent": {
+    "source": "Web Push key is set.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.push.vapidMissing": {
+    "source": "Web Push key is missing — devices can't be registered without it.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.push.senderPresent": {
+    "source": "Sender ID is set.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.push.senderMissing": {
+    "source": "Sender ID is missing — add it so the browser can register for push.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.push.saMissing": {
+    "source": "No sending credential yet — paste the service-account JSON.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.push.saInvalid": {
+    "source": "That doesn't look like a service-account JSON key.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.push.saParsed": {
+    "source": "Service account read: {email}",
+    "context": "Dry-run result; {email} is the service-account email, verbatim.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.push.scopeOk": {
+    "source": "The service account can send messages and nothing more — exactly right.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.push.scopeBroad": {
+    "source": "This service account can do more than send messages. That weakens the e-sign security model — recreate it with only the custom messaging role.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.push.scopeUnknown": {
+    "source": "Couldn't verify the service account's permissions from here. Double-check it holds only the custom messaging role.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.push.quietValid": {
+    "source": "Quiet hours understood ({count, plural, one {# window} other {# windows}}).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.push.quietInvalid": {
+    "source": "Quiet hours couldn't be read — expected times like 21:30-08:00,sun:09:00-12:30.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.ai.providerSelected": {
+    "source": "Provider: {provider}",
+    "context": "Dry-run result fragment; {provider} is a product name (OpenRouter / Google), keep as-is.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.ai.providerInvalid": {
+    "source": "Unknown provider \"{provider}\" — choose OpenRouter or Google.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.ai.modelPresent": {
+    "source": "Model: {model}",
+    "context": "Dry-run result fragment; {model} is a model id, keep verbatim.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.ai.mock": {
+    "source": "Mock mode — receipt reading returns fixed sample data, no API calls.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.ai.keyMissing": {
+    "source": "{key} is missing — the model can't be reached without it.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.ai.callOk": {
+    "source": "The model answered in {ms} ms — key and model work.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.ai.callFailed": {
+    "source": "Test call failed: {error}",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.firebase.apiKey": {
+    "source": "Web API key is set.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.firebase.apiKeyMissing": {
+    "source": "Web API key is missing.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.firebase.projectId": {
+    "source": "Project ID is set.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.firebase.projectIdMissing": {
+    "source": "Project ID is missing.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.firebase.authDomain": {
+    "source": "Auth domain is set.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.firebase.authDomainMissing": {
+    "source": "Auth domain is missing.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.firebase.proxyBaseUrl": {
+    "source": "Public URL is set — the iPhone sign-in proxy can use it.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.firebase.proxyNeedsBaseUrl": {
+    "source": "The iPhone sign-in proxy needs your public URL — set it, or turn the proxy off.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.search.mock": {
+    "source": "Mock mode — search uses recorded vectors, no endpoint call.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.search.endpointMissing": {
+    "source": "Endpoint is missing.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.search.endpointPresent": {
+    "source": "Endpoint is set.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.search.probeOk": {
+    "source": "Connected — {dim}-dimension vectors, {ms} ms.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.checks.search.probeFailed": {
+    "source": "Couldn't reach the endpoint: {error}",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.searchFields.endpoint.label": {
+    "source": "Embedding endpoint",
+    "context": "Field label: the embedding server URL. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.searchFields.endpoint.help": {
+    "source": "Base URL of your embedding server (llama.cpp / OpenAI-compatible).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.searchFields.model.label": {
+    "source": "Model",
+    "context": "Field label: the embedding model name. One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.searchFields.model.help": {
+    "source": "The embedding model name your server serves.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.searchFields.apiKey.label": {
+    "source": "API key",
+    "context": "Field label: API key for the embedding endpoint. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.searchFields.apiKey.help": {
+    "source": "Sent as a Bearer token to the endpoint. Leave blank if it needs none.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.searchFields.enabled.label": {
+    "source": "Enable search",
+    "context": "Toggle label: turn semantic search on. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.searchFields.enabled.help": {
+    "source": "Turn semantic search on and start indexing.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.searchFields.minScore.label": {
+    "source": "Match threshold",
+    "context": "Field label: the similarity threshold (0-1). Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.searchFields.minScore.help": {
+    "source": "How close a match must be to show up, 0–1 (higher = stricter). 0.25 is a good start.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
   },
   "Ministries.title": {
     "source": "Budget categories",

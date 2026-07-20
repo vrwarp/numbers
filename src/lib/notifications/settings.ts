@@ -47,6 +47,54 @@ export function pushServiceAccountFingerprint(): string | null {
   }
 }
 
+export type ScopeCheck = "ok" | "broad" | "unknown" | "mock" | "unconfigured";
+
+/**
+ * §12 SA scope self-check (a testIamPermissions probe): the predictable
+ * failure of the console walkthrough is a frustrated volunteer granting
+ * "Firebase Admin", which would silently void the keyless-ledger property.
+ * "broad" = the account can also touch Firestore. Accepts an explicit JSON
+ * (the setup wizard's draft) or falls back to the stored credential.
+ */
+export async function serviceAccountScopeCheck(rawJson?: string): Promise<ScopeCheck> {
+  if (isPushMock()) return "mock";
+  const raw = rawJson?.trim() || pushServiceAccountJson();
+  if (!raw) return "unconfigured";
+  try {
+    const projectId = (JSON.parse(raw) as { project_id?: string }).project_id;
+    if (!projectId) return "unknown";
+    const { getApps, initializeApp, cert } = await import("firebase-admin/app");
+    // A distinct app name per credential so a draft test never collides with
+    // the live "push" send app.
+    const appName = rawJson ? "push-probe" : "push";
+    const app =
+      getApps().find((a) => a.name === appName) ??
+      initializeApp({ credential: cert(JSON.parse(raw)) }, appName);
+    const token = await app.options.credential?.getAccessToken();
+    if (!token) return "unknown";
+    const res = await fetch(
+      `https://cloudresourcemanager.googleapis.com/v1/projects/${projectId}:testIamPermissions`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          permissions: ["cloudmessaging.messages.create", "datastore.entities.get"],
+        }),
+      }
+    );
+    if (!res.ok) return "unknown";
+    const body = (await res.json()) as { permissions?: string[] };
+    const granted = new Set(body.permissions ?? []);
+    if (granted.has("datastore.entities.get")) return "broad";
+    return granted.has("cloudmessaging.messages.create") ? "ok" : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
 /** §12 deployment-level pause: enqueues continue (activity list stays whole);
  *  the worker just stops sending until unpaused. Admin-writable via
  *  config.json (NOTIFY_PAUSED). */

@@ -82,16 +82,45 @@ link if I'm actually an admin."
 
 ## Layout
 
-`/admin` → `AdminDashboard` with six tabs:
+`/admin` → `AdminDashboard` with these tabs:
 
 | Tab | Purpose | Cadence |
 | :-- | :-- | :-- |
 | Overview | Health/"problems" cards + headline counts | every visit |
+| Setup | Guided, per-service configuration wizards with a dry-run test on each step | first-time setup |
 | Church Context | Markdown editor for the suggestion context (**the main job**) | as vocabulary changes |
-| Settings | Grouped, guard-railed editor for `config.json` env overrides | rare / setup |
+| Settings | Grouped, guard-railed editor for `config.json` env overrides | rare / tweaks |
+| Search | Embedding backend config + index health (its own probe-on-save) | rare / setup |
 | Usage | Totals, claims by status, AI-call success/failure over time | weekly |
 | Logs | Audit events + extraction failures, filterable (errors by default) | when troubleshooting |
 | Members | Verified-mirror member table + e-sign switch/scope/allowlist + vouch chain | monthly |
+
+## Setup wizards
+
+The **Setup** tab is the "get it working the first time" surface: one guided
+wizard per optional service, each walked step by step, with a **dry-run
+"Test this step"** where a test is meaningful. Ongoing edits still live in
+Settings (and Search) — the wizards don't replace them, they front-load the
+first configuration so a volunteer isn't staring at a flat list of env vars.
+
+| Wizard | Backend | The test step actually does |
+| :-- | :-- | :-- |
+| Push notifications | `config.json` | parses the service-account JSON and runs the **messaging-only IAM scope check** (the load-bearing one — flags a `broad` grant); validates the quiet-hours format |
+| Receipt reading (AI) | `config.json` | one tiny **live completion** against the chosen provider/model to prove the key works (skipped under `AI_MOCK`) |
+| Sign-in (Firebase) | `config.json` | completeness check of the web config, and that the iPhone auth-proxy has its prerequisite (`PUBLIC_BASE_URL`) |
+| Semantic search | embeddings DB row | a live **probe** of the embedding endpoint that detects the vector dimension |
+
+Definitions live in `src/lib/admin/wizards.ts` (client-safe: which steps edit
+which keys, and which are testable). The stepper `SetupWizard` is
+service-agnostic; config-backed wizards save through the same allowlisted
+`PATCH /api/admin/config`, the search wizard through `PUT /api/admin/embeddings`.
+Every "Test" is a **dry run** — `POST /api/admin/setup/validate` runs the checks
+against the draft (freshly-typed secrets included) merged over stored config and
+**persists nothing**; it returns machine check codes the client translates
+(`Admin.checks.*`). The per-service check logic is `src/lib/admin/validate.ts`;
+a unit test (`tests/unit/wizards.test.ts`) guards the step field-keys against
+config-schema drift, and `tests/e2e/setup-wizards.spec.ts` walks the wizards
+end-to-end under the mock flags.
 
 ## API (`src/app/api/admin/*`, all `requireAdmin` + audited on write)
 
@@ -102,6 +131,13 @@ link if I'm actually an admin."
 - `GET /api/admin/config` / `PATCH` — allowlisted keys only; secrets are
   write-only (returned as `set: true/false`, never echoed); `PATCH` merges into
   `<DATA_DIR>/config.json` and audits a redacted diff.
+- `POST /api/admin/setup/validate` — the setup wizards' dry run: runs a
+  service's checks against posted draft values merged over stored config,
+  **persists nothing**, returns `{ ok, checks }` (machine codes). Live
+  provider/IAM/endpoint probes make this the one admin route with a raised
+  `maxDuration`.
+- `GET /api/admin/notifications` — push health + the SA scope self-check
+  (shared with the push wizard).
 - `GET /api/admin/logs` — recent audit events + extraction errors.
 - `GET /api/admin/members` — verified-mirror users (role, enrollment, allowlist,
   activity counts).

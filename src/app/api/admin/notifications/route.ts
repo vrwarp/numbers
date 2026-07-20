@@ -7,7 +7,7 @@ import {
   isPushMock,
   isPushPaused,
   pushServiceAccountFingerprint,
-  pushServiceAccountJson,
+  serviceAccountScopeCheck,
 } from "@/lib/notifications/settings";
 
 export const runtime = "nodejs";
@@ -19,48 +19,9 @@ export const runtime = "nodejs";
  * frustrated volunteer granting "Firebase Admin", which would silently void
  * the §4 keyless-ledger property, so the card warns about it in plain
  * language. Config editing (pause switch included) lives in the allowlisted
- * settings editor.
+ * settings editor. The scope self-check itself lives in
+ * notifications/settings.ts so the setup wizard can reuse it on a draft.
  */
-
-type ScopeCheck = "ok" | "broad" | "unknown" | "mock" | "unconfigured";
-
-/** §12: testIamPermissions-style probe — the SA reports which of these it
- *  holds. Holding the Firestore read permission = over-scoped. */
-async function checkSaScope(): Promise<ScopeCheck> {
-  if (isPushMock()) return "mock";
-  const raw = pushServiceAccountJson();
-  if (!raw) return "unconfigured";
-  try {
-    const projectId = (JSON.parse(raw) as { project_id?: string }).project_id;
-    if (!projectId) return "unknown";
-    const { getApps, initializeApp, cert } = await import("firebase-admin/app");
-    const app =
-      getApps().find((a) => a.name === "push") ??
-      initializeApp({ credential: cert(JSON.parse(raw)) }, "push");
-    const token = await app.options.credential?.getAccessToken();
-    if (!token) return "unknown";
-    const res = await fetch(
-      `https://cloudresourcemanager.googleapis.com/v1/projects/${projectId}:testIamPermissions`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token.access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          permissions: ["cloudmessaging.messages.create", "datastore.entities.get"],
-        }),
-      }
-    );
-    if (!res.ok) return "unknown";
-    const body = (await res.json()) as { permissions?: string[] };
-    const granted = new Set(body.permissions ?? []);
-    if (granted.has("datastore.entities.get")) return "broad";
-    return granted.has("cloudmessaging.messages.create") ? "ok" : "unknown";
-  } catch {
-    return "unknown";
-  }
-}
 
 export async function GET() {
   return handleApi(async () => {
@@ -86,7 +47,7 @@ export async function GET() {
       // Small-N flooring (§12): token counts identify people at this scale.
       devices: tokenCount < 5 ? null : tokenCount,
       saFingerprint: pushServiceAccountFingerprint(),
-      saScope: await checkSaScope(),
+      saScope: await serviceAccountScopeCheck(),
     });
   });
 }

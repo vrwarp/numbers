@@ -889,7 +889,9 @@
       "contentString": "Content must be text.",
       "contextTooLong": "The church context is too long (max {max} bytes).",
       "unknownField": "That setting can’t be edited here.",
-      "nothingToChange": "Nothing to change."
+      "nothingToChange": "Nothing to change.",
+      "invalidValidation": "That test request was invalid.",
+      "unknownService": "Unknown service to test."
     },
     "ministry": {
       "invalid": "Those budget categories couldn’t be saved — check the form and try again.",
@@ -1203,6 +1205,157 @@
       "ESIGN_NUDGES_OFF": {
         "label": "Pause setup suggestions",
         "help": "Hides the home-page e-sign setup and closure cards for everyone. Honest buttons, menu rows, and status lines stay."
+      }
+    },
+    "tab_setup": "Setup",
+    "setupIntro": "Guided, step-by-step configuration for each optional service — with a dry-run test where one applies. Once a service is set up, day-to-day tweaks live in Settings and Search.",
+    "wizardSetUp": "Set up",
+    "wizardReconfigure": "Reconfigure",
+    "wizardConfigured": "Configured",
+    "wizardNeedsSetup": "Not set up",
+    "wizardMock": "Mock mode",
+    "wizardStepOf": "Step {n} of {total}",
+    "wizardTest": "Test this step",
+    "wizardTesting": "Testing…",
+    "wizardTestFailed": "The test couldn't run — check the values and try again.",
+    "wizardBack": "Back",
+    "wizardSaveNext": "Save & continue",
+    "wizardSaveFinish": "Save & finish",
+    "wizardFinish": "Done",
+    "wizardCancel": "Close",
+    "wizard": {
+      "push": {
+        "title": "Push notifications",
+        "blurb": "Let approvers, owners, and treasurers hear when a claim needs them.",
+        "done": "Push notifications are configured. Send yourself a test from Profile → Notifications to confirm the whole path.",
+        "steps": {
+          "keys": {
+            "title": "Web Push keys",
+            "intro": "From the Firebase console → Project settings → Cloud Messaging. Both values are client-safe."
+          },
+          "account": {
+            "title": "Sending credential",
+            "intro": "Paste the whole JSON key of the messaging-only service account. The test checks that its role is scoped to sending messages and nothing more."
+          },
+          "delivery": {
+            "title": "Delivery options",
+            "intro": "Optional. Quiet hours hold claim notifications inside a window; the pause switch stops all sending without losing the in-app activity list."
+          }
+        }
+      },
+      "ai": {
+        "title": "Receipt reading (AI)",
+        "blurb": "The vision model that drafts line items from receipt photos.",
+        "done": "Receipt reading is configured. Generate a claim to see it in action.",
+        "steps": {
+          "provider": {
+            "title": "Provider",
+            "intro": "Choose which backend reads receipts — OpenRouter or Google AI Studio."
+          },
+          "credentials": {
+            "title": "API key & model",
+            "intro": "Enter the key and model for the provider you chose above. The test makes one tiny call to confirm they work."
+          },
+          "limits": {
+            "title": "Rate limits",
+            "intro": "Optional. How fast to call the model and how to back off when the provider is busy."
+          }
+        }
+      },
+      "firebase": {
+        "title": "Sign-in (Firebase)",
+        "blurb": "Google sign-in — the identity layer the whole app sits on.",
+        "done": "Sign-in is configured. Open the app in a private window to try signing in.",
+        "steps": {
+          "webconfig": {
+            "title": "Web app config",
+            "intro": "From the Firebase console → Project settings → Your apps. These values are client-safe."
+          },
+          "ios": {
+            "title": "iPhone sign-in",
+            "intro": "Optional but recommended if members use iPhones: serve Firebase's sign-in helper from your own origin so WebKit's storage rules don't break it. Requires your public URL plus two console entries."
+          }
+        }
+      },
+      "search": {
+        "title": "Semantic search",
+        "blurb": "Natural-language search over receipts and claims.",
+        "done": "Search is set up. It indexes existing content in the background; new receipts index within seconds.",
+        "steps": {
+          "endpoint": {
+            "title": "Embedding endpoint",
+            "intro": "The address of your embedding server and its model. The test connects and detects the vector size for you."
+          },
+          "enable": {
+            "title": "Turn it on",
+            "intro": "Enable search and set how close a match has to be to show up. Saving here starts the first index build."
+          }
+        }
+      }
+    },
+    "checks": {
+      "push": {
+        "mock": "Mock mode — deliveries are recorded locally, no real sending.",
+        "vapidPresent": "Web Push key is set.",
+        "vapidMissing": "Web Push key is missing — devices can't be registered without it.",
+        "senderPresent": "Sender ID is set.",
+        "senderMissing": "Sender ID is missing — add it so the browser can register for push.",
+        "saMissing": "No sending credential yet — paste the service-account JSON.",
+        "saInvalid": "That doesn't look like a service-account JSON key.",
+        "saParsed": "Service account read: {email}",
+        "scopeOk": "The service account can send messages and nothing more — exactly right.",
+        "scopeBroad": "This service account can do more than send messages. That weakens the e-sign security model — recreate it with only the custom messaging role.",
+        "scopeUnknown": "Couldn't verify the service account's permissions from here. Double-check it holds only the custom messaging role.",
+        "quietValid": "Quiet hours understood ({count, plural, one {# window} other {# windows}}).",
+        "quietInvalid": "Quiet hours couldn't be read — expected times like 21:30-08:00,sun:09:00-12:30."
+      },
+      "ai": {
+        "providerSelected": "Provider: {provider}",
+        "providerInvalid": "Unknown provider \"{provider}\" — choose OpenRouter or Google.",
+        "modelPresent": "Model: {model}",
+        "mock": "Mock mode — receipt reading returns fixed sample data, no API calls.",
+        "keyMissing": "{key} is missing — the model can't be reached without it.",
+        "callOk": "The model answered in {ms} ms — key and model work.",
+        "callFailed": "Test call failed: {error}"
+      },
+      "firebase": {
+        "apiKey": "Web API key is set.",
+        "apiKeyMissing": "Web API key is missing.",
+        "projectId": "Project ID is set.",
+        "projectIdMissing": "Project ID is missing.",
+        "authDomain": "Auth domain is set.",
+        "authDomainMissing": "Auth domain is missing.",
+        "proxyBaseUrl": "Public URL is set — the iPhone sign-in proxy can use it.",
+        "proxyNeedsBaseUrl": "The iPhone sign-in proxy needs your public URL — set it, or turn the proxy off."
+      },
+      "search": {
+        "mock": "Mock mode — search uses recorded vectors, no endpoint call.",
+        "endpointMissing": "Endpoint is missing.",
+        "endpointPresent": "Endpoint is set.",
+        "probeOk": "Connected — {dim}-dimension vectors, {ms} ms.",
+        "probeFailed": "Couldn't reach the endpoint: {error}"
+      }
+    },
+    "searchFields": {
+      "endpoint": {
+        "label": "Embedding endpoint",
+        "help": "Base URL of your embedding server (llama.cpp / OpenAI-compatible)."
+      },
+      "model": {
+        "label": "Model",
+        "help": "The embedding model name your server serves."
+      },
+      "apiKey": {
+        "label": "API key",
+        "help": "Sent as a Bearer token to the endpoint. Leave blank if it needs none."
+      },
+      "enabled": {
+        "label": "Enable search",
+        "help": "Turn semantic search on and start indexing."
+      },
+      "minScore": {
+        "label": "Match threshold",
+        "help": "How close a match must be to show up, 0–1 (higher = stricter). 0.25 is a good start."
       }
     }
   },
