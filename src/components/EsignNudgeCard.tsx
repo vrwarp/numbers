@@ -107,7 +107,7 @@ export default function EsignNudgeCard({ decision }: { decision: HomeNudgeDecisi
   const duty = variant === "duty";
   const cardTone = duty
     ? "border-amber-200 bg-amber-50 text-amber-900"
-    : "border-indigo-200 bg-indigo-50/70 text-indigo-950";
+    : "border-indigo-200 bg-indigo-50 text-indigo-950";
 
   // Collapsed = the decayed/capped one-line door. Still a real link; no chrome.
   if (collapsed) {
@@ -128,8 +128,9 @@ export default function EsignNudgeCard({ decision }: { decision: HomeNudgeDecisi
       <p aria-live="polite" className="sr-only" data-testid="esign-nudge-live">
         {announce}
       </p>
+      {/* Not `.card`: its bg-white would win the cascade over the tint. */}
       <div
-        className={`card space-y-3 border p-4 text-sm short:space-y-2 short:p-3 ${cardTone}`}
+        className={`space-y-3 rounded-xl border p-4 text-sm shadow-sm short:space-y-2 short:p-3 ${cardTone}`}
         data-testid={`esign-nudge-${variant}`}
       >
         {variant === "closure" ? (

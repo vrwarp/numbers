@@ -1422,7 +1422,7 @@ export default function ReviewClaim({
           tabIndex={-1}
           role="region"
           aria-labelledby="esign-setup-callout-title"
-          className="card space-y-2 border-indigo-200 bg-indigo-50/60 p-4 text-sm text-stone-700 outline-none"
+          className="space-y-2 rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-stone-700 shadow-sm outline-none"
           data-testid="esign-setup-callout"
         >
           <div className="flex items-start justify-between gap-3">
