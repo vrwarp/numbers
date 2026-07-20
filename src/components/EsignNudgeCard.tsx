@@ -190,7 +190,9 @@ export default function EsignNudgeCard({ decision }: { decision: HomeNudgeDecisi
                   : t("esignDutyTitle")
                 : state === "pending"
                   ? t("esignNudgePendingTitle")
-                  : t("esignNudgeTitle")}
+                  : paperRepeat
+                    ? t("esignNudgePaperRepeatTitle")
+                    : t("esignNudgeTitle")}
             </p>
             <p>
               {duty

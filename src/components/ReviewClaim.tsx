@@ -1459,10 +1459,13 @@ export default function ReviewClaim({
           </p>
           <p className="text-stone-500">{t("esignSetupCalloutPaper")}</p>
           {esignIdentityStatus !== "revoked" && (
+            // Full-width on phones (the home-card button convention) so the
+            // card-action reads differently from the compact bar trigger that
+            // shares its label two button-heights below.
             <div>
               <Link
                 href="/profile?open=esign"
-                className="btn-primary inline-block !px-4"
+                className="btn-primary block w-full !px-4 text-center sm:inline-block sm:w-auto"
                 data-testid="esign-setup-callout-cta"
               >
                 {esignIdentityStatus === "pending"

@@ -6798,8 +6798,8 @@
     "zh-Hant": "machine"
   },
   "Members.statusPending": {
-    "source": "Awaiting vouches",
-    "context": "Status chip: enrolled but still awaiting in-person vouches. Short.",
+    "source": "Awaiting confirmation",
+    "context": "Members-page chip for an enrolled member awaiting the in-person confirmation. Candidate lexicon (当面确认 family) — matches the page's script wording.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -7106,8 +7106,8 @@
     "zh-Hant": "machine"
   },
   "Home.esignNudgePaperRepeat": {
-    "source": "Finishing on paper? The next one can be signed from your phone — set up once.",
-    "context": "One-time re-invitation shown after a claim sat printed-but-unsubmitted for two weeks. De-asserted on purpose (a question, not a claim about what they chose).",
+    "source": "The next one can be signed from your phone — set up once.",
+    "context": "Body of the once-ever re-invitation card (its title is esignNudgePaperRepeatTitle, “Finishing on paper?”).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -7172,7 +7172,7 @@
     "zh-Hant": "machine"
   },
   "Home.esignClosureVouchLine": {
-    "source": "You can now also confirm others at church — that's your <b>Vouch</b> tab.",
+    "source": "You can also confirm others at church — that's your <b>Vouch</b> tab.",
     "context": "Second line of the closure card: recruits the new signer as vouching capacity. QUOTES the Vouch nav tab's label verbatim (QUOTED_IN); <b> bolds the tab name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -7214,8 +7214,8 @@
     "zh-Hant": "machine"
   },
   "Review.esignSetupHint": {
-    "source": "Finish this claim — print it, or set up e-signing.",
-    "context": "Desktop gutter hint on the claim action bar for users who haven't set up e-sign; replaces Review.esignFinishHint for them.",
+    "source": "Finish this claim — print it, or set up signing.",
+    "context": "Desktop gutter hint on the claim action bar for users who haven't set up e-sign; names the button verbatim (“set up signing”).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -7400,8 +7400,8 @@
     "zh-Hant": "machine"
   },
   "Members.awaitingDutyHint": {
-    "source": "Confirmed and holds a Position, but the approver role hasn't been granted yet — until it is, claims can't be routed to them.",
-    "context": "Amber note on an attested member's row when they hold a Position but role is still member; the grant controls sit beside it.",
+    "source": "Confirmed and holds a Position, but the approver role hasn't been granted yet — until it is, claims can't be routed to them. Grant it with the Role control on this row.",
+    "context": "Amber note on an attested member's row when they hold a Position but role is still member; names the adjacent Role control as the remedy.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -7412,13 +7412,13 @@
     "zh-Hant": "machine"
   },
   "Members.prefersPaperSet": {
-    "source": "Set “prefers paper”",
+    "source": "Set prefers paper",
     "context": "Button: record (after a conversation) that this member prefers paper — silences their setup suggestions.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Members.prefersPaperClear": {
-    "source": "Clear “prefers paper”",
+    "source": "Clear prefers paper",
     "context": "Button: clear the prefers-paper record.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
@@ -7486,6 +7486,12 @@
   "Home.esignDutyRecovery": {
     "source": "Don't skip the recovery step — your approver duty can't be switched on without it.",
     "context": "Second paragraph of the duty card: the one hard warning, separated so the main body stays capability-toned.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignNudgePaperRepeatTitle": {
+    "source": "Finishing on paper?",
+    "context": "Title of the once-ever re-invitation card shown after a claim sat printed-but-unsubmitted for two weeks.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   }

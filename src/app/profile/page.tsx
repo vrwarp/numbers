@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { currentUserId } from "@/auth";
-import ProfileForm from "@/components/ProfileForm";
+import ProfileForm, { MobileSignOut } from "@/components/ProfileForm";
 import SigningIdentityCard from "@/components/esign/SigningIdentityCard";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +12,7 @@ export default async function ProfilePage() {
     <div className="mx-auto max-w-lg space-y-6">
       <ProfileForm />
       <SigningIdentityCard />
+      <MobileSignOut />
     </div>
   );
 }
