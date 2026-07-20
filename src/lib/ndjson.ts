@@ -3,7 +3,27 @@
  * object (including a final unterminated line). Dependency-free — used by
  * client components consuming the claim-extraction progress streams.
  */
+/** True while any NDJSON progress stream is being consumed in this tab —
+ *  the notification click contract must never navigate away from a live
+ *  multi-minute extraction (docs/NOTIFICATIONS_DESIGN.md §7.5). */
+export function isStreamActive(): boolean {
+  return activeStreams > 0;
+}
+let activeStreams = 0;
+
 export async function readNdjsonStream<T>(
+  body: ReadableStream<Uint8Array>,
+  onLine: (msg: T) => void
+): Promise<void> {
+  activeStreams += 1;
+  try {
+    await readNdjsonStreamInner(body, onLine);
+  } finally {
+    activeStreams -= 1;
+  }
+}
+
+async function readNdjsonStreamInner<T>(
   body: ReadableStream<Uint8Array>,
   onLine: (msg: T) => void
 ): Promise<void> {

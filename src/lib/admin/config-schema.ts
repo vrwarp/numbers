@@ -15,7 +15,7 @@ export type AdminConfigType = "text" | "number" | "boolean" | "select";
 export interface AdminConfigField {
   /** The env var / config.json key. */
   key: string;
-  group: "ai" | "deployment" | "esign" | "firebase";
+  group: "ai" | "deployment" | "esign" | "firebase" | "push";
   type: AdminConfigType;
   /** Write-only: never echoed back to the client (API returns `set` instead). */
   secret?: boolean;
@@ -60,9 +60,24 @@ export const ADMIN_CONFIG_FIELDS: readonly AdminConfigField[] = [
   { key: "FIREBASE_APP_ID", group: "firebase", type: "text" },
   { key: "FIREBASE_AUTH_PROXY", group: "firebase", type: "boolean", onValue: "1" },
   { key: "FIREBASE_AUTH_UPSTREAM_HOST", group: "firebase", type: "text" },
+
+  // --- Push notifications (docs/NOTIFICATIONS_DESIGN.md §12/§13) ------------
+  // The SA JSON is the ONE server-held Firebase credential — messaging-only
+  // by IAM construction (§4); write-only here like the AI keys. The
+  // config.json overlay is its recommended home (multi-line JSON vs compose
+  // env quoting).
+  { key: "FCM_SERVICE_ACCOUNT_JSON", group: "push", type: "text", secret: true, placeholder: '{"type":"service_account", …}' },
+  { key: "FIREBASE_VAPID_PUBLIC_KEY", group: "push", type: "text", placeholder: "B…" },
+  { key: "FIREBASE_MESSAGING_SENDER_ID", group: "push", type: "text" },
+  // §12 deployment-level pause: enqueues continue (activity list stays
+  // whole); the worker stops sending until unpaused.
+  { key: "NOTIFY_PAUSED", group: "push", type: "boolean", onValue: "1" },
+  // Quiet window — dormant, default off (§15 #2); format
+  // "21:30-08:00,sun:09:00-12:30", server-local time.
+  { key: "NOTIFY_QUIET", group: "push", type: "text", placeholder: "21:30-08:00,sun:09:00-12:30" },
 ] as const;
 
-export const ADMIN_CONFIG_GROUPS = ["ai", "deployment", "esign", "firebase"] as const;
+export const ADMIN_CONFIG_GROUPS = ["ai", "deployment", "esign", "firebase", "push"] as const;
 export type AdminConfigGroup = (typeof ADMIN_CONFIG_GROUPS)[number];
 
 const BY_KEY = new Map(ADMIN_CONFIG_FIELDS.map((f) => [f.key, f]));

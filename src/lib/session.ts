@@ -11,7 +11,11 @@ import { configValue } from "@/lib/config-file";
  */
 
 export const SESSION_COOKIE = "numbers_session";
-const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
+// 90 days (was 30, an undeliberate default): usage is a ~week burst per
+// claim, so 90 keeps most notification taps signed-in while expiry still
+// only ever costs a Google re-auth — the e-sign device key lives in app
+// storage, not this cookie (docs/NOTIFICATIONS_DESIGN.md §8.8/§15).
+const SESSION_TTL_SECONDS = 90 * 24 * 60 * 60;
 
 function secret(): Buffer {
   const s = configValue("AUTH_SECRET");

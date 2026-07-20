@@ -13,6 +13,10 @@ services:
       FIREBASE_AUTH_DOMAIN: ${FIREBASE_AUTH_DOMAIN:-}
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
       FIREBASE_APP_ID: ${FIREBASE_APP_ID:-}
+      # Push notifications (docs/PUSH_SETUP.md). The service-account JSON is
+      # multi-line — put it in <data>/config.json (or Admin -> Settings), not here.
+      FIREBASE_MESSAGING_SENDER_ID: ${FIREBASE_MESSAGING_SENDER_ID:-}
+      FIREBASE_VAPID_PUBLIC_KEY: ${FIREBASE_VAPID_PUBLIC_KEY:-}
       AI_PROVIDER: ${AI_PROVIDER:-openrouter}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemini-3.1-flash-lite}

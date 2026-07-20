@@ -185,6 +185,12 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "NavBar.recentActivity": {
+    "source": "Recent activity",
+    "context": "Account-menu item linking to the home page's recent-activity list. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "NavBar.signOut": {
     "source": "Sign out",
     "context": "Nav button that ends the session. Keep short.",
@@ -2707,6 +2713,12 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Esign.stalledNote": {
+    "source": "Waiting for a signature for {days, plural, one {# day} other {# days}}. Notifications are often missed — phones get muted, batteries die. You can withdraw and pick a different approver at any time.",
+    "context": "Amber note on a claim waiting >7 days for a signature. MUST stay de-personalized and charitable (phones mute, batteries die) — never imply the approver is ignoring the owner. ICU plural on {days}.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "Approvals.title": {
     "source": "Approvals",
     "context": "Page title of the approver's inbox; also the nav link.",
@@ -2720,8 +2732,8 @@
     "zh-Hant": "machine"
   },
   "Approvals.empty": {
-    "source": "Nothing waiting on you.",
-    "context": "Empty-state line when nothing awaits the approver (friendly, next to a 🕊️).",
+    "source": "Nothing is waiting for your signature. Owners can withdraw or reassign a request at any time — this is routine.",
+    "context": "Empty state of the approvals inbox. CAUSE-NEUTRAL AND NORMALIZING on purpose: with push, a withdrawn request leaves a stale notification, so this copy must read as routine workflow, never 'you were passed over'. Do not imply someone else handled it (approvals are assigned to exactly one person).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -2786,8 +2798,8 @@
     "zh-Hant": "machine"
   },
   "Approvals.openGone": {
-    "source": "That claim isn’t in this list anymore — it may already have been decided.",
-    "context": "Toast when a deep-linked claim is no longer in the approvals list.",
+    "source": "That claim isn’t in this list anymore — the owner may have withdrawn or reassigned it, which is routine.",
+    "context": "Shown when a deep-linked claim is no longer in the approvals list. Cause-neutral like Approvals.empty: withdrawal/reassignment is routine; never imply blame or that another approver took it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -2804,8 +2816,8 @@
     "zh-Hant": "machine"
   },
   "Finance.empty": {
-    "source": "Nothing to pay right now.",
-    "context": "Empty-state line when no approved claims await payment (next to a 🧮).",
+    "source": "Nothing to pay right now — an approved claim may already have been handled by someone else.",
+    "context": "Empty state of the treasurer payment queue. Here 'already handled by someone else' IS accurate (any treasurer may pay) — that phrasing reassures after a stale notification tap.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -4610,6 +4622,42 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Errors.push.invalidToken": {
+    "source": "That notification registration is invalid.",
+    "context": "API error: malformed device registration.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.push.invalidHint": {
+    "source": "That notification hint is invalid.",
+    "context": "API error: malformed device-alert hint.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.push.hintRateLimited": {
+    "source": "Too many device alerts in a short time — try again later.",
+    "context": "API error: too many self-triggered device alerts (rate limit).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.push.notConfigured": {
+    "source": "Push notifications aren’t set up for this deployment.",
+    "context": "API error: this deployment has no push configured.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.push.notEnabled": {
+    "source": "Turn notifications on first.",
+    "context": "API error when self-testing while the master switch is off.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.push.invalidUiState": {
+    "source": "That settings update is invalid.",
+    "context": "API error: malformed notification-settings state update.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "AddReceipts.title": {
     "source": "Add receipts to this claim",
     "context": "Dialog heading: add receipts to an existing draft claim.",
@@ -5906,6 +5954,168 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Admin.group_push": {
+    "source": "Push notifications",
+    "context": "Settings-editor group heading for push notification config. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.fields_FCM_SERVICE_ACCOUNT_JSON_label": {
+    "source": "Messaging service account (JSON)",
+    "context": "Field label: the Google service-account JSON used only for sending pushes. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.fields_FCM_SERVICE_ACCOUNT_JSON_help": {
+    "source": "Paste the whole JSON key of the MESSAGING-ONLY service account (custom role with exactly cloudmessaging.messages.create — see docs/PUSH_SETUP.md). Write-only.",
+    "context": "Help under the field; 'cloudmessaging.messages.create' is a literal Google permission id — never translate it; docs/PUSH_SETUP.md is a file path, verbatim.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.fields_FIREBASE_VAPID_PUBLIC_KEY_label": {
+    "source": "Web Push certificate key",
+    "context": "Field label for the Web Push certificate public key. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.fields_FIREBASE_VAPID_PUBLIC_KEY_help": {
+    "source": "Firebase console → Project settings → Cloud Messaging → Web Push certificates → key pair. Public, client-safe.",
+    "context": "Help text quoting the Firebase console menu path — console chrome stays English.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.fields_FIREBASE_MESSAGING_SENDER_ID_label": {
+    "source": "Messaging sender ID",
+    "context": "Field label. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.fields_FIREBASE_MESSAGING_SENDER_ID_help": {
+    "source": "Firebase console → Project settings → Cloud Messaging → Sender ID.",
+    "context": "Help text quoting the Firebase console path — console chrome stays English.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.fields_NOTIFY_PAUSED_label": {
+    "source": "Pause all sending",
+    "context": "Field label of the deployment-wide pause switch. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.fields_NOTIFY_PAUSED_help": {
+    "source": "The incident switch: nothing is delivered while paused, but events keep recording (the in-app activity list is unaffected). Unpausing releases only still-fresh notifications.",
+    "context": "Explains the pause: nothing sends, events still record, unpausing never fires stale ones.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.fields_NOTIFY_QUIET_label": {
+    "source": "Quiet hours",
+    "context": "Field label for optional quiet hours. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.fields_NOTIFY_QUIET_help": {
+    "source": "Optional hold-then-send window, e.g. 21:30-08:00,sun:09:00-12:30 (server time). Off by default — phones’ own Do Not Disturb is usually the better tool. Device alerts are never held.",
+    "context": "Explains the quiet-hours format ('21:30-08:00,sun:09:00-12:30' is a literal config format — keep verbatim) and that device DND is usually better.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthTitle": {
+    "source": "Push notification health",
+    "context": "Admin health card heading. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthLoadFailed": {
+    "source": "Could not load push health.",
+    "context": "Error when the health fetch fails.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthState": {
+    "source": "Status",
+    "context": "Health row label: overall sending status. One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthOff": {
+    "source": "Not configured",
+    "context": "Status value: push not configured. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthPaused": {
+    "source": "Paused",
+    "context": "Status value: admin paused all sending. One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthMock": {
+    "source": "Mock mode",
+    "context": "Status value: PUSH_MOCK test mode. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthOn": {
+    "source": "Sending",
+    "context": "Status value: deliveries flowing. One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthQueue": {
+    "source": "Waiting to send",
+    "context": "Health row label: jobs waiting to send. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthFailed": {
+    "source": "Failed (last 24h)",
+    "context": "Health row label: failed deliveries in the last 24 hours.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthLastSent": {
+    "source": "Last delivered",
+    "context": "Health row label: timestamp of the newest successful delivery.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthNever": {
+    "source": "Never",
+    "context": "Value when nothing was ever delivered. One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthDevices": {
+    "source": "Registered devices",
+    "context": "Health row label: total registered devices (aggregate).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthFewer": {
+    "source": "Fewer than 5",
+    "context": "Floored small count shown instead of an identifying exact number. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthSa": {
+    "source": "Service account",
+    "context": "Health row label: which service account is configured (its email fingerprint).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthScopeBroad": {
+    "source": "This service account can do more than send messages — that weakens the e-sign security model. Recreate it with ONLY the custom messaging role (docs/PUSH_SETUP.md).",
+    "context": "RED warning: the service account holds more than the messaging permission, weakening the e-sign trust model; tells the admin to recreate it. docs/PUSH_SETUP.md verbatim.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Admin.pushHealthScopeOk": {
+    "source": "Service account is messaging-only — as designed.",
+    "context": "Green confirmation that the service account is correctly minimal.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "Ministries.title": {
     "source": "Budget categories",
     "zh-Hans": "todo",
@@ -7014,5 +7224,539 @@
     "context": "Amber note under a team's Archived toggle: saving the archive ends members' read access.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Notifications.push.signingRequest.title": {
+    "source": "Signature requested — {label}",
+    "context": "Push notification title on a lock screen. ACTION VERB FIRST, the {label} (claim event name, user data, verbatim) LAST so tray truncation eats the label, never the verb — keep that order in Chinese too. Use 您-register (formal) for all Notifications.* text.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.signingRequest.titleBare": {
+    "source": "Signature requested",
+    "context": "Same push title when the claim has no event label — must read as a complete phrase on its own, no dangling dash.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.signingRequest.body": {
+    "source": "Submitted by {name}",
+    "context": "Push body under the signing-request title. {name} is the submitter's name, verbatim.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.signingRequest.bodyBare": {
+    "source": "A claim is waiting for your signature.",
+    "context": "Push body when the submitter's name is unavailable. Complete sentence.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.claimApproved.title": {
+    "source": "Your claim was approved — {label}",
+    "context": "Push title to the claim owner. Action first, {label} last (see signingRequest.title).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.claimApproved.titleBare": {
+    "source": "Your claim was approved",
+    "context": "Approved push title without a label. Complete phrase.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.claimRejected.title": {
+    "source": "Your claim needs changes — {label}",
+    "context": "Push title to the owner when the approver asked for changes. Deliberately soft ('needs changes', not 'rejected'). Action first, {label} last.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.claimRejected.titleBare": {
+    "source": "Your claim needs changes",
+    "context": "Needs-changes push title without a label.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.claimRejected.body": {
+    "source": "Tap to see the reviewer’s note.",
+    "context": "Push body inviting the tap; the reviewer's note itself NEVER appears on the lock screen.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.financeQueue.title": {
+    "source": "{count, plural, =1 {A claim is ready for payment} other {# claims are ready for payment}}",
+    "context": "Push title to treasurers; coalesces — ICU plural on {count} (approved claims awaiting payment).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.financeQueue.bodySingle": {
+    "source": "Ready for payment — {label}",
+    "context": "Push body when exactly one claim is ready; {label} = claim event name, verbatim. Also reused as the activity-list line for this event.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.claimPaid.title": {
+    "source": "Your reimbursement was paid — {label}",
+    "context": "Push title to the owner when a treasurer records payment. No amounts, no check number — deliberate.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.claimPaid.titleBare": {
+    "source": "Your reimbursement was paid",
+    "context": "Paid push title without a label.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.deviceRequest.title": {
+    "source": "A new device asked to join your signing identity",
+    "context": "SECURITY push: a new device asked to join the user's e-sign identity. Calm but attention-getting.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.deviceRequest.body": {
+    "source": "If this wasn’t you, review now.",
+    "context": "Security push body. 'review now' = open the app and look at the device request banner.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.selfTest.title": {
+    "source": "This is your test notification.",
+    "context": "The test notification a user sends themselves from the profile card.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.selfTest.body": {
+    "source": "Notifications are working on this device.",
+    "context": "Body of the self-test notification.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.discreet.signing": {
+    "source": "A signature request is waiting",
+    "context": "Discreet-mode replacement title: reveals NOTHING about who/what on a shared lock screen. Pairs with discreet.body.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.discreet.claims": {
+    "source": "An update on one of your claims",
+    "context": "Discreet-mode replacement title for any own-claim event (approved/changes/paid) — outcome-neutral on purpose.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.discreet.finance": {
+    "source": "Claims may be ready for payment",
+    "context": "Discreet-mode replacement title for the treasurer queue event.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.push.discreet.body": {
+    "source": "Open Numbers to see the details.",
+    "context": "Discreet-mode shared body. 'Numbers' stays verbatim.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.title": {
+    "source": "Notifications",
+    "context": "Profile page card heading for notification settings. One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.undo": {
+    "source": "Turn everything off anytime: Profile → Notifications → Off. This works even if your phone’s settings are wrong.",
+    "context": "THE taught undo sentence — opens the card and ends the soft-ask, verbatim in both places. 'Profile → Notifications → Off' quotes this app's own UI path.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.notConfigured": {
+    "source": "Push notifications aren’t set up for this deployment yet — an admin can enable them in Admin → Settings.",
+    "context": "Muted note when the deployment has no push configured; points admins to Admin → Settings (quotes app UI names).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.loadFailed": {
+    "source": "Could not load your notification settings.",
+    "context": "Error line when the settings fetch fails.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.saveFailed": {
+    "source": "Could not save that change.",
+    "context": "Error line when saving a toggle fails.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.enable": {
+    "source": "Turn on notifications",
+    "context": "Primary button starting the enable flow (opens the soft-ask dialog). Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.enableFailed": {
+    "source": "Could not turn notifications on — please try again.",
+    "context": "Error line when token registration fails after permission was granted.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.thisDeviceOn": {
+    "source": "This device is receiving notifications.",
+    "context": "Status line: the device you are looking at is registered. Pairs with the 'Turn off on this device' button.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.thisDeviceOff": {
+    "source": "Turn off on this device",
+    "context": "Button: stop notifications on the current device only (account stays on). Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.thisDeviceEnable": {
+    "source": "Turn on for this device",
+    "context": "Button: account is on but THIS device isn't registered yet. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.noDevices": {
+    "source": "Notifications are on, but no device is currently receiving them.",
+    "context": "Amber banner: account-level on but zero registered devices — nothing will actually arrive. Also shown app-wide.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.devices": {
+    "source": "Devices receiving notifications",
+    "context": "List heading for registered devices. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.deviceCurrent": {
+    "source": "This device",
+    "context": "Tiny badge marking the device row you are on. One-two words.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.deviceUnnamed": {
+    "source": "Unnamed device",
+    "context": "Fallback device label when no browser label was captured. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.deviceRemove": {
+    "source": "Remove",
+    "context": "Button on a device row: deregister that device. One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.deviceRemoveAria": {
+    "source": "Stop notifications on {label}",
+    "context": "aria-label of the remove button; {label} is the device label ('Safari · iPhone'), verbatim.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.selfTest": {
+    "source": "Send myself a test notification",
+    "context": "Button: send yourself one test notification (the 'is it working?' check). Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.selfTestSent": {
+    "source": "Sent at {time} — did this device show it?",
+    "context": "In-page confirmation after the test send; {time} is a localized clock time. The question makes the user verify the phone actually showed it.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.accountOff": {
+    "source": "Turn all notifications off",
+    "context": "The master OFF button (danger style): stops all delivery server-side for the whole account. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.turnOn": {
+    "source": "Turn on",
+    "context": "Generic toggle button label used on category rows. One-two words. Pairs with turnOff.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.card.turnOff": {
+    "source": "Turn off",
+    "context": "Generic toggle button label used on category rows. One-two words. Pairs with turnOn.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.categories.title": {
+    "source": "What you’ll be told about",
+    "context": "Heading above the per-category toggle rows. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.categories.signing.name": {
+    "source": "Signing requests",
+    "context": "Category toggle name: pushes about claims awaiting YOUR signature (shown to approvers only). Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.categories.signing.example": {
+    "source": "e.g. “Signature requested — Retreat 2026”",
+    "context": "Example line under the toggle AND a bullet in the soft-ask; quotes the actual push title format with a sample label.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.categories.claims.name": {
+    "source": "My claims",
+    "context": "Category toggle name: pushes about the user's OWN claims. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.categories.claims.example": {
+    "source": "e.g. “Your claim was approved”",
+    "context": "Example line; quotes the approved-push title.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.categories.finance.name": {
+    "source": "Payments to make",
+    "context": "Category toggle name for treasurers: approved claims awaiting payment. Deliberately plain-language ('Payments to make'), NOT the jargon 'Finance'. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.categories.finance.example": {
+    "source": "e.g. “A claim is ready for payment”",
+    "context": "Example line; quotes the finance push title.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.categories.security.name": {
+    "source": "Security",
+    "context": "Category toggle name: new-device security alerts. One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.categories.security.example": {
+    "source": "e.g. “A new device asked to join your signing identity”",
+    "context": "Example line; quotes the device-request push title.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.categories.discreet.name": {
+    "source": "Discreet previews",
+    "context": "Toggle name for discreet lock-screen previews. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.categories.discreet.example": {
+    "source": "Lock-screen text hides names and outcomes — “An update on one of your claims”.",
+    "context": "Explains what discreet mode does and quotes the neutral preview text.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.softAsk.title": {
+    "source": "Turn on notifications?",
+    "context": "Dialog heading of the pre-permission explainer ('soft ask'). Question form.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.softAsk.body": {
+    "source": "Numbers will notify this device about:",
+    "context": "Line above the bullet list of what the user will be notified about. 'Numbers' verbatim.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.softAsk.privacy": {
+    "source": "Only you can see your notification settings. No one is told whether a notification reached you, or when.",
+    "context": "Privacy promise in the soft-ask — key trust sentence, translate precisely: nobody can see settings or delivery state.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.softAsk.noDuty": {
+    "source": "This doesn’t create a duty to respond faster — the badges in the app remain the official queue.",
+    "context": "Reassurance for role-holders: enabling creates no obligation to answer faster. 'badges' = the red count dots in this app's navigation.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.softAsk.reassign": {
+    "source": "Owners can withdraw or reassign a signature request at any time — that is routine, not a judgment.",
+    "context": "Normalization line for approvers: vanished requests are routine workflow (withdrawal/reassignment), NEVER censure. Must not imply cause or blame.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.softAsk.shared": {
+    "source": "Is this a shared computer or a family tablet? Don’t turn notifications on here — or use discreet previews.",
+    "context": "Warning line about shared computers / family tablets, pointing at discreet previews as the alternative.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.softAsk.promptHint": {
+    "source": "Next, your device asks permission — choose “Allow”.",
+    "context": "Line right before the native browser permission dialog; “Allow” quotes the OS button and must NOT be naturalized — keep the English word, optionally adding the Chinese beside it.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.softAsk.promptHintOs": {
+    "source": "Your device may show that dialog in its own language; “Allow / 允許” is the agree button.",
+    "context": "Shown when the device language differs from the app language. “Allow / 允許” quotes OS chrome verbatim in both languages — do not alter.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.softAsk.confirm": {
+    "source": "Continue",
+    "context": "Soft-ask confirm button (then the native prompt fires). One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.softAsk.decline": {
+    "source": "Not now",
+    "context": "Soft-ask decline button — genuinely neutral, no guilt. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.embedded.title": {
+    "source": "Open in your browser first",
+    "context": "Heading when the app runs inside WeChat/Line/etc. where notifications are impossible. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.embedded.body": {
+    "source": "Notifications can’t be turned on inside this app (WeChat, Line…). Open Numbers in Safari or Chrome, then come back to this page.",
+    "context": "Explains to open the site in a real browser; 'WeChat, Line' are product names, keep recognizable (微信 / LINE fine).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.embedded.copyLink": {
+    "source": "Copy link",
+    "context": "Button copying the app URL. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.embedded.copied": {
+    "source": "Copied",
+    "context": "Button label after copying. One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.iosInstall.title": {
+    "source": "Add Numbers to your Home Screen first",
+    "context": "Heading of the iPhone install instructions. 'Home Screen' quotes iOS chrome — dual-language per glossary if needed.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.iosInstall.step1": {
+    "source": "1. In Safari, tap the Share button (the square with an arrow).",
+    "context": "iOS install step; 'Share' quotes the iOS button name — do not naturalize away the English.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.iosInstall.step2": {
+    "source": "2. Choose “Add to Home Screen”.",
+    "context": "iOS install step; “Add to Home Screen” quotes the iOS menu item verbatim — keep the English, Chinese may follow in parentheses.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.iosInstall.step3": {
+    "source": "3. Open the new Numbers icon, sign in there, and turn notifications on.",
+    "context": "iOS install step: open the installed icon, sign in, enable.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.iosInstall.note": {
+    "source": "The installed app counts as a new device for signing — if you e-sign, approve it from here when it asks. If you stop partway, the app will remind you to finish; nothing is lost.",
+    "context": "Reassurance: the installed app is a NEW signing device (typed-code approval will run), and abandoning mid-flow is safe/resumable.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.iosInstall.started": {
+    "source": "I’ve added it",
+    "context": "Button the user taps after adding the icon. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.iosInstall.marked": {
+    "source": "Great — continue in the installed app.",
+    "context": "Confirmation after tapping 'I've added it' — continue inside the installed app.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.iosOld.body": {
+    "source": "This iPhone’s software is too old for web notifications — iOS 16.4 or later is required.",
+    "context": "Honest dead-end for iOS 15 and older; no workaround exists.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.unsupported.body": {
+    "source": "This browser can’t receive push notifications.",
+    "context": "Honest dead-end for browsers without the Push API.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.denied.title": {
+    "source": "Notifications are blocked by this browser",
+    "context": "Heading when browser permission is permanently denied. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.denied.desktop": {
+    "source": "Click the lock icon in the address bar → “Site settings” → allow Notifications, then try again.",
+    "context": "Desktop/Android unblock path; 'Site settings' quotes browser chrome — keep English, may add Chinese beside.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.denied.ios": {
+    "source": "Remove the app icon from your Home Screen and add it again (Share → “Add to Home Screen”), then choose Allow when asked. Removing the icon also removes this device’s signing key — you’ll approve this device again afterwards.",
+    "context": "iOS recovery: remove + re-add the Home Screen icon (the honest path — there is no settings toggle before first grant). Warns the signing key resets. “Add to Home Screen” quotes iOS chrome.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.runtime.reconnect": {
+    "source": "Reconnect",
+    "context": "Chip button re-registering this device. One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.runtime.reconnectBody": {
+    "source": "Notifications are on for your account, but this device stopped receiving them.",
+    "context": "Banner text when the account is on but THIS device silently stopped receiving (phone migration, storage eviction).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.runtime.resumeBody": {
+    "source": "Finish setting up notifications — you’re almost there.",
+    "context": "Banner text resuming the abandoned iPhone setup. Encouraging, short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.runtime.openSettings": {
+    "source": "Open settings",
+    "context": "Banner button to the profile notifications card. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.runtime.dismiss": {
+    "source": "Dismiss",
+    "context": "Dismiss button (also aria-label of the ✕). One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.runtime.open": {
+    "source": "Open",
+    "context": "Toast button opening the notification's target page. One word.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.runtime.openWhenReady": {
+    "source": "A notification arrived — open it when you’re ready (your receipts are still processing).",
+    "context": "Toast shown when a notification arrives while receipts are mid-extraction: we refuse to navigate away; parenthetical explains why.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.activity.title": {
+    "source": "Recent activity",
+    "context": "Home-page card heading for the recent-activity list. Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.activity.deletedClaim": {
+    "source": "a deleted claim",
+    "context": "Substituted for the claim label when the claim was deleted; lowercase, slots into titles like 'Signature requested — a deleted claim'.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.activity.byName": {
+    "source": "by {name}",
+    "context": "Small attribution line under an activity row; {name} is a member name, verbatim. Lowercase 'by'.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
   }
 }

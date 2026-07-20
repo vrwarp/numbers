@@ -90,6 +90,7 @@ interface Claim {
   signatureLedgerKey: string | null;
   packetSha256: string | null;
   submitSeq: number;
+  submittedAt?: string | null;
   checkNumber: string;
   // Single-ministry mode: claimMinistry/claimEvent mirror onto every active
   // row (the server fans out on PATCH); rows keep their own values as the
@@ -1134,6 +1135,7 @@ export default function ReviewClaim({
             signatureLedgerKey: claim.signatureLedgerKey,
             packetSha256: claim.packetSha256,
             submitSeq: claim.submitSeq,
+            submittedAt: claim.submittedAt ?? null,
             totalCents: claim.totalCents,
             checkNumber: claim.checkNumber,
           }}

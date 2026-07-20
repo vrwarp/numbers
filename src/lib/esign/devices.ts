@@ -47,6 +47,18 @@ export async function currentDeviceId(env: DeviceEnv): Promise<string> {
 export async function requestAuthorization(env: DeviceEnv): Promise<string> {
   const cp = await lib(env);
   await cp.requestDeviceAuthorization();
+  // §7.1b hint (docs/NOTIFICATIONS_DESIGN.md): the keyless server can't see
+  // this Firestore request, so the requesting device — authenticated as the
+  // same user — tells it, fire-and-forget (a hint failure must never break
+  // the ceremony). Self-scoped: it can only reach the user's OWN devices.
+  fetch("/api/notifications/hint", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      excludeToken:
+        typeof localStorage !== "undefined" ? localStorage.getItem("numbers.push.token") : null,
+    }),
+  }).catch(() => {});
   const code = await cp.getLocalVerificationCode();
   if (!code) throw new Error("Could not compute this device's verification code");
   return code;

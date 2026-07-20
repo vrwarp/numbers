@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { currentUser } from "@/auth";
+import { currentUser, signInPath } from "@/auth";
 import { canManageTeams } from "@/lib/teams-guard";
 import Teams from "@/components/Teams";
 
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function TeamsPage() {
   const user = await currentUser();
-  if (!user) redirect("/signin");
+  if (!user) redirect(signInPath("/teams"));
   if (!canManageTeams(user)) redirect("/");
   return <Teams />;
 }

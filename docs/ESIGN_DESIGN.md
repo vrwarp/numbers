@@ -59,9 +59,14 @@ generated PDF — is untouched; signing begins where it currently ends.
   thread position via signer-committed references (§5.2) — edits, replays, reordering,
   and retroactive re-submission are detectable by anyone re-running verification, and
   **settled threads are immune to later events** (§5.3).
-- **Server exclusion, stated precisely.** The numbers server holds no Firestore
-  credentials at all (`firebase-admin` stays keyless, projectId-only, used solely for
-  ID-token verification): it can neither write nor read ledgers. It relays ledger keys
+- **Server exclusion, stated precisely.** The numbers server holds no credentials
+  that can touch the ledger: `firebase-admin`'s default app stays keyless
+  (projectId-only, used solely for ID-token verification), so it can neither write
+  nor read ledgers. *Amendment (docs/NOTIFICATIONS_DESIGN.md §4):* push
+  notifications add ONE server-held Google credential — a service account whose
+  custom IAM role contains exactly `cloudmessaging.messages.create` — which is
+  messaging-only by construction and grants no Firestore access; the admin health
+  card verifies that scope and warns if it ever broadens. It relays ledger keys
   (decision 8) and mirrors events that clients report, verifying their signatures
   before believing them (§5.5). What a fully compromised server *can* do: serve
   malicious page code, lie by omission, or present a parallel fake universe to a

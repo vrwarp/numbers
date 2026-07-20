@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
 import { ADMIN_CONFIG_GROUPS } from "@/lib/admin/config-schema";
+import NotificationsHealthCard from "./NotificationsHealthCard";
 
 interface Field {
   key: string;
@@ -143,6 +144,8 @@ export default function SettingsTab() {
           </div>
         );
       })}
+
+      <NotificationsHealthCard />
 
       <div className="sticky bottom-0 flex items-center gap-3 border-t border-stone-200 bg-white/90 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">
         <button className="btn-primary" disabled={busy || pending === 0} onClick={save} data-testid="settings-save">

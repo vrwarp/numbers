@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifySigningRequest } from "@/lib/notifications/enqueue";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { readStoredFile, saveGeneratedPdf, generatedPdfPath } from "@/lib/storage";
@@ -250,6 +251,18 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     await recordSignature(id, userId, event);
     // submittedAt becomes the search year key (§6.5) → re-bucket.
     enqueueClaimEmbeddingNow(id, userId);
+    // Tell the named approver a claim awaits their signature
+    // (docs/NOTIFICATIONS_DESIGN.md §5 — fire-and-forget, never gates).
+    notifySigningRequest(
+      {
+        id,
+        userId,
+        submitSeq: pending.seq,
+        claimEvent: claim.claimEvent,
+        approverUserId: pending.approverUid,
+      },
+      userId
+    );
     return NextResponse.json({ ok: true, status: "submitted" });
   });
 }

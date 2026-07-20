@@ -20,13 +20,9 @@ type LoadedFirebase = { auth: Auth; fb: FirebaseAuth };
 
 // In-app browsers (Messenger, Instagram, etc.) run a sandboxed WebKit view that
 // Google's OAuth refuses to serve and whose storage is partitioned from the
-// system browser — sign-in cannot work there. Detect them so we can point the
-// user at Safari/Chrome instead of failing cryptically.
-function isEmbeddedBrowser(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent || "";
-  return /\bFBAN|\bFBAV|FB_IAB|Messenger|Instagram|Line\/|MicroMessenger|; ?wv\)|\bGSA\//.test(ua);
-}
+// system browser — sign-in cannot work there. Detection is shared with the
+// push capability pre-flight (src/lib/embedded-browser.ts).
+import { isEmbeddedBrowser } from "@/lib/embedded-browser";
 
 /**
  * Google sign-in via the Firebase client SDK (loaded lazily — only visitors

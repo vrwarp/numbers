@@ -12,6 +12,15 @@ import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
  * so Playwright (and local dev without Firebase) can authenticate.
  */
 
+/** The sign-in URL that returns to `path` after authentication. Every page's
+ *  auth redirect goes through this so deep links — notification taps included
+ *  (docs/NOTIFICATIONS_DESIGN.md §8.8) — survive the sign-in hop instead of
+ *  stranding the user on "/". Same-origin relative paths only (signin page
+ *  re-validates). */
+export function signInPath(returnTo: string): string {
+  return returnTo && returnTo !== "/" ? `/signin?return=${encodeURIComponent(returnTo)}` : "/signin";
+}
+
 /** Resolve the current DB user id, or null if unauthenticated. */
 export async function currentUserId(): Promise<string | null> {
   const store = await cookies();

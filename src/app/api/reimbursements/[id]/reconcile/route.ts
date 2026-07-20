@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
+import { notifyDecision, notifyPaid } from "@/lib/notifications/enqueue";
 import { claimAccessRole } from "@/lib/esign/claim-server";
 import { claimEvaluation, recordSignature, requireEsignAccess } from "@/lib/esign/server";
 import type { RawLedgerEventDoc } from "@/lib/esign/types";
@@ -107,6 +108,28 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
           },
         }),
       ]);
+      // A transition that reached the mirror through reconcile is the same
+      // notification event as the primary route would have enqueued —
+      // dedupeKey no-ops the overlap, occurredAt carries the LEDGER time so
+      // the age gate sees the truth, and the reconciling user is suppressed
+      // as a recipient (they are reading the outcome right now)
+      // (docs/NOTIFICATIONS_DESIGN.md §7.1).
+      const claimEventInput = {
+        id,
+        userId: claim.userId,
+        submitSeq: claim.submitSeq,
+        claimEvent: claim.claimEvent,
+        approverUserId: claim.approverUserId,
+      };
+      const decisionAt = thread?.decision ? new Date(thread.decision.createdAtMs) : undefined;
+      if (repaired === "approved" || repaired === "rejected") {
+        notifyDecision(claimEventInput, repaired, claim.approverUserId ?? "", {
+          occurredAt: decisionAt,
+          reconcilerId: userId,
+        });
+      } else if (repaired === "paid") {
+        notifyPaid(claimEventInput, "", { reconcilerId: userId });
+      }
     }
     for (const t of evaluation.threads) {
       if (t.seq > claim.submitSeq) {

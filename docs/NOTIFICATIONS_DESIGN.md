@@ -1,10 +1,24 @@
 # Push notifications (FCM) — design
 
-Status: **v6 — ready to build.** Refined through five ideation → UXR-critique
+Status: **v6 — implemented** (phases 1–5 of §13; the §13 "post-v1" cut-line
+items remain deferred by design). Refined through five ideation → UXR-critique
 rounds (journeys · inclusivity/accessibility · platform reality ·
 trust/social dynamics · holistic coherence; full revision log in §14); the
 three open decisions were resolved by the product owner on 2026-07-20 (§15).
-Nothing is implemented yet — §13 is the build order.
+Implementation deviations from this text, all narrowing:
+
+- **The service worker is SDK-free** — we always send full webpush
+  notification payloads, so the SW handles raw `push` events itself: no
+  Firebase config in the worker at all (stronger than §7.0's injection
+  design, which is retained only for the no-cache/skipWaiting contract), no
+  CDN `importScripts`.
+- **Notification preferences are un-audited** — they are self-only plain
+  preferences, the `printIncludeReceipts` class (§11's audit sentence applies
+  to the duty-pause class, which routes other people's work).
+- The Security category toggle renders for everyone (its jargon-risk is low
+  and it teaches the feature); Signing/Finance stay duty-gated per §8.2.
+- The quiet window is admin-editable from day one (a text field in the
+  existing settings editor cost nothing; it still defaults OFF per §15 #2).
 
 The one-sentence pitch: today the only way anyone learns that work arrived —
 a packet awaiting their signature, a claim approved, a new device asking for

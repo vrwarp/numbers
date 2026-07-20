@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { currentUser } from "@/auth";
+import { currentUser, signInPath } from "@/auth";
 import { isAppAdmin } from "@/lib/config";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function AdminPage() {
   const user = await currentUser();
-  if (!user) redirect("/signin");
+  if (!user) redirect(signInPath("/admin"));
   if (!isAppAdmin(user)) redirect("/");
   return <AdminDashboard />;
 }

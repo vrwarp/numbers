@@ -41,6 +41,7 @@
     "shoebox": "收据",
     "claims": "报销单",
     "profile": "个人资料",
+    "recentActivity": "Recent activity",
     "signOut": "退出登录",
     "signedInAs": "当前登录：{name}",
     "approvals": "审批",
@@ -491,7 +492,8 @@
     "waitingDays": "· 已等待 {days, plural, other {# 天}}",
     "alreadyDecidedNote": "这张报销单已有审批结果——列表稍后会更新。",
     "assignedElsewhereNote": "这张报销单已指派给其他审批人。",
-    "undoStroke": "撤销一笔"
+    "undoStroke": "撤销一笔",
+    "stalledNote": "Waiting for a signature for {days, plural, one {# day} other {# days}}. Notifications are often missed — phones get muted, batteries die. You can withdraw and pick a different approver at any time."
   },
   "Approvals": {
     "title": "审批",
@@ -846,7 +848,15 @@
       "unknownMember": "One of the selected people couldn’t be found. Refresh and try again."
     },
     "searchInvalid": "无法理解该搜索——请调整后重试",
-    "searchEmptyQuery": "请先输入要搜索的内容"
+    "searchEmptyQuery": "请先输入要搜索的内容",
+    "push": {
+      "invalidToken": "That notification registration is invalid.",
+      "invalidHint": "That notification hint is invalid.",
+      "hintRateLimited": "Too many device alerts in a short time — try again later.",
+      "notConfigured": "Push notifications aren’t set up for this deployment.",
+      "notEnabled": "Turn notifications on first.",
+      "invalidUiState": "That settings update is invalid."
+    }
   },
   "AddReceipts": {
     "title": "向这张报销单添加收据",
@@ -1098,7 +1108,34 @@
     "action_admin_church_context": "编辑了教会背景资料",
     "action_update_embedding_config": "更改了搜索设置",
     "action_rebuild_embeddings": "重建了搜索索引",
-    "action_retry_embedding": "重试了失败的索引"
+    "action_retry_embedding": "重试了失败的索引",
+    "group_push": "Push notifications",
+    "fields_FCM_SERVICE_ACCOUNT_JSON_label": "Messaging service account (JSON)",
+    "fields_FCM_SERVICE_ACCOUNT_JSON_help": "Paste the whole JSON key of the MESSAGING-ONLY service account (custom role with exactly cloudmessaging.messages.create — see docs/PUSH_SETUP.md). Write-only.",
+    "fields_FIREBASE_VAPID_PUBLIC_KEY_label": "Web Push certificate key",
+    "fields_FIREBASE_VAPID_PUBLIC_KEY_help": "Firebase console → Project settings → Cloud Messaging → Web Push certificates → key pair. Public, client-safe.",
+    "fields_FIREBASE_MESSAGING_SENDER_ID_label": "Messaging sender ID",
+    "fields_FIREBASE_MESSAGING_SENDER_ID_help": "Firebase console → Project settings → Cloud Messaging → Sender ID.",
+    "fields_NOTIFY_PAUSED_label": "Pause all sending",
+    "fields_NOTIFY_PAUSED_help": "The incident switch: nothing is delivered while paused, but events keep recording (the in-app activity list is unaffected). Unpausing releases only still-fresh notifications.",
+    "fields_NOTIFY_QUIET_label": "Quiet hours",
+    "fields_NOTIFY_QUIET_help": "Optional hold-then-send window, e.g. 21:30-08:00,sun:09:00-12:30 (server time). Off by default — phones’ own Do Not Disturb is usually the better tool. Device alerts are never held.",
+    "pushHealthTitle": "Push notification health",
+    "pushHealthLoadFailed": "Could not load push health.",
+    "pushHealthState": "Status",
+    "pushHealthOff": "Not configured",
+    "pushHealthPaused": "Paused",
+    "pushHealthMock": "Mock mode",
+    "pushHealthOn": "Sending",
+    "pushHealthQueue": "Waiting to send",
+    "pushHealthFailed": "Failed (last 24h)",
+    "pushHealthLastSent": "Last delivered",
+    "pushHealthNever": "Never",
+    "pushHealthDevices": "Registered devices",
+    "pushHealthFewer": "Fewer than 5",
+    "pushHealthSa": "Service account",
+    "pushHealthScopeBroad": "This service account can do more than send messages — that weakens the e-sign security model. Recreate it with ONLY the custom messaging role (docs/PUSH_SETUP.md).",
+    "pushHealthScopeOk": "Service account is messaging-only — as designed."
   },
   "Ministries": {
     "title": "Budget categories",
@@ -1117,7 +1154,7 @@
     "code": "Code",
     "name": "Name",
     "description": "Description (optional)",
-    "descriptionPlaceholder": "为报销人添加提示——它同时会引导 AI 的类别建议…",
+    "descriptionPlaceholder": "Add a hint for requesters — it also guides the AI’s category suggestions…",
     "codeAria": "Account code",
     "nameAria": "Category name",
     "active": "Active",
@@ -1312,5 +1349,144 @@
     "choosePerson": "Choose a person…",
     "removeMember": "Remove",
     "archiveEndsAccess": "归档后，保存时将结束所有成员的查看权限。"
+  },
+  "Notifications": {
+    "push": {
+      "signingRequest": {
+        "title": "Signature requested — {label}",
+        "titleBare": "Signature requested",
+        "body": "Submitted by {name}",
+        "bodyBare": "A claim is waiting for your signature."
+      },
+      "claimApproved": {
+        "title": "Your claim was approved — {label}",
+        "titleBare": "Your claim was approved"
+      },
+      "claimRejected": {
+        "title": "Your claim needs changes — {label}",
+        "titleBare": "Your claim needs changes",
+        "body": "Tap to see the reviewer’s note."
+      },
+      "financeQueue": {
+        "title": "{count, plural, =1 {A claim is ready for payment} other {# claims are ready for payment}}",
+        "bodySingle": "Ready for payment — {label}"
+      },
+      "claimPaid": {
+        "title": "Your reimbursement was paid — {label}",
+        "titleBare": "Your reimbursement was paid"
+      },
+      "deviceRequest": {
+        "title": "A new device asked to join your signing identity",
+        "body": "If this wasn’t you, review now."
+      },
+      "selfTest": {
+        "title": "This is your test notification.",
+        "body": "Notifications are working on this device."
+      },
+      "discreet": {
+        "signing": "A signature request is waiting",
+        "claims": "An update on one of your claims",
+        "finance": "Claims may be ready for payment",
+        "body": "Open Numbers to see the details."
+      }
+    },
+    "card": {
+      "title": "Notifications",
+      "undo": "Turn everything off anytime: Profile → Notifications → Off. This works even if your phone’s settings are wrong.",
+      "notConfigured": "Push notifications aren’t set up for this deployment yet — an admin can enable them in Admin → Settings.",
+      "loadFailed": "Could not load your notification settings.",
+      "saveFailed": "Could not save that change.",
+      "enable": "Turn on notifications",
+      "enableFailed": "Could not turn notifications on — please try again.",
+      "thisDeviceOn": "This device is receiving notifications.",
+      "thisDeviceOff": "Turn off on this device",
+      "thisDeviceEnable": "Turn on for this device",
+      "noDevices": "Notifications are on, but no device is currently receiving them.",
+      "devices": "Devices receiving notifications",
+      "deviceCurrent": "This device",
+      "deviceUnnamed": "Unnamed device",
+      "deviceRemove": "Remove",
+      "deviceRemoveAria": "Stop notifications on {label}",
+      "selfTest": "Send myself a test notification",
+      "selfTestSent": "Sent at {time} — did this device show it?",
+      "accountOff": "Turn all notifications off",
+      "turnOn": "Turn on",
+      "turnOff": "Turn off"
+    },
+    "categories": {
+      "title": "What you’ll be told about",
+      "signing": {
+        "name": "Signing requests",
+        "example": "e.g. “Signature requested — Retreat 2026”"
+      },
+      "claims": {
+        "name": "My claims",
+        "example": "e.g. “Your claim was approved”"
+      },
+      "finance": {
+        "name": "Payments to make",
+        "example": "e.g. “A claim is ready for payment”"
+      },
+      "security": {
+        "name": "Security",
+        "example": "e.g. “A new device asked to join your signing identity”"
+      },
+      "discreet": {
+        "name": "Discreet previews",
+        "example": "Lock-screen text hides names and outcomes — “An update on one of your claims”."
+      }
+    },
+    "softAsk": {
+      "title": "Turn on notifications?",
+      "body": "Numbers will notify this device about:",
+      "privacy": "Only you can see your notification settings. No one is told whether a notification reached you, or when.",
+      "noDuty": "This doesn’t create a duty to respond faster — the badges in the app remain the official queue.",
+      "reassign": "Owners can withdraw or reassign a signature request at any time — that is routine, not a judgment.",
+      "shared": "Is this a shared computer or a family tablet? Don’t turn notifications on here — or use discreet previews.",
+      "promptHint": "Next, your device asks permission — choose “Allow”.",
+      "promptHintOs": "Your device may show that dialog in its own language; “Allow / 允許” is the agree button.",
+      "confirm": "Continue",
+      "decline": "Not now"
+    },
+    "embedded": {
+      "title": "Open in your browser first",
+      "body": "Notifications can’t be turned on inside this app (WeChat, Line…). Open Numbers in Safari or Chrome, then come back to this page.",
+      "copyLink": "Copy link",
+      "copied": "Copied"
+    },
+    "iosInstall": {
+      "title": "Add Numbers to your Home Screen first",
+      "step1": "1. In Safari, tap the Share button (the square with an arrow).",
+      "step2": "2. Choose “Add to Home Screen”.",
+      "step3": "3. Open the new Numbers icon, sign in there, and turn notifications on.",
+      "note": "The installed app counts as a new device for signing — if you e-sign, approve it from here when it asks. If you stop partway, the app will remind you to finish; nothing is lost.",
+      "started": "I’ve added it",
+      "marked": "Great — continue in the installed app."
+    },
+    "iosOld": {
+      "body": "This iPhone’s software is too old for web notifications — iOS 16.4 or later is required."
+    },
+    "unsupported": {
+      "body": "This browser can’t receive push notifications."
+    },
+    "denied": {
+      "title": "Notifications are blocked by this browser",
+      "desktop": "Click the lock icon in the address bar → “Site settings” → allow Notifications, then try again.",
+      "ios": "Remove the app icon from your Home Screen and add it again (Share → “Add to Home Screen”), then choose Allow when asked. Removing the icon also removes this device’s signing key — you’ll approve this device again afterwards."
+    },
+    "runtime": {
+      "reconnect": "Reconnect",
+      "reconnectBody": "Notifications are on for your account, but this device stopped receiving them.",
+      "resumeBody": "Finish setting up notifications — you’re almost there.",
+      "openSettings": "Open settings",
+      "dismiss": "Dismiss",
+      "open": "Open",
+      "openWhenReady": "A notification arrived — open it when you’re ready (your receipts are still processing)."
+    },
+    "activity": {
+      "title": "Recent activity",
+      "deletedClaim": "a deleted claim",
+      "byName": "by {name}"
+    }
   }
 }

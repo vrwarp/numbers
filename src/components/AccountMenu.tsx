@@ -132,6 +132,11 @@ export default function AccountMenu({
           <Link href="/profile" className={itemClass}>
             {t("profile")}
           </Link>
+          {/* §5 activity parity entry point — a plain link, no unread counts
+              by design (docs/NOTIFICATIONS_DESIGN.md §2 no read-tracking). */}
+          <Link href="/#activity" className={itemClass} data-testid="nav-activity">
+            {t("recentActivity")}
+          </Link>
           <LocaleSwitcher signedIn variant="row" />
           {canManageMinistries ? (
             <Link href="/ministries" className={itemClass} data-testid="nav-budget-categories">

@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { currentUserId } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import Shoebox from "@/components/Shoebox";
+import ActivityCard from "@/components/notifications/ActivityCard";
 import { embeddingEnabled } from "@/lib/embeddings/settings";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +49,7 @@ export default async function HomePage() {
         </>
       )}
       <Shoebox searchEnabled={searchEnabled} />
+      <ActivityCard />
     </div>
   );
 }

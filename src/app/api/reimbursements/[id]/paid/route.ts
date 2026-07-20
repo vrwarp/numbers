@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { notifyPaid } from "@/lib/notifications/enqueue";
 import { prisma } from "@/lib/prisma";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { canonicalStringify, sha256Hex } from "@/lib/esign/canonical";
@@ -137,6 +138,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       }),
     ]);
     await recordSignature(id, userId, event);
+    // Owner learns the money is coming (docs/NOTIFICATIONS_DESIGN.md §5 —
+    // fire-and-forget, never gates).
+    notifyPaid(
+      { id, userId: claim.userId, submitSeq: claim.submitSeq, claimEvent: claim.claimEvent },
+      userId
+    );
     return NextResponse.json({ ok: true, status: "paid" });
   });
 }

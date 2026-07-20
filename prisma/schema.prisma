@@ -44,6 +44,23 @@ model User {
   // certificate are opt-in. Plain UI preference, never audited.
   printIncludeReceipts    Boolean @default(false)
   printIncludeCertificate Boolean @default(false)
+  // Push notifications (docs/NOTIFICATIONS_DESIGN.md §8.2): master switch is
+  // opt-in; categories default on but are consulted ONLY when the master is
+  // on, and only at SEND time — enqueue is unconditional so the in-app
+  // activity list serves push-less users identically (§5 parity).
+  notifyEnabled       Boolean @default(false)
+  notifySigning       Boolean @default(true) // claims awaiting your signature (named approver)
+  notifyClaimProgress Boolean @default(true) // your own claims: approved / needs changes / paid
+  notifyFinance       Boolean @default(true) // treasurer duty: approved claims awaiting payment
+  notifySecurity      Boolean @default(true) // new-device requests (§8.5)
+  // Discreet previews (§8.2): outcome- and name-neutral push bodies for lock
+  // screens that family members see; details only after tap.
+  notifyDiscreet      Boolean @default(false)
+  // Server-side notification UI state (§8.2/§8.4): nudge dismissals + iOS
+  // onboarding resume step, per ACCOUNT (a shared browser's dismissal must
+  // not hide the feature from the next person). JSON — UI state, not
+  // preferences; never audited.
+  notifyUiStateJson   String  @default("{}")
   createdAt      DateTime        @default(now())
   receipts       Receipt[]
   reimbursements Reimbursement[]
@@ -53,6 +70,8 @@ model User {
   searchHistory  SearchHistory[]
   // Team memberships (read-only visibility groups over budget categories).
   teamMembers    TeamMember[]
+  pushTokens       PushToken[]
+  notificationJobs NotificationJob[]
 }
 
 model Receipt {
@@ -592,6 +611,59 @@ model SearchHistory {
 
   @@unique([userId, query])
   @@index([userId, updatedAt])
+}
+
+// --- Push notifications (docs/NOTIFICATIONS_DESIGN.md) ----------------------
+
+// One FCM registration token = one browser-profile-on-one-device. Tokens
+// follow the signed-in account (sign-out deletes, §8.6); liveness is
+// max(lastSeenAt, lastSendOkAt) within 180d (§7.3) — a successful send counts,
+// because glance-only devices never ping. Never returned by any GET.
+model PushToken {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token        String    @unique
+  // This device's resolved locale, re-captured on every ping (§9) — never a
+  // bare "en" default; registration falls back to User.locale.
+  locale       String
+  // Trimmed human label for the profile card's device list ("Safari · iPhone").
+  userAgent    String    @default("")
+  createdAt    DateTime  @default(now())
+  lastSeenAt   DateTime  @default(now())
+  lastSendOkAt DateTime?
+
+  @@index([userId])
+}
+
+// Durable notification outbox (§6/§7). One row per recipient per event —
+// created UNCONDITIONALLY of push preferences (the row doubles as the in-app
+// activity record, §5 parity); whether it is DELIVERED is decided at send
+// time. dedupeKey makes reconcile replays and route retries no-ops. Rows are
+// the send log (invariant 7) and are pruned after 90 days; payloadJson holds
+// event params only (localized text is composed at send/render time, never
+// stored) — it carries personal free text, owner-only read scope (§11).
+model NotificationJob {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind           String // signing-request | claim-approved | claim-rejected | finance-queue | claim-paid | device-request | self-test
+  category       String // signing | claims | finance | security | "" (self-test: master switch only)
+  targetId       String    @default("") // claimId / userId — collapse + deep link + deletion semantics
+  dedupeKey      String    @unique
+  payloadJson    String    @default("{}")
+  status         String    @default("queued") // queued | running | sent | failed | skipped
+  attempts       Int       @default(0)
+  nextAttemptAt  DateTime  @default(now())
+  // Crash-safety lease: a "running" row whose lease expired is reclaimable
+  // (worker mirrors EmbeddingJob).
+  leaseExpiresAt DateTime?
+  lastError      String    @default("")
+  createdAt      DateTime  @default(now())
+
+  @@index([status, nextAttemptAt])
+  @@index([userId, createdAt])
+  @@index([targetId])
 }
 
 // Join table: a claim bundles many receipts; a receipt may (rarely) appear in
