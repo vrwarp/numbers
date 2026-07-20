@@ -740,6 +740,21 @@ configured and enabled (`EmbeddingSettings.enabled`).
   receipts…" entry pill still pre-selects "Receipts" (the pill-promise a generic
   page would break), but the user can now toggle back to Both or over to Claims in
   place. The API keeps `types` for both the entry pills and the switch.
+- **Chips stage, only Search runs** (reversal of the initial fire-on-tap chips):
+  the Show/Where controls (and the input) edit a *staged* search; nothing fetches
+  until the explicit submit. Fire-on-tap made a chip sequence race its own fetches
+  and let the pane silently show whichever state loaded last — e.g. flipping
+  "Claims I decided" → "Whole church" with an empty query kept the decided browse
+  on screen under whole-church chips. Instead the client keeps the exact
+  `{query, scope, type}` a result set was fetched with (`applied`) and renders it
+  as an annotation line above the results ("Results for “…”" / "All results" +
+  Show/Where pills — `search-applied`); cards, the empty state, the date hint,
+  and "Show more" paging all read `applied`, never the staged chips. When the
+  staged controls drift from `applied` the view goes visibly **stale**: the
+  Search button returns to its filled primary style (it relaxes to the outline
+  style while results are in sync — `data-fresh`), an amber "Filters changed —
+  search again" note joins the annotation line (`search-stale-note`), and the
+  stale results dim (still readable and clickable). Submitting re-syncs.
 - **At most two kinds of scaffolding are ever visible**: the exact strip (when
   non-empty, capped at 3 + "Show all N") and the year sections. **"Show all N"
   expands inline in place** — semantic sections stay below, nothing navigates — and
@@ -780,9 +795,12 @@ configured and enabled (`EmbeddingSettings.enabled`).
   in the address bar (and thus browser history) now, which is the accepted cost of
   refresh-survives-correctly. It is still never sent anywhere the server logs it as a
   URL — `/api/search` takes the query in the POST body (§7.4), not the querystring.
-  Only `mine`/`receipt`/`claim` defaults are omitted from the URL to keep it clean;
-  an out-of-scope `?scope=` (e.g. a paused role-holder's stale link) falls back to
-  `mine` on load.
+  Only the CALLER'S defaults are omitted from the URL to keep it clean — the
+  unset type filter, and the caller's default scope (whole-church for
+  role-holders, `mine` for members), so a role-holder's explicit "My items" is
+  written as `?scope=mine` and survives Back/refresh instead of snapping back
+  to whole-church. An out-of-scope `?scope=` (e.g. a paused role-holder's stale
+  link) falls back to the caller's default on load.
 - **Shared devices are a normal church pattern** (family iPad, the office computer):
   recents are keyed to the signed-in user server-side and loaded fresh per session,
   and the URL query state lives only in that tab — one member's recent queries are
@@ -792,9 +810,9 @@ configured and enabled (`EmbeddingSettings.enabled`).
   signal; exact scores appear only in the admin test box (§10).
 - The scope control is one three-segment switch — **"My items / Whole church /
   Claims I decided"** (the third segment only for role-holders; members see no
-  control row at all). Selecting "Claims I decided" permits an empty query and shows
-  the decided set newest-first, paginated 20 at a time ("Show more" → `cursor`) —
-  the browse this scope actually exists for.
+  control row at all). "Claims I decided" permits an empty query: submitting with
+  the box empty shows the decided set newest-first, paginated 20 at a time
+  ("Show more" → `cursor`) — the browse this scope actually exists for.
 - Result cards reuse the app's existing visual language — `card / card-lift /
   pressable` classes and the Claims list's `STATUS_STYLES` chips — not a
   search-only card style.
@@ -908,6 +926,7 @@ convention: `search-input, search-submit, search-type-filter, search-scope-filte
 search-exact-section, search-exact-show-all, search-best-match, search-group-<year>,
 search-result-<kind>-<id>, search-find-in-receipts-<id>, search-example-<n>,
 search-recents, search-recent-<n>, search-recents-clear, search-show-more, search-date-hint,
+search-applied, search-stale-note,
 search-pending-note, search-degraded-note, search-empty, shoebox-search-pill,
 claims-search-pill, highlight-pulse` — plus the admin card's
 `embedding-settings-form, embedding-test-connection, embedding-save,
@@ -1024,7 +1043,10 @@ with the outcome and keeps machinery in expandos:
   with `?q=&scope=` in the URL re-runs the search and restores the view; "Show all N"
   expands inline and resets on the next submit; approver default scope is whole-church and can open
   a foreign receipt image; member `scope:"all"` → 404; decided scope browses with an
-  empty query and `?open=<id>` lands on the approvals row; degraded mode via the
+  empty query (chip stages the scope, the explicit submit runs the browse) and
+  `?open=<id>` lands on the approvals row; Show/Where chips never fire a fetch,
+  the applied annotation names the state results came from, and drifted controls
+  mark the view stale until the next submit; degraded mode via the
   mock's `__EMBED_FAIL__` lever shows exact matches + banner; admin model change →
   rebuild → search works on the new model; security sweep updated for the ratified
   grant.

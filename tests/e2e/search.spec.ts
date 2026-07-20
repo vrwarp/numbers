@@ -338,6 +338,63 @@ test("IME safety: Enter during composition never fires a search", async ({ page 
   await expect.poll(() => searchCalls).toBe(1);
 });
 
+test("chips stage, never search: results annotate their state and go stale until the next submit", async ({ page }, testInfo) => {
+  const email = `stale-${testInfo.project.name}-r${testInfo.retry}@example.com`;
+  await signInAs(page, email, "Stale Tester");
+  await grantRole(email, "approver"); // Where control: My items / Whole church / Claims I decided
+  await page.goto("/search");
+
+  let searchCalls = 0;
+  page.on("request", (req) => {
+    if (req.url().includes("/api/search") && req.method() === "POST") searchCalls++;
+  });
+
+  // Clicking Show/Where chips stages them without firing a search…
+  await page.getByTestId("search-type-filter").getByRole("radio", { name: "Claims" }).click();
+  await page.getByTestId("search-scope-filter").getByRole("radio", { name: "Claims I decided" }).click();
+  await page.waitForTimeout(400);
+  expect(searchCalls).toBe(0);
+  // …and with nothing searched yet there's no annotation line.
+  await expect(page.getByTestId("search-applied")).toHaveCount(0);
+
+  // The explicit submit runs the staged browse and stamps the annotation
+  // with exactly what produced the results; the button relaxes to "fresh".
+  await page.getByTestId("search-submit").click();
+  await expect.poll(() => searchCalls).toBe(1);
+  const applied = page.getByTestId("search-applied");
+  await expect(applied).toBeVisible();
+  await expect(applied).toContainText("All results");
+  await expect(applied).toContainText("Claims I decided");
+  await expect(page.getByTestId("search-submit")).toHaveAttribute("data-fresh", "true");
+  await expect(page.getByTestId("search-stale-note")).toHaveCount(0);
+
+  // Re-chipping goes visibly stale — and STILL doesn't search. The annotation
+  // keeps naming the state the on-screen results actually came from.
+  await page.getByTestId("search-scope-filter").getByRole("radio", { name: "Whole church" }).click();
+  await expect(page.getByTestId("search-stale-note")).toBeVisible();
+  await expect(page.getByTestId("search-submit")).not.toHaveAttribute("data-fresh", "true");
+  await expect(applied).toContainText("Claims I decided");
+  expect(searchCalls).toBe(1);
+
+  // The next submit applies the staged scope + query; fresh again.
+  await page.getByTestId("search-input").fill("anything at all");
+  await page.getByTestId("search-submit").click();
+  await expect.poll(() => searchCalls).toBe(2);
+  await expect(applied).toContainText("Results for “anything at all”");
+  await expect(applied).toContainText("Whole church");
+  await expect(page.getByTestId("search-submit")).toHaveAttribute("data-fresh", "true");
+  await expect(page.getByTestId("search-stale-note")).toHaveCount(0);
+
+  // A role-holder's explicit "My items" must survive refresh/Back: their URL
+  // default is whole-church, so scope=mine is written out, not omitted.
+  await page.getByTestId("search-scope-filter").getByRole("radio", { name: "My items" }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("scope")).toBe("mine");
+  await page.reload();
+  await expect(
+    page.getByTestId("search-scope-filter").getByRole("radio", { name: "My items" })
+  ).toHaveAttribute("aria-checked", "true");
+});
+
 test("admin model change wipes and rebuilds; search works on the new model", async ({ page }, testInfo) => {
   const email = `modeladmin-${testInfo.project.name}-r${testInfo.retry}@example.com`;
   await signInAs(page, email, "Model Admin");

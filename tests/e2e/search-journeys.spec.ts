@@ -264,8 +264,10 @@ test("decided journey: an approver browses the claims they decided, newest first
   const scoped = await search(approver, { query: "退修会的零食", scope: "decided" });
   expect(ranked(scoped).every((i) => i.id === claimId || i.id === receiptId)).toBe(true);
 
-  // The UI shows the browse (three-segment scope → decided → results).
+  // The UI shows the browse (three-segment scope → decided → Search → results):
+  // chips only stage the scope, the explicit submit runs it.
   await approver.goto("/search");
   await approver.getByTestId("search-scope-filter").getByRole("radio").nth(2).click();
+  await approver.getByTestId("search-submit").click();
   await expect(approver.locator(`[data-testid="search-result-claim-${claimId}"]`)).toBeVisible();
 });
