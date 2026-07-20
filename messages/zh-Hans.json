@@ -196,6 +196,10 @@
     "zoomOut": "缩小",
     "zoomIn": "放大",
     "resetZoom": "重置缩放",
+    "fitImage": "显示整张图片",
+    "fitHeight": "适应高度",
+    "fitWidth": "适应宽度",
+    "zoom2x": "放大到 2×",
     "zoomLevel": "{percent}%"
   },
   "ManualEntry": {
