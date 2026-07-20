@@ -53,11 +53,39 @@
     "search": "搜索",
     "positions": "Positions",
     "members": "成员",
-    "teams": "Teams"
+    "teams": "Teams",
+    "setupSigning": "开通签名",
+    "showYourCode": "出示二维码",
+    "chipNone": "未开通",
+    "chipPending": "等待确认"
   },
   "Home": {
     "profileNudge": "您的<link>个人资料</link>需要填写姓名和邮寄地址——两者都会打印在报销表上。",
-    "profileNudgeShort": "完善个人资料"
+    "profileNudgeShort": "完善个人资料",
+    "esignNudgeTitle": "不用打印机",
+    "esignNudgeNull": "在手机上签署并提交报销单。您需要再次登录 Google 帐号，约两分钟即可完成设置；之后由两位会友（或一位审批人）当面确认是您本人——通常在下次聚会时。",
+    "esignNudgeNullCta": "开通签名",
+    "esignNudgeDecline": "我继续用纸质表格就好",
+    "esignNudgePendingTitle": "就差一步",
+    "esignNudgePending": "在教会向任意两位会友（或一位审批人）出示您的二维码，即可完成确认。可能会先请您登录 Google 帐号。",
+    "esignNudgePendingCta": "出示二维码",
+    "esignNudgePaperRepeat": "下一张报销单可以直接在手机上签署——设置一次就好。",
+    "esignNudgeCollapsed": "开通签名",
+    "esignNudgeCollapsedPending": "在教会出示二维码，完成签名设置",
+    "esignDutyTitle": "您已被列为审批人",
+    "esignDutyNull": "开通签名后，会友才能将报销单送交您审批。设置可自行完成；确认需当面进行；之后由执行同工为您开启审批职责。",
+    "esignDutyPendingTitle": "只差一次扫码",
+    "esignDutyPending": "任何一位执行同工都能为您确认——扫一次您的二维码即可。之后由执行同工开启您的审批职责，会友就能将报销单送交给您。",
+    "esignDutySnooze": "下周再提醒我",
+    "esignClosureTitle": "设置完成",
+    "esignClosure": "您 {date} 的报销单（{amount}）现在可以电子签署了。",
+    "esignClosureNoClaim": "您的下一张报销单就可以直接在手机上电子签署。",
+    "esignClosureVouchLine": "您也可以在教会为其他会友当面确认——就是导航里的“<b>担保</b>”标签。",
+    "esignClosureCta": "打开报销单",
+    "esignClosureGotIt": "知道了",
+    "esignNudgeResolved": "签名设置提示已结束",
+    "esignDutyRecovery": "请不要跳过恢复短语步骤——否则您的审批职责无法开启。",
+    "esignNudgePaperRepeatTitle": "还在用纸质表格吗？"
   },
   "SignIn": {
     "tagline": "中华归主海沃教会费用报销——随手拍下收据，之后再提交申请。",
@@ -79,7 +107,10 @@
     "emptyTitle": "还没有报销单",
     "emptyBody": "在<link>收据</link>页面选择收据，然后点“新建报销单”。",
     "counts": "{items} 个项目 · {receipts, plural, other {# 张收据}}",
-    "searchPill": "搜索报销单…"
+    "searchPill": "搜索报销单…",
+    "subtitlePaper": "草稿报销单需先核对；标为“可提交”的报销单可以打印。",
+    "subtitleSetup": "草稿报销单需先核对；标为“可提交”的报销单可以打印，<link>开通签名</link>后也可以电子签署。",
+    "subtitlePending": "草稿报销单需先核对；标为“可提交”的报销单可以打印，在教会<link>当面确认</link>后也可以电子签署。"
   },
   "Profile": {
     "title": "个人资料",
@@ -183,7 +214,8 @@
     "skipAll": "全部跳过",
     "quotaRingAria": "约 {seconds, plural, other {# 秒}}后重试",
     "searchPill": "搜索收据…",
-    "openGoneToast": "这张收据已不在你的收据页。"
+    "openGoneToast": "这张收据已不在你的收据页。",
+    "step4Esign": "<step>4. 完成。</step>打印填好的教会报销表并签名——或直接在手机上电子签署。"
   },
   "Viewer": {
     "ariaTitle": "收据：{name}",
@@ -387,7 +419,20 @@
     "underSignatureFrozen": "签署中——报销文件与明细已冻结。",
     "downloadSigned": "⬇ 下载已签署文件",
     "revertConfirmSigned": "要将这张报销单退回草稿吗？目前已收集的签名将全部作废，审批需要重新开始。",
-    "retiredOption": "{value}（已停用）"
+    "retiredOption": "{value}（已停用）",
+    "esignSetupHint": "完成这张报销单——打印，或开通签名。",
+    "esignSetupAction": "开通签名",
+    "esignWaitingAction": "等待确认",
+    "esignWaitingAria": "电子签名：等待当面确认——查看说明",
+    "esignSetupCalloutTitle": "想电子签署这张报销单？需要先完成一次性设置",
+    "esignSetupCalloutNull": "您需要再次登录 Google 帐号，约两分钟即可完成设置；之后由两位会友（或一位审批人）当面确认是您本人——通常在下次聚会时。",
+    "esignSetupCalloutPendingTitle": "只差当面确认这一步",
+    "esignSetupCalloutPending": "在教会向两位会友（或一位审批人）出示您的二维码，之后这样的报销单就可以电子签署了。",
+    "esignSetupCalloutRevokedTitle": "您的电子签名已停用",
+    "esignSetupCalloutRevoked": "您的签名身份已被停用。详情请见您的个人资料页。",
+    "esignSetupCalloutPaper": "您仍然可以用纸质方式提交——现在下载 PDF，在教会或方便的地方打印即可。",
+    "esignSetupCalloutCta": "开通签名",
+    "esignSetupCalloutQrCta": "出示二维码"
   },
   "Esign": {
     "submitForApproval": "✍️ 提交审批",
@@ -420,12 +465,11 @@
     "openApprovedPacketButton": "🖋️ 打开已批准文件 — 含审批人签名",
     "openOriginalPacketLink": "原始文件（提交时的版本）",
     "submitDialogTitle": "提交审批",
-    "notAttested": "你还不能签名——请先在<link>个人资料</link>中开通签名，然后获得担保。",
     "submitIntro": "你正在为这张报销单（{amount}）申请批准。请把签名放到表单上，选择审批人，然后签署。若之后报销单有改动，你的签名即告失效，审批需重新开始。",
     "openingForm": "正在打开表单…",
     "prepFailed": "无法加载表单——请检查网络后重试。",
     "retryButton": "重试",
-    "noEligibleApprovers": "目前没有可用的审批人——所有可审批的成员都已暂停或未注册。请与财务负责人联系。",
+    "noEligibleApprovers": "目前没有可选择的审批人。请与财务同工确认——您今天仍可以打印这张报销单并以纸质方式提交。",
     "placeSignatureHint": "请先在上方表单上按住以放置您的签名。",
     "approverLabel": "审批人",
     "approverPlaceholder": "请选择审批人…",
@@ -499,7 +543,10 @@
     "waitingDays": "· 已等待 {days, plural, other {# 天}}",
     "alreadyDecidedNote": "这张报销单已有审批结果——列表稍后会更新。",
     "assignedElsewhereNote": "这张报销单已指派给其他审批人。",
-    "undoStroke": "撤销一笔"
+    "undoStroke": "撤销一笔",
+    "notAttestedNull": "要使用电子签署，请先在<link>个人资料</link>页开通签名——之后由两位会友当面确认是您本人。",
+    "notAttestedPending": "就差一步——在教会向两位会友或一位审批人出示您的二维码（在<link>个人资料</link>页）。确认后即可签署。",
+    "notAttestedRevoked": "您的签名身份已被停用。详情请见<link>个人资料</link>页。"
   },
   "Approvals": {
     "title": "审批",
@@ -515,7 +562,10 @@
     "rejectConfirmTitle": "拒绝这份报销单？",
     "rejectConfirmBody": "拒绝后无法撤销，你之后也无法再批准这份报销单。{name} 需要修改并重新提交，才能重新进入审批。",
     "rejectConfirmAction": "✗ 拒绝报销单",
-    "openGone": "该报销单已不在此列表中——可能已有审批结果。"
+    "openGone": "该报销单已不在此列表中——可能已有审批结果。",
+    "emptyNotSetUp": "报销单还无法送交给您——请先<link>开通签名</link>，会友才能选您作为审批人。",
+    "emptyPendingVouch": "设置已完成——只差当面确认。请在教会<link>出示您的二维码</link>；确认后会友即可将报销单送交给您。",
+    "emptyRevoked": "您的签名身份已被停用。详情请见<link>个人资料</link>页。"
   },
   "Finance": {
     "title": "财务",
@@ -540,7 +590,7 @@
   "Identity": {
     "title": "电子签名",
     "chipReady": "可以签署",
-    "chipPending": "等待担保",
+    "chipPending": "等待确认",
     "chipRevoked": "已停用",
     "chipNone": "未开通",
     "loadFailed": "无法加载签名状态",
@@ -556,7 +606,7 @@
     "bootstrapBusy": "设置中…",
     "setupFailed": "设置失败",
     "notSetUp": "本教会尚未设置电子签名——请联系管理员。",
-    "enrollIntro": "用手机就能签署和审批报销——无需打印。你将同意使用电子签名、画下你的签名，然后由两位会友当面确认是你本人（扫一下二维码即可）。",
+    "enrollIntro": "在手机上签署并提交报销单——无需打印。您将同意使用电子签名、手写您的签名，然后由两位会友（或一位审批人）当面确认是您本人——扫一次码即可。",
     "enrollButton": "开通签名",
     "checkingDevice": "正在检查此设备…",
     "yourSignature": "你的签名",
@@ -593,7 +643,8 @@
     "scanFromVouchTab": "重要提示：请对方在本应用的“担保”标签页中扫描此码——不要用手机相机应用扫描。",
     "whoCanVouch": "可以为您担保的成员：{names}{more, plural, =0 {} other { 等，还有 # 人}}。",
     "revokedBody": "您的签名密钥已被管理员停用。您之前签署的内容仍然有效，但若要再次签署，需要重新设置签名并再次当面获得担保。",
-    "reEnrollButton": "重新设置签名"
+    "reEnrollButton": "重新设置签名",
+    "connectFraming": "请先用您在本应用使用的同一个 Google 帐号登录。"
   },
   "Devices": {
     "newDeviceTitle": "这似乎是一台新设备。",
@@ -829,7 +880,8 @@
       "notAllowed": "您的账号尚未开通电子签名",
       "approverUnavailable": "该审批人目前不接收新的审批请求——请改选其他人",
       "approverRoleLost": "您的审批人角色已被移除——您可以拒绝，但无法批准",
-      "decisionNotBinding": "已签署的决定未能在账本上生效——请刷新本报销单后重试，或请提交人改选其他审批人"
+      "decisionNotBinding": "已签署的决定未能在账本上生效——请刷新本报销单后重试，或请提交人改选其他审批人",
+      "invalidNudge": "此更新未能保存。"
     },
     "admin": {
       "contentString": "内容必须为文本。",
@@ -854,7 +906,8 @@
       "unknownMember": "One of the selected people couldn’t be found. Refresh and try again."
     },
     "searchInvalid": "无法理解该搜索——请调整后重试",
-    "searchEmptyQuery": "请先输入要搜索的内容"
+    "searchEmptyQuery": "请先输入要搜索的内容",
+    "invalidMemberUpdate": "此成员更新未能保存。"
   },
   "AddReceipts": {
     "title": "向这张报销单添加收据",
@@ -1108,7 +1161,13 @@
     "action_admin_church_context": "编辑了教会背景资料",
     "action_update_embedding_config": "更改了搜索设置",
     "action_rebuild_embeddings": "重建了搜索索引",
-    "action_retry_embedding": "重试了失败的索引"
+    "action_retry_embedding": "重试了失败的索引",
+    "fields": {
+      "ESIGN_NUDGES_OFF": {
+        "label": "暂停开通提示",
+        "help": "对所有人隐藏首页的电子签名开通与完成提示卡。按钮、菜单入口与状态提示仍保留。"
+      }
+    }
   },
   "Ministries": {
     "title": "Budget categories",
@@ -1270,13 +1329,12 @@
     "attestedTitle": "已认证会友",
     "othersTitle": "其他成员",
     "othersEmpty": "名录中的所有成员均已认证。",
-    "statusPending": "等待担保",
+    "statusPending": "等待确认",
     "statusRevoked": "密钥已吊销",
     "statusNone": "尚未开通电子签名",
     "accessAlwaysOn": "始终开启",
     "accessGrant": "授予电子签名权限",
     "accessCancel": "取消电子签名权限",
-    "pendingHint": "等待担保的成员需当面完成认证——请前往<link>为会友担保</link>页面。",
     "roleLabel": "角色",
     "roleDialogTitle": "更改 {name} 的角色",
     "roleDialogFromTo": "这会把他们的角色从 <b>{from}</b> 更改为 <b>{to}</b>。",
@@ -1291,7 +1349,23 @@
     "keyDialogBody": "仅当能以他身份签名的设备丢失或被盗时才这样做。他已签署的内容依然有效，但该密钥将立即在所有地方失效——他需要重新开通签名，并再次当面获得担保。",
     "attestedSince": "认证于 {date}",
     "statusRevokedHint": "其签名密钥已停用。若要再次签署，需在其个人资料页重新设置签名并再次当面获得担保。",
-    "statusNoneHint": "尚未设置电子签名。可从其个人资料页开始设置。"
+    "statusNoneHint": "尚未设置电子签名。可从其个人资料页开始设置。",
+    "tallySetUp": "{count} 人已开通",
+    "tallyNotYet": "{count} 人尚未开通",
+    "tallyPaper": "{count} 人选择纸质",
+    "tallyStalePending": "{count} 人等待确认已超过两周",
+    "selfVouchHint": "您可以亲自为等待中的会友确认——在<link>担保</link>页各扫一次二维码即可。",
+    "selfVouchBlocked": "等待中的会友需要已认证的担保人——请先<link>开通签名</link>，就能亲自为他们确认。",
+    "awaitingDutyHint": "已完成确认并担任职位，但审批人角色尚未授予——授予前，报销单无法送交给他们。可使用本行的角色控件授予。",
+    "prefersPaperChip": "选择纸质",
+    "prefersPaperSet": "记录选择纸质",
+    "prefersPaperClear": "取消选择纸质",
+    "prefersPaperHint": "请在与本人交谈后再记录——记录后应用将不再向其提示开通签名。纸质方式始终可用。",
+    "helpTitle": "如何帮助会友开通",
+    "helpScriptPrivacy": "有些会友可能已在应用里选择继续用纸质表格——您不会收到通知。请先询问：“需要帮您开通吗，还是继续用纸质？”并在此记录。",
+    "helpScriptSetup": "开通入口在每位会友的个人资料页；当面确认只需扫一次二维码。",
+    "helpScriptSeniors": "年长会友可能需要有人协助完成 Google 登录——聚会后每人预留一分钟即可。",
+    "helpScriptPaper": "纸质方式始终完全可用。推广初期，所有确认都要经过少数已认证的会友——请据此安排聚会后的服务台。"
   },
   "Teams": {
     "title": "Teams",

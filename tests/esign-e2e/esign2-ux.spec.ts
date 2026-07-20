@@ -222,7 +222,7 @@ test("enrollment wizard: consent gloss, per-stroke undo, pending voucher directo
   const link = eve.page.locator('a[href*="/vouch?c="]');
   await expect(link).toBeVisible({ timeout: 30_000 });
   eveVouchUrl = (await link.getAttribute("href"))!;
-  await expect(eve.page.getByText("Waiting for vouches")).toBeVisible();
+  await expect(eve.page.getByText("Waiting for confirmation")).toBeVisible();
   await expect(eve.page.locator('[data-testid="scan-hint"]')).toBeVisible();
   const directory = eve.page.locator('[data-testid="voucher-directory"]');
   await expect(directory).toBeVisible({ timeout: 30_000 });
@@ -272,7 +272,7 @@ test("a logged-out vouch link threads through /signin?return= to the loaded cand
 
   // Nothing landed on the roster: Eve is still waiting.
   await eve.page.goto(`${BASE}/profile`);
-  await expect(eve.page.getByText("Waiting for vouches")).toBeVisible({ timeout: 30_000 });
+  await expect(eve.page.getByText("Waiting for confirmation")).toBeVisible({ timeout: 30_000 });
 });
 
 test("submit ceremony: disabled-button hints walk the signer forward; Escape closes", async ({

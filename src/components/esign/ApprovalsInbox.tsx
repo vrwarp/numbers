@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useOpenParam } from "@/lib/use-open-param";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { useTimeZone, useTranslations } from "next-intl";
@@ -49,6 +50,7 @@ export interface InboxClaim {
 interface InboxMe {
   approvalsPaused: boolean;
   canApprove: boolean;
+  identityStatus: string | null;
 }
 
 export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoint?: string }) {
@@ -129,9 +131,51 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
       {claims === null ? (
         <p className="text-sm text-stone-500">{tCommon("loading")}</p>
       ) : pending.length === 0 ? (
+        // Backstop branches (docs/ESIGN_SETUP_DISCOVERABILITY.md §3.8): a
+        // role-holder whose identity is mid-transition (re-enrolling, revoked)
+        // learns WHY nothing arrives — the bare dove is for people whose inbox
+        // could actually receive work. Revoked stays neutral: the profile card
+        // owns that story, never a cheerful setup pitch.
         <div className="card p-8 text-center text-stone-500">
-          <div className="text-3xl">🕊️</div>
-          <p className="mt-2">{t("empty")}</p>
+          {me && me.identityStatus !== "attested" && <div className="mb-2 text-3xl">✍️</div>}
+          {me && me.identityStatus !== "attested" ? (
+            me.identityStatus === "revoked" ? (
+              <p data-testid="empty-revoked">
+                {t.rich("emptyRevoked", {
+                  link: (chunks) => (
+                    <Link href="/profile" className="text-indigo-600 underline">
+                      {chunks}
+                    </Link>
+                  ),
+                })}
+              </p>
+            ) : me.identityStatus === "pending" ? (
+              <p data-testid="empty-pending-vouch">
+                {t.rich("emptyPendingVouch", {
+                  link: (chunks) => (
+                    <Link href="/profile?open=esign" className="text-indigo-600 underline">
+                      {chunks}
+                    </Link>
+                  ),
+                })}
+              </p>
+            ) : (
+              <p data-testid="empty-not-set-up">
+                {t.rich("emptyNotSetUp", {
+                  link: (chunks) => (
+                    <Link href="/profile?open=esign" className="text-indigo-600 underline">
+                      {chunks}
+                    </Link>
+                  ),
+                })}
+              </p>
+            )
+          ) : (
+            <>
+              <div className="text-3xl">🕊️</div>
+              <p className="mt-2">{t("empty")}</p>
+            </>
+          )}
         </div>
       ) : (
         <ul className="space-y-3">

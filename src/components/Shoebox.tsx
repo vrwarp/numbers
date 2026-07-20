@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useOpenParam } from "@/lib/use-open-param";
 import { useRouter } from "next/navigation";
@@ -44,7 +44,19 @@ interface UploadedPending {
 
 type PendingItem = LocalPending | UploadedPending;
 
-export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) {
+export default function Shoebox({
+  searchEnabled,
+  esignOffered,
+  nudgeSlot,
+}: {
+  searchEnabled?: boolean;
+  /** Page-computed (A5/A8 predicate, docs/ESIGN_SETUP_DISCOVERABILITY.md §3.5):
+   *  branches the first-run guide's finish step. Outcome-neutral wording only —
+   *  users outside the switch/allowlist must never read the word "e-sign". */
+  esignOffered?: boolean;
+  /** The home nudge card (server-decided), rendered below the header. */
+  nudgeSlot?: ReactNode;
+}) {
   const t = useTranslations("Shoebox");
   const tCommon = useTranslations("Common");
   const tErrors = useTranslations("Errors");
@@ -100,6 +112,9 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
   const [dragging, setDragging] = useState(false);
   // Depth counter so nested dragenter/dragleave don't flicker the overlay.
   const dragDepth = useRef(0);
+  // Flips after mount — the e2e hydration gate (see the dropzone attribute).
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/receipts");
@@ -582,6 +597,12 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      // A change event fired into the file input BEFORE React hydrates does
+      // nothing — no handler is attached yet, so the prepare dialog never
+      // opens. This attribute flips on after mount so tests (helpers.ts
+      // uploadReceipts) can wait for interactivity instead of racing it; it
+      // went intermittent once the page grew (masonry wall + nudge slot).
+      data-hydrated={hydrated ? "" : undefined}
       data-testid="shoebox-dropzone"
     >
       {dragging && (
@@ -653,6 +674,12 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
           <p className="pt-1.5 text-sm text-stone-500">{t("intro")}</p>
         </div>
       </div>
+
+      {/* The home nudge slot (docs/ESIGN_SETUP_DISCOVERABILITY.md §3.5) sits
+          BELOW the page's own identity — a dismissible invitation must never
+          outrank the H1. The page decides WHAT renders here (P1 arbitration);
+          this component only owns the placement. */}
+      {nudgeSlot}
 
       {error && (
         <div className="card border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
@@ -806,13 +833,15 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
             <LocaleSwitcher signedIn variant="prominent" />
           </div>
           <ol className="mx-auto mt-8 grid max-w-3xl gap-3 text-left text-sm text-stone-600 sm:grid-cols-4">
-            {(["step1", "step2", "step3", "step4"] as const).map((step) => (
-              <li key={step}>
-                {t.rich(step, {
-                  step: (chunks) => <span className="font-semibold text-indigo-700">{chunks}</span>,
-                })}
-              </li>
-            ))}
+            {(["step1", "step2", "step3", esignOffered ? "step4Esign" : "step4"] as const).map(
+              (step) => (
+                <li key={step}>
+                  {t.rich(step, {
+                    step: (chunks) => <span className="font-semibold text-indigo-700">{chunks}</span>,
+                  })}
+                </li>
+              )
+            )}
           </ol>
         </div>
       ) : (

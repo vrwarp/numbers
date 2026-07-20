@@ -79,7 +79,6 @@ function DutyRow({
 export default function ProfileForm() {
   const t = useTranslations("Profile");
   const tCommon = useTranslations("Common");
-  const tNav = useTranslations("NavBar");
   const router = useRouter();
   const activeLocale = useLocale();
   const apiError = useApiErrorMessage();
@@ -306,17 +305,26 @@ export default function ProfileForm() {
         </div>
       )}
 
-      {/* The NavBar's sign-out is hidden on phone widths — this is the mobile home for it. */}
-      <div className="flex justify-center sm:hidden">
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={() => signOut()}
-          data-testid="profile-sign-out"
-        >
-          {tNav("signOut")}
-        </button>
-      </div>
+    </div>
+  );
+}
+
+/** The NavBar's sign-out is hidden on phone widths — this is its mobile home.
+ *  Rendered by the profile PAGE after the signing card, so the page's terminal
+ *  action really is terminal (every e-sign nudge deep-links to the card; the
+ *  card must not sit below a button that reads as end-of-page). */
+export function MobileSignOut() {
+  const tNav = useTranslations("NavBar");
+  return (
+    <div className="flex justify-center sm:hidden">
+      <button
+        type="button"
+        className="btn-secondary"
+        onClick={() => signOut()}
+        data-testid="profile-sign-out"
+      >
+        {tNav("signOut")}
+      </button>
     </div>
   );
 }
