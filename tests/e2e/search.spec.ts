@@ -205,7 +205,7 @@ test("draft claims index after the idle window and re-index on edit", async ({ p
   );
 });
 
-test("scopes: member cannot ask for whole-church; an approver defaults to it and can open a foreign receipt", async ({ browser }, testInfo) => {
+test("scopes: member cannot ask for whole-church; an approver widens to it explicitly and can open a foreign receipt", async ({ browser }, testInfo) => {
   const suffix = `${testInfo.project.name}-r${testInfo.retry}`;
   // Alice (member) uploads a distinctive receipt.
   const alice = await (await browser.newContext()).newPage();
@@ -226,12 +226,16 @@ test("scopes: member cannot ask for whole-church; an approver defaults to it and
   expect((await bob.request.get(`/api/receipts/${receiptId}/file`)).status()).toBe(404);
 
   // Carol (approver, granted directly in the e2e DB — the verified-mirror
-  // shortcut every role e2e uses): defaults to whole-church, sees the owner,
-  // and the ratified §6.3 grant lets her open the image.
+  // shortcut every role e2e uses): asks for whole-church EXPLICITLY (an
+  // omitted scope is "mine" for everyone), sees the owner, and the ratified
+  // §6.3 grant lets her open the image.
   const carol = await (await browser.newContext()).newPage();
   await signInAs(carol, `carol-search-${suffix}@example.com`, "Carol Approver");
   await grantRole(`carol-search-${suffix}@example.com`, "approver");
-  const carolResult = await searchUntil(carol, { query: "projector VBS" }, anyHit);
+  // Her own default scope stays "mine" — the foreign receipt is NOT there.
+  const carolMine = await (await carol.request.post("/api/search", { data: { query: "projector VBS" } })).json();
+  expect(anyHit(carolMine)).toBe(false);
+  const carolResult = await searchUntil(carol, { query: "projector VBS", scope: "all" }, anyHit);
   const items = [
     ...carolResult.exact,
     ...(carolResult.best ? [carolResult.best] : []),
@@ -385,10 +389,18 @@ test("chips stage, never search: results annotate their state and go stale until
   await expect(page.getByTestId("search-submit")).toHaveAttribute("data-fresh", "true");
   await expect(page.getByTestId("search-stale-note")).toHaveCount(0);
 
-  // A role-holder's explicit "My items" must survive refresh/Back: their URL
-  // default is whole-church, so scope=mine is written out, not omitted.
+  // Scope round-trips through the URL: the explicit "Whole church" is written
+  // (?scope=all) and survives a reload…
+  await expect.poll(() => new URL(page.url()).searchParams.get("scope")).toBe("all");
+  await page.reload();
+  await expect(
+    page.getByTestId("search-scope-filter").getByRole("radio", { name: "Whole church" })
+  ).toHaveAttribute("aria-checked", "true");
+
+  // …while "My items" is everyone's default — role-holders included — so it
+  // strips the param and still restores as the selection.
   await page.getByTestId("search-scope-filter").getByRole("radio", { name: "My items" }).click();
-  await expect.poll(() => new URL(page.url()).searchParams.get("scope")).toBe("mine");
+  await expect.poll(() => new URL(page.url()).searchParams.get("scope")).toBe(null);
   await page.reload();
   await expect(
     page.getByTestId("search-scope-filter").getByRole("radio", { name: "My items" })

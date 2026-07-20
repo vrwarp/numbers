@@ -117,7 +117,7 @@ export default function SearchClient({
   const errorMessage = useApiErrorMessage();
 
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<Scope>(canAll ? "all" : "mine");
+  const [scope, setScope] = useState<Scope>("mine");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>(null);
   const [result, setResult] = useState<SearchResponse | null>(null);
   // The controls that produced `result` — null until the first search lands.
@@ -146,31 +146,26 @@ export default function SearchClient({
   // encode the view so a refresh or Back reproduces it without retyping — IME
   // users pay the composition tax only once. Written with replaceState so it
   // never triggers a soft navigation / server round-trip.
-  const syncUrl = useCallback(
-    (q: string, sc: Scope, ty: TypeFilter) => {
-      const sp = new URLSearchParams();
-      if (q.trim()) sp.set("q", q.trim());
-      // Omit only the CALLER'S default scope — for role-holders that's "all",
-      // so their explicit "My items" must be written or Back/refresh would
-      // snap the control back to whole-church.
-      if (sc !== (canAll ? "all" : "mine")) sp.set("scope", sc);
-      if (ty) sp.set("type", ty);
-      const qs = sp.toString();
-      window.history.replaceState(null, "", qs ? `/search?${qs}` : "/search");
-    },
-    [canAll]
-  );
+  const syncUrl = useCallback((q: string, sc: Scope, ty: TypeFilter) => {
+    const sp = new URLSearchParams();
+    if (q.trim()) sp.set("q", q.trim());
+    // "mine" is the default for everyone (role-holders included), so only
+    // non-default scopes are written — and always round-trip on Back/refresh.
+    if (sc !== "mine") sp.set("scope", sc);
+    if (ty) sp.set("type", ty);
+    const qs = sp.toString();
+    window.history.replaceState(null, "", qs ? `/search?${qs}` : "/search");
+  }, []);
 
   // Rehydrate from the URL on mount, then auto-run if there's anything to show.
   useEffect(() => {
     const urlQ = params.get("q") ?? "";
     const urlType = params.get("type");
     const urlScope = params.get("scope");
-    // Role-holders default to the whole-church scope (§6.1 — their canonical
-    // lookup is someone else's claim); an explicit ?scope=mine still wins.
-    let initScope: Scope = canAll ? "all" : "mine";
-    if (urlScope === "mine") initScope = "mine";
-    else if (urlScope === "all" && canAll) initScope = "all";
+    // Everyone starts in "mine" — role-holders included — and widens
+    // explicitly; a cross-tenant ?scope= is honored only with its grant.
+    let initScope: Scope = "mine";
+    if (urlScope === "all" && canAll) initScope = "all";
     else if (urlScope === "decided" && canDecided) initScope = "decided";
     else if (urlScope === "team" && canTeam) initScope = "team";
     const initType: TypeFilter =

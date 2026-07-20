@@ -30,7 +30,9 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) throw new ApiError(400, "Invalid search request", "searchInvalid");
 
     const caps = await searchCapabilitiesFor(userId);
-    const scope = parsed.data.scope ?? (caps.canAll ? "all" : "mine");
+    // Omitted scope means "mine" for EVERYONE — role-holders reach the
+    // cross-tenant scopes only by asking explicitly.
+    const scope = parsed.data.scope ?? "mine";
     if (scope === "all" && !caps.canAll) throw new ApiError(404, "Not found", "notFound");
     if (scope === "decided" && !caps.canDecided) throw new ApiError(404, "Not found", "notFound");
     // Team scope (§6.3 team amendment): membership-derived, standard 404 when

@@ -16,10 +16,10 @@ cheap exact-match pass that runs beside the semantic one (§6.2).
 - **Members** search their own receipts and their own claims. Results are levers, not
   dead ends: an unclaimed receipt offers a path back into the claiming flow, a claimed
   one leads to its claim and status.
-- **Approvers** search **all** receipts and **all** claims (default scope — their
-  canonical lookup is someone else's claim), with a browseable view of claims they
-  decided.
-- **Treasurers** (and admins) likewise search everything by default.
+- **Approvers** can search **all** receipts and **all** claims (the "Whole church"
+  scope, selected explicitly — everyone STARTS in "My items", role-holders
+  included), with a browseable view of claims they decided.
+- **Treasurers** (and admins) likewise can widen to everything, explicitly.
 - Ranked by cosine similarity of a Qwen multimodal embedding; presented **grouped by
   year**, with the top hit surfaced so grouping never buries it (§7.2).
 - **All claims are indexed, drafts included**: a draft becomes searchable once left
@@ -485,8 +485,8 @@ line at priority 0.
 POST /api/search        { query: string (0..300),
                           types?: ("receipt"|"claim")[]   default both,
                           scope?: "mine" | "all" | "decided",
-                                  // default: "all" for verified approver/treasurer/
-                                  // admin, "mine" for members; "decided" = claims I
+                                  // default: "mine" for EVERYONE (role-holders
+                                  // widen explicitly); "decided" = claims I
                                   // approved/rejected (+ their receipts) — the one
                                   // scope where an EMPTY query is allowed and
                                   // returns the set newest-first (browse mode)
@@ -571,7 +571,7 @@ with the endpoint (§8).
 
 ### 6.3 Permission matrix (who sees what)
 
-| Caller (verified role mirror) | scope="mine" | scope="all" (role-holder default) | scope="decided" |
+| Caller (verified role mirror) | scope="mine" (everyone's default) | scope="all" | scope="decided" |
 | :-- | :-- | :-- | :-- |
 | member | own receipts + own claims | 404 | 404 |
 | approver | own | all receipts + all claims | claims where `approverUserId = me` AND status ∈ approved/rejected/paid + receipts attached to those claims; empty query = browse newest-first |
@@ -795,12 +795,13 @@ configured and enabled (`EmbeddingSettings.enabled`).
   in the address bar (and thus browser history) now, which is the accepted cost of
   refresh-survives-correctly. It is still never sent anywhere the server logs it as a
   URL — `/api/search` takes the query in the POST body (§7.4), not the querystring.
-  Only the CALLER'S defaults are omitted from the URL to keep it clean — the
-  unset type filter, and the caller's default scope (whole-church for
-  role-holders, `mine` for members), so a role-holder's explicit "My items" is
-  written as `?scope=mine` and survives Back/refresh instead of snapping back
-  to whole-church. An out-of-scope `?scope=` (e.g. a paused role-holder's stale
-  link) falls back to the caller's default on load.
+  Only `mine`/`receipt`/`claim` defaults are omitted from the URL to keep it
+  clean — `mine` is the default for EVERYONE, role-holders included (an earlier
+  role-holders-default-to-whole-church posture was reversed: privacy-preserving
+  by default, and it made an explicit "My items" vanish from the URL and snap
+  back to whole-church on Back/refresh). An out-of-scope `?scope=` (e.g. a
+  paused role-holder's stale link) falls back to `mine` on load; an omitted
+  scope in the POST body likewise means `mine` for everyone.
 - **Shared devices are a normal church pattern** (family iPad, the office computer):
   recents are keyed to the signed-in user server-side and loaded fresh per session,
   and the URL query state lives only in that tab — one member's recent queries are
@@ -1041,7 +1042,8 @@ with the outcome and keeps machinery in expandos:
   window and an edit refreshes its embedding; "Find in Receipts" lands highlighted on
   a below-the-fold receipt (incl. inside the collapsed processed section); a refresh
   with `?q=&scope=` in the URL re-runs the search and restores the view; "Show all N"
-  expands inline and resets on the next submit; approver default scope is whole-church and can open
+  expands inline and resets on the next submit; an approver defaults to "mine" like
+  everyone, widens to whole-church explicitly, and can open
   a foreign receipt image; member `scope:"all"` → 404; decided scope browses with an
   empty query (chip stages the scope, the explicit submit runs the browse) and
   `?open=<id>` lands on the approvals row; Show/Where chips never fire a fetch,
