@@ -283,10 +283,20 @@ export default function MembersDirectory() {
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
               {t("tallySetUp", { count: tally.setUp })}
             </span>
-            <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600">
+            {/* Zero counts stay visible (the column matters to the script) but
+                muted — a zero at full chip strength reads like live news. */}
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                tally.notYet > 0 ? "bg-stone-100 text-stone-600" : "bg-stone-50 text-stone-400"
+              }`}
+            >
               {t("tallyNotYet", { count: tally.notYet })}
             </span>
-            <span className="rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-500">
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                tally.paper > 0 ? "bg-stone-100 text-stone-500" : "bg-stone-50 text-stone-400"
+              }`}
+            >
               {t("tallyPaper", { count: tally.paper })}
             </span>
             {stalePending > 0 && (

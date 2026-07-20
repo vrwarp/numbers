@@ -72,8 +72,11 @@ export default async function HomePage() {
           </Link>
         </>
       )}
-      {nudge && <EsignNudgeCard decision={nudge} />}
-      <Shoebox searchEnabled={searchEnabled} esignOffered={esign?.eligible ?? false} />
+      <Shoebox
+        searchEnabled={searchEnabled}
+        esignOffered={esign?.eligible ?? false}
+        nudgeSlot={nudge ? <EsignNudgeCard decision={nudge} /> : null}
+      />
     </div>
   );
 }

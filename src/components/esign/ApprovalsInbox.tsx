@@ -136,6 +136,7 @@ export default function ApprovalsInbox({ endpoint = "/api/approvals" }: { endpoi
         // could actually receive work. Revoked stays neutral: the profile card
         // owns that story, never a cheerful setup pitch.
         <div className="card p-8 text-center text-stone-500">
+          {me && me.identityStatus !== "attested" && <div className="mb-2 text-3xl">✍️</div>}
           {me && me.identityStatus !== "attested" ? (
             me.identityStatus === "revoked" ? (
               <p data-testid="empty-revoked">

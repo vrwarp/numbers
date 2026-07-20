@@ -1426,7 +1426,10 @@ export default function ReviewClaim({
           data-testid="esign-setup-callout"
         >
           <div className="flex items-start justify-between gap-3">
-            <p id="esign-setup-callout-title" className="font-semibold text-indigo-900">
+            <p
+              id="esign-setup-callout-title"
+              className="font-semibold text-indigo-900 [text-wrap:balance]"
+            >
               {esignIdentityStatus === "pending"
                 ? t("esignSetupCalloutPendingTitle")
                 : esignIdentityStatus === "revoked"
@@ -1434,7 +1437,7 @@ export default function ReviewClaim({
                   : t("esignSetupCalloutTitle")}
             </p>
             <button
-              className="rounded-lg px-2 py-0.5 text-stone-400 hover:bg-indigo-100 hover:text-stone-600"
+              className="-m-2 shrink-0 rounded-lg p-2.5 leading-none text-stone-400 hover:bg-indigo-100 hover:text-stone-600"
               onClick={() => {
                 setEsignSetupOpen(false);
                 esignSetupTriggerRef.current?.focus();
@@ -1486,9 +1489,11 @@ export default function ReviewClaim({
         }`}
         data-testid="claim-action-bar"
       >
-        {isDraft && activeItems.length > 1 ? (
+        {isDraft && activeItems.length > 1 && !(allVerified && esignSetupNeeded) ? (
           // Progress tracks ROWS, not receipts — a single receipt split across
           // ministries earns the same "how much is left" feedback as a batch.
+          // Once every row is verified and the user can't e-sign yet, the
+          // bar's job is done — the gutter carries the next step instead.
           <div
             className="flex w-full min-w-0 items-center gap-3 sm:w-auto sm:min-w-48 sm:flex-1"
             data-testid="verify-progress"
@@ -1581,6 +1586,34 @@ export default function ReviewClaim({
               Each button is gated the same way: a click while rows are
               unverified nudges the first one; the real gate stays server-side. */}
           <div className="flex items-center gap-2 sm:gap-3 sm:border-l sm:border-stone-200 sm:pl-3">
+            {esignSetupNeeded && (
+              // A real, enabled button (never aria-disabled): for screen-reader
+              // users a status phrase wearing a disabled button would hide the
+              // only path to the explanation. Sits LEFT of Print so the filled
+              // primary keeps the terminal slot in every bar state.
+              <button
+                ref={esignSetupTriggerRef}
+                className="btn-secondary !px-3 sm:!px-4"
+                onClick={() => setEsignSetupOpen((v) => !v)}
+                aria-expanded={esignSetupOpen}
+                aria-label={
+                  esignIdentityStatus === "pending"
+                    ? t("esignWaitingAria")
+                    : t("esignSetupAction")
+                }
+                data-testid="esign-setup-button"
+              >
+                {esignIdentityStatus === "pending"
+                  ? t("esignWaitingAction")
+                  : t("esignSetupAction")}
+                <span
+                  aria-hidden
+                  className={`ml-1.5 inline-block text-[10px] transition-transform ${esignSetupOpen ? "rotate-180" : ""}`}
+                >
+                  ▾
+                </span>
+              </button>
+            )}
             <span
               onClick={() => {
                 if (!pdfButtonEnabled && !downloading) nudgeBlocked();
@@ -1626,27 +1659,6 @@ export default function ReviewClaim({
                   {downloading ? t("buildingPdf") : t("esignAction")}
                 </button>
               </span>
-            )}
-            {esignSetupNeeded && (
-              // A real, enabled button (never aria-disabled): for screen-reader
-              // users a status phrase wearing a disabled button would hide the
-              // only path to the explanation.
-              <button
-                ref={esignSetupTriggerRef}
-                className="btn-secondary !px-3 sm:!px-4"
-                onClick={() => setEsignSetupOpen((v) => !v)}
-                aria-expanded={esignSetupOpen}
-                aria-label={
-                  esignIdentityStatus === "pending"
-                    ? t("esignWaitingAria")
-                    : t("esignSetupAction")
-                }
-                data-testid="esign-setup-button"
-              >
-                {esignIdentityStatus === "pending"
-                  ? t("esignWaitingAction")
-                  : t("esignSetupAction")}
-              </button>
             )}
           </div>
         </div>

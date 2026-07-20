@@ -105,16 +105,19 @@ export default function EsignNudgeCard({ decision }: { decision: HomeNudgeDecisi
   }
 
   const duty = variant === "duty";
+  // Tinted shell carries the signal; body text stays stone so the card never
+  // reads as a wall of warning — only the title takes the variant color.
   const cardTone = duty
-    ? "border-amber-200 bg-amber-50 text-amber-900"
-    : "border-indigo-200 bg-indigo-50 text-indigo-950";
+    ? "border-amber-200 bg-amber-50 text-stone-700"
+    : "border-indigo-200 bg-indigo-50 text-stone-700";
+  const titleTone = duty ? "text-amber-900" : "text-indigo-950";
 
   // Collapsed = the decayed/capped one-line door. Still a real link; no chrome.
   if (collapsed) {
     return (
       <Link
         href="/profile?open=esign"
-        className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium ${cardTone}`}
+        className={`flex max-w-2xl items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium ${cardTone} ${titleTone}`}
         data-testid={duty ? "esign-nudge-duty-collapsed" : "esign-nudge-collapsed"}
       >
         <span aria-hidden>✍️</span>
@@ -128,14 +131,16 @@ export default function EsignNudgeCard({ decision }: { decision: HomeNudgeDecisi
       <p aria-live="polite" className="sr-only" data-testid="esign-nudge-live">
         {announce}
       </p>
-      {/* Not `.card`: its bg-white would win the cascade over the tint. */}
+      {/* Not `.card`: its bg-white would win the cascade over the tint. Capped
+          width on wide screens — a full-bleed invitation band reads as a
+          takeover, not a suggestion. */}
       <div
-        className={`space-y-3 rounded-xl border p-4 text-sm shadow-sm short:space-y-2 short:p-3 ${cardTone}`}
+        className={`max-w-2xl space-y-3 rounded-xl border p-4 text-sm shadow-sm short:space-y-2 short:p-3 ${cardTone}`}
         data-testid={`esign-nudge-${variant}`}
       >
         {variant === "closure" ? (
           <>
-            <p className="font-semibold">{t("esignClosureTitle")}</p>
+            <p className={`font-semibold ${titleTone}`}>{t("esignClosureTitle")}</p>
             <p>
               {closureClaim
                 ? t("esignClosure", {
@@ -147,12 +152,16 @@ export default function EsignNudgeCard({ decision }: { decision: HomeNudgeDecisi
                   })
                 : t("esignClosureNoClaim")}
             </p>
-            <p className="text-indigo-900/80">{t("esignClosureVouchLine")}</p>
-            <div className="flex flex-wrap items-center gap-2">
+            <p>
+              {t.rich("esignClosureVouchLine", {
+                b: (chunks) => <strong className="font-semibold">{chunks}</strong>,
+              })}
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               {closureClaim && (
                 <Link
                   href={`/claims/${closureClaim.id}`}
-                  className="btn-primary !px-4"
+                  className="btn-primary w-full !px-4 text-center sm:w-auto"
                   onClick={() => void markNudge({ closureShown: true })}
                   data-testid="esign-nudge-closure-cta"
                 >
@@ -160,7 +169,7 @@ export default function EsignNudgeCard({ decision }: { decision: HomeNudgeDecisi
                 </Link>
               )}
               <button
-                className="btn-secondary !px-4"
+                className="btn-secondary w-full !px-4 sm:w-auto"
                 onClick={() => {
                   void markNudge({ closureShown: true });
                   setHidden(true);
@@ -174,7 +183,7 @@ export default function EsignNudgeCard({ decision }: { decision: HomeNudgeDecisi
           </>
         ) : (
           <>
-            <p className="font-semibold">
+            <p className={`font-semibold ${titleTone}`}>
               {duty
                 ? state === "pending"
                   ? t("esignDutyPendingTitle")
@@ -194,17 +203,22 @@ export default function EsignNudgeCard({ decision }: { decision: HomeNudgeDecisi
                     ? t("esignNudgePaperRepeat")
                     : t("esignNudgeNull")}
             </p>
-            <div className="flex flex-wrap items-center gap-2">
+            {duty && state === "none" && (
+              // The one hard warning gets its own quiet paragraph — the body
+              // above stays capability-toned.
+              <p className="text-amber-900">{t("esignDutyRecovery")}</p>
+            )}
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               <Link
                 href="/profile?open=esign"
-                className="btn-primary !px-4"
+                className="btn-primary w-full !px-4 text-center sm:w-auto"
                 data-testid="esign-nudge-cta"
               >
                 {state === "pending" ? t("esignNudgePendingCta") : t("esignNudgeNullCta")}
               </Link>
               {duty ? (
                 <button
-                  className="btn-secondary !px-4"
+                  className="btn-secondary w-full !px-4 sm:w-auto"
                   onClick={() => {
                     void markNudge({ dutySnooze: true });
                     setHidden(true);
@@ -218,7 +232,7 @@ export default function EsignNudgeCard({ decision }: { decision: HomeNudgeDecisi
                 // The decline is labeled and the same button geometry as the
                 // CTA — a legitimate choice, not an escape hatch (P6).
                 <button
-                  className="btn-secondary !px-4"
+                  className="btn-secondary w-full !px-4 sm:w-auto"
                   onClick={() => {
                     void markNudge({ declined: true });
                     setHidden(true);

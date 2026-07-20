@@ -3002,8 +3002,8 @@
     "zh-Hant": "machine"
   },
   "Identity.enrollIntro": {
-    "source": "Sign and approve reimbursements from your phone — no printing. You'll agree to sign electronically, draw your signature, and then two members confirm it's really you (in person, one quick scan).",
-    "context": "Pitch shown before a member enrolls: agree → draw signature → two members confirm in person. Friendly, non-technical.",
+    "source": "Sign and submit claims from your phone — no printing. You'll agree to sign electronically, draw your signature, and then two members (or one approver) confirm it's really you in person — one quick scan.",
+    "context": "Intro paragraph on the profile signing card before enrollment — the landing every nudge points at, so it repeats the nudges' vocabulary: members “sign and submit” (never “approve”), and the “(or one approver)” quorum option is stated.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -7046,14 +7046,14 @@
     "zh-Hant": "machine"
   },
   "Home.esignNudgePaperRepeat": {
-    "source": "Finishing on paper? The next one can be signed from your phone — set up once and skip the printer.",
+    "source": "Finishing on paper? The next one can be signed from your phone — set up once.",
     "context": "One-time re-invitation shown after a claim sat printed-but-unsubmitted for two weeks. De-asserted on purpose (a question, not a claim about what they chose).",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Home.esignNudgeCollapsed": {
-    "source": "Set up e-signing",
-    "context": "One-line collapsed version of the invitation card (after it decayed). A quiet link, not a pitch.",
+    "source": "Set up signing",
+    "context": "One-line collapsed version of the invitation card (after it decayed). A quiet link, not a pitch. Same-value group with Identity.enrollButton.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -7070,8 +7070,8 @@
     "zh-Hant": "machine"
   },
   "Home.esignDutyNull": {
-    "source": "Set up signing so members can send you claims to approve. Setup is self-service; confirmation happens in person; then an officer switches on your approver duty. Don't skip the recovery step — your duty can't be switched on without it.",
-    "context": "Body of the duty card, capability-forward (what setup ENABLES, never 'members can't…' blame). States the honest three-step chain and the recovery-step requirement.",
+    "source": "Set up signing so members can send you claims to approve. Setup is self-service; confirmation happens in person; then an officer switches on your approver duty.",
+    "context": "Body of the duty card, capability-forward (what setup ENABLES, never 'members can't…' blame). States the honest three-step chain; the recovery warning is the separate esignDutyRecovery paragraph.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -7112,8 +7112,8 @@
     "zh-Hant": "machine"
   },
   "Home.esignClosureVouchLine": {
-    "source": "You can now also confirm others at church — that's your Vouch tab.",
-    "context": "Second line of the closure card: recruits the new signer as vouching capacity. QUOTES the Vouch nav tab's label verbatim (QUOTED_IN).",
+    "source": "You can now also confirm others at church — that's your <b>Vouch</b> tab.",
+    "context": "Second line of the closure card: recruits the new signer as vouching capacity. QUOTES the Vouch nav tab's label verbatim (QUOTED_IN); <b> bolds the tab name.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -7160,8 +7160,8 @@
     "zh-Hant": "machine"
   },
   "Review.esignSetupAction": {
-    "source": "Set up e-signing",
-    "context": "Secondary action-bar button where E-sign would be, for users who haven't set up. Opens an explanation callout — never the ceremony.",
+    "source": "Set up signing",
+    "context": "Secondary action-bar button where E-sign would be, for users who haven't set up. Opens an explanation callout — never the ceremony. Same-value group with Identity.enrollButton.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -7420,6 +7420,12 @@
   "Errors.invalidMemberUpdate": {
     "source": "That member update couldn't be saved.",
     "context": "Generic failure for officer-side member updates on the Members page (e.g. recording “prefers paper”).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Home.esignDutyRecovery": {
+    "source": "Don't skip the recovery step — your approver duty can't be switched on without it.",
+    "context": "Second paragraph of the duty card: the one hard warning, separated so the main body stays capability-toned.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   }

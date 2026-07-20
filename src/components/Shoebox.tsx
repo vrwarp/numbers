@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useOpenParam } from "@/lib/use-open-param";
 import { useRouter } from "next/navigation";
@@ -47,12 +47,15 @@ type PendingItem = LocalPending | UploadedPending;
 export default function Shoebox({
   searchEnabled,
   esignOffered,
+  nudgeSlot,
 }: {
   searchEnabled?: boolean;
   /** Page-computed (A5/A8 predicate, docs/ESIGN_SETUP_DISCOVERABILITY.md §3.5):
    *  branches the first-run guide's finish step. Outcome-neutral wording only —
    *  users outside the switch/allowlist must never read the word "e-sign". */
   esignOffered?: boolean;
+  /** The home nudge card (server-decided), rendered below the header. */
+  nudgeSlot?: ReactNode;
 }) {
   const t = useTranslations("Shoebox");
   const tCommon = useTranslations("Common");
@@ -601,6 +604,12 @@ export default function Shoebox({
           <p className="pt-1.5 text-sm text-stone-500">{t("intro")}</p>
         </div>
       </div>
+
+      {/* The home nudge slot (docs/ESIGN_SETUP_DISCOVERABILITY.md §3.5) sits
+          BELOW the page's own identity — a dismissible invitation must never
+          outrank the H1. The page decides WHAT renders here (P1 arbitration);
+          this component only owns the placement. */}
+      {nudgeSlot}
 
       {error && (
         <div className="card border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">

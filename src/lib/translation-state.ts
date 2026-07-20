@@ -72,7 +72,7 @@ export const SAME_VALUE_GROUPS: readonly (readonly string[])[] = [
   // E-sign setup discoverability (docs/ESIGN_SETUP_DISCOVERABILITY.md): the
   // setup CTA, the QR CTA, and the status chips read identically on every
   // surface that carries them — menu row, home cards, claim-review callout.
-  ["Identity.enrollButton", "NavBar.setupSigning", "Home.esignNudgeNullCta", "Review.esignSetupCalloutCta"],
+  ["Identity.enrollButton", "NavBar.setupSigning", "Home.esignNudgeNullCta", "Review.esignSetupCalloutCta", "Review.esignSetupAction", "Home.esignNudgeCollapsed"],
   ["NavBar.showYourCode", "Home.esignNudgePendingCta", "Review.esignSetupCalloutQrCta"],
   ["Identity.chipNone", "NavBar.chipNone"],
   ["Identity.chipPending", "NavBar.chipPending", "Review.esignWaitingAction"],
