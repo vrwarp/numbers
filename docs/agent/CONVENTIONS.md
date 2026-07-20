@@ -118,6 +118,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   subtotal-<receiptId>, group-<receiptId>,
   derivation-<receiptId>, remove-receipt-<receiptId>, revert-claim, upload-note,
   upload-note-confirm, upload-note-cancel, receipt-note-<receiptId>,
+  receipt-filters, receipt-filter-<all|unassigned|processed|pdf|merchant-<n>>,
   claim-link-<receiptId>-<claimId>, split-first-amount, split-confirm, profile-name,
   profile-address, profile-save, dev-email, dev-name, dev-signin,
   edit-image-<receiptId>, edit-image-pending-<n>, image-editor-stage, crop-box,
@@ -160,7 +161,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
 `?open=<id>` is THE app-wide land-on-a-list-item contract (src/lib/use-open-param.ts,
 minted by search): wait for the list's data, expand the enclosing section if needed
-(Shoebox processed `<details>`, approvals row), `scrollIntoView` + a ~3 s
+(approvals row; the Shoebox wall mounts unfiltered so every card is present), `scrollIntoView` + a ~3 s
 `.highlight-pulse` ring on the element carrying `data-open-id="<id>"`, strip the param
 (back/refresh must not re-scroll), toast on a miss. New list surfaces reuse the hook —
 never mint a second param name for the same interaction.

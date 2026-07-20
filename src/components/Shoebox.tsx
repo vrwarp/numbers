@@ -88,6 +88,10 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
   const [showSelectHint, setShowSelectHint] = useState(false);
   const selectHintTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Active chip in the filter row: "all" | "unassigned" | "processed" | "pdf"
+  // | "merchant:<name>". Purely client-side — the chips slice the one loaded
+  // list, they never refetch.
+  const [filter, setFilter] = useState<string>("all");
   const [viewing, setViewing] = useState<Receipt | null>(null);
   // Receipt id awaiting delete confirmation (the ConfirmDialog is open).
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -338,11 +342,12 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
   }
 
   /** One tap for the common "file everything I've collected" case. Only the
-   *  unassigned section — re-claiming processed receipts stays deliberate. */
+   *  unassigned receipts currently in view — re-claiming processed receipts
+   *  stays deliberate, and an active filter chip scopes the sweep with it. */
   function selectAllUnassigned() {
     setSelected((prev) => {
       const next = new Set(prev);
-      for (const r of unassigned) next.add(r.id);
+      for (const r of visibleUnassigned) next.add(r.id);
       return next;
     });
   }
@@ -495,25 +500,77 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
     }
   }
 
-  const unassigned = (receipts ?? []).filter((r) => r.status === "unassigned");
-  const processed = (receipts ?? []).filter((r) => r.status !== "unassigned");
-  const hasClaimBar = receipts !== null && (unassigned.length > 0 || processed.length > 0);
+  const all = receipts ?? [];
+  const unassigned = all.filter((r) => r.status === "unassigned");
+  const processed = all.filter((r) => r.status !== "unassigned");
+  const hasClaimBar = receipts !== null && all.length > 0;
   const barEmpty = selected.size === 0;
-  const canSelectAll = unassigned.some((r) => !selected.has(r.id));
+
+  // The Google-Images-style chip row over the receipt wall. Every chip is
+  // guaranteed ≥1 match (each is gated on its own count), and a chip is only
+  // offered when it would actually narrow the wall; a lone "All" renders no
+  // row. Merchant chips surface the AI-transcribed merchant names — data, so
+  // never translated.
+  const pdfCount = all.filter((r) => r.mimeType === "application/pdf").length;
+  const merchantCounts = new Map<string, number>();
+  for (const r of all) {
+    if (r.merchant) merchantCounts.set(r.merchant, (merchantCounts.get(r.merchant) ?? 0) + 1);
+  }
+  const merchants = [...merchantCounts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 8)
+    .map(([name]) => name);
+  const chips: { key: string; label: string; testId: string }[] = [
+    { key: "all", label: t("filterAll", { count: all.length }), testId: "all" },
+  ];
+  if (processed.length > 0 && unassigned.length > 0) {
+    chips.push({
+      key: "unassigned",
+      label: t("filterUnassigned", { count: unassigned.length }),
+      testId: "unassigned",
+    });
+  }
+  if (processed.length > 0) {
+    chips.push({
+      key: "processed",
+      label: t("processedSummary", { count: processed.length }),
+      testId: "processed",
+    });
+  }
+  if (pdfCount > 0 && pdfCount < all.length) {
+    chips.push({ key: "pdf", label: t("filterPdf", { count: pdfCount }), testId: "pdf" });
+  }
+  merchants.forEach((name, i) => {
+    chips.push({ key: `merchant:${name}`, label: name, testId: `merchant-${i}` });
+  });
+  // If the active chip's receipts left (deleted, reverted, re-listed), fall
+  // back to All instead of stranding the user on an empty wall.
+  const validFilter = chips.some((c) => c.key === filter) ? filter : "all";
+  const visible = all.filter((r) => {
+    switch (validFilter) {
+      case "all":
+        return true;
+      case "unassigned":
+        return r.status === "unassigned";
+      case "processed":
+        return r.status !== "unassigned";
+      case "pdf":
+        return r.mimeType === "application/pdf";
+      default:
+        return `merchant:${r.merchant}` === validFilter;
+    }
+  });
+  const visibleUnassigned = visible.filter((r) => r.status === "unassigned");
+  const canSelectAll = visibleUnassigned.some((r) => !selected.has(r.id));
 
   // ?open=<id> deep-link landing (search results → "Find in Receipts"):
-  // auto-expand the processed section when the target lives there, scroll +
-  // pulse, toast on a miss. Shared contract in src/lib/use-open-param.ts.
-  const processedDetails = useRef<HTMLDetailsElement>(null);
+  // scroll + pulse, toast on a miss. The wall always mounts on the "All" chip,
+  // so the target card is present without any section to expand. Shared
+  // contract in src/lib/use-open-param.ts.
   const [openGone, setOpenGone] = useState(false);
   useOpenParam({
     ready: receipts !== null,
-    exists: (id) => (receipts ?? []).some((r) => r.id === id),
-    beforeScroll: (id) => {
-      if ((receipts ?? []).find((r) => r.id === id)?.status !== "unassigned") {
-        processedDetails.current?.setAttribute("open", "");
-      }
-    },
+    exists: (id) => all.some((r) => r.id === id),
     onGone: () => setOpenGone(true),
   });
 
@@ -755,9 +812,42 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
           </ol>
         </div>
       ) : (
-        <>
+        <div className="space-y-3">
+          {chips.length > 1 && (
+            <div
+              role="group"
+              aria-label={t("filterGroupAria")}
+              data-testid="receipt-filters"
+              className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 py-0.5"
+            >
+              {chips.map((c) => {
+                const active = validFilter === c.key;
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    aria-pressed={active}
+                    // Re-tapping the active chip clears it (back to All),
+                    // Google-style.
+                    onClick={() => setFilter(active ? "all" : c.key)}
+                    data-testid={`receipt-filter-${c.testId}`}
+                    className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition duration-150 ease-out ${
+                      active
+                        ? "border-stone-900 bg-stone-900 text-white"
+                        : "border-stone-300 bg-white text-stone-600 hover:border-stone-400 hover:bg-stone-50 hover:text-stone-900"
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {validFilter === "processed" && (
+            <p className="text-xs text-stone-400">{t("processedNote")}</p>
+          )}
           <ReceiptGrid
-            receipts={unassigned}
+            receipts={visible}
             selectable
             selected={selected}
             onToggle={toggle}
@@ -767,27 +857,7 @@ export default function Shoebox({ searchEnabled }: { searchEnabled?: boolean }) 
             onView={setViewing}
             nudgeSelect={showSelectHint}
           />
-          {processed.length > 0 && (
-            <details className="pt-2" ref={processedDetails}>
-              <summary className="cursor-pointer text-sm font-medium text-stone-500">
-                {t("processedSummary", { count: processed.length })}
-              </summary>
-              <p className="mt-1 text-xs text-stone-400">{t("processedNote")}</p>
-              <div className="mt-3">
-                <ReceiptGrid
-                  receipts={processed}
-                  selectable
-                  selected={selected}
-                  onToggle={toggle}
-                  onDelete={deleteReceipt}
-                  onSaveNote={saveNote}
-                  fileUrl={fileUrl}
-                  onView={setViewing}
-                />
-              </div>
-            </details>
-          )}
-        </>
+        </div>
       )}
 
       {preparing && (
