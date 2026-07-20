@@ -66,7 +66,7 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    annotation (`annotationSource:"manual"`) is never overwritten by the worker. New mutation
    paths must keep this trail complete.
 8. **The PDF is an AcroForm fill** of `assets/cfcc-form-template.pdf` (13 rows/page; claims
-   of ≤8 rows auto-fill a taller-row legibility variant — same field names, never a
+   of ≤9 rows auto-fill a taller-row legibility variant — same field names, never a
    different form-page count, see `variantRowsFor`). Field
    names are the contract — see `docs/agent/ARCHITECTURE.md` for the exact list (note the
    double space in `For Ministry  EventRow{n}`). Values Helvetica can't encode (Chinese

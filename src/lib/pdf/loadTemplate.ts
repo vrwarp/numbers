@@ -24,13 +24,16 @@ export async function loadTemplateBytes(): Promise<Uint8Array> {
  * Row capacity of the template packet generation should fill for a claim with
  * `activeRows` line items: the smallest large-row legibility variant
  * (scripts/make-row-variants.mjs) the whole claim fits on, else the official
- * 13-row form. Variants only ever apply to single-page claims (≤ 8 rows), so
- * a packet's form-page count stays exactly ceil(activeRows/FORM_ROWS_PER_PAGE)
- * — the derivation the print/certificate/approved-packet routes use on stored
- * packets — for every claim size. Keep that property when changing the rule.
+ * 13-row form. Every variant capacity is ≤ FORM_ROWS_PER_PAGE, so a claim
+ * that fits one always fits ONE page — a packet's form-page count stays
+ * exactly ceil(activeRows/FORM_ROWS_PER_PAGE), the derivation the
+ * print/certificate/approved-packet routes use on stored packets, for every
+ * claim size. Keep that property (all rows ≤ 13) when changing the rule.
  */
+export const VARIANT_ROW_OPTIONS = [5, 9] as const;
+
 export function variantRowsFor(activeRows: number): number {
-  for (const rows of [2, 4, 8]) {
+  for (const rows of VARIANT_ROW_OPTIONS) {
     if (activeRows >= 1 && activeRows <= rows) return rows;
   }
   return FORM_ROWS_PER_PAGE;

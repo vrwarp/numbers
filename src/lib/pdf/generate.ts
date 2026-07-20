@@ -84,13 +84,14 @@ const MIN_FONT_SIZE = 4;
  * Item-row field height on the official 13-row table. The large-row template
  * variants (scripts/make-row-variants.mjs) keep the same field names but
  * stretch each row over 13/N of the table — row values scale their design
- * font size by that same factor (capped: a 2-row cell is ~7× taller, but
- * >14pt reads as shouting on a payment form), so the taller rows are what
- * they exist for: more legible. On the official template the factor is 1 and
- * output is unchanged.
+ * font size by that same factor so the taller cells aren't left with tiny
+ * text adrift in whitespace. The cap keeps the grown text the size of the
+ * form's own printed text (its name/date fields are 10pt) rather than blowing
+ * short values up out of proportion. On the official template the factor is 1
+ * and output is unchanged.
  */
 const OFFICIAL_ROW_FIELD_HEIGHT = 17.76;
-const VARIANT_ROW_MAX_FONT_SIZE = 14;
+const VARIANT_ROW_MAX_FONT_SIZE = 10;
 
 /**
  * Largest font size ≤ maxSize at which `text` stays inside `bounds`.
