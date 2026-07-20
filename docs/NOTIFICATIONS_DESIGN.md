@@ -54,24 +54,26 @@ Verified against Firebase docs and current (2026) platform behavior:
   is client-safe config; there is no secret on the client.
 - **Registration tokens are per browser-profile-per-device.** `getToken()`
   (with the VAPID key + our SW registration) yields a token after the user
-  grants notification permission. Tokens are what the server sends to; they go
-  stale (FCM garbage-collects after ~270 days of inactivity) so the server
-  stores a `lastSeenAt` per token, refreshes it whenever the app loads, prunes
-  on send errors (`messaging/registration-token-not-registered` ⇒ delete row),
-  and skips tokens unseen for longer than a staleness window (60 days) —
-  stale tokens silently crater delivery rates.
+  grants notification permission. Tokens are what the server sends to; they
+  go stale (FCM garbage-collects after ~270 days of inactivity), so the
+  server tracks per-token liveness and prunes on send errors
+  (`messaging/registration-token-not-registered` ⇒ delete row). Liveness
+  policy in §7.3 — crucially, a *successful send* counts as liveness, because
+  this product's success mode is glance-at-the-lock-screen, which never opens
+  the app.
 - **Sending is the FCM HTTP v1 API only** (the legacy server-key API shut down
   June 2024). The `firebase-admin` SDK's `messaging().send()` handles OAuth,
   batching, and typed errors. Authentication requires a **service account** —
   see §4 for why ours must be messaging-scoped only.
 - **Message shape:** we always send full `notification` + `webpush` payloads
   (title/body composed **server-side, already localized** — §9), with
-  `webpush.fcm_options.link` for the click-through route, a `collapse key`
-  (`webpush.headers.Topic`) so repeated events replace rather than stack, and
-  a TTL suited to the event (a device-approval request is worthless tomorrow;
-  "your claim was paid" can wait a day). Data-only messages are avoided: on
-  web they require the SW to fabricate the notification and browsers penalize
-  silent pushes.
+  `webpush.fcm_options.link` for the click-through route, collapse semantics
+  per §7.4 (a `Topic` header for undelivered-queue collapse *and* a
+  notification `tag` for tray replacement — they are different mechanisms),
+  and a TTL suited to the event (a device-approval request is worthless
+  tomorrow; "your claim was paid" can wait a day). Data-only messages are
+  avoided: on web they require the SW to fabricate the notification and
+  browsers penalize silent pushes.
 - **iOS reality (large share of a congregation):** the Push API exists only for
   **installed home-screen web apps** on iOS 16.4+. In-Safari-tab browsing has
   no push at all. Standard FCM JS works once installed (it rides APNs
@@ -159,20 +161,52 @@ Notes on the table:
   case. Short TTL because a stale device prompt is pure noise.
 - The rejected-claim note stays out of the payload (lock screens, transit) —
   the body invites the tap instead.
+- **Web push cannot be retracted.** A withdrawn request or an item another
+  treasurer already handled leaves a stale tray notification for up to its
+  TTL; the tap lands on an empty queue. The landing pages own that moment:
+  `/approvals` and `/finance` empty states must say (localized) "Nothing
+  waiting for you — a request may have been withdrawn or already handled by
+  someone else," so the stale tap reads as resolution, not data loss.
+
+### In-app parity — committed alongside v1, because push must not create castes
+
+"Never load-bearing" (§1) is true per-user but can turn false *between* users:
+once some approvers answer in minutes, owners learn who they are and route
+around the rest — or a secretary starts nudging "why haven't you signed" at
+people who were never told work arrived. The members least able to adopt push
+(WeChat-only, iOS 15 hardware, abandoned onboarding) are exactly the ones the
+stalled-approver problem already bites. Three backstops ship with v1, all
+in-app, none requiring push:
+
+- **Recent activity list.** `NotificationJob` rows are written for every
+  recipient *regardless of push preferences* (§7.1) and double as an in-app
+  reverse-chronological activity list ("Your claim was approved · Tuesday") —
+  every member sees identical facts; push merely delivers them earlier. No
+  read-tracking in v1; the list is informational, the badges remain the
+  actionable surface.
+- **Owner-facing stall state, de-personalized.** The claim detail (and claim
+  card) shows "Waiting for signature for 9 days — you can withdraw and pick a
+  different approver," turning "that elder is slow" into "you have an option,"
+  with no push involved. This subsumes the old `approver-unavailable`
+  phase-2 idea (the paused-approver notice already exists on the claim panel;
+  this extends it to plain elapsed time).
+- **Aggregate — never individual — visibility for leadership.** The §12 admin
+  card gains one trend line: "claims waiting > 7 days" (count over time). It
+  never breaks down by person or by who has push enabled; the design must not
+  become a shaming instrument.
 
 ### Explicitly deferred (phase 2 candidates, in priority order)
 
-1. `approver-unavailable` — your submitted claim's approver paused their
-   duty (today surfaced only if the owner opens the claim panel).
-2. `identity-attested` — "you can now sign and vouch" when the vouch
+1. `identity-attested` — "you can now sign and vouch" when the vouch
    threshold is crossed.
-3. `vouch-needed` — a new member awaits vouches (eligible vouchers only;
+2. `vouch-needed` — a new member awaits vouches (eligible vouchers only;
    risk of noise, needs volume data first).
-4. `claim-ready` — only if receipt extraction ever moves from the current
+3. `claim-ready` — only if receipt extraction ever moves from the current
    foreground NDJSON stream to a background queue; today the user watches it
    live, so there is no event to push.
-5. Weekly digest / stale-work reminders ("3 claims have waited > 7 days") —
-   deliberate fatigue-management decision required first (§8).
+4. Weekly digest / stale-work push reminders — deliberate fatigue-management
+   decision required first (§8); the in-app stall state above covers the need
+   without delivery.
 
 ### Considered and rejected
 
@@ -195,10 +229,13 @@ model PushToken {
   userId       String
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   token        String   @unique          // FCM registration token
-  locale       String   @default("en")   // locale captured at (re)registration — per-device fidelity
+  locale       String                    // this device's resolved locale; re-captured on every app-load ping
+                                         //   (never a bare "en" default — insert falls back to User.locale)
   userAgent    String   @default("")     // trimmed label for "manage devices" UI, e.g. "Safari · iPhone"
   createdAt    DateTime @default(now())
-  lastSeenAt   DateTime @default(now())  // refreshed on every app load; staleness window keys off this
+  lastSeenAt   DateTime @default(now())  // refreshed on app load + visibilitychange/focus ping
+  lastSendOkAt DateTime?                 // a successful FCM send is liveness too (§7.3) —
+                                         //   glance-only devices never ping but are healthy
   @@index([userId])
 }
 
@@ -233,6 +270,27 @@ Retention: `NotificationJob` rows are pruned after 90 days (the
 Mirrors the embeddings subsystem exactly, because its constraints are the same
 (never block a mutation, survive restarts, single container).
 
+### 7.0 Serving the service worker (this deployment has no build-time config)
+
+The conventional static `public/firebase-messaging-sw.js` cannot work here:
+Firebase config is **runtime** state (`FIREBASE_*` env or the hot-reloadable
+`<DATA_DIR>/config.json`, relayed by `firebaseWebConfig()`), and the standalone
+Docker image is church-agnostic — a static file could never carry a given
+deployment's project config. Therefore:
+
+- `/firebase-messaging-sw.js` is a **route handler** that renders the SW
+  source with the current `configValue()` Firebase config injected, served
+  `Cache-Control: no-cache` (the browser byte-compares on registration,
+  navigation, push, and ~24 h — no-cache keeps that comparison honest).
+- **Update contract:** this SW handles no fetches, so a new version calls
+  `skipWaiting()` + `clients.claim()` unconditionally — an updated SW must
+  not sit `waiting` for weeks behind a PWA parked in the iOS app switcher.
+- **Changing the Firebase project in `config.json` invalidates every issued
+  token.** The design accepts this (it's a church re-platforming, not a
+  routine edit): sends start failing, tokens prune, and every user's §8.7
+  reconnect surfaces re-enable on next visit. The admin health card states
+  it plainly when it detects the mismatch.
+
 ### 7.1 Where events enter the queue — two sources
 
 **(a) Server-observed transitions.** Enqueue helpers in
@@ -245,47 +303,112 @@ device reaches this server's mirror through reconcile, not through the primary
 ceremony route, so reconcile enqueues the same events (dedupe in §7.2 makes
 the overlap harmless).
 
+Helpers resolve the audience (e.g. "treasurers with finance duty unpaused,
+minus the actor") and insert one job per recipient **regardless of that
+recipient's push preferences** — the job row is the event record feeding the
+in-app activity list (§5), not just a send instruction. Whether and where it
+is *delivered* is decided entirely at send time (§7.3): push off ⇒ the job
+completes as `skipped` but still appears in the recipient's activity list.
+
 **(b) Client-hinted self-events.** The keyless server never sees charproof
 device-approval requests (they live in Firestore, which the server cannot
 read). So the *requesting device* — which is already authenticated as the same
 user — POSTs a fire-and-forget hint (`/api/notifications/hint`,
 `device-request` only) after filing its request. Hints are **strictly
 self-scoped**: an authenticated user can only ever trigger a notification to
-their *own* other devices, so the entire spoof surface is "spam yourself."
-The hint carries the requesting device's own token so it can be excluded from
-recipients.
+their *own* other devices. "Spam yourself" still isn't free (FCM quota,
+SQLite growth, admin health noise), and no client-supplied id may reach the
+push path, so: the job's dedupe key is **server-derived** —
+`device:{userId}:{15-minute bucket}` (matching the collapse key's per-user
+granularity) — and the endpoint carries a small per-user hourly cap (429
+beyond it). The hint includes the requesting device's own token only to
+exclude it from recipients.
+
+**Reconcile-sourced events are inherently late.** Reconcile runs when a
+human opens a claim's verifying view — usually the owner — so a
+reconcile-sourced `claim-approved` job would often be generated by the very
+person it addresses, seconds after they read the outcome on screen. The
+enqueue helper therefore suppresses a reconcile-sourced event whose sole
+recipient is the reconciling user, and reconcile-sourced copy never uses
+"just now" framing (§7.3 also age-gates it against the kind's TTL).
 
 ### 7.2 Dedupe
 
 `NotificationJob` carries a unique `dedupeKey` —
-`{kind}:{targetId}:{recipientId}:{submitSeq}` for claim events — and enqueue
-is create-if-absent (the `EmbeddingJob` upsert discipline). Reconcile replays
+`{kind}:{targetId}:{recipientId}:{submitSeq}` for claim events, the
+server-derived bucket form of §7.1b for hints — and enqueue is
+create-if-absent (the `EmbeddingJob` upsert discipline). Reconcile replays
 and route retries therefore no-op against an existing job regardless of its
 status; a genuine re-submit after withdraw carries a new `submitSeq` and
-notifies the (possibly new) approver exactly once.
+notifies the (possibly new) approver exactly once. Dedupe — not collapse
+(§7.4) — is what actually guarantees "no double push" for retried routes.
 
 ### 7.3 Worker
 
 `startNotificationWorker()` joins `startEmbeddingWorker()` in
 `src/instrumentation.ts` (in-process singleton loop, lease-based claim,
 generation-guarded finalize, `__notifyWake?.()` nudge from enqueue so delivery
-is near-instant rather than next-poll). Per job: re-check the recipient's
-master + category switches and role/pause state **at send time**, resolve
-fresh tokens (`lastSeenAt` within 60 d), compose localized payloads per token
-locale (§9), send via the messaging-only admin app. Per-token outcomes:
-`registration-token-not-registered` / `invalid-argument` ⇒ delete that token
-row; transient errors ⇒ retry with backoff up to N attempts then `failed`.
-Job is `sent` if ≥ 1 token succeeded, `skipped` if preferences/tokens
-evaporated between enqueue and send.
+is near-instant rather than next-poll). Per job:
 
-### 7.4 Collapse & TTL
+- **Age gate first:** every job carries its *event-occurrence* timestamp in
+  `payloadJson` (distinct from row `createdAt`). If the event is older than
+  the kind's TTL, the job completes `skipped` — a container that was down for
+  two hours must not resurrect a `device-request` and deliver it "fresh"
+  (FCM's TTL bounds time in *FCM's* queue, not time in ours; it cannot do
+  this for us).
+- Re-check the recipient's master + category switches and role/pause state
+  **at send time**; resolve live tokens. **Liveness =
+  `max(lastSeenAt, lastSendOkAt)` within 180 d** — a successful send marks
+  `lastSendOkAt`, because glance-only devices (this product's success mode)
+  never generate an app ping yet are demonstrably healthy; only send errors
+  prune, and the window sits near FCM's own ~270 d GC horizon rather than
+  starving the best-behaved phones.
+- Compose localized payloads per token locale (§9); send via the
+  messaging-only admin app. Per-token outcomes:
+  `registration-token-not-registered` / `invalid-argument` ⇒ delete that
+  token row; transient errors ⇒ retry with backoff up to N attempts then
+  `failed`. Job is `sent` if ≥ 1 token succeeded, `skipped` if
+  preferences/tokens evaporated between enqueue and send.
 
-The worker sets the web-push `Topic` header from the catalog's collapse key
-(so rapid-fire events about one claim replace each other in the tray, not
-stack) and the per-kind TTL from §5 (an expired urgency never fires after a
-container outage).
+### 7.4 Collapse & TTL — two mechanisms, neither is magic
 
-### 7.5 Mock mode
+Getting this factually right matters because the naive version *rejects
+sends*:
+
+- **`Topic` header** (RFC 8030): collapses messages still *queued at the push
+  service* for an offline device. Constraint: ≤ 32 characters from the
+  base64url alphabet — `signing-request:{claimId}` is both too long and
+  contains an illegal `:` (some push services 400 the entire send). The
+  worker derives the Topic as a truncated base64url hash of the catalog
+  collapse key.
+- **`webpush.notification.tag`**: what actually replaces a notification
+  *already displayed* in the tray. Set to the same collapse key (readable
+  form is fine here). iOS tag-replacement is historically flaky — test,
+  don't assume; a stacked pair on iOS is the acceptable degradation.
+- **TTL** (`webpush.headers.TTL`) bounds FCM/APNs queue time for offline
+  devices, per-kind from §5. Event *age* is our queue's job (§7.3), not
+  TTL's.
+
+### 7.5 Notification-click contract (unspecified = three platforms, three behaviors)
+
+The FCM SDK's built-in `notificationclick` handler focuses an existing window
+only on an **exact URL match** — a tab parked on `/` never matches
+`/claims/{id}`, so every tap would open a new tab: on the shared office PC
+(§8.6) that accumulates login-bearing windows; on desktop the app you already
+have open is never the one that comes forward. So the SW registers its own
+handler (ahead of the SDK's, keyed off the message's `FCM_MSG` payload):
+
+- If an app window exists in scope: focus it and navigate via `postMessage` —
+  **except** a client with an active claim-generation stream (the 15-minute
+  NDJSON extraction) is never navigated; it shows the in-app toast (§8.9)
+  instead. A tap must not destroy a multi-minute extraction someone is
+  watching.
+- Otherwise `clients.openWindow(route)`.
+- iOS PWA is single-window with known foreground-without-navigate quirks —
+  §13 carries an explicit acceptance test: *tap while the installed app is
+  open on another page lands on the target page.*
+
+### 7.6 Mock mode
 
 `PUSH_MOCK=1` (the `AI_MOCK`/`ESIGN_MOCK` convention) makes the send adapter
 record deliveries to a local sink instead of FCM so unit + e2e suites assert
@@ -302,6 +425,10 @@ on real queue/dedupe/preference behavior with zero network.
 - Disabling must always work even when the browser permission is a lost cause
   (user blocked it at the browser level): the account-level switch stops
   sends server-side regardless of token state.
+- The feature must **report its own health to the user** (§8.7). Silently-dead
+  delivery is worse than no delivery: it re-creates the stalled-approver
+  failure this design exists to fix, now with false confidence — the badge
+  habit atrophies once people trust push.
 
 ### 8.2 Preference model
 
@@ -309,53 +436,226 @@ on real queue/dedupe/preference behavior with zero network.
 
 - `notifyEnabled` — master switch (default `false`).
 - Per-category switches (default `true`, only consulted when master is on),
-  matching the §5 catalog's category column: `notifySigning` (claims awaiting
-  *your* signature as the named approver), `notifyClaimProgress` (your own
-  claims: approved / needs changes / paid), `notifyFinance` (treasurer duty:
-  approved claims awaiting payment — only shown to role-holders),
-  `notifySecurity` (new-device requests — §8.5).
+  matching the §5 catalog's category column: `notifySigning`,
+  `notifyClaimProgress`, `notifyFinance`, `notifySecurity`.
+- **A category is only rendered for users it can ever fire for** — the
+  Finance rule generalized: members who can never be named approver don't see
+  a "Signing" toggle they must decode. Every rendered toggle carries a
+  one-line concrete example beneath its name ("e.g. 'Your claim was
+  approved'") in all locales — the category noun alone ("Finance",
+  "Security") is role jargon a monthly volunteer shouldn't have to parse.
 - PATCH via the existing `/api/profile` route + `ProfileForm` card, audited
   like every profile edit.
+- Nudge-dismissal state (§8.3) is stored **per account on the server**, not in
+  browser storage — on a shared machine one person's "no thanks" must not hide
+  the feature from the next person (§8.6).
 
 ### 8.3 The enable flow (soft-ask first)
 
+0. **Capability pre-flight — never sell what this context can't deliver.**
+   In-app browsers (WeChat, Line, Messenger… — reuse the `isEmbeddedBrowser()`
+   detection that sign-in already ships in `SignInCard`) get "open this in
+   Safari/Chrome first" with a copy-link affordance — never install steps,
+   whose share-sheet controls don't exist there. iOS below 16.4 gets an honest
+   "this iPhone can't receive web notifications." Only capable contexts ever
+   see an enable toggle or installer.
 1. Entry points: the Profile → Notifications card (persistent, discoverable),
    plus **contextual nudges** at high-intent moments — e.g. right after a user
    generates their first packet ("Want to know when it's signed?") and right
    after a role-holder first opens `/approvals`. Nudges are dismissible and
-   never repeat after dismissal.
+   never repeat after dismissal (per account, §8.2).
 2. Tapping enable shows our **soft-ask**: what you'll be told about (the four
    categories), on this device, revocable anytime. Confirm ⇒ native
    `Notification.requestPermission()` from that same gesture ⇒ on grant,
    register SW, `getToken()`, POST token. Decline of the soft-ask just closes
    it — the native prompt was never risked.
-3. Permission already `denied` at the browser level ⇒ the card explains that
-   the *browser* is blocking and shows per-browser unblock instructions
-   instead of a dead toggle.
+   **Native-prompt hardening:** immediately before the native dialog, the
+   soft-ask's confirm step shows what the system dialog will look like and
+   which button to tap — because on iOS one mis-tap of "Don't Allow" is
+   near-unrecoverable (§8.3 step 3), and older users mis-tap system dialogs
+   constantly. Crucially, **the real dialog renders in the OS language, not
+   the app locale** (a zh-Hant app on an English-configured iPhone shows
+   "Allow / Don't Allow"). The preview is therefore keyed to *position and
+   appearance*, and whenever `navigator.language` disagrees with the app
+   locale it renders bilingually — "Allow / 允許 — the button on the right" —
+   with a "your phone may show this in English" line. The same dual-language
+   rule applies to every OS/browser menu path the copy quotes ("Add to Home
+   Screen", "Site settings"); their translator `context` notes state that
+   these strings quote OS chrome and must not be naturalized.
+   **The soft-ask's final line teaches the one reliable undo** (delivery is
+   the AND of five switches, but users get one sentence): "Turn everything
+   off anytime: Profile → Notifications → Off — this works even if your
+   phone's settings are wrong." The profile card opens with the same
+   sentence.
+3. Permission already `denied`:
+   - Desktop/Android: the card explains the *browser* is blocking and shows
+     per-browser unblock instructions (lock icon → Site settings → Notifications).
+   - iOS installed app: there is no honest settings path — the app typically
+     doesn't even appear under Settings → Notifications until permission was
+     granted once. The card says the true recovery: remove the icon from the
+     Home Screen and add it again (which re-runs the §8.4 flow including
+     device re-approval). Documented plainly rather than pretending.
 
-### 8.4 iOS path
+### 8.4 iOS onboarding — an install is a new *device*, not a shortcut
 
-If `!window.PushManager` and the UA is iOS Safari (not standalone), the card
-becomes an installer: "Add this app to your Home Screen to receive
-notifications" with the Share → Add to Home Screen steps illustrated; the
-enable toggle appears once running standalone. (Manifest already ships
-`display: standalone`, so this is education, not new plumbing.)
+An installed home-screen web app on iOS has its **own storage container**: no
+shared cookies, localStorage, or IndexedDB with the Safari tab (the repo
+already navigates this split in `src/lib/pdf-delivery.ts`). So the freshly
+installed app is **signed out** and, for e-sign users, **holds no charproof
+signing key** — it is a brand-new e-sign device. Treating install as an
+instruction card would strand exactly our least-technical persona in a
+half-state (installed, signed out, keyless) she can't describe to a helper.
+§8.4 is therefore a *sequenced onboarding flow*:
 
-### 8.5 Security category nuance
+1. **Install** — Share → Add to Home Screen, illustrated, localized.
+2. **Open + sign in** — inside standalone WebKit, Google sign-in popups are
+   unreliable; the redirect fallback requires the first-party auth proxy.
+   **Hard launch prerequisite: `FIREBASE_AUTH_PROXY` deployed** (§13).
+3. **Device approval (e-sign users only)** — the installed app runs the
+   standard typed-code new-device ceremony against the Safari-tab context,
+   with copy written for the "both devices are this same phone" case (switch
+   between them via the app switcher). Members who don't sign skip this step.
+4. **Then** the permission soft-ask (§8.3), never before.
+
+**Resume state and the helper story.** This flow spans two storage-isolated
+contexts and four stages; assuming a solo, single-sitting completion would
+recreate the half-state problem one step later. So:
+
+- Onboarding progress persists **server-side per account** (the §8.2
+  nudge-state precedent). Whichever context signs in next — Safari tab or
+  installed app — renders a "Finish setting up notifications — step 3 of 4"
+  resume card. Abandoning at any step is a pause, not a dead end.
+- **Helper mode:** a dedicated step-by-step page designed to be read over the
+  member's shoulder — side-by-side bilingual (member's app locale + English)
+  so a zh-Hant grandmother and her English-reading grandson follow the same
+  screen — reachable via a short URL/QR that the church tech deacon can print
+  and reuse after service.
+- The §12 admin card counts funnel drop-off in aggregate (installs started →
+  sign-ins completed → permission granted) so leadership learns "8 of 10
+  stall at sign-in" without any per-person visibility.
+
+Acceptance criteria: *an approver who completed this flow can perform a full
+signing ceremony inside the installed app without leaving it* — and *an
+approver who abandons the flow at any step can resume it later from either
+context without data loss.*
+
+### 8.5 Security category honesty
 
 In the happy multi-device flow the member holds both devices, so the
-`device-request` push is usually redundant — its real value is the *"if this
-wasn't you"* case, where a missed notification has a security cost. The
-category keeps a switch (user agency wins), but it defaults on with the master
-switch and turning it off shows a one-line "you won't be warned about new
-devices" explainer.
+`device-request` push is usually redundant — the *"if this wasn't you"* case
+is the real value. But that value only exists for people with **a second
+push-enabled device**: on iOS the sole push-capable context is the installed
+app, so for a single-device user (most of this congregation) the recipient
+set of a `device-request` push is structurally empty — the requesting device
+is excluded and nothing else is subscribed. The design states this honestly:
+
+- The in-app `DeviceRequestsBanner` remains the security guarantee; push is
+  best-effort acceleration. The profile card says "device alerts reach your
+  *other* devices — they need a second device with notifications on."
+- The worker skips (and records `skipped`) jobs whose recipient token set is
+  empty rather than pretending coverage.
+- This gap is the concrete motivation for the deferred email channel (§2
+  keeps a `channel` column): security events are where email would land
+  first, later.
+- The category keeps a switch (user agency wins); it defaults on with the
+  master switch, and turning it off shows a one-line "you won't be warned
+  about new devices" explainer.
+
+### 8.6 Shared and multi-account browsers (the church-office PC)
+
+A push subscription belongs to the *browser profile*, but people share
+machines. Tokens therefore follow the signed-in account, explicitly:
+
+- **Sign-out deletes this installation's token** — server-side row delete plus
+  client `deleteToken()` — so a treasurer's `finance-queue` pushes never pop
+  on the office screen after she leaves, readable by whoever sits down next.
+- **Sign-in re-association is defined, not accidental:** registering a token
+  that exists under another user re-parents the row to the current user; the
+  previous owner's device list drops it, and their zero-device banner (§8.7)
+  catches the silent loss.
+- `lastSeenAt` refreshes only while the token's current owner is the signed-in
+  user — other people's visits must not make a dead device look alive.
+- The soft-ask asks outright: "Is this a shared computer? Don't turn
+  notifications on here." (Localized; this congregation has exactly such a
+  machine.)
+
+### 8.7 Staying connected — drift detection and self-test
+
+Delivery dies silently: a phone migration/iCloud restore recreates the
+home-screen *icon* but not the push subscription; iOS Settings can mute the
+app with no server-visible error; browsers evict storage. Three feedback
+loops keep "on" meaning on:
+
+1. **Per-device reconnect chip:** on app load, if the account has
+   `notifyEnabled` but *this installation* has no live token or
+   `Notification.permission !== "granted"`, show a one-tap "reconnect
+   notifications on this device." **Gated by the same §8.3 step-0 capability
+   pre-flight** — an iOS Safari tab or WeChat view (push-incapable by
+   construction, even while the same phone's installed PWA receives fine)
+   must never nag "reconnect": in capable-but-uninstalled iOS Safari the
+   correct surface is the §8.4 resume card; in incapable contexts, nothing.
+2. **Account-level banner:** an enabled account with zero fresh tokens sees
+   "Notifications are on, but no device is currently receiving them."
+3. **Self-test for everyone:** "Send myself a test notification" lives on the
+   user's own profile card — not admin-only — so "is this working?" has a
+   30-second answer a volunteer can perform over the phone.
+
+### 8.8 Taps must survive sign-in
+
+Sessions are a fixed 30-day cookie with no sliding renewal, so a
+few-times-a-month user is *routinely* signed out at the moment a push
+arrives. A tap that ends on the home page after a Google sign-in — with no
+trace of what was tapped — fails the core journey for the least-technical
+persona. Requirements:
+
+- The service-worker click handler opens the catalog route with the existing
+  `?return=` pattern **extended to all auth redirects** (today only `/vouch`
+  preserves it), so post-sign-in lands on `/approvals` or `/claims/{id}`,
+  never bare `/`.
+- Recommended alongside (separate decision, same milestone): sliding session
+  renewal on active use, making the signed-out tap the exception rather than
+  the monthly norm.
+- e2e acceptance (§13): *tapping a notification while signed out lands on the
+  target page after sign-in.*
+
+### 8.9 Accessibility requirements (binding, not aspirational)
+
+The new surfaces target the app's oldest users; they follow the codebase's
+existing a11y idiom rather than inventing one:
+
+- **Soft-ask modal:** the `ConfirmDialog` pattern — `aria-modal`, focus trap,
+  focus returned to the invoking control on close.
+- **Toggles:** the `DutyRow` labeled-state pattern — visible on/off text next
+  to the control (color/position is never the only signal), touch targets
+  ≥ 44 pt for tremor and presbyopia.
+- **Reconnect state:** the transient chip is an *accelerator*, not the source
+  of truth — the same state always exists as a persistent row in the Profile
+  notifications card, and its appearance announces via `role="status"`. A
+  VoiceOver user who never perceives a chip on load still finds the row.
+- **Self-test confirms in-page**, independent of the notification arriving:
+  "Sent at 3:42 — did your phone show it?" (a muted phone, DND, or in-page
+  screen-reader focus otherwise makes success indistinguishable from
+  failure).
+- **Foreground pushes have a defined in-app surface.** When the page is
+  focused, several platforms show no system banner at all; `onMessage` events
+  render as an in-app toast (`aria-live="polite"`) using the same composed
+  text, so foreground events don't silently vanish — for anyone.
+- **Deep-link landings move focus,** extending the existing `?open=` contract
+  beyond its visual pulse: the target row receives focus so screen-reader and
+  keyboard users arrive *at* the thing the notification named.
 
 ## 9. Localization
 
 - Push content is composed **server-side at send time** from
-  `messages/<locale>.json` under a new `Notifications` namespace, using the
-  token row's `locale` (per-device fidelity — a shared-language household's
-  iPad and phone can differ), falling back to `User.locale`.
+  `messages/<locale>.json` under a new `Notifications` namespace. Locale
+  resolution order: **this device's current resolved locale → `User.locale`**
+  — and the token row's locale is *live*, not a registration snapshot: the
+  same app-load/visibility ping that refreshes `lastSeenAt` re-captures the
+  request's resolved locale (the server already resolves cookie →
+  Accept-Language on every request). A user whose grandson set the phone up in English and who
+  later switches the app to 中文 must not keep receiving English pushes for a
+  year — least of all the `device-request` security alert, where an
+  unreadable warning is a dismissed warning.
 - Every new key gets a translator `context` note and `npm run translate` runs
   before commit (CLAUDE.md invariant 10); staleness is already a red test.
 - The service worker never needs the catalogs — it only displays what the
@@ -364,15 +664,40 @@ devices" explainer.
 - User data inside notification text (claim event names, merchant labels)
   stays verbatim, never machine-translated — same rule as the rest of the app.
 
+### 9.1 Composition rules (the lock screen is a hostile layout)
+
+- **The variable is optional.** Every §5 sketch leans on the claim's event
+  label, but `claimEvent` defaults to empty and is never required — the
+  *common* case must not render "Signature requested — " with a dangling
+  separator as someone's first-ever push. Fallback chain:
+  `claimEvent` → `claimDescription` → localized generic ("a claim"), composed
+  so the empty case reads as a complete sentence.
+- **Action first, label last.** iOS shows roughly one title line
+  (~15–18 CJK glyphs); truncation must eat the free-text label, never the
+  verb. The fixed part of a title budgets ≤ ~12 CJK glyphs. Every
+  `Notifications.*` key's `context` note states this ordering so a translator
+  doesn't naturally invert it.
+- **House ICU discipline:** named arguments, ICU plurals ("receiving on
+  {count} devices"), whole sentences per key.
+- **Register rule:** notification and consent text consistently uses 您
+  (formal register) in both Chinese catalogs — added to `messages/GLOSSARY.md`
+  (today's catalogs mix 你/您; lock-screen text addressed to elders
+  shouldn't).
+- **Gate:** a unit test composes every catalog event × 3 locales × empty
+  label and asserts no dangling separators, no missing-arg ICU errors.
+
 ## 10. Failure modes
 
 | Failure | Behavior |
 | --- | --- |
 | FCM unreachable / SA misconfigured | Jobs retry with backoff, then `failed` with `lastError`; app fully functional; admin health surfaces the error (§12). Never blocks mutations. |
-| Token stale/revoked | Deleted on first send error; device silently stops receiving; profile card shows per-device `lastSeenAt` so a user can see a dead device and re-enable. |
-| User blocked permission at browser | Server keeps sending to a token that will never display? No: blocked permission invalidates the push subscription ⇒ send error ⇒ token pruned. Account switch remains the reliable off. |
-| Duplicate events (route retried) | Collapse key makes duplicates replace, not stack; enqueue helpers are idempotent per (kind, targetId, recipient) within a short window. |
-| Container down at event time | Jobs are durable rows; worker drains on restart. TTL keeps resurrected-but-expired urgency (device approvals) from firing stale. |
+| Token stale/revoked | Deleted on first send error; the §8.7 reconnect chip (per device) and zero-device banner (per account) surface the loss instead of relying on the user to study `lastSeenAt`. |
+| Phone migration / iOS mute — delivery dies with NO send error | Undetectable server-side; caught client-side by the §8.7 reconnect chip on next app open, plus the user-facing self-test button. |
+| User blocked permission at browser | Blocked permission invalidates the push subscription ⇒ send error ⇒ token pruned. Account switch remains the reliable off. |
+| Tap on a stale tray notification (work withdrawn / handled by someone else) | Landing pages own it: designed empty states on `/approvals` and `/finance` explain withdrawal/already-handled (§5). |
+| Tap while signed out | `?return=` deep-link survival through sign-in (§8.8); never strands the user on `/`. |
+| Duplicate events (route retried, reconcile replay) | The `dedupeKey` unique constraint no-ops the second enqueue (§7.2) — this, not collapse, is the duplicate guarantee; `tag` replacement is best-effort tray hygiene. |
+| Container down at event time | Jobs are durable rows; worker drains on restart — but the §7.3 age gate skips any job whose *event* is older than its kind's TTL, so a resurrected `device-request` never fires "fresh" about a ceremony that ended hours ago. |
 | User's role/pauses changed between enqueue and send | Send-time re-check of preferences + role/pause state; job becomes `skipped`. |
 
 ## 11. Telemetry & privacy (invariant 7 & the payload boundary)
@@ -393,21 +718,202 @@ devices" explainer.
 ## 12. Admin surface
 
 A small card on the existing admin settings tab: push health (last successful
-send, queue depth, failed-job count), SA fingerprint (never the key), and a
-"send myself a test notification" button. No admin access to anyone's
-preferences or tokens.
+send, queue depth, failed-job count), SA fingerprint (never the key), the
+onboarding funnel in aggregate (installs started → sign-ins → permissions
+granted, §8.4), and the "claims waiting > 7 days" trend line (§5). Strictly
+aggregate: no per-person adoption status, no access to anyone's preferences
+or tokens — leadership gets "where do people stall," never "who to blame."
+(The self-test button lives on every user's own profile, §8.7.)
+
+The card also **verifies the service account is messaging-only** (self-check
+via `testIamPermissions`-style probe) and shows a plain-language warning when
+it holds more than `cloudmessaging.messages.create` — because the predictable
+failure mode of a hard console step is a frustrated volunteer granting
+"Firebase Admin," which would silently void the §4 keyless-ledger property.
 
 ## 13. Build order
 
+Launch prerequisites (hard dependencies surfaced by the journey work):
+
+- `FIREBASE_AUTH_PROXY` deployed so sign-in works inside the installed iOS
+  app (§8.4).
+- `?return=` deep-link survival on all auth redirects (§8.8) — ships before
+  or with the first notification, not after.
+
+Deployment surface (the volunteer tech deacon must be able to complete
+this):
+
+- New config: `FIREBASE_VAPID_PUBLIC_KEY` (client-safe, relayed like the
+  rest of `firebaseWebConfig()`) and the SA credential — **recommended home
+  is the `<DATA_DIR>/config.json` overlay**, not compose-env quoting of a
+  multi-line JSON blob. `.env.example`, `docker-compose.yml`, and the admin
+  config schema all gain the entries.
+- A step-by-step Firebase/GCP console walkthrough ships as part of this
+  feature's docs: generate Web Push certificates; create the **custom IAM
+  role first** (exactly `cloudmessaging.messages.create`), then the service
+  account, then the key — written for someone who has never opened the GCP
+  IAM screen, because the undocumented version of this step ends in
+  "Firebase Admin out of frustration" (§12 warns if that happens).
+
+Phases:
+
 1. Schema (PushToken, NotificationJob, User columns) + migration.
 2. Send adapter (messaging-only admin app) + `PUSH_MOCK`.
-3. Worker + enqueue helpers for the top-3 catalog events, unit-tested.
-4. SW + client registration + Profile card + soft-ask (en first, then
-   translate).
-5. Contextual nudges, iOS installer education, admin health card.
+3. Worker + enqueue helpers for the top-3 catalog events, unit-tested
+   (dedupe, send-time preference re-check, empty-recipient skip).
+4. SW + client registration (incl. sign-out token deletion §8.6) + Profile
+   card + soft-ask with capability pre-flight (en first, then translate).
+5. iOS sequenced onboarding (§8.4), §8.7 feedback loops + self-test,
+   contextual nudges, admin health card.
 6. Remaining catalog events + e2e (mock) coverage.
+
+Acceptance tests that gate launch (from the journey walkthroughs):
+
+- An approver who completes §8.4 performs a full signing ceremony inside the
+  installed app without leaving it.
+- An approver who abandons §8.4 at any step resumes it later, from either
+  context, without data loss.
+- Tapping a notification while signed out lands on the target page after
+  sign-in.
+- Tapping while the installed iOS app is already open on another page lands
+  on the target page (§7.5); a client mid claim-generation is never
+  navigated away.
+- Sign-out on a shared browser stops that machine's delivery immediately.
+- Switch language in the app, then receive: the push arrives in the new
+  language (unit: locale re-capture; §9).
+- Composition test: every catalog event × 3 locales × empty label renders a
+  complete sentence (§9.1).
+- Comprehension check (moderated, small-n): a participant who enabled push
+  can, unprompted, say what kinds of messages they'll get and turn them all
+  off within 60 seconds.
 
 ## 14. Revision log — ideation → UXR critique rounds
 
-> To be filled: 5 rounds of UXR critique; each round records the critique's
-> top findings and what changed in response.
+### Round 1 — lens: end-to-end journey walkthroughs (persona-based)
+
+Top findings and responses:
+
+1. **[BLOCKER] iOS install creates a cold, signed-out, keyless second app** —
+   the installed PWA has its own storage container, so "Add to Home Screen"
+   lands the least-technical persona in a signed-out context with no e-sign
+   device key. → §8.4 rewritten from "education card" to a sequenced
+   onboarding flow (install → sign in → device-approval ceremony → permission
+   ask), with `FIREBASE_AUTH_PROXY` promoted to a hard launch prerequisite
+   and a signing-ceremony-inside-the-PWA acceptance test (§13).
+2. **[MAJOR] Delivery dies silently** (phone migration recreates the icon but
+   not the subscription; iOS mute is invisible server-side) → new §8.7: per-
+   device reconnect chip, account-level zero-device banner, and the self-test
+   button moved from admin-only to every profile.
+3. **[MAJOR] Deep links died at the sign-in redirect** (fixed 30-day session
+   ⇒ signed-out taps are routine) → new §8.8: `?return=` survival on all auth
+   redirects + recommended sliding sessions; e2e acceptance test added.
+4. **[MAJOR] Shared church-office PC unspecified** → new §8.6: sign-out
+   deletes the token, sign-in re-association defined, per-account nudge
+   dismissal, "shared computer?" line in the soft-ask.
+5. **[MAJOR] One mis-tap of "Don't Allow" on iOS is near-unrecoverable** →
+   §8.3: native-prompt hardening (localized preview of the system dialog) and
+   an honest iOS-denied recovery path (remove + re-add the icon).
+6. **[MAJOR] Dead-end contexts** (WeChat/Line in-app browsers, iOS < 16.4) →
+   §8.3 step 0 capability pre-flight; the installer never renders where the
+   payoff is impossible.
+7. **[MINOR] Stale tray taps** (withdrawn/handled work; push can't be
+   retracted) → §5/§10: `/approvals` & `/finance` empty states designed for
+   the stale-tap moment.
+8. **[MINOR] `device-request` push has zero recipients for single-device
+   users** → §8.5 rewritten to state the limit honestly; empty-recipient jobs
+   skip; gap explicitly motivates the future email channel.
+
+### Round 2 — lens: inclusivity, language, accessibility
+
+Top findings and responses:
+
+1. **[BLOCKER] §8.4 onboarding assumed a solo, single-sitting completion** —
+   no resume state, no helper story, no drop-off visibility. → §8.4 gains
+   server-side per-account progress + a resume card in both contexts, a
+   bilingual side-by-side helper mode (printable QR for the tech deacon), an
+   aggregate funnel counter in §12, and an abandon-and-resume acceptance test.
+2. **[MAJOR] The document had zero accessibility requirements** for surfaces
+   aimed at the app's oldest users. → New §8.9 (binding): existing
+   aria-modal/focus idioms, ≥ 44 pt labeled toggles, chip-as-accelerator with
+   a persistent card row as source of truth, in-page self-test confirmation,
+   a defined foreground surface (in-app toast, `aria-live`), and deep-links
+   that move focus, not just pulse.
+3. **[MAJOR] Per-device locale was a registration-time snapshot** that would
+   shadow a later language switch indefinitely — worst for the security
+   alert. → §6/§9: locale re-captured on every app-load ping; resolution
+   "device's current resolved locale → `User.locale`"; never a bare `"en"`
+   default; switch-then-receive test gate.
+4. **[MAJOR] The mis-tap hardening previewed the dialog in the app's locale,
+   but the real dialog renders in the OS language.** → §8.3: previews keyed
+   to position/appearance, bilingual when `navigator.language` differs, dual-
+   language rule for all quoted OS menu paths, translator context notes
+   forbidding naturalization of OS chrome.
+5. **[MAJOR] Two-tier adoption creates social gradients** (owners route
+   around non-push approvers; the stalled-approver problem persists for
+   exactly the least-adoptable members). → §5 "In-app parity" committed for
+   v1: activity list fed by preference-independent job rows, de-personalized
+   owner-facing stall state ("waiting 9 days — you can reassign"), and an
+   aggregate-only staleness trend for leadership. §7.1 reworked so jobs are
+   event records first, send instructions second.
+6. **[MAJOR] All content sketches hung on `claimEvent`, an optional field
+   empty by default** — dangling-separator pushes in three languages. → New
+   §9.1 composition rules: fallback chain, action-verb-first ordering with a
+   CJK title budget, ICU discipline, and an events × locales × empty-label
+   test gate.
+7. **[MINOR] Category names were role jargon rendered to the wrong people.**
+   → §8.2: categories render only where they can ever fire; every toggle
+   carries a concrete example line; 您-register rule added for notification
+   and consent text in both Chinese catalogs (§9.1).
+8. **[MINOR] Five ANDed switches, no taught undo.** → §8.3: soft-ask and
+   profile card both teach the single reliable off-switch sentence; §13 adds
+   a moderated comprehension check (name what you enabled; turn it off in
+   60 s).
+
+### Round 3 — lens: platform & technical reality
+
+Top findings and responses:
+
+1. **[BLOCKER] The service worker had no way to get Firebase config** — this
+   deployment's config is runtime state (env/`config.json`), not build-time
+   `NEXT_PUBLIC_*`, so a static `public/firebase-messaging-sw.js` can't
+   exist. → New §7.0: the SW is a route handler with injected
+   `configValue()` config, `no-cache`, an explicit
+   `skipWaiting`/`clients.claim` update contract, and a stated consequence
+   for project-config changes (all tokens invalidate; §8.7 surfaces
+   re-enable).
+2. **[MAJOR] Collapse as specced was doubly wrong**: `Topic` must be ≤ 32
+   base64url chars (`signing-request:{claimId}` is illegal and can 400 the
+   send), and Topic never replaces *displayed* notifications. → §7.4
+   rewritten: hashed Topic for queue collapse + `webpush.notification.tag`
+   for tray replacement (iOS flakiness acknowledged); §10 now credits
+   `dedupeKey`, not collapse, for duplicate suppression.
+3. **[MAJOR] TTL conflated with event age** — a resurrected job after a
+   container outage would fire "fresh" about a dead ceremony; reconcile-
+   sourced events are generated by the recipient's own page visit. → §7.3
+   age-gates jobs on an event-occurrence timestamp; §7.1 suppresses
+   reconcile events whose sole recipient is the reconciler and bans "just
+   now" framing.
+4. **[MAJOR] The 60-day staleness window starved glance-only devices** —
+   the product's success mode (read the lock screen, don't open the app)
+   generated no liveness signal. → `lastSendOkAt` added: successful sends
+   count as liveness, window widened to 180 d, ping extended to
+   `visibilitychange`/`focus`; only send errors prune.
+5. **[MAJOR] The reconnect chip false-fired in every push-incapable
+   context** (Safari tab / WeChat on a phone whose PWA receives fine). →
+   §8.7 chip gated by the §8.3 step-0 pre-flight; capable-but-uninstalled
+   contexts get the §8.4 resume card; the account banner stays the
+   cross-context truth.
+6. **[MAJOR] Notification-click behavior was unspecified** and the FCM
+   default (exact-URL focus match) opens a new tab per tap — worst on the
+   shared PC; naive navigation would kill a live 15-minute extraction
+   stream. → New §7.5 click contract: custom handler, focus + `postMessage`
+   navigation, never navigate a streaming client, `openWindow` fallback,
+   iOS acceptance test.
+7. **[MAJOR] The self-hosting setup was incomplete and its hardest step
+   undocumented** — inviting a frustrated "Firebase Admin" grant that voids
+   §4's security property. → §13 deployment surface (VAPID var, config.json
+   as the SA home, console walkthrough written custom-role-first); §12
+   verifies the SA is messaging-only and warns when broader.
+8. **[MINOR] `/api/notifications/hint` had no dedupe/rate-limit** and its
+   `targetId` was client-supplied. → §7.1b: server-derived bucket dedupe
+   key, per-user hourly cap, no client ids in the push path.
