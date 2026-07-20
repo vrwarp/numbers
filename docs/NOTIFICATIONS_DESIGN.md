@@ -1,10 +1,10 @@
 # Push notifications (FCM) — design
 
-Status: **draft v5 — refined through five ideation → UXR-critique rounds**
-(journeys · inclusivity/accessibility · platform reality · trust/social
-dynamics · holistic coherence; full revision log in §14). Nothing here is
-implemented yet; §15 lists the three decisions awaiting the product owner
-before ratification.
+Status: **v6 — ready to build.** Refined through five ideation → UXR-critique
+rounds (journeys · inclusivity/accessibility · platform reality ·
+trust/social dynamics · holistic coherence; full revision log in §14); the
+three open decisions were resolved by the product owner on 2026-07-20 (§15).
+Nothing is implemented yet — §13 is the build order.
 
 The one-sentence pitch: today the only way anyone learns that work arrived —
 a packet awaiting their signature, a claim approved, a new device asking for
@@ -194,10 +194,11 @@ Notes on the table:
   should see ≲ 2 pushes in a typical week (their own claims only); an
   approver a handful (only claims naming them); treasurers are the hot spot
   — every APPROVE fans out to all of them, so retreat season (~20 claims/
-  month church-wide) is ~20 pushes each — hence the per-recipient
-  coalescing above, and the quiet window in §7.3: submissions and foyer
-  approvals cluster around Sunday service, and the approve→finance fan-out
-  must not buzz every treasurer's phone mid-sermon. Any future catalog
+  month church-wide) is ~20 pushes each — hence the per-recipient coalescing
+  above. The Sunday-service worry resolved against an app-level hold
+  (§7.3): pews are silent by congregational habit, the finance team batches
+  after lunch, and device DND is the personal instrument — so pushes arrive
+  when sent and are read on the recipients' own rhythm. Any future catalog
   addition states its expected frequency against this budget.
 
 ### In-app parity — committed alongside v1, because push must not create castes
@@ -329,7 +330,7 @@ deployment's project config. Therefore:
   `Cache-Control: no-cache` (the browser byte-compares on registration,
   navigation, push, and ~24 h — no-cache keeps that comparison honest).
   **It is necessarily public** — browsers re-validate the SW on push receipt
-  and daily, routinely after the 30-day session cookie has expired; wrapping
+  and daily, including after the session cookie has expired; wrapping
   it in `requireUserId()` would 401 those checks and silently freeze config
   propagation. It joins `GET /c/[token]` as a *named exception* to
   invariant 2 (CLAUDE.md's wording updates at ship time), which is safe
@@ -412,17 +413,19 @@ is near-instant rather than next-poll). Per job:
   two hours must not resurrect a `device-request` and deliver it "fresh"
   (FCM's TTL bounds time in *FCM's* queue, not time in ours; it cannot do
   this for us).
-- **Quiet window:** defers claim-lifecycle sends via `nextAttemptAt` —
-  hold-then-send, not drop. `device-request` and `self-test` are exempt
-  (genuine urgency / diagnostic). No conflict with the age gate: claim-kind
-  TTLs are days, holds are hours. Storage: a single-row admin-settings model
-  beside the `EmbeddingSettings` pattern; timezone is an admin setting
-  defaulting to the server TZ (one congregation = one deployment = one
-  timezone — this app has no per-user timezone model and doesn't need one).
-  **v1 ships a fixed default — 21:30–08:00 plus Sunday 09:00–12:30 — with no
-  admin UI** (the §12 editor is deferred; the deacon can still change it in
-  `config.json`). Release times are jittered a few minutes so the window's
-  edge doesn't fire every held job in one thundering buzz.
+- **Quiet window: built dormant, default OFF** (decision resolved, §15 #2).
+  The mechanism — defer claim-lifecycle sends via `nextAttemptAt`,
+  hold-then-send, `device-request`/`self-test` exempt, jittered release, no
+  conflict with the age gate (claim TTLs are days, holds hours) — exists in
+  the worker, but v1 ships with no window active. Owner evidence overturned
+  the round-4 default: phones are already silenced in the pews by norm, the
+  finance team batches its work after lunch anyway, at least one treasurer
+  works late *and wants* late pushes, and per-person schedules belong to the
+  device's own DND/Focus modes — an app-imposed congregational window would
+  subtract control, not add calm. If the congregation ever asks for one,
+  enable it via a §12 admin UI (owner preference: UI over config-file
+  editing), one window per deployment, server TZ; the service schedule on
+  record for that day: English 9:30, Chinese 11:15, finance after lunch.
 - Re-check the recipient's master + category switches and role/pause state
   **at send time**; resolve live tokens. **Liveness =
   `max(lastSeenAt, lastSendOkAt)` within 180 d** — a successful send marks
@@ -454,9 +457,10 @@ sends*:
   on platforms that honor it. iOS tag-replacement is historically flaky —
   test, don't assume; a stacked pair on iOS is the acceptable degradation,
   which also means **coalescing is best-effort on the congregation's
-  dominant platform: the quiet window, not the tag, is the real iOS
-  fatigue mitigation** (§5). The `finance-queue` "{count} claims are ready"
-  count = the recipient's approved-unpaid claims at compose time.
+  dominant platform** — the honest iOS fatigue mitigations are the volume
+  budget, the congregation's own silencing norms, and device DND (§5, §7.3),
+  not the tag. The `finance-queue` "{count} claims are ready" count = the
+  recipient's approved-unpaid claims at compose time.
 - **TTL** (`webpush.headers.TTL`) bounds FCM/APNs queue time for offline
   devices, per-kind from §5. Event *age* is our queue's job (§7.3), not
   TTL's.
@@ -719,19 +723,23 @@ loops keep "on" meaning on:
 
 ### 8.8 Taps must survive sign-in
 
-Sessions are a fixed 30-day cookie with no sliding renewal, so a
-few-times-a-month user is *routinely* signed out at the moment a push
-arrives. A tap that ends on the home page after a Google sign-in — with no
-trace of what was tapped — fails the core journey for the least-technical
-persona. Requirements:
+A tap that ends on the home page after a Google sign-in — with no trace of
+what was tapped — fails the core journey for the least-technical persona.
+Requirements:
 
 - The service-worker click handler opens the catalog route with the existing
   `?return=` pattern **extended to all auth redirects** (today only `/vouch`
   preserves it), so post-sign-in lands on `/approvals` or `/claims/{id}`,
   never bare `/`.
-- Recommended alongside (separate decision, same milestone): sliding session
-  renewal on active use, making the signed-out tap the exception rather than
-  the monthly norm.
+- **Session lifetime: 90-day fixed cookie** (decision resolved, §15 #1 —
+  was 30-day, a default nobody had chosen deliberately). No sliding-renewal
+  semantics: observed usage is a ~week burst per claim, so 90 days keeps the
+  overwhelming majority of taps signed-in, sign-in inside the installed PWA
+  is smooth when it does trigger, shared-device exposure is minimal in this
+  congregation, and no policy constrains lifetime. Session expiry never
+  cascades into e-sign ceremonies — the charproof device key lives in the
+  installed app's own storage, independent of the cookie, so re-auth is only
+  the Google step (passkey-quick for accounts that have one).
 - e2e acceptance (§13): *tapping a notification while signed out lands on the
   target page after sign-in.*
 
@@ -881,6 +889,13 @@ it holds more than `cloudmessaging.messages.create` — because the predictable
 failure mode of a hard console step is a frustrated volunteer granting
 "Firebase Admin," which would silently void the §4 keyless-ledger property.
 
+The card carries one control in v1: a **deployment-level pause** (decision
+resolved, §15 #3) — an admin toggle that stops the worker from *sending*
+without a redeploy. Enqueues continue (the activity list stays whole; parity
+is unaffected), jobs simply hold; unpausing releases through the normal
+age gate, so nothing stale fires. This is the incident kill switch the pilot
+starts with, admin-authorized.
+
 ## 13. Build order
 
 Launch prerequisites (hard dependencies surfaced by the journey work):
@@ -889,6 +904,8 @@ Launch prerequisites (hard dependencies surfaced by the journey work):
   app (§8.4).
 - `?return=` deep-link survival on all auth redirects (§8.8) — ships before
   or with the first notification, not after.
+- Session lifetime extended to the 90-day fixed cookie (§8.8, §15 #1) — an
+  app-wide auth change, shipped and observed before the pilot begins.
 
 Deployment surface (the volunteer tech deacon must be able to complete
 this):
@@ -910,7 +927,8 @@ not after it:
 
 1. Schema (PushToken, NotificationJob, User columns) + migration.
 2. Send adapter (messaging-only admin app) + `PUSH_MOCK` + worker (age gate,
-   quiet window with the fixed v1 default, liveness, prune).
+   dormant quiet-window deferral §7.3, deployment pause flag §12, liveness,
+   prune).
 3. Enqueue helpers for the serial spine — `signing-request`,
    `claim-approved`, `claim-rejected` — plus `finance-queue`, `claim-paid`,
    `self-test`; unit-tested (dedupe, send-time preference check,
@@ -924,8 +942,9 @@ not after it:
    `device-request` hint path, admin health card (incl. SA scope check).
 6. **Post-v1, explicitly deferrable without breaking any stated property:**
    helper-mode page + printable QR, onboarding funnel counters, staleness
-   trend line, contextual nudges, quiet-window admin UI (v1 runs the fixed
-   default via `config.json`), phase-2 catalog events.
+   trend line, contextual nudges, quiet-window admin UI (built only if the
+   congregation ever asks to enable the window — §7.3), phase-2 catalog
+   events.
 
 Acceptance tests that gate launch (from the journey walkthroughs):
 
@@ -949,7 +968,17 @@ Acceptance tests that gate launch (from the journey walkthroughs):
 Post-launch validation (valuable, **not** launch-gating for a two-contributor
 volunteer project): the moderated comprehension check — a participant who
 enabled push can, unprompted, say what kinds of messages they'll get and turn
-them all off within 60 seconds. Run it with the pilot cohort (§15).
+them all off within 60 seconds. Run it with the pilot cohort.
+
+**Pilot plan (resolved, §15 #3):** a *quiet* pilot — no congregation-wide
+announcement — running **one month**: the treasurers plus one approver
+household (together they cover the risky paths: iOS/zh-Hant onboarding,
+Android, the shared office PC, finance coalescing), onboarded in person by
+the tech deacon after a service. The steady general-affairs reimbursements
+provide real traffic, so no seeded test claims are needed. The deployment
+pause (§12) exists before the first pilot notification. Widen after the
+month if the acceptance list held and the comprehension check passes;
+anything that required the pause mid-pilot resets the clock.
 
 ## 14. Revision log — ideation → UXR critique rounds
 
@@ -1165,19 +1194,29 @@ The final pass hunted contradictions introduced by four rounds of patching:
     "top-3 events" were unnamed.** → §8.2 canonical key vocabulary; §13
     names the serial spine.
 
-## 15. Decisions required from the product owner
+## 15. Decisions — RESOLVED by the product owner (2026-07-20)
 
-The loop converged; these three are genuinely not the document's to make:
+The loop surfaced three decisions that weren't the document's to make; the
+owner answered a 20-question decision worksheet, and the answers are folded
+into the body (§7.3, §8.8, §12, §13). For the record:
 
-1. **Sliding session renewal (§8.8).** Adopt app-wide alongside v1 (making
-   signed-out notification taps the exception), or accept that most taps
-   route through sign-in. It changes auth behavior for the whole app, beyond
-   this feature's authority.
-2. **Quiet-window policy (§7.3).** The v1 default ships fixed
-   (21:30–08:00 + Sunday 09:00–12:30, server TZ): confirm the hours — whether
-   Sunday service should really hold pushes is a congregational-culture
-   call, not a design call.
-3. **Rollout cohort.** Recommended pilot: the treasurers plus one approver
-   household (they hit the richest paths: finance coalescing, §8.4 iOS
-   onboarding, shared-PC hygiene) before announcing to the congregation —
-   and run the §13 comprehension check with them.
+1. **Session lifetime: 90-day fixed cookie; no sliding renewal.** Grounds:
+   usage is a ~week burst per claim (most taps will land signed-in under
+   90 d); the 30-day figure was an undeliberate default; PWA sign-in is
+   observed smooth and passkeys make re-auth cheap; expiry never cascades
+   into vouching or device approval (the signing key lives in app storage,
+   not the cookie); shared devices are rare here; no external policy binds
+   lifetime. (§8.8; prerequisite in §13.)
+2. **Quiet window ships dormant — OFF by default; device DND is the
+   instrument.** Grounds: pews are silent by habit, so a Sunday hold solves
+   a non-problem; the finance team batches after lunch regardless of arrival
+   time; a night-working treasurer *wants* late pushes; per-person schedules
+   are the device's job, and the owner is comfortable holding the "no
+   per-user quiet hours" line. If ever enabled, it gets a §12 admin UI
+   (owner prefers UI over config-file editing). Service schedule on record:
+   English 9:30, Chinese 11:15, finance after lunch. (§7.3.)
+3. **Quiet one-month pilot; deployment-level pause built first.** Cohort:
+   treasurers + one approver household (confirmed to cover iOS/zh-Hant,
+   Android, and the shared office PC), deacon-assisted onboarding, real
+   traffic from the regular general-affairs reimbursements, no announcement
+   until the month concludes cleanly. (§12, §13.)
