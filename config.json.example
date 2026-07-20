@@ -10,6 +10,13 @@
   "FIREBASE_PROJECT_ID": "your-project",
   "FIREBASE_APP_ID": "",
 
+  "_comment_push": "Optional push notifications (docs/PUSH_SETUP.md). The two keys below are client-safe; FCM_SERVICE_ACCOUNT_JSON is the one secret — a service account with a CUSTOM role holding exactly cloudmessaging.messages.create (never Firebase Admin). config.json is its recommended home since it is multi-line JSON.",
+  "FIREBASE_MESSAGING_SENDER_ID": "",
+  "FIREBASE_VAPID_PUBLIC_KEY": "",
+  "FCM_SERVICE_ACCOUNT_JSON": "",
+  "NOTIFY_PAUSED": "",
+  "NOTIFY_QUIET": "",
+
   "AI_PROVIDER": "openrouter",
   "OPENROUTER_API_KEY": "",
   "OPENROUTER_MODEL": "google/gemini-3.1-flash-lite",
