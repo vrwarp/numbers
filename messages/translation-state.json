@@ -6608,13 +6608,13 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
-  "Admin.fields.ESIGN_NUDGES_OFF.label": {
+  "Admin.fields_ESIGN_NUDGES_OFF_label": {
     "source": "Pause setup suggestions",
     "context": "Admin settings label for the nudge kill-switch (boolean). Checked = the home-page e-sign invitation/closure cards stop showing.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Admin.fields.ESIGN_NUDGES_OFF.help": {
+  "Admin.fields_ESIGN_NUDGES_OFF_help": {
     "source": "Hides the home-page e-sign setup and closure cards for everyone. Honest buttons, menu rows, and status lines stay.",
     "context": "Admin settings help text for the nudge kill-switch.",
     "zh-Hans": "machine",
