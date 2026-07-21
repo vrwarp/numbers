@@ -10,6 +10,8 @@ import { KIND_SPECS, type NotificationKind } from "@/lib/notifications/catalog";
  * facts as push recipients, merely later. Informational only: no unread
  * counts, no read-tracking (§2); badges stay the actionable surface. Text is
  * composed here at RENDER time in the viewer's locale from event params.
+ * Its own /activity page (reached from the account menu) owns the heading;
+ * this component renders just the list (or empty state).
  */
 
 type Item = {
@@ -28,7 +30,7 @@ export default function ActivityCard() {
   const [items, setItems] = useState<Item[] | null>(null);
 
   useEffect(() => {
-    fetch("/api/notifications/activity?limit=10")
+    fetch("/api/notifications/activity?limit=20")
       .then((r) => (r.ok ? r.json() : null))
       .then((data: { items: Item[] } | null) => setItems(data?.items ?? []))
       .catch(() => setItems([]));
@@ -58,18 +60,27 @@ export default function ActivityCard() {
     }
   }
 
-  if (items === null || items.length === 0) {
-    // The card renders only once there is something to show — an empty
-    // activity box would just be noise on the home screen.
+  if (items === null) {
+    // Still loading — hold the space quietly rather than flash an empty state.
     return null;
   }
 
+  if (items.length === 0) {
+    // On its own page an empty list needs to say so, not vanish (unlike the
+    // old home-screen card, which stayed hidden until there was something).
+    return (
+      <div className="card p-10 text-center text-stone-500" data-testid="activity-card">
+        <div className="text-4xl" aria-hidden>
+          🔔
+        </div>
+        <p className="mt-2 text-sm">{t("activity.empty")}</p>
+      </div>
+    );
+  }
+
   return (
-    <section className="card mt-6 p-5" aria-labelledby="activity-title" id="activity" data-testid="activity-card">
-      <h2 id="activity-title" className="text-lg font-bold">
-        {t("activity.title")}
-      </h2>
-      <ul className="mt-2 divide-y divide-stone-100">
+    <section className="card p-5" aria-label={t("activity.title")} data-testid="activity-card">
+      <ul className="divide-y divide-stone-100">
         {items.map((item) => {
           const route = item.targetGone ? null : KIND_SPECS[item.kind].route(item.targetId);
           const body = (

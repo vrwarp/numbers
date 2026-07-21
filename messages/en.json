@@ -1756,6 +1756,8 @@
     },
     "activity": {
       "title": "Recent activity",
+      "subtitle": "Approvals, payments, and signing requests — the same updates sent as notifications, gathered here.",
+      "empty": "No activity yet. Updates about your claims and signing requests will show up here.",
       "deletedClaim": "a deleted claim",
       "byName": "by {name}"
     }

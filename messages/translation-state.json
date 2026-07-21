@@ -187,7 +187,7 @@
   },
   "NavBar.recentActivity": {
     "source": "Recent activity",
-    "context": "Account-menu item linking to the home page's recent-activity list. Short.",
+    "context": "Account-menu item linking to the recent-activity page. Short.",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
@@ -8927,7 +8927,19 @@
   },
   "Notifications.activity.title": {
     "source": "Recent activity",
-    "context": "Home-page card heading for the recent-activity list. Short.",
+    "context": "Page heading for the recent-activity list (its own page, reached from the account menu). Short.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.activity.subtitle": {
+    "source": "Approvals, payments, and signing requests — the same updates sent as notifications, gathered here.",
+    "context": "Subtitle under the Recent activity page heading, explaining what the list contains.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.activity.empty": {
+    "source": "No activity yet. Updates about your claims and signing requests will show up here.",
+    "context": "Empty-state message on the Recent activity page when the member has no activity yet.",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
