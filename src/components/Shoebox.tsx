@@ -705,13 +705,16 @@ export default function Shoebox({
         </div>
       )}
 
-      {/* Search pill and claim bar share one row from `sm` up (search keeps a
-          fixed width, the claim bar owns the rest). Below `sm` the claim bar
-          is the SAME element repositioned into a fixed dock at the bottom of
-          the screen — one element so data-testid="generate-claim" stays
-          unique — and the search pill has the row to itself. */}
+      {/* Search pill and claim bar share one sticky row from `sm` up (search
+          keeps a fixed width, the claim bar owns the rest) — pinned at
+          top-[4.5rem] rather than the nav's top-16 so the bar gets a little
+          breathing room below the nav instead of butting against it. Below
+          `sm` the claim bar is the SAME element repositioned into a fixed
+          dock at the bottom of the screen — one element so
+          data-testid="generate-claim" stays unique — and the search pill has
+          the row to itself. */}
       {(searchEnabled || hasClaimBar) && (
-        <div className="z-30 flex items-start gap-3 sm:sticky sm:top-16 sm:items-stretch">
+        <div className="z-30 flex items-start gap-3 sm:sticky sm:top-[4.5rem] sm:items-stretch">
           {searchEnabled && (
             <Link
               href="/search?type=receipt"
