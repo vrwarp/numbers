@@ -1784,6 +1784,9 @@
       "body": "应用的这一部分遇到了问题。您可以重试，或告诉我们发生了什么。",
       "tryAgain": "重试",
       "report": "报告这个问题"
-    }
+    },
+    "yourReports": "我的反馈",
+    "statusTriaged": "已查看",
+    "statusClosed": "已处理"
   }
 }

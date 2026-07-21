@@ -9040,5 +9040,20 @@
     "source": "Report this problem",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
+  },
+  "Feedback.yourReports": {
+    "source": "Your reports",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.statusTriaged": {
+    "source": "Seen",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.statusClosed": {
+    "source": "Done",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   }
 }

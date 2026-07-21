@@ -1784,6 +1784,9 @@
       "body": "This part of the app hit a problem. You can try again, or tell us what happened.",
       "tryAgain": "Try again",
       "report": "Report this problem"
-    }
+    },
+    "yourReports": "Your reports",
+    "statusTriaged": "Seen",
+    "statusClosed": "Done"
   }
 }

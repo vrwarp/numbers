@@ -1784,6 +1784,9 @@
       "body": "應用程式的這個部分遇到了問題。您可以重試，或告訴我們發生了什麼。",
       "tryAgain": "重試",
       "report": "回報這個問題"
-    }
+    },
+    "yourReports": "我的回報",
+    "statusTriaged": "已檢視",
+    "statusClosed": "已處理"
   }
 }
