@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import LocaleSwitcher from "./LocaleSwitcher";
 import { navBadgeId, navTestId, type NavLink } from "./NavTabs";
 import { signOut } from "@/lib/sign-out";
+import { openFeedback } from "@/lib/feedback/open";
 
 /**
  * The account cluster — Profile, language, Admin, sign out — behind one
@@ -197,6 +198,20 @@ export default function AccountMenu({
             </Link>
           ) : null}
           <div className="my-1 h-px bg-stone-100" />
+          {/* Feedback / bug report — the primary, discoverable entry point
+              (docs/FEEDBACK_DESIGN.md). No floating button: it would collide
+              with the claim's sticky action bar. */}
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              openFeedback();
+            }}
+            className={itemClass}
+            data-testid="nav-feedback"
+          >
+            {t("reportProblem")}
+          </button>
           <button type="button" onClick={() => signOut()} className={itemClass}>
             {t("signOut")}
           </button>

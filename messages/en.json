@@ -58,7 +58,8 @@
     "setupSigning": "Set up signing",
     "showYourCode": "Show your QR code",
     "chipNone": "Not set up",
-    "chipPending": "Waiting for confirmation"
+    "chipPending": "Waiting for confirmation",
+    "reportProblem": "Report a problem"
   },
   "Home": {
     "profileNudge": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
@@ -922,7 +923,9 @@
       "notConfigured": "Push notifications aren’t set up for this deployment.",
       "notEnabled": "Turn notifications on first.",
       "invalidUiState": "That settings update is invalid."
-    }
+    },
+    "feedbackRateLimited": "Too many reports just now — please try again in a little while.",
+    "feedbackInvalid": "That feedback couldn't be read."
   },
   "AddReceipts": {
     "title": "Add receipts to this claim",
@@ -1370,7 +1373,20 @@
         "label": "Match threshold",
         "help": "How close a match must be to show up, 0–1 (higher = stricter). 0.25 is a good start."
       }
-    }
+    },
+    "tab_feedback": "Feedback",
+    "feedbackTitle": "Feedback & bug reports",
+    "feedbackEmpty": "No reports yet.",
+    "feedbackAllStatuses": "All",
+    "feedbackStatus_new": "New",
+    "feedbackStatus_triaged": "Triaged",
+    "feedbackStatus_closed": "Closed",
+    "feedbackMarkTriaged": "Mark triaged",
+    "feedbackMarkClosed": "Close",
+    "feedbackReopen": "Reopen",
+    "feedbackDiagnostics": "Diagnostics",
+    "feedbackNoMessage": "(no message)",
+    "feedbackReportedBy": "by {name}"
   },
   "Ministries": {
     "title": "Budget categories",
@@ -1737,6 +1753,37 @@
       "title": "Recent activity",
       "deletedClaim": "a deleted claim",
       "byName": "by {name}"
+    }
+  },
+  "Feedback": {
+    "title": "Something not working?",
+    "subtitle": "Tap what happened — you don't have to type.",
+    "crashSubtitle": "The app hit a problem. What were you doing?",
+    "category": {
+      "bug": "This is broken",
+      "confused": "I'm stuck here",
+      "idea": "I have a suggestion",
+      "crash": "The app crashed"
+    },
+    "addNote": "Add a note",
+    "notePlaceholder": "What happened? (optional)",
+    "includeDiagnostics": "Include diagnostic details",
+    "diagnosticsNote": "Includes your app version, phone, and recent steps to help fix it — never any dollar amounts, and only the developer sees it.",
+    "sensitiveNote": "On this screen we keep to the basics — other people's information is never included.",
+    "send": "Send",
+    "cancel": "Cancel",
+    "rateLimited": "You've sent a lot of reports just now — please try again in a little while.",
+    "thanksTitle": "Got it — thank you!",
+    "thanksBody": "A real person reads every one of these. We'll fix it in an update.",
+    "queuedBody": "You're offline — we saved it and will send it when you're back online.",
+    "reference": "#{ref}",
+    "statusNew": "Looking into it",
+    "done": "Done",
+    "error": {
+      "title": "Something went wrong",
+      "body": "This part of the app hit a problem. You can try again, or tell us what happened.",
+      "tryAgain": "Try again",
+      "report": "Report this problem"
     }
   }
 }

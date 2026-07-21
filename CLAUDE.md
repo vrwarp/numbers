@@ -134,6 +134,21 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
    never recorded. Every user-visible push string lives in `messages/*.json` under
    `Notifications.*` and is composed at send/render time, never stored.
 
+13. **Client feedback capture stores shapes, never values, and never gates a mutation**
+   (`docs/FEEDBACK_DESIGN.md` is the contract): the breadcrumb ring + diagnostics bundle
+   hold route TEMPLATES and API `{method,status,requestId}` — never amounts, descriptions,
+   tokens, receipt bytes, or other members' data; the redaction discipline is
+   test-enforced (`tests/unit/feedback-redact.test.ts`, `src/lib/feedback/redact.ts`).
+   Capture/report is fire-and-forget (the invariant-11/12 posture): the fetch wrapper and
+   breadcrumb writes swallow errors, the report POST fails soft into the localStorage
+   outbox, and the server write is rate-capped. `handleApi` mints/echoes `x-request-id`
+   (correlation), but it is deliberately NOT stamped onto `ExtractionLog`/`AuditEvent`.
+   Passive crumbs are never their own rows — they ride inside a user report's
+   `diagnosticsJson`. Sensitive routes (`src/lib/feedback/sensitive.ts`) disclose + (when
+   screenshots ship) suppress capture; screenshots are never auto-attached. The admin
+   read grant over all `FeedbackReport` rows is a §6.3-style exception (free-text PII),
+   writes stay owner-only.
+
 ## Docs map
 
 - `docs/agent/ARCHITECTURE.md` — file map, request flows, PDF field names, env vars
@@ -144,6 +159,9 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
 - `docs/NOTIFICATIONS_DESIGN.md` — push notifications: catalog, outbox worker, preference
   model, iOS onboarding, trust amendments (ratified v6, implemented; setup:
   `docs/PUSH_SETUP.md`)
+- `docs/FEEDBACK_DESIGN.md` — client feedback/bug capture: redacted breadcrumbs, error
+  boundary, `x-request-id` correlation, sensitive-surface policy, outbox, admin triage
+  (implemented — Slice 1/2)
 - `docs/agent/DATA_MODEL.md` — schema semantics, state machines, invariants per table
 - `docs/agent/CONVENTIONS.md` — code patterns + gotchas that have already bitten (read before UI/test work)
 - `docs/agent/TESTING.md` — how suites run, how to write tests here, known failure modes

@@ -58,7 +58,8 @@
     "setupSigning": "开通签名",
     "showYourCode": "出示二维码",
     "chipNone": "未开通",
-    "chipPending": "等待确认"
+    "chipPending": "等待确认",
+    "reportProblem": "反馈问题"
   },
   "Home": {
     "profileNudge": "您的<link>个人资料</link>需要填写姓名和邮寄地址——两者都会打印在报销表上。",
@@ -922,7 +923,9 @@
       "notConfigured": "Push notifications aren’t set up for this deployment.",
       "notEnabled": "Turn notifications on first.",
       "invalidUiState": "That settings update is invalid."
-    }
+    },
+    "feedbackRateLimited": "反馈太频繁了——请稍后再试。",
+    "feedbackInvalid": "无法读取该反馈。"
   },
   "AddReceipts": {
     "title": "向这张报销单添加收据",
@@ -1370,7 +1373,20 @@
         "label": "Match threshold",
         "help": "How close a match must be to show up, 0–1 (higher = stricter). 0.25 is a good start."
       }
-    }
+    },
+    "tab_feedback": "反馈",
+    "feedbackTitle": "反馈与问题报告",
+    "feedbackEmpty": "还没有反馈。",
+    "feedbackAllStatuses": "全部",
+    "feedbackStatus_new": "新",
+    "feedbackStatus_triaged": "已查看",
+    "feedbackStatus_closed": "已关闭",
+    "feedbackMarkTriaged": "标记为已查看",
+    "feedbackMarkClosed": "关闭",
+    "feedbackReopen": "重新打开",
+    "feedbackDiagnostics": "诊断信息",
+    "feedbackNoMessage": "（无文字说明）",
+    "feedbackReportedBy": "由 {name} 提交"
   },
   "Ministries": {
     "title": "Budget categories",
@@ -1737,6 +1753,37 @@
       "title": "Recent activity",
       "deletedClaim": "a deleted claim",
       "byName": "by {name}"
+    }
+  },
+  "Feedback": {
+    "title": "遇到问题了？",
+    "subtitle": "点一下发生了什么，不用打字。",
+    "crashSubtitle": "程序出错了。您当时在做什么？",
+    "category": {
+      "bug": "这里坏了",
+      "confused": "这一步看不懂",
+      "idea": "我有个建议",
+      "crash": "程序崩溃了"
+    },
+    "addNote": "补充说明",
+    "notePlaceholder": "发生了什么？（可不填）",
+    "includeDiagnostics": "附上诊断信息",
+    "diagnosticsNote": "会附上应用版本、手机型号和最近的操作步骤，用来帮助修复——绝不包含任何金额，且只有开发者能看到。",
+    "sensitiveNote": "在此页面只附上最基本的信息，绝不包含他人的资料。",
+    "send": "发送",
+    "cancel": "取消",
+    "rateLimited": "您刚刚发送了很多反馈——请稍后再试。",
+    "thanksTitle": "收到了，谢谢！",
+    "thanksBody": "每一条都会有人亲自查看。我们会在后续更新中修复。",
+    "queuedBody": "您当前离线——已为您保存，恢复联网后会自动发送。",
+    "reference": "#{ref}",
+    "statusNew": "正在处理",
+    "done": "好的",
+    "error": {
+      "title": "出错了",
+      "body": "应用的这一部分遇到了问题。您可以重试，或告诉我们发生了什么。",
+      "tryAgain": "重试",
+      "report": "报告这个问题"
     }
   }
 }

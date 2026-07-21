@@ -288,6 +288,11 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "NavBar.reportProblem": {
+    "source": "Report a problem",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Home.profileNudge": {
     "source": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
     "context": "Warning banner on the home page; <link> wraps the word that opens the profile page.",
@@ -5054,6 +5059,16 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Errors.feedbackRateLimited": {
+    "source": "Too many reports just now — please try again in a little while.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.feedbackInvalid": {
+    "source": "That feedback couldn't be read.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "AddReceipts.title": {
     "source": "Add receipts to this claim",
     "context": "Dialog heading: add receipts to an existing draft claim.",
@@ -7103,6 +7118,71 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Admin.tab_feedback": {
+    "source": "Feedback",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.feedbackTitle": {
+    "source": "Feedback & bug reports",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.feedbackEmpty": {
+    "source": "No reports yet.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.feedbackAllStatuses": {
+    "source": "All",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.feedbackStatus_new": {
+    "source": "New",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.feedbackStatus_triaged": {
+    "source": "Triaged",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.feedbackStatus_closed": {
+    "source": "Closed",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.feedbackMarkTriaged": {
+    "source": "Mark triaged",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.feedbackMarkClosed": {
+    "source": "Close",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.feedbackReopen": {
+    "source": "Reopen",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.feedbackDiagnostics": {
+    "source": "Diagnostics",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.feedbackNoMessage": {
+    "source": "(no message)",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.feedbackReportedBy": {
+    "source": "by {name}",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Ministries.title": {
     "source": "Budget categories",
     "zh-Hans": "todo",
@@ -8835,5 +8915,130 @@
     "context": "Small attribution line under an activity row; {name} is a member name, verbatim. Lowercase 'by'.",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
+  },
+  "Feedback.title": {
+    "source": "Something not working?",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.subtitle": {
+    "source": "Tap what happened — you don't have to type.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.crashSubtitle": {
+    "source": "The app hit a problem. What were you doing?",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.category.bug": {
+    "source": "This is broken",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.category.confused": {
+    "source": "I'm stuck here",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.category.idea": {
+    "source": "I have a suggestion",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.category.crash": {
+    "source": "The app crashed",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.addNote": {
+    "source": "Add a note",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.notePlaceholder": {
+    "source": "What happened? (optional)",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.includeDiagnostics": {
+    "source": "Include diagnostic details",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.diagnosticsNote": {
+    "source": "Includes your app version, phone, and recent steps to help fix it — never any dollar amounts, and only the developer sees it.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.sensitiveNote": {
+    "source": "On this screen we keep to the basics — other people's information is never included.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.send": {
+    "source": "Send",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.cancel": {
+    "source": "Cancel",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.rateLimited": {
+    "source": "You've sent a lot of reports just now — please try again in a little while.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.thanksTitle": {
+    "source": "Got it — thank you!",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.thanksBody": {
+    "source": "A real person reads every one of these. We'll fix it in an update.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.queuedBody": {
+    "source": "You're offline — we saved it and will send it when you're back online.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.reference": {
+    "source": "#{ref}",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.statusNew": {
+    "source": "Looking into it",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.done": {
+    "source": "Done",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.error.title": {
+    "source": "Something went wrong",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.error.body": {
+    "source": "This part of the app hit a problem. You can try again, or tell us what happened.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.error.tryAgain": {
+    "source": "Try again",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.error.report": {
+    "source": "Report this problem",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   }
 }
