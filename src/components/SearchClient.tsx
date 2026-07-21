@@ -409,7 +409,7 @@ export default function SearchClient({
   }, [result, t]);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
+    <div className="space-y-4">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
 
       <div className="flex flex-wrap items-center gap-2">
