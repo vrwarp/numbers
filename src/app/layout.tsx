@@ -10,9 +10,11 @@ import { canManageTeams } from "@/lib/teams-guard";
 import { embeddingEnabled } from "@/lib/embeddings/settings";
 import { pushWebConfig } from "@/lib/notifications/settings";
 import { parseUiState } from "@/lib/notifications/ui-state";
+import { configValue } from "@/lib/config-file";
 import NavBar from "@/components/NavBar";
 import DeviceRequestsBanner from "@/components/esign/DeviceRequestsBanner";
 import NotificationsRuntime from "@/components/notifications/NotificationsRuntime";
+import FeedbackRuntime from "@/components/feedback/FeedbackRuntime";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Meta");
@@ -74,6 +76,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               onboardingStep={parseUiState(user.notifyUiStateJson).onboardingStep}
             />
           )}
+          {user && <FeedbackRuntime buildSha={configValue("BUILD_SHA") ?? ""} />}
           <main className="mx-auto max-w-6xl py-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">{children}</main>
         </NextIntlClientProvider>
       </body>

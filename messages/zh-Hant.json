@@ -58,7 +58,8 @@
     "setupSigning": "開通簽名",
     "showYourCode": "出示 QR 碼",
     "chipNone": "未開通",
-    "chipPending": "等待確認"
+    "chipPending": "等待確認",
+    "reportProblem": "回報問題"
   },
   "Home": {
     "profileNudge": "您的<link>個人資料</link>需要填寫姓名和郵寄地址——兩者都會列印在報銷表上。",
@@ -924,7 +925,9 @@
       "notConfigured": "Push notifications aren’t set up for this deployment.",
       "notEnabled": "Turn notifications on first.",
       "invalidUiState": "That settings update is invalid."
-    }
+    },
+    "feedbackRateLimited": "回報太頻繁了——請稍後再試。",
+    "feedbackInvalid": "無法讀取該回報。"
   },
   "AddReceipts": {
     "title": "向這張報銷單新增收據",
@@ -1372,7 +1375,23 @@
         "label": "Match threshold",
         "help": "How close a match must be to show up, 0–1 (higher = stricter). 0.25 is a good start."
       }
-    }
+    },
+    "tab_feedback": "回報",
+    "feedbackTitle": "意見與問題回報",
+    "feedbackEmpty": "尚無回報。",
+    "feedbackAllStatuses": "全部",
+    "feedbackStatus_new": "新",
+    "feedbackStatus_triaged": "已檢視",
+    "feedbackStatus_closed": "已關閉",
+    "feedbackMarkTriaged": "標記為已檢視",
+    "feedbackMarkClosed": "關閉",
+    "feedbackReopen": "重新開啟",
+    "feedbackDiagnostics": "診斷資訊",
+    "feedbackNoMessage": "（無文字說明）",
+    "feedbackReportedBy": "由 {name} 提交",
+    "feedbackCopy": "複製",
+    "feedbackCopied": "已複製",
+    "feedbackScreenshot": "截圖"
   },
   "Ministries": {
     "title": "Budget categories",
@@ -1739,6 +1758,66 @@
       "title": "Recent activity",
       "deletedClaim": "a deleted claim",
       "byName": "by {name}"
+    }
+  },
+  "Feedback": {
+    "title": "遇到問題了？",
+    "subtitle": "點一下發生了什麼，不用打字。",
+    "crashSubtitle": "程式出錯了。您當時在做什麼？",
+    "category": {
+      "bug": "這裡壞了",
+      "confused": "這一步看不懂",
+      "idea": "我有個建議",
+      "crash": "程式當掉了"
+    },
+    "addNote": "補充說明",
+    "notePlaceholder": "發生了什麼？（可不填）",
+    "includeDiagnostics": "附上診斷資訊",
+    "diagnosticsNote": "會附上應用程式版本、手機型號和最近的操作步驟，用來協助修復。只有開發者看得到。",
+    "sensitiveNote": "在此頁面只附上最基本的資訊，絕不包含他人的資料。",
+    "send": "傳送",
+    "cancel": "取消",
+    "rateLimited": "您剛剛傳送了很多回報——請稍後再試。",
+    "thanksTitle": "收到了，謝謝！",
+    "thanksBody": "每一則都會有人親自查看。我們會在後續更新中修復。",
+    "queuedBody": "您目前離線——已為您儲存，恢復連線後會自動傳送。",
+    "reference": "#{ref}",
+    "statusNew": "處理中",
+    "done": "好的",
+    "error": {
+      "title": "出錯了",
+      "body": "應用程式的這個部分遇到了問題。您可以重試，或告訴我們發生了什麼。",
+      "tryAgain": "重試",
+      "report": "回報這個問題"
+    },
+    "yourReports": "我的回報",
+    "statusTriaged": "已檢視",
+    "statusClosed": "已處理",
+    "situationPrompt": "您當時在做什麼？（可不填）",
+    "situations": {
+      "upload": "新增收據",
+      "claim": "建立報銷單",
+      "signing": "簽名或審批",
+      "amount": "金額不對",
+      "other": "其他"
+    },
+    "screenshotAdd": "加入截圖",
+    "screenshotRemove": "移除",
+    "screenshotAttached": "已加入截圖",
+    "screenshotAlt": "截圖預覽",
+    "screenshotLocked": "為保護他人資訊，此頁面無法截圖。",
+    "screenshotFailed": "無法截圖——您仍可不帶截圖傳送。",
+    "annotate": {
+      "open": "塗黑／標註",
+      "title": "標註截圖",
+      "cancel": "取消",
+      "done": "完成",
+      "blackout": "塗黑",
+      "draw": "畫筆",
+      "highlight": "螢光標記",
+      "undo": "復原",
+      "clear": "清除",
+      "hint": "拖曳可塗黑隱私資訊，或用畫筆圈出問題。"
     }
   }
 }
