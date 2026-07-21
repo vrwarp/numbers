@@ -789,7 +789,7 @@ export default function Shoebox({
                   <button
                     className={`whitespace-nowrap ${
                       barEmpty && !generating
-                        ? "inline-flex items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-3.5 py-1.5 text-sm font-semibold text-indigo-600 transition duration-150 ease-out hover:border-indigo-300 hover:text-indigo-700 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                        ? "inline-flex items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-3.5 py-[7px] text-sm font-semibold text-indigo-600 transition duration-150 ease-out hover:border-indigo-300 hover:text-indigo-700 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                         : "btn-primary"
                     } ${showSelectHint ? "shake-x" : ""}`}
                     onClick={handleGenerateClaimClick}
