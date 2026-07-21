@@ -159,6 +159,9 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
 - `docs/NOTIFICATIONS_DESIGN.md` — push notifications: catalog, outbox worker, preference
   model, iOS onboarding, trust amendments (ratified v6, implemented; setup:
   `docs/PUSH_SETUP.md`)
+- `docs/MCP_DESIGN.md` — MCP backend: connect an AI assistant (Claude/ChatGPT) to read
+  receipts/claims, help draft claims, and propose catalog edits over personal access tokens
+  with user-chosen scopes — never signing, no secrets exposed (implemented)
 - `docs/FEEDBACK_DESIGN.md` — client feedback/bug capture: redacted breadcrumbs, error
   boundary, `x-request-id` correlation, sensitive-surface policy, outbox, admin triage
   (implemented — Slice 1/2)

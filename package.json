@@ -25,6 +25,7 @@
     "record:embeddings": "tsx scripts/record-embedding-fixtures.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
     "@napi-rs/canvas": "^1.0.2",
     "@paralleldrive/cuid2": "^3.3.0",
     "@prisma/client": "^6.16.0",
@@ -33,6 +34,7 @@
     "firebase-admin": "^14.1.0",
     "fontkit": "^2.0.4",
     "html-to-image": "^1.11.13",
+    "mcp-handler": "^1.1.0",
     "next": "^15.5.0",
     "next-intl": "^4.13.2",
     "pdf-lib": "^1.17.1",

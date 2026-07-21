@@ -4,6 +4,7 @@ import { pushWebConfig } from "@/lib/notifications/settings";
 import ProfileForm, { MobileSignOut } from "@/components/ProfileForm";
 import SigningIdentityCard from "@/components/esign/SigningIdentityCard";
 import NotificationsCard from "@/components/notifications/NotificationsCard";
+import ConnectionsCard from "@/components/mcp/ConnectionsCard";
 import FeedbackHistoryCard from "@/components/feedback/FeedbackHistoryCard";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,7 @@ export default async function ProfilePage() {
       <ProfileForm />
       <NotificationsCard pushConfig={pushWebConfig()} />
       <SigningIdentityCard />
+      <ConnectionsCard />
       <FeedbackHistoryCard />
       <MobileSignOut />
     </div>

@@ -16,9 +16,58 @@ import {
   type ClaimExtraction,
 } from "@/lib/claims-rows";
 import { completeAnnotationJobs } from "@/lib/extraction/queue";
+import { enqueueReceiptEmbedding, enqueueClaimEmbeddingDebounced } from "@/lib/embeddings/queue";
 import type { ClaimStreamMessage } from "@/lib/claim-stream";
 
 export type { ClaimExtraction } from "@/lib/claims-rows";
+
+/**
+ * How a claim-building call sources its rows:
+ *  - `ai`     — consume stored annotations, AI-extract the rest (the app UI's
+ *               default; may call the provider and cost quota).
+ *  - `manual` — ignore annotations, every row blank (the UI's manual escape
+ *               hatch, and no provider call).
+ *  - `stored` — consume stored annotations, blank for the not-yet-annotated —
+ *               NEVER call the provider. The MCP default (docs/MCP_DESIGN.md):
+ *               an assistant drafting a claim gets the background worker's
+ *               already-extracted data with no surprise AI latency or quota.
+ */
+export type ExtractMode = "ai" | "manual" | "stored";
+
+/** The blank manual-entry row a receipt gets when nothing has been extracted
+ *  for it — the same placeholder a failed extraction produces. */
+function blankRow(receiptId: string, sortOrder: number): ClaimExtraction {
+  return {
+    item: {
+      receiptId,
+      description: "",
+      amountCents: 0,
+      ministry: "",
+      sortOrder,
+      originalDescription: null,
+      originalAmountCents: null,
+    },
+  };
+}
+
+/** Build one row per receipt per the chosen mode. `ai` delegates to
+ *  extractClaimRows (provider calls + telemetry outcomes); the other two are
+ *  pure and make no provider call, so they carry no outcomes. */
+async function buildClaimRows(
+  userId: string,
+  receipts: Receipt[],
+  mode: ExtractMode,
+  onEvent?: ExtractionEventHandler
+): Promise<{ outcomes: ReceiptExtraction[]; extractions: ClaimExtraction[] }> {
+  if (mode === "manual") return { outcomes: [], extractions: manualClaimRows(receipts) };
+  if (mode === "stored") {
+    return {
+      outcomes: [],
+      extractions: receipts.map((r, i) => (isAnnotated(r) ? annotationClaimRow(r, i) : blankRow(r.id, i))),
+    };
+  }
+  return extractClaimRows(userId, receipts, onEvent);
+}
 
 /**
  * Shared machinery for the two claim-building routes (create a claim, add
@@ -197,6 +246,175 @@ export function manualClaimRows(receipts: Receipt[]): ClaimExtraction[] {
       originalAmountCents: null,
     },
   }));
+}
+
+/** Resolve + own-check receipts by id for a NEW claim, or throw. A receipt may
+ *  sit on any number of claims, so status is not checked here. */
+export async function resolveClaimReceipts(userId: string, receiptIds: string[]): Promise<Receipt[]> {
+  const ids = [...new Set(receiptIds)];
+  const receipts = await prisma.receipt.findMany({ where: { id: { in: ids }, userId } });
+  if (receipts.length !== ids.length) {
+    throw new ApiError(404, "One or more receipts were not found", "receiptsNotFound");
+  }
+  return receipts;
+}
+
+/**
+ * Build a draft claim from already-resolved receipts (the shared core behind
+ * POST /api/reimbursements and the MCP create-draft tool). Consumes each
+ * receipt's stored annotation per `mode`, creates the Reimbursement (status
+ * "draft") with its receipt joins and one line item per receipt in a single
+ * transaction, recomputes the total, keeps the telemetry/embedding trail
+ * (invariants 7/11), and returns the created claim (with its line items).
+ */
+export async function createDraftClaim(
+  userId: string,
+  receipts: Receipt[],
+  mode: ExtractMode,
+  onEvent?: ExtractionEventHandler
+) {
+  const { outcomes, extractions } = await buildClaimRows(userId, receipts, mode, onEvent);
+  const items = extractions.map((e) => e.item);
+  const totalCents = items.reduce((s, it) => s + it.amountCents, 0);
+
+  const claimDescription = receipts.length === 1 ? (receipts[0].note || "") : "";
+
+  const receiptIds = receipts.map((r) => r.id);
+  const [reimbursement] = await prisma.$transaction([
+    prisma.reimbursement.create({
+      data: {
+        userId,
+        totalCents,
+        claimDescription,
+        receipts: { create: receiptIds.map((receiptId) => ({ receiptId })) },
+        lineItems: { create: items },
+      },
+      include: { lineItems: true },
+    }),
+    ...extractions
+      .filter((e) => e.receiptUpdate)
+      .map(({ receiptUpdate }) => {
+        const { id, ...data } = receiptUpdate!;
+        return prisma.receipt.update({ where: { id }, data });
+      }),
+  ]);
+
+  // Manual mode consumes/calls nothing; ai and stored both adopt the batch's
+  // background-annotation logs so the claim's telemetry is complete.
+  if (mode !== "manual") await recordClaimExtractions(userId, reimbursement.id, receipts, outcomes);
+
+  enqueueClaimEmbeddingDebounced(reimbursement.id, userId);
+  for (const e of extractions) {
+    if (e.receiptUpdate) enqueueReceiptEmbedding(e.receiptUpdate.id, userId);
+  }
+
+  return reimbursement;
+}
+
+/** Resolve + validate receipts to ADD to an existing draft, or throw (draft
+ *  gate, duplicate gate, ownership). */
+export async function resolveReceiptsToAdd(
+  userId: string,
+  claimId: string,
+  receiptIds: string[]
+): Promise<Receipt[]> {
+  const ids = [...new Set(receiptIds)];
+  const reimbursement = await prisma.reimbursement.findFirst({
+    where: { id: claimId, userId },
+    include: { receipts: { select: { receiptId: true } } },
+  });
+  if (!reimbursement) throw new ApiError(404, "Claim not found", "claimNotFound");
+  if (reimbursement.status !== "draft") {
+    throw new ApiError(409, "Claim already generated; receipts are frozen", "claimReceiptsFrozen");
+  }
+  if (ids.some((rid) => reimbursement.receipts.some((rr) => rr.receiptId === rid))) {
+    throw new ApiError(409, "One or more receipts are already on this claim", "receiptsAlreadyOnClaim");
+  }
+  const receipts = await prisma.receipt.findMany({ where: { id: { in: ids }, userId } });
+  if (receipts.length !== ids.length) {
+    throw new ApiError(404, "One or more receipts were not found", "receiptsNotFound");
+  }
+  return receipts;
+}
+
+/**
+ * Append already-resolved receipts to a DRAFT claim (the shared core behind
+ * POST /api/reimbursements/[id]/receipts and the MCP add-receipts tool): one
+ * line item per receipt per `mode`, sorted after existing rows, inheriting the
+ * claim's ministry/event in single-ministry mode, with an AuditEvent and a
+ * fresh total recompute. Re-checks the draft gate after any extraction (which
+ * can take minutes). Returns the new totalCents.
+ */
+export async function addReceiptsToClaim(
+  userId: string,
+  reimbursementId: string,
+  receipts: Receipt[],
+  mode: ExtractMode,
+  onEvent?: ExtractionEventHandler
+): Promise<number> {
+  const { outcomes, extractions } = await buildClaimRows(userId, receipts, mode, onEvent);
+
+  const current = await prisma.reimbursement.findFirst({
+    where: { id: reimbursementId, userId },
+    include: { lineItems: { select: { sortOrder: true } } },
+  });
+  if (!current) throw new ApiError(404, "Claim not found", "claimNotFound");
+  if (current.status !== "draft") {
+    throw new ApiError(409, "Claim already generated; receipts are frozen", "claimReceiptsFrozen");
+  }
+
+  const sortOrderStart = current.lineItems.reduce((m, it) => Math.max(m, it.sortOrder), -1) + 1;
+  const items = extractions.map((e) => ({
+    ...e.item,
+    sortOrder: sortOrderStart + e.item.sortOrder,
+    ...(current.singleMinistry
+      ? { ministry: current.claimMinistry, event: current.claimEvent }
+      : {}),
+  }));
+
+  await prisma.$transaction([
+    prisma.reimbursement.update({
+      where: { id: reimbursementId },
+      data: {
+        receipts: { create: receipts.map((r) => ({ receiptId: r.id })) },
+        lineItems: { create: items },
+      },
+    }),
+    ...extractions
+      .filter((e) => e.receiptUpdate)
+      .map(({ receiptUpdate }) => {
+        const { id, ...data } = receiptUpdate!;
+        return prisma.receipt.update({ where: { id }, data });
+      }),
+    prisma.auditEvent.create({
+      data: {
+        userId,
+        reimbursementId,
+        action: "add-receipt",
+        detail: JSON.stringify({
+          addedReceipts: items.map((it) => ({
+            receiptId: it.receiptId,
+            originalName: receipts.find((r) => r.id === it.receiptId)?.originalName ?? "",
+            description: it.description,
+            amountCents: it.amountCents,
+          })),
+        }),
+      },
+    }),
+  ]);
+
+  const all = await prisma.lineItem.findMany({ where: { reimbursementId } });
+  const totalCents = all.reduce((s, it) => (it.isExcluded ? s : s + it.amountCents), 0);
+  await prisma.reimbursement.update({ where: { id: reimbursementId }, data: { totalCents } });
+
+  if (mode !== "manual") await recordClaimExtractions(userId, reimbursementId, receipts, outcomes);
+
+  enqueueClaimEmbeddingDebounced(reimbursementId, userId);
+  for (const e of extractions) {
+    if (e.receiptUpdate) enqueueReceiptEmbedding(e.receiptUpdate.id, userId);
+  }
+
+  return totalCents;
 }
 
 /** Pre-stream (auth/validation) failures still return plain JSON — the client

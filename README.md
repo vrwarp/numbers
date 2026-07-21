@@ -15,6 +15,9 @@ approval certificate whose QR code lets anyone audit the signatures without an a
 ships **switched off**; see [Electronic signatures & approvals](#electronic-signatures--approvals).
 An optional [push-notification layer](#push-notifications) (also off by default) tells the
 right person when a claim is waiting on them, without becoming something the workflow depends on.
+And an optional [MCP backend](#connect-an-ai-assistant-mcp) lets members connect their own AI
+assistant to read receipts and claims and help draft — over a scoped token they control, never
+able to sign.
 
 It self-hosts as a **single Docker container** with SQLite and local file storage — backups are
 just a copy of the `/data` folder.
@@ -203,6 +206,31 @@ iPhones receive push only from the installed Home-Screen app (iOS 16.4+), so the
 `FIREBASE_AUTH_PROXY` sign-in fix below is a practical prerequisite there. Dev and tests never
 need any of this: **`PUSH_MOCK=1`** records deliveries to a local file instead of FCM and
 registers synthetic tokens, so the whole pipeline runs offline.
+
+## Connect an AI assistant (MCP)
+
+An optional **[Model Context Protocol](https://modelcontextprotocol.io) backend** lets a member
+point their own AI assistant (Claude custom connectors, ChatGPT developer-mode apps) at Numbers to
+**read** their receipts and claims, **help draft** a claim, and **propose** edits to the budget
+catalogs. It deliberately cannot sign, submit, approve, pay, generate a PDF, or verify a row — and
+**no secret is ever exposed over it**. Full contract: [`docs/MCP_DESIGN.md`](docs/MCP_DESIGN.md).
+
+- **You mint the credential.** In **Profile → AI assistant connections** a member creates a
+  personal access token and ticks exactly which capabilities it carries
+  (`receipts:read`, `claims:read`, `claims:draft`, `ai:suggest`, `catalog:read`, `catalog:draft`).
+  The token is a 256-bit secret shown **once**, stored only as a SHA-256 hash, revocable anytime,
+  with an optional expiry. There is no signing scope to grant.
+- **Owner-scoped, least privilege.** Every tool filters by the token's user; the backend never
+  uses the app's role/team cross-tenant read grants. Catalog tools additionally require the same
+  manage role the app enforces (treasurer/admin for ministries & positions, approver-or-above for
+  teams), so a token can never exceed what its owner could do in the app.
+- **Consequential edits are drafts a human applies.** An assistant can't write the budget catalogs
+  directly. `numbers_draft_catalog_edit` stages a proposal that a role-holder reviews on the new
+  **Proposed changes** page and applies (re-checked and audited) or discards. Drafting a claim
+  works the same way: the assistant fills the rows, a human still picks the ministry and verifies
+  each row before it can become a PDF.
+- **Transport.** Streamable HTTP at `POST /api/mcp` (bearer token), stateless. Add that URL as a
+  custom connector/app in your assistant and paste the token.
 
 ## Languages — English · 简体中文 · 繁體中文
 

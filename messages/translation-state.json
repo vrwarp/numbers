@@ -288,6 +288,11 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "NavBar.proposedChanges": {
+    "source": "Proposed changes",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "NavBar.reportProblem": {
     "source": "Report a problem",
     "zh-Hans": "machine",
@@ -4966,6 +4971,12 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Errors.admin.selfLockout": {
+    "source": "This change would remove your own admin access — keep your email in the list",
+    "context": "API error when an admin's settings change would drop their own email from ADMIN_EMAILS.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Errors.ministry.invalid": {
     "source": "Those budget categories couldn’t be saved — check the form and try again.",
     "zh-Hans": "todo",
@@ -5023,12 +5034,6 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
-  "Errors.admin.selfLockout": {
-    "source": "This change would remove your own admin access — keep your email in the list",
-    "context": "API error when an admin's settings change would drop their own email from ADMIN_EMAILS.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
   "Errors.invalidMemberUpdate": {
     "source": "That member update couldn't be saved.",
     "context": "Generic failure for officer-side member updates on the Members page (e.g. recording “prefers paper”).",
@@ -5068,6 +5073,71 @@
   "Errors.push.invalidUiState": {
     "source": "That settings update is invalid.",
     "context": "API error: malformed notification-settings state update.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.catalogRoleRequired": {
+    "source": "You don't have the role required to manage this catalog",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.catalogInvalidFields": {
+    "source": "The proposed change has invalid fields",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.catalogEntityInvalid": {
+    "source": "Unknown catalog type",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.catalogOperationInvalid": {
+    "source": "That operation isn't allowed for this catalog",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.catalogTargetInvalid": {
+    "source": "A create draft can't target an existing row",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.catalogTargetRequired": {
+    "source": "This change must name a target row",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.catalogTargetNotFound": {
+    "source": "The target row was not found",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.catalogDraftNotFound": {
+    "source": "Proposed change not found",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.mcpLabelRequired": {
+    "source": "Give this connection a name",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.mcpScopeRequired": {
+    "source": "Choose at least one capability",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.mcpInvalidScope": {
+    "source": "Unknown capability requested",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.mcpTokenNotFound": {
+    "source": "Connection not found",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.mcpExpiryInvalid": {
+    "source": "Choose a valid expiry",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
@@ -8931,6 +9001,18 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Notifications.activity.deletedClaim": {
+    "source": "a deleted claim",
+    "context": "Substituted for the claim label when the claim was deleted; lowercase, slots into titles like 'Signature requested — a deleted claim'.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Notifications.activity.byName": {
+    "source": "by {name}",
+    "context": "Small attribution line under an activity row; {name} is a member name, verbatim. Lowercase 'by'.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "Notifications.activity.subtitle": {
     "source": "Approvals, payments, and signing requests — the same updates sent as notifications, gathered here.",
     "context": "Subtitle under the Recent activity page heading, explaining what the list contains.",
@@ -8943,15 +9025,318 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
-  "Notifications.activity.deletedClaim": {
-    "source": "a deleted claim",
-    "context": "Substituted for the claim label when the claim was deleted; lowercase, slots into titles like 'Signature requested — a deleted claim'.",
+  "Connections.title": {
+    "source": "AI assistant connections",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
-  "Notifications.activity.byName": {
+  "Connections.subtitle": {
+    "source": "Connect an AI assistant (like Claude or ChatGPT) to Numbers. Each connection is a token you control — pick exactly what it may do, and revoke it anytime. Connections can never sign, submit, or approve.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.endpointTitle": {
+    "source": "MCP endpoint",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.endpointBody": {
+    "source": "In your assistant, add this URL as a custom connector (Claude) or app (ChatGPT), then paste a token below as the bearer credential.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.copy": {
+    "source": "Copy",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.copied": {
+    "source": "Copied",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.newTitle": {
+    "source": "New connection",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.nameLabel": {
+    "source": "Name",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.namePlaceholder": {
+    "source": "e.g. Claude on my laptop",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.scopesLabel": {
+    "source": "What may this connection do?",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.expiryLabel": {
+    "source": "Expires",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.expiryNever": {
+    "source": "Never",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.expiry30": {
+    "source": "In 30 days",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.expiry90": {
+    "source": "In 90 days",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.expiry365": {
+    "source": "In a year",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.create": {
+    "source": "Create connection",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.creating": {
+    "source": "Creating…",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.tokenTitle": {
+    "source": "Copy your token now",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.tokenBody": {
+    "source": "This is the only time the token is shown. Paste it into your assistant's Numbers connection.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.done": {
+    "source": "Done",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.existingTitle": {
+    "source": "Your connections",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.empty": {
+    "source": "No connections yet.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.can": {
+    "source": "Can:",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.created": {
+    "source": "Created {date}",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.lastUsed": {
+    "source": "Last used {date}",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.neverUsed": {
+    "source": "Never used",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.expires": {
+    "source": "Expires {date}",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.expired": {
+    "source": "Expired",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.revoked": {
+    "source": "Revoked",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.revoke": {
+    "source": "Revoke",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.revoking": {
+    "source": "Revoking…",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.loadFailed": {
+    "source": "Couldn't load your connections.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.saveFailed": {
+    "source": "Couldn't save. Try again.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.scope.receiptsRead": {
+    "source": "Read receipts",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.scope.claimsRead": {
+    "source": "Read claims and their status",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.scope.claimsDraft": {
+    "source": "Create and edit draft claims",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.scope.aiSuggest": {
+    "source": "Ask AI for ministry suggestions",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.scope.catalogRead": {
+    "source": "Read ministries, teams, and positions",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.scope.catalogDraft": {
+    "source": "Propose ministry/team/position edits (a human applies them)",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.scopeHint.catalogRead": {
+    "source": "Only works if your role can manage that catalog.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.scopeHint.catalogDraft": {
+    "source": "Proposals are reviewed on Proposed Changes; nothing changes until a human applies it.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.reviewLink": {
+    "source": "Review proposed changes",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.navLabel": {
+    "source": "Proposed changes",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.title": {
+    "source": "Proposed changes",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.subtitle": {
+    "source": "Catalog edits your AI assistant staged for review. Applying performs the change and is audited; discarding drops it. Nothing here has changed the catalogs yet.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.empty": {
+    "source": "No proposed changes to review.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.loadFailed": {
+    "source": "Couldn't load proposed changes.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.actionFailed": {
+    "source": "Couldn't complete that. Try again.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.sectionMinistry": {
+    "source": "Ministries",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.sectionTeam": {
+    "source": "Teams",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.sectionPosition": {
+    "source": "Positions",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.opCreate": {
+    "source": "Create",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.opUpdate": {
+    "source": "Update",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.opArchive": {
+    "source": "Archive",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.opDelete": {
+    "source": "Delete",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.target": {
+    "source": "Target: {label}",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.proposed": {
+    "source": "Proposed: {summary}",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.note": {
+    "source": "Note: {note}",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.by": {
     "source": "by {name}",
-    "context": "Small attribution line under an activity row; {name} is a member name, verbatim. Lowercase 'by'.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.apply": {
+    "source": "Apply",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.applying": {
+    "source": "Applying…",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.discard": {
+    "source": "Discard",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.discarding": {
+    "source": "Discarding…",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },

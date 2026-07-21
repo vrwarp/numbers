@@ -196,6 +196,12 @@ export default function AccountMenu({
               {t("members")}
             </Link>
           ) : null}
+          {canManageMinistries || canManageTeams ? (
+            // Where catalog edits an AI assistant staged (MCP) are applied.
+            <Link href="/catalog-drafts" className={itemClass} data-testid="nav-catalog-drafts">
+              {t("proposedChanges")}
+            </Link>
+          ) : null}
           {isAdmin ? (
             <Link href="/admin" className={itemClass}>
               {t("admin")}
