@@ -41,7 +41,6 @@ export default function ConnectionsCard() {
     "receipts:read": t("scope.receiptsRead"),
     "claims:read": t("scope.claimsRead"),
     "claims:draft": t("scope.claimsDraft"),
-    "ai:suggest": t("scope.aiSuggest"),
     "catalog:read": t("scope.catalogRead"),
     "catalog:draft": t("scope.catalogDraft"),
   };

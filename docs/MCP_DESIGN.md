@@ -15,8 +15,8 @@ the code the way the other design docs are.
   serverless scale.
 - Built on **`mcp-handler`** (Vercel) wrapping **`@modelcontextprotocol/sdk`** (≥1.26). Spec
   revision targeted: `2025-06-18`.
-- `runtime="nodejs"`, `maxDuration=300` (draft help defaults to a no-AI path; `extractWithAi`
-  can sit through provider quota cooldowns).
+- `runtime="nodejs"`. No tool calls an LLM, so requests are fast — there is no extraction/quota
+  wait to sit through.
 
 ## Authentication — personal access tokens (PAT)
 
@@ -43,14 +43,14 @@ same scoped, audience-bound tokens, without reworking the tools.
 ## Scopes (`src/lib/mcp/scopes.ts`)
 
 The user picks a subset per token — this is the access-control surface. There is **no** signing/
-submit/approval/pdf scope by design.
+submit/approval/pdf scope by design — **and no scope that makes the app call an LLM**: the MCP
+backend never spends the deployment's AI quota (see Tools).
 
 | scope | grants |
 |---|---|
 | `receipts:read` | list/read own receipts (sanitized) |
 | `claims:read` | list/read own claims + status |
 | `claims:draft` | create/edit **draft** claims |
-| `ai:suggest` | AI ministry suggestions (uses the user's provider quota) |
 | `catalog:read` | list ministries/teams/positions (**also** needs the manage role) |
 | `catalog:draft` | stage catalog edits as drafts (**also** needs the manage role) |
 
@@ -69,15 +69,25 @@ and converts via `src/lib/money.ts` (invariant 1); outputs carry both cents and 
 
 **Draft help (write, bounded to `status:"draft"`, reusing the app's own service logic so all
 invariants hold):** `numbers_create_draft_claim`, `numbers_add_receipts_to_claim`,
-`numbers_update_claim_settings`, `numbers_update_line_item` (**cannot** set `isVerified`),
-`numbers_suggest_ministry`.
+`numbers_update_claim_settings`, `numbers_update_line_item` (**cannot** set `isVerified`).
 
 **Catalog (list + draft edits):** `numbers_list_teams`, `numbers_list_positions`,
 `numbers_draft_catalog_edit`, `numbers_list_catalog_drafts`, `numbers_discard_catalog_draft`.
 
-Draft-help drafting defaults to the **`stored`** extract mode (`src/lib/claims.ts` `ExtractMode`):
-consume each receipt's background-worker annotation, blank rows for the not-yet-annotated, **no
-provider call** — fast, no surprise quota. `extractWithAi:true` opts into inline AI extraction.
+**No AI-calling tools.** Draft-building always uses the **`stored`** extract mode
+(`src/lib/claims.ts` `ExtractMode`): consume each receipt's background-worker annotation, blank
+rows for the not-yet-annotated, **no provider call**. There is no `extractWithAi` option and no
+ministry-suggestion tool — the assistant does its own reasoning, so the MCP backend never spends
+the deployment's AI quota. (The app's own review UI still offers AI suggestions via the REST
+`/api/reimbursements/[id]/suggest` route; that is unchanged and not exposed over MCP.)
+
+**Approval URL.** Every tool that stages or edits a draft a human must approve
+(`numbers_create_draft_claim`, `add_receipts_to_claim`, `update_claim_settings`,
+`update_line_item`, `draft_catalog_edit`) returns an **`approvalUrl`** alongside its result — the
+review page (`/claims/<id>`) or Proposed Changes (`/catalog-drafts`) — so the assistant can hand
+the user a direct link. Absolute when `PUBLIC_BASE_URL` is set (or derivable from the request
+origin), else root-relative. Built in `src/lib/mcp/auth.ts` (`approvalUrlFor`), which captures the
+origin at token-verification time.
 
 ### Reusing app logic (no drift)
 
@@ -113,10 +123,11 @@ budget-category codes are.
    never a spread of a Prisma row — so `publicToken`, `signatureLedger*`, `packetSha256`,
    `firebaseUid`, file paths/hashes, and PII (member/holder identities) never leave. Token
    secrets are hashed at rest and shown once. No GET returns a token.
-2. **No signing / no consequential writes.** No scope or tool for sign/submit/decision/paid/
-   revert/pdf/delete-claim, and MCP never sets `isVerified` — the human-in-the-loop gate
-   (invariant 3) stays a human in the app. Catalog edits are staged, applied only by an
-   authorized human.
+2. **No signing / no consequential writes / no AI spend.** No scope or tool for sign/submit/
+   decision/paid/revert/pdf/delete-claim, and MCP never sets `isVerified` — the human-in-the-loop
+   gate (invariant 3) stays a human in the app. Catalog edits are staged, applied only by an
+   authorized human. No tool calls an LLM (no suggestion tool, no `extractWithAi`), so the backend
+   never spends the deployment's provider quota.
 3. **Owner-scoped, least privilege.** Every query filters by the token's `userId`; a token
    grants only its chosen scopes; catalog tools additionally require the manage role, so a token
    can never exceed what its owner could do in the app.
