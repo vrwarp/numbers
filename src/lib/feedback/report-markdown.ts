@@ -21,6 +21,7 @@ export interface FeedbackReportLike {
   createdAt: string;
   reporter: string;
   diagnostics: unknown;
+  hasScreenshot?: boolean;
 }
 
 export interface MarkdownLabels {
@@ -65,6 +66,7 @@ export function reportToMarkdown(r: FeedbackReportLike, labels: MarkdownLabels):
   if (r.buildSha) out.push(`- **Build:** \`${r.buildSha}\``);
   out.push(`- **Locale:** ${r.locale}`);
   if (r.userAgent) out.push(`- **Device:** ${r.userAgent}`);
+  if (r.hasScreenshot) out.push(`- **Screenshot:** attached (view in admin)`);
   out.push(`- **Report id:** \`${r.id}\``);
 
   out.push("");

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ApiError } from "@/lib/api";
 import { FEEDBACK_CATEGORIES, MESSAGE_MAX, type FeedbackCategory } from "./types";
+import { saveFeedbackScreenshot } from "./storage";
 
 /**
  * Feedback persistence (docs/FEEDBACK_DESIGN.md §4). SERVER ONLY. The client
@@ -31,6 +32,7 @@ export interface FeedbackInput {
   buildSha?: unknown;
   locale?: unknown;
   diagnostics?: unknown;
+  screenshot?: unknown;
 }
 
 function str(value: unknown, max: number): string {
@@ -100,6 +102,23 @@ export async function createFeedbackReport(
     },
     select: { id: true },
   });
+
+  // Opt-in screenshot: best-effort, never fails the report. The client already
+  // gated it (off by default, previewed, never on a sensitive surface).
+  if (typeof input.screenshot === "string" && input.screenshot.startsWith("data:image/")) {
+    try {
+      const rel = saveFeedbackScreenshot(report.id, input.screenshot);
+      if (rel) {
+        await prisma.feedbackReport.update({
+          where: { id: report.id },
+          data: { screenshotPath: rel },
+        });
+      }
+    } catch {
+      // disk full / unreadable — the report still stands without the image.
+    }
+  }
+
   return report;
 }
 
@@ -145,6 +164,7 @@ export interface AdminFeedbackRow {
   createdAt: string;
   reporter: string;
   diagnostics: unknown;
+  hasScreenshot: boolean;
 }
 
 /** The admin triage queue: ALL reports (a §6.3-style read grant beside
@@ -179,8 +199,18 @@ export async function listAdminFeedback(status?: string): Promise<AdminFeedbackR
       createdAt: r.createdAt.toISOString(),
       reporter: r.user.fullName || r.user.email,
       diagnostics,
+      hasScreenshot: !!r.screenshotPath,
     };
   });
+}
+
+/** The stored screenshot path for a report (admin serve route), or null. */
+export async function feedbackScreenshotPath(id: string): Promise<string | null> {
+  const row = await prisma.feedbackReport.findUnique({
+    where: { id },
+    select: { screenshotPath: true },
+  });
+  return row?.screenshotPath || null;
 }
 
 /** Admin-only triage transition. Returns the new status. */

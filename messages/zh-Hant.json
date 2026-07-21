@@ -1388,7 +1388,8 @@
     "feedbackNoMessage": "（無文字說明）",
     "feedbackReportedBy": "由 {name} 提交",
     "feedbackCopy": "複製",
-    "feedbackCopied": "已複製"
+    "feedbackCopied": "已複製",
+    "feedbackScreenshot": "截圖"
   },
   "Ministries": {
     "title": "Budget categories",
@@ -1789,6 +1790,20 @@
     },
     "yourReports": "我的回報",
     "statusTriaged": "已檢視",
-    "statusClosed": "已處理"
+    "statusClosed": "已處理",
+    "situationPrompt": "您當時在做什麼？（可不填）",
+    "situations": {
+      "upload": "新增收據",
+      "claim": "建立報銷單",
+      "signing": "簽名或審批",
+      "amount": "金額不對",
+      "other": "其他"
+    },
+    "screenshotAdd": "加入截圖",
+    "screenshotRemove": "移除",
+    "screenshotAttached": "已加入截圖",
+    "screenshotAlt": "截圖預覽",
+    "screenshotLocked": "為保護他人資訊，此頁面無法截圖。",
+    "screenshotFailed": "無法截圖——您仍可不帶截圖傳送。"
   }
 }

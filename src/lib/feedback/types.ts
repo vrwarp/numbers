@@ -65,4 +65,7 @@ export interface FeedbackPayload {
   locale: string;
   // Redacted bundle, or null when the user turned diagnostics off.
   diagnostics: Diagnostics | null;
+  // Opt-in, previewed screenshot as a `data:image/webp;base64,...` URL. Absent
+  // unless the user added one; never present on a sensitive surface.
+  screenshot?: string;
 }

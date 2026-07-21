@@ -7193,6 +7193,11 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Admin.feedbackScreenshot": {
+    "source": "Screenshot",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Ministries.title": {
     "source": "Budget categories",
     "zh-Hans": "todo",
@@ -9063,6 +9068,66 @@
   },
   "Feedback.statusClosed": {
     "source": "Done",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.situationPrompt": {
+    "source": "What were you doing? (optional)",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.situations.upload": {
+    "source": "Adding a receipt",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.situations.claim": {
+    "source": "Building a claim",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.situations.signing": {
+    "source": "Signing or approving",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.situations.amount": {
+    "source": "A number looked wrong",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.situations.other": {
+    "source": "Something else",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.screenshotAdd": {
+    "source": "Add a screenshot",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.screenshotRemove": {
+    "source": "Remove",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.screenshotAttached": {
+    "source": "Screenshot added",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.screenshotAlt": {
+    "source": "Screenshot preview",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.screenshotLocked": {
+    "source": "Screenshots are off on this screen to protect others' information.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.screenshotFailed": {
+    "source": "Couldn't capture a screenshot — you can still send without one.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   }

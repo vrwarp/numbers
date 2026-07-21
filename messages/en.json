@@ -1388,7 +1388,8 @@
     "feedbackNoMessage": "(no message)",
     "feedbackReportedBy": "by {name}",
     "feedbackCopy": "Copy",
-    "feedbackCopied": "Copied"
+    "feedbackCopied": "Copied",
+    "feedbackScreenshot": "Screenshot"
   },
   "Ministries": {
     "title": "Budget categories",
@@ -1789,6 +1790,20 @@
     },
     "yourReports": "Your reports",
     "statusTriaged": "Seen",
-    "statusClosed": "Done"
+    "statusClosed": "Done",
+    "situationPrompt": "What were you doing? (optional)",
+    "situations": {
+      "upload": "Adding a receipt",
+      "claim": "Building a claim",
+      "signing": "Signing or approving",
+      "amount": "A number looked wrong",
+      "other": "Something else"
+    },
+    "screenshotAdd": "Add a screenshot",
+    "screenshotRemove": "Remove",
+    "screenshotAttached": "Screenshot added",
+    "screenshotAlt": "Screenshot preview",
+    "screenshotLocked": "Screenshots are off on this screen to protect others' information.",
+    "screenshotFailed": "Couldn't capture a screenshot — you can still send without one."
   }
 }

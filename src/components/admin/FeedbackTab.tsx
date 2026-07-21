@@ -47,6 +47,7 @@ interface Report {
   createdAt: string;
   reporter: string;
   diagnostics: unknown;
+  hasScreenshot: boolean;
 }
 
 const STATUS_FILTERS = ["", "new", "triaged", "closed"] as const;
@@ -119,6 +120,11 @@ export default function FeedbackTab() {
     const key = `feedbackStatus_${s}`;
     return dyn.has(key) ? dyn(key) : s;
   };
+  const situationLabel = (s: string) => {
+    const dyn = tf as unknown as ((k: string) => string) & { has: (k: string) => boolean };
+    const key = `situations.${s}`;
+    return dyn.has(key) ? dyn(key) : s;
+  };
 
   const copy = async (r: Report) => {
     const md = reportToMarkdown(r, {
@@ -187,10 +193,32 @@ export default function FeedbackTab() {
 
               <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-stone-500">
                 <span>{t("feedbackReportedBy", { name: r.reporter })}</span>
+                {r.situation ? (
+                  <span className="rounded-full bg-stone-100 px-2 py-0.5 font-medium text-stone-600">
+                    {situationLabel(r.situation)}
+                  </span>
+                ) : null}
                 {r.route ? <code className="font-mono text-stone-500">{r.route}</code> : null}
                 {r.buildSha ? <code className="font-mono text-stone-400">{r.buildSha.slice(0, 8)}</code> : null}
                 <span className="uppercase text-stone-400">{r.locale}</span>
               </div>
+
+              {r.hasScreenshot ? (
+                <a
+                  href={`/api/admin/feedback/${r.id}/screenshot`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 block w-fit"
+                  data-testid="feedback-screenshot-link"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/api/admin/feedback/${r.id}/screenshot`}
+                    alt={t("feedbackScreenshot")}
+                    className="max-h-40 rounded-lg border border-stone-200"
+                  />
+                </a>
+              ) : null}
 
               <details className="mt-2">
                 <summary className="cursor-pointer text-[11px] text-stone-400">

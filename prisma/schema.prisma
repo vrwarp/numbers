@@ -488,6 +488,11 @@ model FeedbackReport {
   diagnosticsJson String         @default("{}")
   locale          String         @default("en")
   userAgent       String         @default("")
+  // Relative path (under DATA_DIR) of an OPT-IN, user-previewed screenshot, or
+  // "" when none. Bytes live on disk (src/lib/feedback/storage.ts), never a DB
+  // blob — same discipline as receipts. Never captured on a sensitive surface,
+  // never auto-attached (docs/FEEDBACK_DESIGN.md §5).
+  screenshotPath  String         @default("")
   // Triage state (admin-only writes): new | triaged | closed.
   status          String         @default("new")
   createdAt       DateTime       @default(now())
