@@ -144,6 +144,9 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
 - `docs/NOTIFICATIONS_DESIGN.md` — push notifications: catalog, outbox worker, preference
   model, iOS onboarding, trust amendments (ratified v6, implemented; setup:
   `docs/PUSH_SETUP.md`)
+- `docs/MCP_DESIGN.md` — MCP backend: connect an AI assistant (Claude/ChatGPT) to read
+  receipts/claims, help draft claims, and propose catalog edits over personal access tokens
+  with user-chosen scopes — never signing, no secrets exposed (implemented)
 - `docs/agent/DATA_MODEL.md` — schema semantics, state machines, invariants per table
 - `docs/agent/CONVENTIONS.md` — code patterns + gotchas that have already bitten (read before UI/test work)
 - `docs/agent/TESTING.md` — how suites run, how to write tests here, known failure modes
