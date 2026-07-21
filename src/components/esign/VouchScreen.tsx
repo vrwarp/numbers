@@ -154,7 +154,7 @@ function VouchInner() {
   if (!env) return <p className="text-sm text-stone-500">{tCommon("loading")}</p>;
 
   return (
-    <div className="mx-auto max-w-lg space-y-4">
+    <div className="max-w-lg space-y-4">
       <h1 className="text-2xl font-bold">{t("title")}</h1>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {/* Fail early, not at the final step: without the signing key on THIS
