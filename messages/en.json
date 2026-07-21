@@ -1218,12 +1218,8 @@
     "pushHealthSa": "Service account",
     "pushHealthScopeBroad": "This service account can do more than send messages — that weakens the e-sign security model. Recreate it with ONLY the custom messaging role (docs/PUSH_SETUP.md).",
     "pushHealthScopeOk": "Service account is messaging-only — as designed.",
-    "fields": {
-      "ESIGN_NUDGES_OFF": {
-        "label": "Pause setup suggestions",
-        "help": "Hides the home-page e-sign setup and closure cards for everyone. Honest buttons, menu rows, and status lines stay."
-      }
-    },
+    "fields_ESIGN_NUDGES_OFF_label": "Pause setup suggestions",
+    "fields_ESIGN_NUDGES_OFF_help": "Hides the home-page e-sign setup and closure cards for everyone. Honest buttons, menu rows, and status lines stay.",
     "tab_setup": "Setup",
     "setupIntro": "Guided, step-by-step configuration for each optional service — with a dry-run test where one applies. Once a service is set up, day-to-day tweaks live in Settings and Search.",
     "wizardSetUp": "Set up",

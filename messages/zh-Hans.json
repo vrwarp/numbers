@@ -1218,12 +1218,8 @@
     "pushHealthSa": "Service account",
     "pushHealthScopeBroad": "This service account can do more than send messages — that weakens the e-sign security model. Recreate it with ONLY the custom messaging role (docs/PUSH_SETUP.md).",
     "pushHealthScopeOk": "Service account is messaging-only — as designed.",
-    "fields": {
-      "ESIGN_NUDGES_OFF": {
-        "label": "暂停开通提示",
-        "help": "对所有人隐藏首页的电子签名开通与完成提示卡。按钮、菜单入口与状态提示仍保留。"
-      }
-    },
+    "fields_ESIGN_NUDGES_OFF_label": "暂停开通提示",
+    "fields_ESIGN_NUDGES_OFF_help": "对所有人隐藏首页的电子签名开通与完成提示卡。按钮、菜单入口与状态提示仍保留。",
     "tab_setup": "Setup",
     "setupIntro": "Guided, step-by-step configuration for each optional service — with a dry-run test where one applies. Once a service is set up, day-to-day tweaks live in Settings and Search.",
     "wizardSetUp": "Set up",
