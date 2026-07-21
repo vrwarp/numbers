@@ -97,9 +97,13 @@ export default function ReceiptGrid({
   const dateLabel = useDateLabel();
   return (
     <div className="@container">
-      <div className="columns-2 gap-3 @md:columns-3 @3xl:columns-4 @5xl:columns-5">
+      <div className="receipt-wall columns-2 gap-3 @md:columns-3 @3xl:columns-4 @5xl:columns-5">
         {receipts.map((r, index) => {
           const isSelected = selected?.has(r.id) ?? false;
+          // The ✓ circle opts out of hover-hiding when it must stay visible on
+          // its own: a selected card (the fill IS the selection state) or a
+          // card the "select first" nudge is pulsing.
+          const pinnedCheck = isSelected || (nudgeSelect && index < 2);
           return (
             <div
               key={r.id}
@@ -107,7 +111,7 @@ export default function ReceiptGrid({
               data-open-id={r.id}
               // Selected cards get a ring in addition to the filled checkmark —
               // one small glyph alone is easy to read as decoration.
-              className={`card relative mb-3 break-inside-avoid overflow-hidden ${
+              className={`receipt-card card relative mb-3 break-inside-avoid overflow-hidden ${
                 selectable ? "card-lift cursor-pointer select-none" : "opacity-70"
               } ${isSelected ? "ring-2 ring-indigo-500 ring-offset-1" : ""}`}
               onClick={selectable ? () => onToggle?.(r.id) : undefined}
@@ -118,7 +122,9 @@ export default function ReceiptGrid({
                 // visual circle; Enter/Space toggle for keyboard users.
                 <button
                   type="button"
-                  className="group absolute left-0.5 top-0.5 z-10 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                  className={`group absolute left-0.5 top-0.5 z-10 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
+                    pinnedCheck ? "" : "receipt-card-action"
+                  }`}
                   role="checkbox"
                   aria-checked={isSelected}
                   aria-label={t("selectReceipt", { name: r.originalName })}
@@ -142,7 +148,7 @@ export default function ReceiptGrid({
               )}
               {onDelete && (
                 <button
-                  className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-xs text-stone-500 shadow hover:text-red-600"
+                  className="receipt-card-action absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-xs text-stone-500 shadow hover:text-red-600"
                   onClick={(e) => {
                     e.stopPropagation();
                     onDelete(r.id);
@@ -172,7 +178,7 @@ export default function ReceiptGrid({
                 )}
                 {onView && (
                   <button
-                    className="absolute bottom-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-stone-600 shadow hover:text-indigo-600"
+                    className="receipt-card-action absolute bottom-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 text-stone-600 shadow hover:text-indigo-600"
                     onClick={(e) => {
                       e.stopPropagation();
                       onView(r);

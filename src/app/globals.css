@@ -179,6 +179,24 @@ body {
   @apply transition duration-150 ease-out hover:border-indigo-300 hover:shadow-md;
 }
 
+/* Receipts wall: on a hover-capable pointer the per-card overlay controls
+   (select ✓, delete 🗑, view ⤢) stay hidden until the card is hovered, so the
+   photo wall reads as photos; with no card hovered the first card reveals them
+   as an affordance that the controls exist. Touch devices (no hover) always
+   show them — there is nothing to reveal on. Keyboard focus and the selected/
+   nudged ✓ circle opt out of the hiding in the markup, so they never vanish. */
+@media (hover: hover) {
+  .receipt-card-action {
+    opacity: 0;
+    transition: opacity 0.15s ease-out;
+  }
+  .receipt-card:hover .receipt-card-action,
+  .receipt-wall:not(:hover) .receipt-card:first-child .receipt-card-action,
+  .receipt-card-action:focus-visible {
+    opacity: 1;
+  }
+}
+
 /* Expanding-ring pulse pointing the user at the next verify button. */
 @keyframes nudge-ring {
   0% {
