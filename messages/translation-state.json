@@ -5151,6 +5151,16 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Errors.catalogDraftStale": {
+    "source": "The item was deleted since this change was proposed",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.catalogDraftConflict": {
+    "source": "The item changed since this change was proposed",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "AddReceipts.title": {
     "source": "Add receipts to this claim",
     "context": "Dialog heading: add receipts to an existing draft claim.",
@@ -9337,6 +9347,36 @@
   },
   "CatalogDrafts.discarding": {
     "source": "Discarding…",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.currentLabel": {
+    "source": "Now",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.proposedLabel": {
+    "source": "Proposed",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.conflictTag": {
+    "source": "changed",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.staleGone": {
+    "source": "This {entity} was deleted since the change was proposed — discard it.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.staleConflict": {
+    "source": "This {entity} changed since the change was proposed. Re-review before applying.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "CatalogDrafts.cantApply": {
+    "source": "Can’t apply",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },

@@ -806,8 +806,9 @@ model ReimbursementReceipt {
 // is shown ONCE at creation and never stored — only its SHA-256 hash is kept,
 // so a database read can never reveal a live token (invariant: no secrets over
 // MCP applies to the store too). `scopesJson` is the user-chosen capability
-// subset (receipts:read | claims:read | claims:draft | ai:suggest); the token
-// grants only what its owner granted, owner-scoped, and never any signing.
+// subset (receipts:read | claims:read | claims:draft | catalog:read |
+// catalog:draft); the token grants only what its owner granted, owner-scoped,
+// and never any signing, and no scope makes the app call an LLM.
 model McpToken {
   id         String    @id @default(cuid())
   userId     String
@@ -853,6 +854,12 @@ model CatalogDraft {
   targetId     String?
   // Proposed field values (JSON), validated per entity before staging.
   proposedJson String    @default("{}")
+  // Snapshot of the target row's mergeable fields at STAGE time — the common
+  // ancestor for a field-level 3-way merge at apply. Lets apply auto-merge
+  // edits that don't overlap what changed since, and refuse (never silently
+  // clobber) a field that BOTH this draft and someone else changed. "{}" for
+  // create (no ancestor).
+  baseJson     String    @default("{}")
   // Optional rationale the assistant attaches for the human reviewer.
   note         String    @default("")
   status       String    @default("pending") // pending | applied | discarded
