@@ -300,6 +300,12 @@ Dockerfile / docker-entrypoint.sh  standalone build; entrypoint runs prisma migr
 | `/api/admin/extraction-jobs` | GET POST | annotation-queue health for the Overview card (status counts, backlog age, pace, failed receipts w/ owner+error) and failed-job retry (`{receiptIds?}`, absent = all failed; resets attempts, bumps generation, wakes the worker; `AuditEvent(retry-annotation)`) — behind `requireAdmin()` |
 | `/api/extraction-logs` | GET | own logs, `?reimbursementId=`, newest first, summaries (kind="embedding" rows excluded — operational, §9) |
 | `/api/extraction-logs/[id]` | GET | full tuning record: log + lineItems w/ computed `corrections` + `humanCreated` + parsed auditEvents |
+| `/api/mcp` (the `[transport]` dynamic route, basePath `/api`) | GET POST DELETE | **MCP backend** (Streamable HTTP, stateless; docs/MCP_DESIGN.md). The ONE route NOT on the session cookie: `withMcpAuth` → `verifyMcpToken` resolves a **Bearer personal access token** to `{userId, scopes}` (401 else). Owner-scoped, per-tool scope gate. 15 tools — read receipts/claims/ministries, create/edit DRAFT claims + line items (never sets `isVerified`), AI suggest, list teams/positions, stage/list/discard catalog-edit drafts. No sign/submit/approve/pay/pdf/verify. Write tools reuse the same service fns as the REST routes (`src/lib/claims.ts`, `claim-edits.ts`) |
+| `/api/mcp-tokens` | GET POST | list the caller's MCP connections (secret-free records); POST mints one (`{label, scopes[], expiresInDays?}`) → 256-bit secret returned **once**, stored only as a SHA-256 hash |
+| `/api/mcp-tokens/[id]` | DELETE | revoke a connection the caller owns (404 else) |
+| `/api/catalog-drafts` | GET | pending catalog-edit drafts the caller may act on (entities they manage + any they authored) + `manageable` list, for the Proposed Changes page |
+| `/api/catalog-drafts/[id]/apply` | POST | apply a pending draft — re-checks the manage role (treasurer/admin for ministry/position; approver-or-above for team), performs the targeted single-row mutation, `AuditEvent(apply-catalog-draft)` |
+| `/api/catalog-drafts/[id]/discard` | POST | discard a pending draft (its author or a manager of its entity) |
 
 ## Request flows (condensed)
 

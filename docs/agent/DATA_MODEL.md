@@ -258,6 +258,27 @@ the user's own history shown back to them, NOT telemetry, so it never lands in
   (send-time only) and `notifyUiStateJson` (per-account nudge dismissals +
   iOS onboarding resume step — deliberately server-side, §8.2/§8.4).
 
+### McpToken / CatalogDraft (MCP backend — docs/MCP_DESIGN.md)
+
+- `McpToken`: a personal access token an AI assistant presents to the MCP
+  backend. The raw secret (`nmbr_pat_…`, 256-bit random) is shown ONCE at
+  creation and NEVER stored — only its SHA-256 hash (`tokenHash`, unique) is
+  kept, so a DB read can never reveal a live token. `prefix` is a non-secret
+  display hint; `scopesJson` is the owner-chosen capability subset
+  (`receipts:read | claims:read | claims:draft | ai:suggest | catalog:read |
+  catalog:draft` — never any signing scope). `lastUsedAt` is a fire-and-forget
+  touch (never gates a request); `revokedAt`/`expiresAt` fail verification
+  forever/after. Owner-scoped like everything else; no GET returns the secret.
+- `CatalogDraft`: a proposed edit to church master data (a Ministry, Team, or
+  Position) STAGED by an assistant over MCP — because those edits need an
+  elevated role and are consequential, the assistant never writes them. `entity`
+  + `operation` (`create|update|archive|delete`) + `targetId` (null for create)
+  + `proposedJson` (validated per entity; descriptive fields + budget codes
+  only — membership/holders are never draftable) + `note`. `status`
+  `pending|applied|discarded`; a human with the entity's manage role applies
+  (re-checked, `AuditEvent(apply-catalog-draft)`) or discards it on the Proposed
+  Changes page. Author must hold the manage role at BOTH draft and apply time.
+
 ## Corrections diff (derived, not stored)
 
 `GET /api/extraction-logs/[id]` computes per item: for each non-null `original*` field
