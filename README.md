@@ -217,9 +217,10 @@ catalogs. It deliberately cannot sign, submit, approve, pay, generate a PDF, or 
 
 - **You mint the credential.** In **Profile → AI assistant connections** a member creates a
   personal access token and ticks exactly which capabilities it carries
-  (`receipts:read`, `claims:read`, `claims:draft`, `ai:suggest`, `catalog:read`, `catalog:draft`).
+  (`receipts:read`, `claims:read`, `claims:draft`, `catalog:read`, `catalog:draft`).
   The token is a 256-bit secret shown **once**, stored only as a SHA-256 hash, revocable anytime,
-  with an optional expiry. There is no signing scope to grant.
+  with an optional expiry. There is no signing scope to grant — and no scope that makes the app
+  call an LLM, so the backend never spends the deployment's AI quota.
 - **Owner-scoped, least privilege.** Every tool filters by the token's user; the backend never
   uses the app's role/team cross-tenant read grants. Catalog tools additionally require the same
   manage role the app enforces (treasurer/admin for ministries & positions, approver-or-above for
@@ -228,7 +229,8 @@ catalogs. It deliberately cannot sign, submit, approve, pay, generate a PDF, or 
   directly. `numbers_draft_catalog_edit` stages a proposal that a role-holder reviews on the new
   **Proposed changes** page and applies (re-checked and audited) or discards. Drafting a claim
   works the same way: the assistant fills the rows, a human still picks the ministry and verifies
-  each row before it can become a PDF.
+  each row before it can become a PDF. Every draft-producing tool returns an **`approvalUrl`** so
+  the assistant can hand the user a direct link to the page where they review and approve it.
 - **Transport.** Streamable HTTP at `POST /api/mcp` (bearer token), stateless. Add that URL as a
   custom connector/app in your assistant and paste the token.
 

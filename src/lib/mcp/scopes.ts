@@ -4,15 +4,18 @@
  * this is the whole of what an AI assistant can be authorized to do, and it is
  * deliberately small: read, and help draft. There is no signing scope, no
  * submit/approve/pay scope, and no PDF-generation scope — those stay in the
- * human's hands in the app (invariant 3/9). Isomorphic (no server imports) so
- * both the token routes and the settings UI validate against the same list.
+ * human's hands in the app (invariant 3/9). Nor is there any scope that makes
+ * the app call an LLM: the MCP backend never spends the deployment's AI quota
+ * (the assistant does its own reasoning), so draft-building consumes the
+ * background worker's already-stored annotations only. Isomorphic (no server
+ * imports) so both the token routes and the settings UI validate against the
+ * same list.
  */
 
 export const MCP_SCOPES = [
   "receipts:read",
   "claims:read",
   "claims:draft",
-  "ai:suggest",
   // Church master data (ministries/teams/positions). `catalog:read` lists the
   // catalogs; `catalog:draft` STAGES edits as drafts a human applies — never a
   // direct write. Both additionally require the manage role the app enforces

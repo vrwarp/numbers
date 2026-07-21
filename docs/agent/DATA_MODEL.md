@@ -265,7 +265,7 @@ the user's own history shown back to them, NOT telemetry, so it never lands in
   creation and NEVER stored — only its SHA-256 hash (`tokenHash`, unique) is
   kept, so a DB read can never reveal a live token. `prefix` is a non-secret
   display hint; `scopesJson` is the owner-chosen capability subset
-  (`receipts:read | claims:read | claims:draft | ai:suggest | catalog:read |
+  (`receipts:read | claims:read | claims:draft | catalog:read |
   catalog:draft` — never any signing scope). `lastUsedAt` is a fire-and-forget
   touch (never gates a request); `revokedAt`/`expiresAt` fail verification
   forever/after. Owner-scoped like everything else; no GET returns the secret.

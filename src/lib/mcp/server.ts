@@ -5,7 +5,7 @@ import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/proto
 import type { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
 import { ApiError } from "@/lib/api";
 import { parseDollarsToCents } from "@/lib/money";
-import { userIdFrom } from "@/lib/mcp/auth";
+import { userIdFrom, approvalUrlFor } from "@/lib/mcp/auth";
 import type { McpScope } from "@/lib/mcp/scopes";
 import { listReceipts, getReceipt, listClaims, getClaim, listMinistries } from "@/lib/mcp/data";
 import {
@@ -14,7 +14,7 @@ import {
   resolveClaimReceipts,
   resolveReceiptsToAdd,
 } from "@/lib/claims";
-import { updateClaimSettings, updateLineItem, suggestForClaim } from "@/lib/claim-edits";
+import { updateClaimSettings, updateLineItem } from "@/lib/claim-edits";
 import {
   canManageEntity,
   createCatalogDraft,
@@ -77,6 +77,13 @@ async function run(fn: () => Promise<unknown>): Promise<CallToolResult> {
 
 const READ_ONLY = { readOnlyHint: true, destructiveHint: false, openWorldHint: false } as const;
 const DRAFT_WRITE = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false } as const;
+
+/** The sanitized claim plus `approvalUrl` — the review page a human opens to
+ *  verify and approve the draft. The assistant can hand this URL to the user. */
+async function claimWithApproval(extra: Extra, userId: string, claimId: string) {
+  const claim = await getClaim(userId, claimId);
+  return { ...claim, approvalUrl: approvalUrlFor(extra.authInfo, `/claims/${claim.id}`) };
+}
 
 const claimStatus = z
   .enum(["draft", "generated", "submitted", "rejected", "approved", "paid"])
@@ -178,13 +185,9 @@ export function registerMcpTools(server: McpServer): void {
     {
       title: "Create a draft claim",
       description:
-        "Create a new DRAFT reimbursement claim from one or more of the user's receipts (one line item per receipt, using each receipt's already-extracted data). By default no AI is called; set extractWithAi to run extraction on receipts the background worker has not yet read (may use the user's AI quota). The claim starts unverified — a human still reviews and generates the PDF.",
+        "Create a new DRAFT reimbursement claim from one or more of the user's receipts (one line item per receipt, using each receipt's already-extracted data). No AI is called — receipts the background worker hasn't read yet come in as blank rows to fill. The claim starts unverified; a human reviews and generates the PDF. Returns the claim plus an approvalUrl to give the user.",
       inputSchema: {
         receiptIds: z.array(z.string().min(1)).min(1).describe("Receipt ids to build the claim from."),
-        extractWithAi: z
-          .boolean()
-          .optional()
-          .describe("Run AI extraction on not-yet-annotated receipts (default false; may cost AI quota)."),
       },
       annotations: DRAFT_WRITE,
     },
@@ -193,8 +196,8 @@ export function registerMcpTools(server: McpServer): void {
         requireScope(extra, "claims:draft");
         const userId = userIdFrom(extra.authInfo);
         const receipts = await resolveClaimReceipts(userId, args.receiptIds);
-        const claim = await createDraftClaim(userId, receipts, args.extractWithAi ? "ai" : "stored");
-        return getClaim(userId, claim.id);
+        const claim = await createDraftClaim(userId, receipts, "stored");
+        return claimWithApproval(extra, userId, claim.id);
       })
   );
 
@@ -203,11 +206,10 @@ export function registerMcpTools(server: McpServer): void {
     {
       title: "Add receipts to a draft claim",
       description:
-        "Append one or more receipts to an existing DRAFT claim (one line item each). Fails if the claim is not a draft or a receipt is already on it. Set extractWithAi to run extraction on not-yet-annotated receipts (default false).",
+        "Append one or more receipts to an existing DRAFT claim (one line item each, from stored data — no AI call). Fails if the claim is not a draft or a receipt is already on it. Returns the updated claim plus an approvalUrl to give the user.",
       inputSchema: {
         claimId: z.string().min(1).describe("The draft claim id."),
         receiptIds: z.array(z.string().min(1)).min(1).describe("Receipt ids to add."),
-        extractWithAi: z.boolean().optional().describe("Run AI extraction on not-yet-annotated receipts (default false)."),
       },
       annotations: DRAFT_WRITE,
     },
@@ -216,8 +218,8 @@ export function registerMcpTools(server: McpServer): void {
         requireScope(extra, "claims:draft");
         const userId = userIdFrom(extra.authInfo);
         const receipts = await resolveReceiptsToAdd(userId, args.claimId, args.receiptIds);
-        await addReceiptsToClaim(userId, args.claimId, receipts, args.extractWithAi ? "ai" : "stored");
-        return getClaim(userId, args.claimId);
+        await addReceiptsToClaim(userId, args.claimId, receipts, "stored");
+        return claimWithApproval(extra, userId, args.claimId);
       })
   );
 
@@ -226,7 +228,7 @@ export function registerMcpTools(server: McpServer): void {
     {
       title: "Update draft claim settings",
       description:
-        "Edit a DRAFT claim's description, single-ministry mode, and (in single-ministry mode) the claim-level ministry/event that mirror onto every row. Setting the ministry here un-verifies the affected rows.",
+        "Edit a DRAFT claim's description, single-ministry mode, and (in single-ministry mode) the claim-level ministry/event that mirror onto every row. Setting the ministry here un-verifies the affected rows. Returns the updated claim plus an approvalUrl to give the user.",
       inputSchema: {
         claimId: z.string().min(1).describe("The draft claim id."),
         description: z.string().max(300).optional().describe("One-sentence 'what is this claim for'."),
@@ -246,7 +248,7 @@ export function registerMcpTools(server: McpServer): void {
           claimMinistry: args.ministry,
           claimEvent: args.event,
         });
-        return getClaim(userId, args.claimId);
+        return claimWithApproval(extra, userId, args.claimId);
       })
   );
 
@@ -255,7 +257,7 @@ export function registerMcpTools(server: McpServer): void {
     {
       title: "Update a draft line item",
       description:
-        "Edit one line item on a DRAFT claim: description, amount (in dollars), ministry, event, or exclude/include it. Amount and content edits keep the row UNVERIFIED — a human still verifies each row before the claim can generate. This tool cannot verify a row.",
+        "Edit one line item on a DRAFT claim: description, amount (in dollars), ministry, event, or exclude/include it. Amount and content edits keep the row UNVERIFIED — a human still verifies each row before the claim can generate. This tool cannot verify a row. Returns the updated claim plus an approvalUrl to give the user.",
       inputSchema: {
         lineItemId: z.string().min(1).describe("The line item id."),
         description: z.string().min(1).max(300).optional().describe("Row description."),
@@ -277,34 +279,7 @@ export function registerMcpTools(server: McpServer): void {
           event: args.event,
           isExcluded: args.isExcluded,
         });
-        return getClaim(userId, lineItem.reimbursementId);
-      })
-  );
-
-  server.registerTool(
-    "numbers_suggest_ministry",
-    {
-      title: "Suggest a ministry for a draft claim",
-      description:
-        "Ask the app's AI for up to three ranked ministry+event candidates for a DRAFT claim from a one-sentence description. Only suggests — applies nothing; a human (or numbers_update_claim_settings) picks one. Uses the user's AI provider quota.",
-      inputSchema: {
-        claimId: z.string().min(1).describe("The draft claim id."),
-        description: z.string().min(1).max(300).describe("One sentence describing what the claim is for."),
-        more: z.string().min(1).max(300).optional().describe("Extra detail for a follow-up suggestion."),
-        rejected: z.array(z.string().max(120)).max(3).optional().describe("Candidates already rejected, for a follow-up."),
-      },
-      // Contacts the AI provider → open-world.
-      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
-    },
-    (args, extra) =>
-      run(async () => {
-        requireScope(extra, "ai:suggest");
-        const userId = userIdFrom(extra.authInfo);
-        return suggestForClaim(userId, args.claimId, {
-          description: args.description,
-          more: args.more,
-          rejected: args.rejected,
-        });
+        return claimWithApproval(extra, userId, lineItem.reimbursementId);
       })
   );
 
@@ -366,7 +341,7 @@ export function registerMcpTools(server: McpServer): void {
     {
       title: "Draft a catalog edit",
       description:
-        "STAGE an edit to a ministry, team, or position as a pending draft for a human to review and apply on the Proposed Changes page — this applies nothing itself. Requires the manage role for that entity (treasurer/admin for ministries & positions; approver-or-above for teams). Provide only the fields that apply to the entity; membership and holder assignment cannot be drafted here.",
+        "STAGE an edit to a ministry, team, or position as a pending draft for a human to review and apply on the Proposed Changes page — this applies nothing itself. Requires the manage role for that entity (treasurer/admin for ministries & positions; approver-or-above for teams). Provide only the fields that apply to the entity; membership and holder assignment cannot be drafted here. Returns the staged draft plus an approvalUrl to give the user.",
       inputSchema: {
         entity: z.enum(["ministry", "team", "position"]).describe("Which catalog to edit."),
         operation: z
@@ -386,14 +361,15 @@ export function registerMcpTools(server: McpServer): void {
       annotations: DRAFT_WRITE,
     },
     (args, extra) =>
-      run(() => {
+      run(async () => {
         requireScope(extra, "catalog:draft");
         const { entity, operation, targetId, note, ...rest } = args;
         // Assemble only the provided fields; validateFields strips those that
         // don't apply to the chosen entity.
         const fields: Record<string, unknown> = {};
         for (const [k, v] of Object.entries(rest)) if (v !== undefined) fields[k] = v;
-        return createCatalogDraft(userIdFrom(extra.authInfo), { entity, operation, targetId, fields, note });
+        const draft = await createCatalogDraft(userIdFrom(extra.authInfo), { entity, operation, targetId, fields, note });
+        return { ...draft, approvalUrl: approvalUrlFor(extra.authInfo, "/catalog-drafts") };
       })
   );
 
