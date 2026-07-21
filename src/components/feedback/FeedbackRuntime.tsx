@@ -14,6 +14,7 @@ import { isSensitiveRoute, routeTemplate } from "@/lib/feedback/sensitive";
 import { enqueue, flush } from "@/lib/feedback/outbox";
 import { FEEDBACK_EVENT, type OpenFeedbackDetail } from "@/lib/feedback/open";
 import type { CrashInfo, FeedbackCategory, FeedbackPayload } from "@/lib/feedback/types";
+import ScreenshotAnnotator from "./ScreenshotAnnotator";
 
 /**
  * App-wide feedback runtime (docs/FEEDBACK_DESIGN.md), mounted like
@@ -67,6 +68,7 @@ export default function FeedbackRuntime({ buildSha }: { buildSha: string }) {
   const [crash, setCrash] = useState<CrashInfo | null>(null);
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [shotBusy, setShotBusy] = useState(false);
+  const [annotating, setAnnotating] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   const resetForm = useCallback(() => {
@@ -78,6 +80,7 @@ export default function FeedbackRuntime({ buildSha }: { buildSha: string }) {
     setDone(null);
     setCrash(null);
     setScreenshot(null);
+    setAnnotating(false);
     setCategory("bug");
   }, []);
 
@@ -130,42 +133,59 @@ export default function FeedbackRuntime({ buildSha }: { buildSha: string }) {
 
   const sensitive = isSensitiveRoute(pathname || "/");
 
-  // Capture the app screen BEHIND the sheet: hide the dialog, snapshot the body
-  // (html-to-image renders via foreignObject, so Tailwind v4's oklch colors and
-  // the receipt <img>s — all same-origin — come through), restore, downscale to
-  // a WebP data URL. Lazy-imported so the ~heavy lib only loads on opt-in. Never
-  // offered on a sensitive surface (guarded at the call site).
+  // Capture the app screen behind the sheet as a WebP data URL. html-to-image
+  // renders via foreignObject, so Tailwind v4's oklch colors and the same-origin
+  // receipt <img>s come through. Hardened for iOS/WebKit — the flakiest engine
+  // for this, and this app's primary platform (docs/FEEDBACK_DESIGN.md §5):
+  //   • capture only the CURRENT viewport (translate the clone up by scroll,
+  //     crop to innerWidth×innerHeight) → a small canvas that stays under
+  //     WebKit's ~16M-px cap that otherwise blanks tall pages, and it frames
+  //     what the user is actually looking at;
+  //   • a pixel-area budget that drops pixelRatio on big/hi-dpi viewports;
+  //   • a warm-up render on WebKit only (Safari rasterizes before images/fonts
+  //     finish on the first call, so the first result is discarded);
+  //   • the sheet is excluded via `filter` (no visibility flash).
+  // Lazy-imported so the lib only loads on opt-in. Never offered on a sensitive
+  // surface (guarded at the call site).
   const captureScreenshot = useCallback(async () => {
     setShotBusy(true);
     setError(null);
-    const node = dialogRef.current;
     try {
-      const { toCanvas } = await import("html-to-image");
-      if (node) node.style.visibility = "hidden";
-      await new Promise((r) => requestAnimationFrame(() => r(null)));
-      const ratio = Math.min(2, typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
-      const source = await toCanvas(document.body, {
+      const mod = await import("html-to-image");
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const sx = window.scrollX;
+      const sy = window.scrollY;
+      const AREA_CAP = 12_000_000;
+      let ratio = Math.min(2, window.devicePixelRatio || 1);
+      while (vw * vh * ratio * ratio > AREA_CAP && ratio > 1) ratio = Math.max(1, ratio - 0.5);
+      const opts = {
+        filter: (node: HTMLElement) => node?.dataset?.feedbackSheet !== "1",
         backgroundColor: "#f5f5f4",
         pixelRatio: ratio,
+        width: vw,
+        height: vh,
+        style: { transform: `translate(${-sx}px, ${-sy}px)`, transformOrigin: "top left" },
         cacheBust: true,
-      });
-      if (node) node.style.visibility = "";
-      // Downscale to a max width so the payload stays small.
-      const maxW = 1200;
-      const scale = source.width > maxW ? maxW / source.width : 1;
-      let dataUrl: string;
-      if (scale < 1) {
-        const out = document.createElement("canvas");
-        out.width = Math.round(source.width * scale);
-        out.height = Math.round(source.height * scale);
-        out.getContext("2d")?.drawImage(source, 0, 0, out.width, out.height);
-        dataUrl = out.toDataURL("image/webp", 0.7);
-      } else {
-        dataUrl = source.toDataURL("image/webp", 0.7);
+      };
+      // Warm up on any WebKit engine — that's ALL iOS browsers (Apple mandates
+      // WebKit, so Chrome/CriOS, Firefox/FxiOS, Edge on iOS all need it) plus
+      // desktop Safari. Blink/Gecko on desktop skip the extra render.
+      const ua = navigator.userAgent;
+      const iOS =
+        /iP(hone|od|ad)/.test(ua) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const desktopSafari = /Safari\//.test(ua) && !/Chrome|Chromium|Edg\//.test(ua);
+      if (iOS || desktopSafari) {
+        try {
+          await mod.toCanvas(document.body, opts);
+        } catch {
+          // Warm-up failures are expected on Safari; the real capture is next.
+        }
       }
-      setScreenshot(dataUrl);
+      const canvas = await mod.toCanvas(document.body, opts);
+      setScreenshot(canvas.toDataURL("image/webp", 0.82));
     } catch {
-      if (node) node.style.visibility = "";
       setError(t("screenshotFailed"));
     } finally {
       setShotBusy(false);
@@ -212,13 +232,25 @@ export default function FeedbackRuntime({ buildSha }: { buildSha: string }) {
   if (!open) return null;
 
   return (
-    <div
-      ref={dialogRef}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6"
+    <>
+      {annotating && screenshot && (
+        <ScreenshotAnnotator
+          src={screenshot}
+          onDone={(url) => {
+            setScreenshot(url);
+            setAnnotating(false);
+          }}
+          onCancel={() => setAnnotating(false)}
+        />
+      )}
+      <div
+        ref={dialogRef}
+        className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-label={t("title")}
       data-testid="feedback-sheet"
+      data-feedback-sheet="1"
     >
       <div className="max-h-[92dvh] w-full max-w-md space-y-4 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] short:space-y-3 short:p-4 sm:rounded-2xl sm:pb-6">
         {done ? (
@@ -365,23 +397,36 @@ export default function FeedbackRuntime({ buildSha }: { buildSha: string }) {
                 <span>{t("screenshotLocked")}</span>
               </div>
             ) : screenshot ? (
-              <div className="flex items-center gap-3 rounded-lg border border-stone-200 p-2.5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={screenshot}
-                  alt={t("screenshotAlt")}
-                  className="h-14 w-14 rounded border border-stone-200 object-cover"
-                />
-                <span className="flex-1 text-[13px] font-medium text-stone-700">
-                  {t("screenshotAttached")}
-                </span>
+              <div className="rounded-lg border border-stone-200 p-2.5">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    className="shrink-0 rounded border border-stone-200"
+                    onClick={() => setAnnotating(true)}
+                    aria-label={t("annotate.open")}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={screenshot} alt={t("screenshotAlt")} className="h-14 w-14 rounded object-cover" />
+                  </button>
+                  <span className="flex-1 text-[13px] font-medium text-stone-700">
+                    {t("screenshotAttached")}
+                  </span>
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-red-600 hover:text-red-700"
+                    onClick={() => setScreenshot(null)}
+                    data-testid="feedback-screenshot-remove"
+                  >
+                    {t("screenshotRemove")}
+                  </button>
+                </div>
                 <button
                   type="button"
-                  className="text-xs font-semibold text-red-600 hover:text-red-700"
-                  onClick={() => setScreenshot(null)}
-                  data-testid="feedback-screenshot-remove"
+                  className="mt-2 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+                  onClick={() => setAnnotating(true)}
+                  data-testid="feedback-annotate"
                 >
-                  {t("screenshotRemove")}
+                  ✏️ {t("annotate.open")}
                 </button>
               </div>
             ) : (
@@ -422,6 +467,7 @@ export default function FeedbackRuntime({ buildSha }: { buildSha: string }) {
           </>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

@@ -1771,7 +1771,7 @@
     "addNote": "补充说明",
     "notePlaceholder": "发生了什么？（可不填）",
     "includeDiagnostics": "附上诊断信息",
-    "diagnosticsNote": "会附上应用版本、手机型号和最近的操作步骤，用来帮助修复——绝不包含任何金额，且只有开发者能看到。",
+    "diagnosticsNote": "会附上应用版本、手机型号和最近的操作步骤，用来帮助修复。只有开发者能看到。",
     "sensitiveNote": "在此页面只附上最基本的信息，绝不包含他人的资料。",
     "send": "发送",
     "cancel": "取消",
@@ -1804,6 +1804,18 @@
     "screenshotAttached": "已添加截图",
     "screenshotAlt": "截图预览",
     "screenshotLocked": "为保护他人信息，此页面无法截图。",
-    "screenshotFailed": "无法截图——您仍可不带截图发送。"
+    "screenshotFailed": "无法截图——您仍可不带截图发送。",
+    "annotate": {
+      "open": "涂黑／标注",
+      "title": "标注截图",
+      "cancel": "取消",
+      "done": "完成",
+      "blackout": "涂黑",
+      "draw": "画笔",
+      "highlight": "高亮",
+      "undo": "撤销",
+      "clear": "清除",
+      "hint": "拖动可涂黑隐私信息，或用画笔圈出问题。"
+    }
   }
 }

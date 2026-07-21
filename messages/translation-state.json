@@ -8982,7 +8982,7 @@
     "zh-Hant": "machine"
   },
   "Feedback.diagnosticsNote": {
-    "source": "Includes your app version, phone, and recent steps to help fix it — never any dollar amounts, and only the developer sees it.",
+    "source": "Includes your app version, phone, and recent steps to help fix it. Only the developer sees it.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -9128,6 +9128,56 @@
   },
   "Feedback.screenshotFailed": {
     "source": "Couldn't capture a screenshot — you can still send without one.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.annotate.open": {
+    "source": "Black out / annotate",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.annotate.title": {
+    "source": "Mark up screenshot",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.annotate.cancel": {
+    "source": "Cancel",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.annotate.done": {
+    "source": "Done",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.annotate.blackout": {
+    "source": "Black out",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.annotate.draw": {
+    "source": "Draw",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.annotate.highlight": {
+    "source": "Highlight",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.annotate.undo": {
+    "source": "Undo",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.annotate.clear": {
+    "source": "Clear",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Feedback.annotate.hint": {
+    "source": "Drag to black out private details, or draw to point at the problem.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   }

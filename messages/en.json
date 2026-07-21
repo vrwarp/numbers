@@ -1771,7 +1771,7 @@
     "addNote": "Add a note",
     "notePlaceholder": "What happened? (optional)",
     "includeDiagnostics": "Include diagnostic details",
-    "diagnosticsNote": "Includes your app version, phone, and recent steps to help fix it — never any dollar amounts, and only the developer sees it.",
+    "diagnosticsNote": "Includes your app version, phone, and recent steps to help fix it. Only the developer sees it.",
     "sensitiveNote": "On this screen we keep to the basics — other people's information is never included.",
     "send": "Send",
     "cancel": "Cancel",
@@ -1804,6 +1804,18 @@
     "screenshotAttached": "Screenshot added",
     "screenshotAlt": "Screenshot preview",
     "screenshotLocked": "Screenshots are off on this screen to protect others' information.",
-    "screenshotFailed": "Couldn't capture a screenshot — you can still send without one."
+    "screenshotFailed": "Couldn't capture a screenshot — you can still send without one.",
+    "annotate": {
+      "open": "Black out / annotate",
+      "title": "Mark up screenshot",
+      "cancel": "Cancel",
+      "done": "Done",
+      "blackout": "Black out",
+      "draw": "Draw",
+      "highlight": "Highlight",
+      "undo": "Undo",
+      "clear": "Clear",
+      "hint": "Drag to black out private details, or draw to point at the problem."
+    }
   }
 }

@@ -1771,7 +1771,7 @@
     "addNote": "補充說明",
     "notePlaceholder": "發生了什麼？（可不填）",
     "includeDiagnostics": "附上診斷資訊",
-    "diagnosticsNote": "會附上應用程式版本、手機型號和最近的操作步驟，用來協助修復——絕不包含任何金額，且只有開發者看得到。",
+    "diagnosticsNote": "會附上應用程式版本、手機型號和最近的操作步驟，用來協助修復。只有開發者看得到。",
     "sensitiveNote": "在此頁面只附上最基本的資訊，絕不包含他人的資料。",
     "send": "傳送",
     "cancel": "取消",
@@ -1804,6 +1804,18 @@
     "screenshotAttached": "已加入截圖",
     "screenshotAlt": "截圖預覽",
     "screenshotLocked": "為保護他人資訊，此頁面無法截圖。",
-    "screenshotFailed": "無法截圖——您仍可不帶截圖傳送。"
+    "screenshotFailed": "無法截圖——您仍可不帶截圖傳送。",
+    "annotate": {
+      "open": "塗黑／標註",
+      "title": "標註截圖",
+      "cancel": "取消",
+      "done": "完成",
+      "blackout": "塗黑",
+      "draw": "畫筆",
+      "highlight": "螢光標記",
+      "undo": "復原",
+      "clear": "清除",
+      "hint": "拖曳可塗黑隱私資訊，或用畫筆圈出問題。"
+    }
   }
 }

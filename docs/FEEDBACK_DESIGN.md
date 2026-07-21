@@ -43,8 +43,10 @@ Capture stores **shapes, not values** (`src/lib/feedback/redact.ts`, unit-tested
   file bytes, other members' identities.
 
 The consent line the user sees is **truthful and plain** (`Feedback.diagnosticsNote`):
-version + phone + recent steps, *no amounts*, developer-only. Diagnostics are opt-in
-(default on) and the whole bundle is dropped if the user unchecks the box.
+version + phone + recent steps, developer-only. Diagnostics are opt-in (default on)
+and the whole bundle is dropped if the user unchecks the box. The line deliberately
+makes **no "no amounts" promise** — the *breadcrumb bundle* has none, but an opt-in
+screenshot (§5) can show anything on screen, so the copy must not over-promise.
 
 ## §4 Fire-and-forget (the invariant-11/12 posture)
 
@@ -59,11 +61,25 @@ reconnect/next load with bounded retries. Server-side the write is rate-capped
 
 `src/lib/feedback/sensitive.ts`: `/approvals`, `/finance`, `/members`, `/vouch`,
 `/v/`, `/c/` are sensitive — they show *another* member's data. On them the sheet
-discloses it (`Feedback.sensitiveNote`) and (when screenshots ship) hard-disables
-capture. The in-claim e-sign ceremony is a dialog, not a route, so it can't be
-route-caught; screenshots being opt-in + previewed + **absent in this slice** is the
-backstop. Screenshots are never auto-attached, including on crash (the crashed screen
-could be sensitive).
+discloses it (`Feedback.sensitiveNote`) and **hard-disables the screenshot** (a
+locked row, and `submit` drops any stale image). The in-claim e-sign ceremony is a
+dialog, not a route, so it can't be route-caught; screenshots being opt-in +
+previewed is the backstop. Screenshots are never auto-attached, including on crash
+(the crashed screen could be sensitive).
+
+**Screenshots** (`FeedbackRuntime.captureScreenshot` + `ScreenshotAnnotator`,
+`src/lib/feedback/storage.ts`): opt-in, off by default. Captured with `html-to-image`
+(foreignObject rendering — handles Tailwind v4 `oklch()` and same-origin receipt
+`<img>`s; `html2canvas` cannot). **iOS-hardened** — iOS is the primary platform and
+WebKit is the flakiest engine here, so capture is **viewport-only** (translate the
+clone by scroll, crop to `innerWidth×innerHeight`) to stay under WebKit's ~16M-px
+canvas cap, with a **pixel-area budget** dropping `pixelRatio`, and a **warm-up render
+on WebKit** (all iOS browsers + desktop Safari) to dodge Safari's blank-first-render
+bug. Before sending, the user can **black out** regions (redaction), **draw**, or
+**highlight** on a canvas editor, with undo/clear — annotations kept in natural pixels
+so the export is full-res. Bytes go to `<DATA_DIR>/feedback/<id>.<ext>` (never a DB
+blob), served admin-only, path-traversal-guarded. Best-effort: a capture/store failure
+never fails the report.
 
 ## §6 Correlation
 
@@ -91,10 +107,11 @@ Send lands on an emerald confirmation with a short reference (`shortRef(id)`, e.
 ## §9 Data model
 
 `FeedbackReport { id, userId(FK Cascade), category, situation, message, route,
-buildSha, diagnosticsJson, locale, userAgent, status(new|triaged|closed), createdAt }`.
-Owner-scoped writes; the admin **read** grant over all reports is a §6.3-style
-exception (reports carry free-text PII) enforced by `requireAdmin`. Diagnostics live
-in the JSON column; screenshots (future) go to disk under `DATA_DIR`, never a DB blob.
+buildSha, diagnosticsJson, locale, userAgent, screenshotPath, status(new|triaged|
+closed), createdAt }`. Owner-scoped writes; the admin **read** grant over all reports
+is a §6.3-style exception (reports carry free-text PII) enforced by `requireAdmin`.
+Diagnostics live in the JSON column; the screenshot is a disk path under `DATA_DIR`,
+never a DB blob.
 
 ## §10 i18n
 
@@ -104,7 +121,9 @@ older audience, so the copy is problem-framed and reassuring, not feature-jargon
 
 ## Deferred (future slices)
 
-- Opt-in previewed screenshots (needs a capture lib; highest privacy risk).
 - Stamping `x-request-id` onto `ExtractionLog`/`AuditEvent` for exact server-row join.
-- Profile "Your reports" status list (endpoint already exists).
 - Gentle post-error re-prompts (capped).
+- Retention/GC sweep (delete stored screenshots + old reports on a schedule; today a
+  deleted user cascades the rows but the screenshot files aren't yet swept).
+- Optional auto-blur of `data-sensitive` nodes before capture (currently redaction is
+  the user's manual black-out in the annotator).
