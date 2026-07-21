@@ -450,6 +450,8 @@
     "withdrawConfirm": "要撤回本次提交、改選其他審批人嗎？撤回後可立即從報銷單的電子簽名按鈕重新提交。",
     "withdrawConfirmButton": "撤回",
     "withdrawButton": "撤回／更換審批人",
+    "orphanNote": "本報銷單仍有一次先前提交的審批請求尚未結束。需先撤回，才能再次提交本報銷單以供審批。",
+    "orphanWithdrawConfirm": "要撤回這次未結束的審批請求嗎？撤回後將清除先前的提交，你便可再次提交本報銷單以供審批。",
     "resubmit": "✍️ 重新提交",
     "checkStatus": "查詢進度",
     "checkStatusBusy": "正在查詢進度…",

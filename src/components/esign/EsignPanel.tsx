@@ -108,9 +108,23 @@ export default function EsignPanel({
   const [reviseError, setReviseError] = useState<string | null>(null);
   const thrown = useThrownErrorMessage();
   const signed = ["submitted", "rejected", "approved", "paid"].includes(claim.status);
+  // Orphan recovery: a claim reverted (or reverted then regenerated) while its
+  // submission thread was still open on the ledger. Revert emits no WITHDRAW and
+  // submitSeq never resets, so the open thread lingers and the next Submit for
+  // approval is refused ("Withdraw the open submission before resubmitting") with
+  // no withdraw affordance in sight. We verify the chain for such claims too, so
+  // the withdraw the revert skipped can be offered here (docs/ESIGN_DESIGN.md §5).
+  const orphanCandidate =
+    !signed &&
+    (claim.status === "generated" || claim.status === "draft") &&
+    claim.submitSeq >= 1 &&
+    !!claim.signatureLedgerId &&
+    !!claim.signatureLedgerKey;
   // On the owner's review screen the claim's ownerUid IS the signed-in user.
   const chainClaim =
-    signed && env ? { ...claim, ownerUid: claim.ownerUid || env.me.userId } : null;
+    (signed || orphanCandidate) && env
+      ? { ...claim, ownerUid: claim.ownerUid || env.me.userId }
+      : null;
   const {
     state,
     error: chainError,
@@ -177,19 +191,121 @@ export default function EsignPanel({
     if (fresh && chainLooksGood(fresh)) setVerifiedAt(new Date());
   };
 
+  // Append the signed WITHDRAW that closes the open submission thread. Shared by
+  // the submitted-state "Withdraw / change approver" button and the orphan
+  // recovery card (a generated/draft claim whose thread the revert left open).
+  const runWithdraw = async () => {
+    setWithdrawBusy(true);
+    setWithdrawError(null);
+    try {
+      // Re-verify before appending: the approver may have decided while the
+      // dialog was up, and a withdraw after a decision is dead on arrival —
+      // explain the race instead of silently losing it. (Falls back to the last
+      // verified state if re-verify couldn't run.)
+      const fresh = (await refresh()) ?? state;
+      const decided = fresh?.thread?.decision?.action as { t?: string } | undefined;
+      if (decided?.t === "APPROVE" || decided?.t === "REJECT") {
+        setWithdrawRace(decided.t === "APPROVE" ? "approved" : "rejected");
+        setWithdrawOpen(false);
+        await onChanged();
+        return;
+      }
+      // Bail if the submit action is no longer there to withdraw.
+      const submit = fresh?.thread?.submit;
+      if (!submit) {
+        setWithdrawOpen(false);
+        return;
+      }
+      await withdrawSubmission(
+        {
+          id: claim.id,
+          signatureLedgerId: claim.signatureLedgerId!,
+          signatureLedgerKey: claim.signatureLedgerKey!,
+        },
+        submit.actionHash
+      );
+      await onChanged();
+      setWithdrawOpen(false);
+    } catch (err) {
+      // A silent close here is indistinguishable from success — say what
+      // happened. A committed-but-unsynced withdrawal will catch up via
+      // reconciliation/auto-refresh; anything else failed.
+      if (err instanceof LedgerCommittedError) {
+        setWithdrawError(t("signedButNotSynced"));
+        await onChanged();
+      } else {
+        setWithdrawError(thrown(err, t("withdrawFailed")));
+      }
+    } finally {
+      setWithdrawBusy(false);
+    }
+  };
+
   // Master switch (A5): off ⇒ no e-sign affordances anywhere. Already-signed
   // claims still show their status chip, and /v links keep verifying.
   if (!env?.bootstrapped || !env.enabled || env.allowed === false) return null;
 
   // The `generated` submit-for-approval CTA lives in the review screen's action
-  // bar (ReviewClaim), not here — this panel only owns the post-submission
-  // states. Keeping both the print/download and the e-sign entry in one bar is
+  // bar (ReviewClaim), not here — this panel owns the post-submission states,
+  // plus the orphan-recovery card below for a reverted claim whose ledger thread
+  // is still open. Keeping the print/download and the e-sign entry in one bar is
   // what removed the top-banner-vs-bottom-bar split (docs/ESIGN_DESIGN.md §6.1).
-  if (!signed) return null;
-
   const decision = state?.thread?.decision?.action as
     | { t: string; comment?: string }
     | undefined;
+
+  if (!signed) {
+    // Orphan-recovery card only — never the full submitted panel, whose packet
+    // check would false-alarm on a regenerated packet. Offer the withdraw the
+    // revert skipped; once it lands, this claim can be submitted for approval
+    // again (the resubmit preflight sees the thread as closed).
+    if (!orphanCandidate) return null;
+    if (needsConnect) {
+      return (
+        <div className="card space-y-3 p-4" data-testid="esign-orphan-panel">
+          <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="orphan-note">
+            {t("orphanNote")}
+          </p>
+          <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
+        </div>
+      );
+    }
+    // Only when the verified chain confirms the latest thread is still open —
+    // a withdrawn/decided thread needs no recovery, and an unverified state
+    // shows nothing rather than a stale prompt.
+    const openThread = state?.thread?.state === "open" && !!state?.thread?.submit;
+    if (!openThread) return null;
+    return (
+      <div className="card space-y-3 p-4" data-testid="esign-orphan-panel">
+        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900" data-testid="orphan-note">
+          {t("orphanNote")}
+        </p>
+        <div>
+          <button
+            className="btn-primary"
+            data-testid="withdraw-orphan"
+            onClick={() => setWithdrawOpen(true)}
+          >
+            {t("withdrawConfirmButton")}
+          </button>
+        </div>
+        <ConfirmDialog
+          open={withdrawOpen}
+          message={t("orphanWithdrawConfirm")}
+          confirmLabel={t("withdrawConfirmButton")}
+          busy={withdrawBusy}
+          tone="primary"
+          onConfirm={runWithdraw}
+          onCancel={() => {
+            setWithdrawError(null);
+            setWithdrawOpen(false);
+          }}
+          errorText={withdrawError}
+          testId="withdraw-orphan-confirm"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="card space-y-3 p-4" data-testid="esign-panel">
@@ -347,52 +463,7 @@ export default function EsignPanel({
         confirmLabel={t("withdrawConfirmButton")}
         busy={withdrawBusy}
         tone="primary"
-        onConfirm={async () => {
-          setWithdrawBusy(true);
-          setWithdrawError(null);
-          try {
-            // Re-verify before appending: the approver may have decided while
-            // the dialog was up, and a withdraw after a decision is dead on
-            // arrival — explain the race instead of silently losing it.
-            // (Falls back to the last verified state if re-verify couldn't run.)
-            const fresh = (await refresh()) ?? state;
-            const decided = fresh?.thread?.decision?.action as { t?: string } | undefined;
-            if (decided?.t === "APPROVE" || decided?.t === "REJECT") {
-              setWithdrawRace(decided.t === "APPROVE" ? "approved" : "rejected");
-              setWithdrawOpen(false);
-              await onChanged();
-              return;
-            }
-            // Bail if the submit action is no longer there to withdraw.
-            const submit = fresh?.thread?.submit;
-            if (!submit) {
-              setWithdrawOpen(false);
-              return;
-            }
-            await withdrawSubmission(
-              {
-                id: claim.id,
-                signatureLedgerId: claim.signatureLedgerId!,
-                signatureLedgerKey: claim.signatureLedgerKey!,
-              },
-              submit.actionHash
-            );
-            await onChanged();
-            setWithdrawOpen(false);
-          } catch (err) {
-            // A silent close here is indistinguishable from success — say
-            // what happened. A committed-but-unsynced withdrawal will catch
-            // up via reconciliation/auto-refresh; anything else failed.
-            if (err instanceof LedgerCommittedError) {
-              setWithdrawError(t("signedButNotSynced"));
-              await onChanged();
-            } else {
-              setWithdrawError(thrown(err, t("withdrawFailed")));
-            }
-          } finally {
-            setWithdrawBusy(false);
-          }
-        }}
+        onConfirm={runWithdraw}
         onCancel={() => {
           setWithdrawError(null);
           setWithdrawOpen(false);

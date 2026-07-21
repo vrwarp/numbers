@@ -2461,6 +2461,18 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Esign.orphanNote": {
+    "source": "This claim still has an open approval request from an earlier submission. Withdraw it before you can submit this claim for approval again.",
+    "context": "Recovery notice on a generated/draft claim that was submitted for approval, then reverted without withdrawing — the earlier approval request is still open on the signature ledger and blocks resubmission until withdrawn. 'claim' = a reimbursement claim (报销单).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Esign.orphanWithdrawConfirm": {
+    "source": "Withdraw the open approval request? This clears the earlier submission so you can send this claim for approval again.",
+    "context": "Confirm-dialog body for the orphan-recovery withdraw. Confirming appends a signed WITHDRAW that closes the still-open approval request so the claim can be submitted for approval again. Pairs with the button Esign.withdrawConfirmButton ('Withdraw').",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Esign.resubmit": {
     "source": "✍️ Resubmit",
     "context": "Button to reopen the signing dialog after a rejection. Keep the ✍️.",
