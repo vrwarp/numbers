@@ -450,6 +450,8 @@
     "withdrawConfirm": "Withdraw this submission so you can pick a different approver? You can submit again right after from the claim’s E-sign button.",
     "withdrawConfirmButton": "Withdraw",
     "withdrawButton": "Withdraw / change approver",
+    "orphanNote": "This claim still has an open approval request from an earlier submission. Withdraw it before you can submit this claim for approval again.",
+    "orphanWithdrawConfirm": "Withdraw the open approval request? This clears the earlier submission so you can send this claim for approval again.",
     "resubmit": "✍️ Resubmit",
     "checkStatus": "Check status",
     "checkStatusBusy": "Checking status…",

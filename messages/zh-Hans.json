@@ -450,6 +450,8 @@
     "withdrawConfirm": "要撤回本次提交、改选其他审批人吗？撤回后可立即从报销单的电子签名按钮重新提交。",
     "withdrawConfirmButton": "撤回",
     "withdrawButton": "撤回／更换审批人",
+    "orphanNote": "本报销单仍有一次先前提交的审批请求尚未结束。需先撤回，才能再次提交本报销单以供审批。",
+    "orphanWithdrawConfirm": "要撤回这次未结束的审批请求吗？撤回后将清除先前的提交，你便可再次提交本报销单以供审批。",
     "resubmit": "✍️ 重新提交",
     "checkStatus": "查看进度",
     "checkStatusBusy": "正在查看进度…",

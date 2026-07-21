@@ -22,7 +22,13 @@ import ManualEntryDialog from "@/components/ManualEntryDialog";
 import PanZoomImage from "@/components/PanZoomImage";
 import PdfReceiptPreview from "@/components/PdfReceiptPreview";
 import EsignPanel, { SubmitDialog } from "@/components/esign/EsignPanel";
-import { loadEnv, type EsignEnv } from "@/lib/esign/client";
+import {
+  hasSigningSession,
+  loadEnv,
+  verifyClaimChain,
+  withdrawSubmission,
+  type EsignEnv,
+} from "@/lib/esign/client";
 import type { PositionNameSet } from "@/lib/positions";
 import { useApiErrorMessage } from "@/lib/use-api-error";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
@@ -1063,7 +1069,44 @@ export default function ReviewClaim({
     setPendingConfirm({ kind: "revert" });
   }
 
+  // Close an open submission thread with a signed WITHDRAW before the claim
+  // leaves `submitted` (docs/ESIGN_DESIGN.md §5: a WITHDRAW closes the thread
+  // "before revert"), so the ledger never carries an orphaned open submission
+  // that would refuse the next Submit for approval. Best-effort and silent: it
+  // runs only when this device already holds a signing session — it never forces
+  // the Google popup from a Revert click — and if it can't complete, the revert
+  // still proceeds and the generated/draft recovery card offers the withdraw.
+  async function withdrawOpenThreadBeforeRevert() {
+    const c = claim!;
+    if (c.status !== "submitted") return;
+    if (!esignEnabled || !esignEnv || !c.signatureLedgerId || !c.signatureLedgerKey) return;
+    try {
+      if (!(await hasSigningSession(esignEnv))) return;
+      const chain = await verifyClaimChain(esignEnv, {
+        id: c.id,
+        ownerUid: esignEnv.me.userId,
+        signatureLedgerId: c.signatureLedgerId,
+        signatureLedgerKey: c.signatureLedgerKey,
+        packetSha256: c.packetSha256,
+      });
+      const thread = chain.evaluation.threads.find((th) => th.seq === c.submitSeq);
+      if (thread?.state === "open" && thread.submit) {
+        await withdrawSubmission(
+          {
+            id: c.id,
+            signatureLedgerId: c.signatureLedgerId,
+            signatureLedgerKey: c.signatureLedgerKey,
+          },
+          thread.submit.actionHash
+        );
+      }
+    } catch {
+      // Best-effort — the recovery card on the reverted claim is the backstop.
+    }
+  }
+
   async function doRevertClaim() {
+    await withdrawOpenThreadBeforeRevert();
     const res = await fetch(`/api/reimbursements/${claim!.id}/revert`, { method: "POST" });
     if (!res.ok) setError(apiError(await res.json().catch(() => null), t("revertFailed")));
     await load();
@@ -1168,7 +1211,15 @@ export default function ReviewClaim({
       {/* The post-submission panel (verify banner, reject/resubmit, certificate).
           `generated`'s submit-for-approval CTA now lives in the action bar, so
           this only renders once the packet is actually under signature. */}
-      {(SIGNED_STATUSES as readonly string[]).includes(claim.status) && (
+      {((SIGNED_STATUSES as readonly string[]).includes(claim.status) ||
+        // Orphan recovery: a previously-submitted claim now back in
+        // generated/draft may still carry an open ledger thread the revert
+        // never withdrew — mount the panel so it can offer that withdraw.
+        (esignEnabled &&
+          (claim.status === "generated" || claim.status === "draft") &&
+          claim.submitSeq >= 1 &&
+          !!claim.signatureLedgerId &&
+          !!claim.signatureLedgerKey)) && (
         <EsignPanel
           claim={{
             id: claim.id,
