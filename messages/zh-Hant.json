@@ -1386,7 +1386,9 @@
     "feedbackReopen": "重新開啟",
     "feedbackDiagnostics": "診斷資訊",
     "feedbackNoMessage": "（無文字說明）",
-    "feedbackReportedBy": "由 {name} 提交"
+    "feedbackReportedBy": "由 {name} 提交",
+    "feedbackCopy": "複製",
+    "feedbackCopied": "已複製"
   },
   "Ministries": {
     "title": "Budget categories",

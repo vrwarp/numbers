@@ -11,6 +11,28 @@
 import { useCallback, useEffect, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { shortRef } from "@/lib/feedback/types";
+import { reportToMarkdown } from "@/lib/feedback/report-markdown";
+
+async function copyText(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return;
+  } catch {
+    // Fallback for insecure contexts / older browsers.
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand("copy");
+    } finally {
+      document.body.removeChild(ta);
+    }
+  }
+}
 
 interface Report {
   id: string;
@@ -47,6 +69,7 @@ export default function FeedbackTab() {
   const [filter, setFilter] = useState<(typeof STATUS_FILTERS)[number]>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -95,6 +118,17 @@ export default function FeedbackTab() {
     const dyn = t as unknown as ((k: string) => string) & { has: (k: string) => boolean };
     const key = `feedbackStatus_${s}`;
     return dyn.has(key) ? dyn(key) : s;
+  };
+
+  const copy = async (r: Report) => {
+    const md = reportToMarkdown(r, {
+      category: catLabel(r.category),
+      status: statusLabel(r.status),
+      when: when(r.createdAt),
+    });
+    await copyText(md);
+    setCopiedId(r.id);
+    setTimeout(() => setCopiedId((cur) => (cur === r.id ? null : cur)), 1600);
   };
 
   return (
@@ -168,6 +202,13 @@ export default function FeedbackTab() {
               </details>
 
               <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  onClick={() => void copy(r)}
+                  className="rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50"
+                  data-testid="feedback-copy"
+                >
+                  {copiedId === r.id ? `✓ ${t("feedbackCopied")}` : t("feedbackCopy")}
+                </button>
                 {r.status !== "triaged" && (
                   <button
                     onClick={() => void setStatus(r.id, "triaged")}

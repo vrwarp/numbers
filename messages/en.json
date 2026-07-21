@@ -1386,7 +1386,9 @@
     "feedbackReopen": "Reopen",
     "feedbackDiagnostics": "Diagnostics",
     "feedbackNoMessage": "(no message)",
-    "feedbackReportedBy": "by {name}"
+    "feedbackReportedBy": "by {name}",
+    "feedbackCopy": "Copy",
+    "feedbackCopied": "Copied"
   },
   "Ministries": {
     "title": "Budget categories",

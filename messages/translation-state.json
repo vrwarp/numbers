@@ -7183,6 +7183,16 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Admin.feedbackCopy": {
+    "source": "Copy",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.feedbackCopied": {
+    "source": "Copied",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Ministries.title": {
     "source": "Budget categories",
     "zh-Hans": "todo",
