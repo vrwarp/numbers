@@ -705,28 +705,30 @@ export default function Shoebox({
         </div>
       )}
 
-      {/* Search pill and claim bar share one row from `sm` up (search keeps a
-          fixed width, the claim bar owns the rest). Below `sm` the claim bar
-          is the SAME element repositioned into a fixed dock at the bottom of
-          the screen — one element so data-testid="generate-claim" stays
-          unique — and the search pill has the row to itself. */}
-      {(searchEnabled || hasClaimBar) && (
-        <div className="z-30 flex items-start gap-3 sm:sticky sm:top-16 sm:items-stretch">
-          {searchEnabled && (
-            <Link
-              href="/search?type=receipt"
-              data-testid="shoebox-search-pill"
-              className="card pressable flex min-w-0 flex-1 items-center gap-2 bg-white/90 px-4 py-2.5 text-sm text-stone-500 backdrop-blur sm:w-56 sm:flex-none md:w-72"
-            >
-              <span aria-hidden>🔍</span> {t("searchPill")}
-            </Link>
-          )}
-          {hasClaimBar && (
-            <div
-              className={`min-w-0 flex-none sm:flex-1 ${
-                barEmpty && !generating ? "sm:flex sm:items-stretch sm:justify-end" : ""
-              }`}
-            >
+      {/* Search pill: a plain row that scrolls away with the grid — it has no
+          reason to follow you down the page, unlike the claim bar below. */}
+      {searchEnabled && (
+        <Link
+          href="/search?type=receipt"
+          data-testid="shoebox-search-pill"
+          className="card pressable z-30 flex items-center gap-2 bg-white/90 px-4 py-2.5 text-sm text-stone-500 backdrop-blur sm:w-56 md:w-72"
+        >
+          <span aria-hidden>🔍</span> {t("searchPill")}
+        </Link>
+      )}
+      {/* Claim bar sticks below the nav from `sm` up so the count + New Claim
+          stay reachable while scrolling the grid — with a little breathing
+          room (top-[4.5rem] vs the nav's top-16) so it doesn't butt against
+          it. Below `sm` it's the SAME element repositioned into a fixed dock
+          at the bottom of the screen — one element so
+          data-testid="generate-claim" stays unique. */}
+      {hasClaimBar && (
+        <div className="z-30 flex sm:sticky sm:top-[4.5rem] sm:items-stretch">
+          <div
+            className={`min-w-0 flex-none sm:flex-1 ${
+              barEmpty && !generating ? "sm:flex sm:items-stretch sm:justify-end" : ""
+            }`}
+          >
               <div
                 className={`fixed inset-x-0 bottom-0 z-30 flex flex-col justify-center gap-2 border-t bg-white pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pl-[calc(1rem+env(safe-area-inset-left))] pr-[calc(1rem+env(safe-area-inset-right))] transition-all duration-200 sm:static sm:inset-x-auto sm:min-h-11 sm:rounded-xl sm:border sm:p-2 sm:pl-3.5 ${
                   showSelectHint
@@ -830,9 +832,8 @@ export default function Shoebox({
                 )}
               </div>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
       {receipts === null ? (
         <p className="text-sm text-stone-500">{tCommon("loading")}</p>
