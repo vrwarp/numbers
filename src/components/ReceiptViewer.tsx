@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { fetchAndDeliver, isIosStandalonePwa } from "@/lib/pdf-delivery";
+import { useBackDismiss } from "@/lib/use-back-dismiss";
 import ReceiptImageEditor from "./ReceiptImageEditor";
 import { usePdfPreviewManifest, pdfPreviewPageUrl } from "./PdfReceiptPreview";
 
@@ -110,6 +111,12 @@ export default function ReceiptViewer({
       document.body.style.overflow = prevOverflow;
     };
   }, [onClose]);
+
+  // Back gesture / hardware back dismiss the viewer (like Escape and ✕) instead
+  // of navigating away from the receipts page. When the editor is open it owns
+  // the topmost history entry, so back closes it first (LIFO) — see
+  // `back-dismiss.ts` — then a second back closes the viewer.
+  useBackDismiss(onClose);
 
   // Native (non-passive) wheel listener so we can preventDefault the page
   // scroll. Images only — a PDF's page column scrolls natively instead.

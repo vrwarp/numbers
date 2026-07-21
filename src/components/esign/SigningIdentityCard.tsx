@@ -9,9 +9,10 @@
  * native camera — no in-app decoder.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useOpenParam } from "@/lib/use-open-param";
+import { useModalDismiss } from "@/lib/use-modal-dismiss";
 import {
   backendNeedsPopup,
   bootstrapRegistry,
@@ -549,6 +550,10 @@ function EnrollWizard({
   const [signatureImage, setSignatureImage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalDismiss(dialogRef, () => {
+    if (!busy) onClose();
+  });
 
   async function finish() {
     setBusy(true);
@@ -563,7 +568,7 @@ function EnrollWizard({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">
+    <div ref={dialogRef} className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog" aria-modal>
       <div className="max-h-[92dvh] w-full max-w-lg space-y-4 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:rounded-2xl sm:pb-6">
         {step === "consent" ? (
           <>
@@ -665,8 +670,12 @@ function RedrawDialog({ onClose, onDone }: { onClose: () => void; onDone: () => 
   const [signatureImage, setSignatureImage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalDismiss(dialogRef, () => {
+    if (!busy) onClose();
+  });
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">
+    <div ref={dialogRef} className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog" aria-modal>
       <div className="w-full max-w-lg space-y-4 rounded-t-2xl bg-white p-6 sm:rounded-2xl">
         <h3 className="text-lg font-bold">{t("redrawTitle")}</h3>
         <p className="text-sm text-stone-600">{t("redrawBody")}</p>

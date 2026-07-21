@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useRef, type RefObject } from "react";
+import { useBackDismiss } from "./use-back-dismiss";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
- * Baseline modal keyboard behavior for the app's hand-rolled dialogs:
- * Escape closes, Tab cycles inside the container, initial focus lands on the
- * first focusable element (deferring to an `autoFocus` field), and focus
- * returns to the opener on unmount. Listeners live on the container — not
- * `document` — so stacked dialogs each handle only their own keys.
+ * Baseline modal dismissal for the app's hand-rolled dialogs: Escape closes,
+ * the platform back gesture closes (see `useBackDismiss`), Tab cycles inside
+ * the container, initial focus lands on the first focusable element (deferring
+ * to an `autoFocus` field), and focus returns to the opener on unmount.
+ * Keyboard listeners live on the container — not `document` — so stacked
+ * dialogs each handle only their own keys.
  *
  * Deliberately NOT a full aria-hidden inert treatment: these dialogs are
  * short-lived and the trap covers the practical keyboard/AT paths.
@@ -24,6 +26,9 @@ export function useModalDismiss(
 ) {
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
+
+  // Back gesture / hardware back dismisses the dialog like Escape does.
+  useBackDismiss(onClose, enabled);
 
   useEffect(() => {
     if (!enabled) return;

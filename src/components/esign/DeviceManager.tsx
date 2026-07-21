@@ -35,6 +35,7 @@ import {
   type PendingDeviceRequest,
 } from "@/lib/esign/devices";
 import { useThrownErrorMessage } from "@/lib/use-api-error";
+import { useModalDismiss } from "@/lib/use-modal-dismiss";
 import { deliverPdf } from "@/lib/pdf-delivery";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -485,6 +486,8 @@ function PhraseDialog({
   const [downloaded, setDownloaded] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalDismiss(dialogRef, onClose);
 
   useEffect(() => {
     // charproof registers the phrase as it mints it; reopening the dialog
@@ -521,7 +524,7 @@ function PhraseDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog">
+    <div ref={dialogRef} className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6" role="dialog" aria-modal>
       <div className="max-h-[92dvh] w-full max-w-lg space-y-4 overflow-y-auto overscroll-contain rounded-t-2xl bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:rounded-2xl sm:pb-6">
         <h3 className="text-lg font-bold">{t("phraseDialogTitle")}</h3>
         {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}

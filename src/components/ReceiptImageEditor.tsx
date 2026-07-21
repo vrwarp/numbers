@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useApiErrorMessage } from "@/lib/use-api-error";
+import { useModalDismiss } from "@/lib/use-modal-dismiss";
 
 interface Crop {
   left: number;
@@ -90,6 +91,18 @@ export default function ReceiptImageEditor({
   maxStageHeight?: number;
 }) {
   const measureRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  // Modal mode only (not embedded): Escape / back gesture close, focus is
+  // trapped. When launched from ReceiptViewer this stacks above the viewer, so
+  // back closes the editor first. Suppressed mid-save so an in-flight write
+  // isn't abandoned.
+  useModalDismiss(
+    dialogRef,
+    () => {
+      if (!busy) onClose?.();
+    },
+    !embedded
+  );
   const [stageMaxWidth, setStageMaxWidth] = useState(0);
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
   const [rotate, setRotate] = useState<0 | 90 | 180 | 270>(0);
@@ -405,7 +418,7 @@ export default function ReceiptImageEditor({
   if (embedded) return <div className="w-full">{body}</div>;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal>
+    <div ref={dialogRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal>
       <div className="card w-full max-w-2xl p-6">
         <h2 className="font-bold">{t("title")}</h2>
         <p className="mt-1 text-sm text-stone-500">
