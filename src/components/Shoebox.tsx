@@ -716,7 +716,7 @@ export default function Shoebox({
             <Link
               href="/search?type=receipt"
               data-testid="shoebox-search-pill"
-              className="card pressable flex min-w-0 flex-1 items-center gap-2 px-4 py-2.5 text-sm text-stone-500 sm:w-56 sm:flex-none md:w-72"
+              className="card pressable flex min-w-0 flex-1 items-center gap-2 bg-white/90 px-4 py-2.5 text-sm text-stone-500 backdrop-blur sm:w-56 sm:flex-none md:w-72"
             >
               <span aria-hidden>🔍</span> {t("searchPill")}
             </Link>
