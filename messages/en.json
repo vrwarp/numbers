@@ -59,7 +59,8 @@
     "showYourCode": "Show your QR code",
     "chipNone": "Not set up",
     "chipPending": "Waiting for confirmation",
-    "proposedChanges": "Proposed changes"
+    "proposedChanges": "Proposed changes",
+    "reportProblem": "Report a problem"
   },
   "Home": {
     "profileNudge": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
@@ -897,7 +898,8 @@
       "unknownField": "That setting can’t be edited here.",
       "nothingToChange": "Nothing to change.",
       "invalidValidation": "That test request was invalid.",
-      "unknownService": "Unknown service to test."
+      "unknownService": "Unknown service to test.",
+      "selfLockout": "This change would remove your own admin access — keep your email in the list"
     },
     "ministry": {
       "invalid": "Those budget categories couldn’t be saved — check the form and try again.",
@@ -916,7 +918,6 @@
     },
     "searchInvalid": "That search couldn’t be understood — adjust it and try again",
     "searchEmptyQuery": "Type something to search for first",
-    "admin.selfLockout": "This change would remove your own admin access — keep your email in the list",
     "invalidMemberUpdate": "That member update couldn't be saved.",
     "push": {
       "invalidToken": "That notification registration is invalid.",
@@ -938,7 +939,9 @@
     "mcpScopeRequired": "Choose at least one capability",
     "mcpInvalidScope": "Unknown capability requested",
     "mcpTokenNotFound": "Connection not found",
-    "mcpExpiryInvalid": "Choose a valid expiry"
+    "mcpExpiryInvalid": "Choose a valid expiry",
+    "feedbackRateLimited": "Too many reports just now — please try again in a little while.",
+    "feedbackInvalid": "That feedback couldn't be read."
   },
   "AddReceipts": {
     "title": "Add receipts to this claim",
@@ -1386,7 +1389,23 @@
         "label": "Match threshold",
         "help": "How close a match must be to show up, 0–1 (higher = stricter). 0.25 is a good start."
       }
-    }
+    },
+    "tab_feedback": "Feedback",
+    "feedbackTitle": "Feedback & bug reports",
+    "feedbackEmpty": "No reports yet.",
+    "feedbackAllStatuses": "All",
+    "feedbackStatus_new": "New",
+    "feedbackStatus_triaged": "Triaged",
+    "feedbackStatus_closed": "Closed",
+    "feedbackMarkTriaged": "Mark triaged",
+    "feedbackMarkClosed": "Close",
+    "feedbackReopen": "Reopen",
+    "feedbackDiagnostics": "Diagnostics",
+    "feedbackNoMessage": "(no message)",
+    "feedbackReportedBy": "by {name}",
+    "feedbackCopy": "Copy",
+    "feedbackCopied": "Copied",
+    "feedbackScreenshot": "Screenshot"
   },
   "Ministries": {
     "title": "Budget categories",
@@ -1752,7 +1771,9 @@
     "activity": {
       "title": "Recent activity",
       "deletedClaim": "a deleted claim",
-      "byName": "by {name}"
+      "byName": "by {name}",
+      "subtitle": "Approvals, payments, and signing requests — the same updates sent as notifications, gathered here.",
+      "empty": "No activity yet. Updates about your claims and signing requests will show up here."
     }
   },
   "Connections": {
@@ -1825,5 +1846,65 @@
     "applying": "Applying…",
     "discard": "Discard",
     "discarding": "Discarding…"
+  },
+  "Feedback": {
+    "title": "Something not working?",
+    "subtitle": "Tap what happened — you don't have to type.",
+    "crashSubtitle": "The app hit a problem. What were you doing?",
+    "category": {
+      "bug": "This is broken",
+      "confused": "I'm stuck here",
+      "idea": "I have a suggestion",
+      "crash": "The app crashed"
+    },
+    "addNote": "Add a note",
+    "notePlaceholder": "What happened? (optional)",
+    "includeDiagnostics": "Include diagnostic details",
+    "diagnosticsNote": "Includes your app version, phone, and recent steps to help fix it. Only the developer sees it.",
+    "sensitiveNote": "On this screen we keep to the basics — other people's information is never included.",
+    "send": "Send",
+    "cancel": "Cancel",
+    "rateLimited": "You've sent a lot of reports just now — please try again in a little while.",
+    "thanksTitle": "Got it — thank you!",
+    "thanksBody": "A real person reads every one of these. We'll fix it in an update.",
+    "queuedBody": "You're offline — we saved it and will send it when you're back online.",
+    "reference": "#{ref}",
+    "statusNew": "Looking into it",
+    "done": "Done",
+    "error": {
+      "title": "Something went wrong",
+      "body": "This part of the app hit a problem. You can try again, or tell us what happened.",
+      "tryAgain": "Try again",
+      "report": "Report this problem"
+    },
+    "yourReports": "Your reports",
+    "statusTriaged": "Seen",
+    "statusClosed": "Done",
+    "situationPrompt": "What were you doing? (optional)",
+    "situations": {
+      "upload": "Adding a receipt",
+      "claim": "Building a claim",
+      "signing": "Signing or approving",
+      "amount": "A number looked wrong",
+      "other": "Something else"
+    },
+    "screenshotAdd": "Add a screenshot",
+    "screenshotRemove": "Remove",
+    "screenshotAttached": "Screenshot added",
+    "screenshotAlt": "Screenshot preview",
+    "screenshotLocked": "Screenshots are off on this screen to protect others' information.",
+    "screenshotFailed": "Couldn't capture a screenshot — you can still send without one.",
+    "annotate": {
+      "open": "Black out / annotate",
+      "title": "Mark up screenshot",
+      "cancel": "Cancel",
+      "done": "Done",
+      "blackout": "Black out",
+      "draw": "Draw",
+      "highlight": "Highlight",
+      "undo": "Undo",
+      "clear": "Clear",
+      "hint": "Drag to black out private details, or draw to point at the problem."
+    }
   }
 }

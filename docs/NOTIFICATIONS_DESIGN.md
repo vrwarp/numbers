@@ -230,9 +230,8 @@ in-app, none requiring push:
   reverse-chronological activity list ("Your claim was approved · Tuesday") —
   every member sees identical facts; push merely delivers them earlier. No
   read-tracking (a §2 non-goal); the list is informational, the badges remain
-  the actionable surface. **Surface:** a card on the home page plus a NavBar
-  entry point beside the existing badges — explicitly *not* a read-tracked
-  inbox, no unread counts. Text is composed at **render time** from
+  the actionable surface. **Surface:** its own `/activity` page reached from the
+  account menu — explicitly *not* a read-tracked inbox, no unread counts. Text is composed at **render time** from
   `payloadJson` params in the viewer's current locale (the push-less
   majority's jobs are never "sent," so send-time composition can't serve
   them). Scope: strictly the recipient's own rows (invariant 2), paginated

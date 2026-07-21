@@ -31,6 +31,11 @@ ENV NODE_ENV=production \
     DATA_DIR=/data \
     DATABASE_URL=file:/data/numbers.db
 
+# Commit that produced this image — surfaced by feedback reports so a bug names
+# its deploy (read at runtime via configValue("BUILD_SHA"); empty when unset).
+ARG BUILD_SHA=""
+ENV BUILD_SHA=${BUILD_SHA}
+
 # openssl for Prisma's query engine; prisma CLI to run migrations on boot;
 # fonts-dejavu-core so @napi-rs/canvas can draw the PDF-preview truncation notice
 # (the base image ships no fonts, so fillText would otherwise render nothing).

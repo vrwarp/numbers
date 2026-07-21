@@ -40,8 +40,8 @@ test("enable, self-test through the worker, activity parity, sign-out severs the
   await page.getByTestId("notify-self-test").click();
   await expect(page.getByText(/did this device show it\?/)).toBeVisible();
 
-  // §5 parity: the same event appears in the home activity list.
-  await page.goto("/");
+  // §5 parity: the same event appears in the recent-activity page.
+  await page.goto("/activity");
   await expect(page.getByTestId("activity-card")).toBeVisible();
   await expect(page.getByTestId("activity-card")).toContainText("test notification");
 

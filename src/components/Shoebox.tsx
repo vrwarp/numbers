@@ -705,18 +705,21 @@ export default function Shoebox({
         </div>
       )}
 
-      {/* Search pill and claim bar share one row from `sm` up (search keeps a
-          fixed width, the claim bar owns the rest). Below `sm` the claim bar
-          is the SAME element repositioned into a fixed dock at the bottom of
-          the screen — one element so data-testid="generate-claim" stays
-          unique — and the search pill has the row to itself. */}
+      {/* Search pill and claim bar share one sticky row from `sm` up (search
+          keeps a fixed width, the claim bar owns the rest) — pinned at
+          top-[4.5rem] rather than the nav's top-16 so the bar gets a little
+          breathing room below the nav instead of butting against it. Below
+          `sm` the claim bar is the SAME element repositioned into a fixed
+          dock at the bottom of the screen — one element so
+          data-testid="generate-claim" stays unique — and the search pill has
+          the row to itself. */}
       {(searchEnabled || hasClaimBar) && (
-        <div className="z-30 flex items-start gap-3 sm:sticky sm:top-16 sm:items-stretch">
+        <div className="z-30 flex items-start gap-3 sm:sticky sm:top-[4.5rem] sm:items-stretch">
           {searchEnabled && (
             <Link
               href="/search?type=receipt"
               data-testid="shoebox-search-pill"
-              className="card pressable flex min-w-0 flex-1 items-center gap-2 px-4 py-2.5 text-sm text-stone-500 sm:w-56 sm:flex-none md:w-72"
+              className="card pressable flex min-w-0 flex-1 items-center gap-2 bg-white/90 px-4 py-2.5 text-sm text-stone-500 backdrop-blur sm:w-56 sm:flex-none md:w-72"
             >
               <span aria-hidden>🔍</span> {t("searchPill")}
             </Link>
@@ -789,7 +792,7 @@ export default function Shoebox({
                   <button
                     className={`whitespace-nowrap ${
                       barEmpty && !generating
-                        ? "inline-flex items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-3.5 py-1.5 text-sm font-semibold text-indigo-600 transition duration-150 ease-out hover:border-indigo-300 hover:text-indigo-700 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                        ? "inline-flex items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-3.5 py-[7px] text-sm font-semibold text-indigo-600 transition duration-150 ease-out hover:border-indigo-300 hover:text-indigo-700 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
                         : "btn-primary"
                     } ${showSelectHint ? "shake-x" : ""}`}
                     onClick={handleGenerateClaimClick}

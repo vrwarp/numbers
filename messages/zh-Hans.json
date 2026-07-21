@@ -59,7 +59,8 @@
     "showYourCode": "出示二维码",
     "chipNone": "未开通",
     "chipPending": "等待确认",
-    "proposedChanges": "Proposed changes"
+    "proposedChanges": "Proposed changes",
+    "reportProblem": "反馈问题"
   },
   "Home": {
     "profileNudge": "您的<link>个人资料</link>需要填写姓名和邮寄地址——两者都会打印在报销表上。",
@@ -938,7 +939,9 @@
     "mcpScopeRequired": "Choose at least one capability",
     "mcpInvalidScope": "Unknown capability requested",
     "mcpTokenNotFound": "Connection not found",
-    "mcpExpiryInvalid": "Choose a valid expiry"
+    "mcpExpiryInvalid": "Choose a valid expiry",
+    "feedbackRateLimited": "反馈太频繁了——请稍后再试。",
+    "feedbackInvalid": "无法读取该反馈。"
   },
   "AddReceipts": {
     "title": "向这张报销单添加收据",
@@ -1386,7 +1389,23 @@
         "label": "Match threshold",
         "help": "How close a match must be to show up, 0–1 (higher = stricter). 0.25 is a good start."
       }
-    }
+    },
+    "tab_feedback": "反馈",
+    "feedbackTitle": "反馈与问题报告",
+    "feedbackEmpty": "还没有反馈。",
+    "feedbackAllStatuses": "全部",
+    "feedbackStatus_new": "新",
+    "feedbackStatus_triaged": "已查看",
+    "feedbackStatus_closed": "已关闭",
+    "feedbackMarkTriaged": "标记为已查看",
+    "feedbackMarkClosed": "关闭",
+    "feedbackReopen": "重新打开",
+    "feedbackDiagnostics": "诊断信息",
+    "feedbackNoMessage": "（无文字说明）",
+    "feedbackReportedBy": "由 {name} 提交",
+    "feedbackCopy": "复制",
+    "feedbackCopied": "已复制",
+    "feedbackScreenshot": "截图"
   },
   "Ministries": {
     "title": "Budget categories",
@@ -1752,7 +1771,9 @@
     "activity": {
       "title": "Recent activity",
       "deletedClaim": "a deleted claim",
-      "byName": "by {name}"
+      "byName": "by {name}",
+      "subtitle": "Approvals, payments, and signing requests — the same updates sent as notifications, gathered here.",
+      "empty": "No activity yet. Updates about your claims and signing requests will show up here."
     }
   },
   "Connections": {
@@ -1825,5 +1846,65 @@
     "applying": "Applying…",
     "discard": "Discard",
     "discarding": "Discarding…"
+  },
+  "Feedback": {
+    "title": "遇到问题了？",
+    "subtitle": "点一下发生了什么，不用打字。",
+    "crashSubtitle": "程序出错了。您当时在做什么？",
+    "category": {
+      "bug": "这里坏了",
+      "confused": "这一步看不懂",
+      "idea": "我有个建议",
+      "crash": "程序崩溃了"
+    },
+    "addNote": "补充说明",
+    "notePlaceholder": "发生了什么？（可不填）",
+    "includeDiagnostics": "附上诊断信息",
+    "diagnosticsNote": "会附上应用版本、手机型号和最近的操作步骤，用来帮助修复。只有开发者能看到。",
+    "sensitiveNote": "在此页面只附上最基本的信息，绝不包含他人的资料。",
+    "send": "发送",
+    "cancel": "取消",
+    "rateLimited": "您刚刚发送了很多反馈——请稍后再试。",
+    "thanksTitle": "收到了，谢谢！",
+    "thanksBody": "每一条都会有人亲自查看。我们会在后续更新中修复。",
+    "queuedBody": "您当前离线——已为您保存，恢复联网后会自动发送。",
+    "reference": "#{ref}",
+    "statusNew": "正在处理",
+    "done": "好的",
+    "error": {
+      "title": "出错了",
+      "body": "应用的这一部分遇到了问题。您可以重试，或告诉我们发生了什么。",
+      "tryAgain": "重试",
+      "report": "报告这个问题"
+    },
+    "yourReports": "我的反馈",
+    "statusTriaged": "已查看",
+    "statusClosed": "已处理",
+    "situationPrompt": "您当时在做什么？（可不填）",
+    "situations": {
+      "upload": "添加收据",
+      "claim": "创建报销单",
+      "signing": "签名或审批",
+      "amount": "金额不对",
+      "other": "其他"
+    },
+    "screenshotAdd": "添加截图",
+    "screenshotRemove": "移除",
+    "screenshotAttached": "已添加截图",
+    "screenshotAlt": "截图预览",
+    "screenshotLocked": "为保护他人信息，此页面无法截图。",
+    "screenshotFailed": "无法截图——您仍可不带截图发送。",
+    "annotate": {
+      "open": "涂黑／标注",
+      "title": "标注截图",
+      "cancel": "取消",
+      "done": "完成",
+      "blackout": "涂黑",
+      "draw": "画笔",
+      "highlight": "高亮",
+      "undo": "撤销",
+      "clear": "清除",
+      "hint": "拖动可涂黑隐私信息，或用画笔圈出问题。"
+    }
   }
 }

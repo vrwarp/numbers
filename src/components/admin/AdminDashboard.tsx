@@ -17,8 +17,19 @@ import UsageTab from "./UsageTab";
 import LogsTab from "./LogsTab";
 import MembersTab from "./MembersTab";
 import SearchIndexTab from "./SearchIndexTab";
+import FeedbackTab from "./FeedbackTab";
 
-const TABS = ["overview", "setup", "context", "settings", "search", "usage", "logs", "members"] as const;
+const TABS = [
+  "overview",
+  "setup",
+  "context",
+  "settings",
+  "search",
+  "usage",
+  "logs",
+  "feedback",
+  "members",
+] as const;
 type Tab = (typeof TABS)[number];
 
 export default function AdminDashboard() {
@@ -62,6 +73,7 @@ export default function AdminDashboard() {
         {tab === "search" && <SearchIndexTab />}
         {tab === "usage" && <UsageTab />}
         {tab === "logs" && <LogsTab />}
+        {tab === "feedback" && <FeedbackTab />}
         {tab === "members" && <MembersTab />}
       </div>
     </div>

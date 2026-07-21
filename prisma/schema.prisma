@@ -90,6 +90,7 @@ model User {
   // Catalog edits proposed through the MCP backend (ministries/teams/positions).
   // Staged as drafts a human applies — the assistant never mutates master data.
   catalogDrafts    CatalogDraft[]
+  feedbackReports  FeedbackReport[]
 }
 
 model Receipt {
@@ -459,6 +460,52 @@ model AuditEvent {
 
   @@index([reimbursementId])
   @@index([userId, createdAt])
+}
+
+// User-initiated feedback / bug report (docs/FEEDBACK_DESIGN.md). One row per
+// submission. Shape mirrors ExtractionLog/AuditEvent house style: cuid id,
+// denormalized userId with Cascade, JSON-in-String payload columns, free-string
+// status, @@index([userId, createdAt]). This is the high-signal, human-initiated
+// tier — passive breadcrumbs/crash crumbs ride along INSIDE diagnosticsJson, they
+// are never their own rows (docs/FEEDBACK_DESIGN.md §2). Privacy: the client
+// redacts before it ever POSTs — diagnosticsJson holds SHAPES not values (route
+// templates, API {method,path,status,code}, console/error stacks), never money,
+// descriptions, tokens, or other members' data (invariants 2/7/11/12 posture).
+model FeedbackReport {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // "bug" | "confused" | "idea" | "crash" — the severity/situation the user
+  // (or the error boundary, for "crash") tagged. Free string like every other
+  // status column here; the client maps it to a Feedback.* label.
+  category        String         @default("bug")
+  // Which situation chip was tapped (e.g. "upload" | "stuck" | "amount" |
+  // "other"), pre-tagging the stage for triage. "" when none.
+  situation       String         @default("")
+  // The user's optional free text (may be empty — a tagged wordless report is
+  // still a report). Capped client- and server-side.
+  message         String         @default("")
+  // Route TEMPLATE the report was filed from (e.g. "/claims/[id]"), never a
+  // concrete path with ids/query.
+  route           String         @default("")
+  // Build identity so a report names its deploy (BUILD_SHA at build time; ""
+  // in dev). Redacted diagnostics bundle (breadcrumbs, env, recent request-ids,
+  // crash stack) as a JSON string — see src/lib/feedback/diagnostics.ts.
+  buildSha        String         @default("")
+  diagnosticsJson String         @default("{}")
+  locale          String         @default("en")
+  userAgent       String         @default("")
+  // Relative path (under DATA_DIR) of an OPT-IN, user-previewed screenshot, or
+  // "" when none. Bytes live on disk (src/lib/feedback/storage.ts), never a DB
+  // blob — same discipline as receipts. Never captured on a sensitive surface,
+  // never auto-attached (docs/FEEDBACK_DESIGN.md §5).
+  screenshotPath  String         @default("")
+  // Triage state (admin-only writes): new | triaged | closed.
+  status          String         @default("new")
+  createdAt       DateTime       @default(now())
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
 }
 
 // Church-wide budget-category catalog — the source for the "Ministry / Fund"

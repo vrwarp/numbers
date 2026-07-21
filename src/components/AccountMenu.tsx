@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import LocaleSwitcher from "./LocaleSwitcher";
 import { navBadgeId, navTestId, type NavLink } from "./NavTabs";
 import { signOut } from "@/lib/sign-out";
+import { openFeedback } from "@/lib/feedback/open";
 
 /**
  * The account cluster — Profile, language, Admin, sign out — behind one
@@ -165,9 +166,13 @@ export default function AccountMenu({
           <Link href="/profile" className={itemClass}>
             {t("profile")}
           </Link>
-          {/* §5 activity parity entry point — a plain link, no unread counts
+          {/* §5 activity parity entry point — its own page, no unread counts
               by design (docs/NOTIFICATIONS_DESIGN.md §2 no read-tracking). */}
-          <Link href="/#activity" className={itemClass} data-testid="nav-activity">
+          <Link
+            href="/activity"
+            className={`${itemClass} ${isActive("/activity") ? "bg-indigo-50 text-indigo-700" : ""}`}
+            data-testid="nav-activity"
+          >
             {t("recentActivity")}
           </Link>
           <LocaleSwitcher signedIn variant="row" />
@@ -203,6 +208,20 @@ export default function AccountMenu({
             </Link>
           ) : null}
           <div className="my-1 h-px bg-stone-100" />
+          {/* Feedback / bug report — the primary, discoverable entry point
+              (docs/FEEDBACK_DESIGN.md). No floating button: it would collide
+              with the claim's sticky action bar. */}
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              openFeedback();
+            }}
+            className={itemClass}
+            data-testid="nav-feedback"
+          >
+            {t("reportProblem")}
+          </button>
           <button type="button" onClick={() => signOut()} className={itemClass}>
             {t("signOut")}
           </button>
