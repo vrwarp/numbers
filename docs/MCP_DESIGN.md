@@ -117,6 +117,19 @@ mutation, writes an `apply-catalog-draft` AuditEvent) or **Discards**. Logic in
 are **not** draftable over MCP (they touch other people's data) — only descriptive fields and
 budget-category codes are.
 
+**Staleness — field-level 3-way merge.** A draft snapshots the target row's mergeable fields at
+stage time (`CatalogDraft.baseJson`). At apply, `threeWayMerge` (pure, unit-tested) compares that
+base against the row's **current** state: fields nobody else touched apply; a field this draft and
+someone else both changed to different values is a **conflict** (apply 409s with `catalogDraftConflict`
+— never a silent clobber); a deleted target 409s with `catalogDraftStale`; team `codes` set-merge
+(the draft's adds/removes-vs-base folded onto the current set, so a concurrently-added code
+survives). Because the write is a partial update, non-overlapping edits are preserved either way —
+the base snapshot is what lets apply *detect* an overlap rather than overwrite it. The Proposed
+Changes page shows each update as a proposed-vs-current diff, flags conflicts, and disables Apply
+on a stale/conflicting draft (the API is the real gate; the disabled button is cosmetic). This also
+makes multiple pending drafts on one row safe: the second to apply conflict-checks against what the
+first already wrote.
+
 ## Security invariants (must hold)
 
 1. **No secrets over MCP.** Read shapes in `src/lib/mcp/data.ts` are hand-built allowlists —

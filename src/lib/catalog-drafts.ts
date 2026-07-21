@@ -127,6 +127,109 @@ function validateFields(
   return fields;
 }
 
+// --- Field-level 3-way merge ------------------------------------------------
+// An update draft doesn't apply blind: the target's mergeable fields are
+// snapshotted at STAGE time (baseJson), and at apply we 3-way them against the
+// row's CURRENT state. Fields nobody else touched apply; a field this draft and
+// someone else both changed to different values is a CONFLICT (refused, never
+// clobbered); team `codes` set-merge (adds/removes relative to base folded onto
+// current). Because the write is a partial update, non-overlapping edits are
+// already preserved — the base snapshot is what lets us *detect* the overlap.
+
+const MERGE_FIELDS: Record<CatalogEntity, { scalars: readonly string[]; arrays: readonly string[] }> = {
+  ministry: { scalars: ["code", "name", "group", "description", "active"], arrays: [] },
+  team: { scalars: ["name", "description", "active"], arrays: ["codes"] },
+  position: { scalars: ["name", "nameZhHans", "nameZhHant", "description", "active"], arrays: [] },
+};
+
+/** The target row's mergeable fields right now, or null if it no longer exists. */
+async function snapshotTarget(
+  entity: CatalogEntity,
+  targetId: string
+): Promise<Record<string, unknown> | null> {
+  if (entity === "ministry") {
+    const m = await prisma.ministry.findUnique({
+      where: { id: targetId },
+      select: { code: true, name: true, group: true, description: true, active: true },
+    });
+    return m ?? null;
+  }
+  if (entity === "team") {
+    const t = await prisma.team.findUnique({
+      where: { id: targetId },
+      select: { name: true, description: true, active: true, ministries: { select: { code: true } } },
+    });
+    return t
+      ? { name: t.name, description: t.description, active: t.active, codes: uniqueCodes(t.ministries.map((x) => x.code)).sort() }
+      : null;
+  }
+  const p = await prisma.position.findUnique({
+    where: { id: targetId },
+    select: { name: true, nameZhHans: true, nameZhHant: true, description: true, active: true },
+  });
+  return p ?? null;
+}
+
+/** Empty string and null are the same "no value" for catalog text fields (the
+ *  DB stores "" for group/description, null for the optional position names). */
+function normScalar(v: unknown): unknown {
+  return v == null ? "" : v;
+}
+function scalarEq(a: unknown, b: unknown): boolean {
+  if (typeof a === "boolean" || typeof b === "boolean") return a === b;
+  return normScalar(a) === normScalar(b);
+}
+function asSet(v: unknown): Set<string> {
+  return new Set(Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
+}
+
+export interface MergeResult {
+  /** The target row was deleted since the draft was staged. */
+  targetGone: boolean;
+  /** Field names both this draft and someone else changed, to different values. */
+  conflicts: string[];
+  /** The effective values to write (create: the proposed fields; update: the
+   *  merged safe fields — omits no-ops, includes set-merged arrays). */
+  fields: Record<string, unknown>;
+}
+
+/**
+ * Field-level 3-way merge of a draft's `proposed` change against the target's
+ * `current` state, using the `base` snapshot from stage time. Pure (unit-tested
+ * in tests/unit/catalog-merge.test.ts).
+ */
+export function threeWayMerge(
+  entity: CatalogEntity,
+  operation: CatalogOperation,
+  base: Record<string, unknown>,
+  current: Record<string, unknown> | null,
+  proposed: Record<string, unknown>
+): MergeResult {
+  if (operation === "create") return { targetGone: false, conflicts: [], fields: proposed };
+  if (!current) return { targetGone: true, conflicts: [], fields: {} };
+  if (operation === "archive" || operation === "delete") return { targetGone: false, conflicts: [], fields: {} };
+
+  const spec = MERGE_FIELDS[entity];
+  const conflicts: string[] = [];
+  const fields: Record<string, unknown> = {};
+  for (const f of spec.scalars) {
+    if (!(f in proposed)) continue; // draft didn't touch this field
+    if (scalarEq(current[f], base[f])) fields[f] = proposed[f]; // nobody else touched it → apply
+    else if (scalarEq(current[f], proposed[f])) continue; // already what we wanted → no-op
+    else conflicts.push(f); // three-way divergence
+  }
+  for (const f of spec.arrays) {
+    if (!(f in proposed)) continue;
+    const B = asSet(base[f]);
+    const P = asSet(proposed[f]);
+    const merged = asSet(current[f]);
+    for (const x of B) if (!P.has(x)) merged.delete(x); // proposed removed it (relative to base)
+    for (const x of P) if (!B.has(x)) merged.add(x); // proposed added it
+    fields[f] = [...merged].sort();
+  }
+  return { targetGone: false, conflicts, fields };
+}
+
 // --- Draft CRUD -------------------------------------------------------------
 
 export interface DraftInput {
@@ -196,12 +299,16 @@ export async function createCatalogDraft(userId: string, input: DraftInput) {
   }
   requireManage(entity, await canManageEntity(userId, entity));
 
+  // Snapshot the target's mergeable fields NOW — the base for the apply-time
+  // 3-way merge. Doubles as the existence check.
+  let baseObj: Record<string, unknown> = {};
   if (operation === "create") {
     if (input.targetId) throw new ApiError(400, "A create draft must not target an existing row.", "catalogTargetInvalid");
   } else {
     if (!input.targetId) throw new ApiError(400, `A ${operation} draft must name a target id.`, "catalogTargetRequired");
-    const label = await targetLabel(entity, input.targetId);
-    if (label === null) throw new ApiError(404, `That ${entity} was not found.`, "catalogTargetNotFound");
+    const snap = await snapshotTarget(entity, input.targetId);
+    if (!snap) throw new ApiError(404, `That ${entity} was not found.`, "catalogTargetNotFound");
+    baseObj = snap;
   }
 
   const fields = validateFields(entity, operation, input.fields);
@@ -212,6 +319,7 @@ export async function createCatalogDraft(userId: string, input: DraftInput) {
       operation,
       targetId: input.targetId ?? null,
       proposedJson: JSON.stringify(fields),
+      baseJson: JSON.stringify(baseObj),
       note: (input.note ?? "").slice(0, 500),
     },
   });
@@ -236,9 +344,23 @@ export async function listCatalogDrafts(
     include: { user: { select: { fullName: true, email: true } } },
   });
   return Promise.all(
-    rows.map(async (d) =>
-      draftDto(d, d.targetId ? await targetLabel(d.entity as CatalogEntity, d.targetId) : null)
-    )
+    rows.map(async (d) => {
+      const ent = d.entity as CatalogEntity;
+      const dto = draftDto(d, d.targetId ? await targetLabel(ent, d.targetId) : null);
+      // Drift vs the live row, so the review page can show current-vs-proposed
+      // and flag conflicts/staleness BEFORE someone clicks Apply. Create drafts
+      // have no ancestor to drift from.
+      if (d.operation === "create" || !d.targetId) return { ...dto, drift: null };
+      const current = await snapshotTarget(ent, d.targetId);
+      const merge = threeWayMerge(
+        ent,
+        d.operation as CatalogOperation,
+        safeParse(d.baseJson) as Record<string, unknown>,
+        current,
+        safeParse(d.proposedJson) as Record<string, unknown>
+      );
+      return { ...dto, drift: { targetGone: merge.targetGone, conflicts: merge.conflicts, current } };
+    })
   );
 }
 
@@ -263,10 +385,29 @@ export async function applyCatalogDraft(userId: string, id: string): Promise<{ o
   const draft = await prisma.catalogDraft.findUnique({ where: { id } });
   if (!draft || draft.status !== "pending") throw new ApiError(404, "Draft not found.", "catalogDraftNotFound");
   const entity = draft.entity as CatalogEntity;
+  const operation = draft.operation as CatalogOperation;
   requireManage(entity, await canManageEntity(userId, entity));
 
-  const fields = validateFields(entity, draft.operation as CatalogOperation, safeParse(draft.proposedJson));
-  const writes = await mutationWrites(entity, draft.operation as CatalogOperation, draft.targetId, fields);
+  // 3-way against the row's CURRENT state so a stale draft can't silently
+  // clobber an intervening edit. `merge.fields` are the effective values to
+  // write (safe scalars + set-merged codes); no-ops and untouched fields drop
+  // out, so the partial update preserves everything else.
+  const proposed = validateFields(entity, operation, safeParse(draft.proposedJson));
+  const current = draft.targetId ? await snapshotTarget(entity, draft.targetId) : null;
+  const merge = threeWayMerge(entity, operation, safeParse(draft.baseJson) as Record<string, unknown>, current, proposed);
+  if (merge.targetGone) {
+    throw new ApiError(409, `That ${entity} was deleted since this was proposed — discard this draft.`, "catalogDraftStale", { entity });
+  }
+  if (merge.conflicts.length > 0) {
+    throw new ApiError(
+      409,
+      `The ${entity} changed since this was proposed (${merge.conflicts.join(", ")}) — re-review before applying.`,
+      "catalogDraftConflict",
+      { fields: merge.conflicts.join(", ") }
+    );
+  }
+
+  const writes = await mutationWrites(entity, operation, draft.targetId, merge.fields);
 
   writes.push(
     prisma.catalogDraft.update({
@@ -284,7 +425,7 @@ export async function applyCatalogDraft(userId: string, id: string): Promise<{ o
           operation: draft.operation,
           targetId: draft.targetId,
           draftId: id,
-          fields,
+          fields: merge.fields,
         }),
       },
     })

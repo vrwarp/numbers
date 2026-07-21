@@ -941,7 +941,9 @@
     "mcpTokenNotFound": "Connection not found",
     "mcpExpiryInvalid": "Choose a valid expiry",
     "feedbackRateLimited": "Too many reports just now — please try again in a little while.",
-    "feedbackInvalid": "That feedback couldn't be read."
+    "feedbackInvalid": "That feedback couldn't be read.",
+    "catalogDraftStale": "The item was deleted since this change was proposed",
+    "catalogDraftConflict": "The item changed since this change was proposed"
   },
   "AddReceipts": {
     "title": "Add receipts to this claim",
@@ -1845,7 +1847,13 @@
     "apply": "Apply",
     "applying": "Applying…",
     "discard": "Discard",
-    "discarding": "Discarding…"
+    "discarding": "Discarding…",
+    "currentLabel": "Now",
+    "proposedLabel": "Proposed",
+    "conflictTag": "changed",
+    "staleGone": "This {entity} was deleted since the change was proposed — discard it.",
+    "staleConflict": "This {entity} changed since the change was proposed. Re-review before applying.",
+    "cantApply": "Can’t apply"
   },
   "Feedback": {
     "title": "Something not working?",

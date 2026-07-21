@@ -941,7 +941,9 @@
     "mcpTokenNotFound": "Connection not found",
     "mcpExpiryInvalid": "Choose a valid expiry",
     "feedbackRateLimited": "反馈太频繁了——请稍后再试。",
-    "feedbackInvalid": "无法读取该反馈。"
+    "feedbackInvalid": "无法读取该反馈。",
+    "catalogDraftStale": "The item was deleted since this change was proposed",
+    "catalogDraftConflict": "The item changed since this change was proposed"
   },
   "AddReceipts": {
     "title": "向这张报销单添加收据",
@@ -1845,7 +1847,13 @@
     "apply": "Apply",
     "applying": "Applying…",
     "discard": "Discard",
-    "discarding": "Discarding…"
+    "discarding": "Discarding…",
+    "currentLabel": "Now",
+    "proposedLabel": "Proposed",
+    "conflictTag": "changed",
+    "staleGone": "This {entity} was deleted since the change was proposed — discard it.",
+    "staleConflict": "This {entity} changed since the change was proposed. Re-review before applying.",
+    "cantApply": "Can’t apply"
   },
   "Feedback": {
     "title": "遇到问题了？",
