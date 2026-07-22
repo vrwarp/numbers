@@ -13,6 +13,14 @@
  * email check instead of re-prompting — the popup only returns when the
  * session is missing or belongs to another account.
  *
+ * Installed home-screen PWAs (standalone) can't open the popup at all, so —
+ * exactly like SignInCard's login fallback — a blocked popup falls back to
+ * signInWithRedirect when FIREBASE_AUTH_PROXY has made the redirect handler
+ * first-party (authDomain === our own origin, immune to WebKit storage
+ * partitioning). preloadFirebase() completes that round-trip on the next
+ * load. Without the proxy the redirect can't be trusted, so the blocked-popup
+ * error surfaces instead.
+ *
  * Emulator e2e (docs/agent/TESTING.md): when the server-relayed config
  * carries an `emulator` block, the SDK is pointed at the local auth/firestore
  * emulators and the Google popup is replaced with a silent email/password
@@ -119,6 +127,32 @@ function matchesExpected(user: { email?: string | null } | null): boolean {
   return !!(user?.email && user.email.toLowerCase() === expectedEmail);
 }
 
+/**
+ * Should a blocked/unsupported Google popup fall back to signInWithRedirect?
+ * ONLY when the redirect handler is FIRST-PARTY — FIREBASE_AUTH_PROXY has made
+ * the SDK's authDomain our own origin — because a third-party
+ * *.firebaseapp.com redirect round-trip breaks under WebKit storage
+ * partitioning ("missing initial state"). This is the exact escape hatch
+ * SignInCard uses for LOGIN; the e-sign connect needs it too, since an
+ * installed home-screen PWA (standalone) can't open the popup at all — the
+ * "e-sign setup gets stuck in the PWA" case. Pure + exported for the unit
+ * canary (tests/unit/esign-firebase-redirect.test.ts).
+ */
+export function shouldRedirectAuth(
+  cfg: { authDomain?: string; emulator?: unknown } | null,
+  errorCode: string,
+  host: string
+): boolean {
+  if (!cfg || cfg.emulator) return false;
+  if (
+    errorCode !== "auth/popup-blocked" &&
+    errorCode !== "auth/operation-not-supported-in-environment"
+  ) {
+    return false;
+  }
+  return !!cfg.authDomain && cfg.authDomain === host;
+}
+
 let authInFlight: Promise<void> | null = null;
 
 /**
@@ -132,6 +166,14 @@ export async function preloadFirebase(): Promise<void> {
   const theApp = await app();
   const fb = await import("firebase/auth");
   const auth = fb.getAuth(theApp);
+  // Complete a signInWithRedirect round-trip started by the popup-blocked
+  // fallback (installed PWA / partitioned WebKit) on a previous page load.
+  // Enforce the same same-email guard the popup path does, so a mismatched
+  // Google account is signed back out and never used to write ledgers.
+  const redirected = await fb.getRedirectResult(auth).catch(() => null);
+  if (redirected?.user && !matchesExpected(redirected.user)) {
+    await fb.signOut(auth).catch(() => {});
+  }
   await auth.authStateReady();
   warm = { auth, fb };
 }
@@ -215,7 +257,23 @@ async function signIn(
     return;
   }
 
-  const credential = await fb.signInWithPopup(auth, new fb.GoogleAuthProvider());
+  let credential: import("firebase/auth").UserCredential;
+  try {
+    credential = await fb.signInWithPopup(auth, new fb.GoogleAuthProvider());
+  } catch (err) {
+    // Installed home-screen PWA (standalone) or partitioned WebKit: the popup
+    // can't open. When the auth proxy has made the redirect handler
+    // first-party, fall back to signInWithRedirect instead of dead-ending the
+    // connect — the exact escape hatch SignInCard uses to log in. This
+    // navigates away; preloadFirebase() completes the round-trip (and re-runs
+    // the same-email guard) on the next load. Any other failure propagates.
+    const code = (err as { code?: string })?.code ?? "";
+    if (shouldRedirectAuth(config, code, window.location.host)) {
+      await fb.signInWithRedirect(auth, new fb.GoogleAuthProvider());
+      return;
+    }
+    throw err;
+  }
   const email = credential.user.email?.toLowerCase();
   if (email !== expectedEmail) {
     await fb.signOut(auth).catch(() => {});
