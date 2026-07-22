@@ -10,9 +10,13 @@ import { signOut } from "@/lib/sign-out";
 import { openFeedback } from "@/lib/feedback/open";
 
 /**
- * The account cluster — Profile, language, Admin, sign out — behind one
- * top-right control, so the tab row stays functional-only and fits a phone even
- * for a treasurer or admin. It is ALSO where reduced nav tabs are listed
+ * The account cluster — Profile, language, sign out — behind one top-right
+ * control, so the tab row stays functional-only and fits a phone even for a
+ * treasurer or admin. Organization administration (Budget categories,
+ * Positions, Teams, Members, Proposed changes, Admin) no longer lives here — it
+ * moved to the /manage hub, reached via the "Manage" nav tab (which overflows
+ * INTO this menu on narrow widths, so mobile still gets a single labeled entry).
+ * It is ALSO where reduced nav tabs are listed
  * (menuTabs): both tabs compressed to icons in the row AND tabs overflowed out
  * of it, each with its label — one dropdown, not two, and always a labeled way
  * to reach an icon-only tab. A tab that is `hidden` (overflowed, not in the row)
@@ -22,18 +26,10 @@ import { openFeedback } from "@/lib/feedback/open";
  */
 export default function AccountMenu({
   userName,
-  isAdmin,
-  canManageMinistries,
-  canViewMembers,
-  canManageTeams,
   menuTabs = [],
   esignSetup = null,
 }: {
   userName: string;
-  isAdmin?: boolean;
-  canManageMinistries?: boolean;
-  canViewMembers?: boolean;
-  canManageTeams?: boolean;
   menuTabs?: Array<NavLink & { hidden?: boolean }>;
   /** EP7 (docs/ESIGN_SETUP_DISCOVERABILITY.md §3.3): the persistent e-sign
    *  setup door. A menu row, not a banner — never dismissible, never feeds the
@@ -176,37 +172,9 @@ export default function AccountMenu({
             {t("recentActivity")}
           </Link>
           <LocaleSwitcher signedIn variant="row" />
-          {canManageMinistries ? (
-            <Link href="/ministries" className={itemClass} data-testid="nav-budget-categories">
-              {t("budgetCategories")}
-            </Link>
-          ) : null}
-          {canManageMinistries ? (
-            <Link href="/positions" className={itemClass} data-testid="nav-positions">
-              {t("positions")}
-            </Link>
-          ) : null}
-          {canManageTeams ? (
-            <Link href="/teams" className={itemClass} data-testid="nav-teams">
-              {t("teams")}
-            </Link>
-          ) : null}
-          {canViewMembers ? (
-            <Link href="/members" className={itemClass} data-testid="nav-members">
-              {t("members")}
-            </Link>
-          ) : null}
-          {canManageMinistries || canManageTeams ? (
-            // Where catalog edits an AI assistant staged (MCP) are applied.
-            <Link href="/catalog-drafts" className={itemClass} data-testid="nav-catalog-drafts">
-              {t("proposedChanges")}
-            </Link>
-          ) : null}
-          {isAdmin ? (
-            <Link href="/admin" className={itemClass}>
-              {t("admin")}
-            </Link>
-          ) : null}
+          {/* Budget categories / Positions / Teams / Members / Proposed changes
+              / Admin moved to the /manage hub (the "Manage" nav tab, which
+              overflows into this menu on narrow widths). */}
           <div className="my-1 h-px bg-stone-100" />
           {/* Feedback / bug report — the primary, discoverable entry point
               (docs/FEEDBACK_DESIGN.md). No floating button: it would collide

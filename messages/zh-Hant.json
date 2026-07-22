@@ -49,6 +49,7 @@
     "vouch": "擔保",
     "admin": "管理",
     "account": "帳戶",
+    "manage": "Manage",
     "budgetCategories": "Budget categories",
     "pendingWork": "有待處理",
     "search": "搜尋",
@@ -61,6 +62,16 @@
     "chipPending": "等待確認",
     "proposedChanges": "Proposed changes",
     "reportProblem": "回報問題"
+  },
+  "Manage": {
+    "title": "Manage organization",
+    "subtitle": "Church catalogs, teams, and roster.",
+    "budgetCategoriesDesc": "Ministry codes and budgets",
+    "positionsDesc": "Approval roles and duties",
+    "teamsDesc": "Budget-category groups",
+    "membersDesc": "Directory and access",
+    "proposedChangesDesc": "Catalog edits staged by the assistant",
+    "adminDesc": "App-level settings"
   },
   "Home": {
     "profileNudge": "您的<link>個人資料</link>需要填寫姓名和郵寄地址——兩者都會列印在報銷表上。",

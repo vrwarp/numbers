@@ -83,3 +83,13 @@ export function SearchIcon(props: SVGProps<SVGSVGElement>) {
     </Base>
   );
 }
+
+/** Manage — a settings cog for the organization-administration surfaces. */
+export function ManageIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Base {...props}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.1 5.1l2.1 2.1M16.8 16.8l2.1 2.1M18.9 5.1l-2.1 2.1M7.2 16.8l-2.1 2.1" />
+    </Base>
+  );
+}

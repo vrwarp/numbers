@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import AccountMenu from "./AccountMenu";
 import NavTabs, { type NavLink } from "./NavTabs";
-import { ApprovalsIcon, ClaimsIcon, FinanceIcon, ReceiptsIcon, SearchIcon, VouchIcon } from "./nav-icons";
+import { ApprovalsIcon, ClaimsIcon, FinanceIcon, ManageIcon, ReceiptsIcon, SearchIcon, VouchIcon } from "./nav-icons";
 import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
 
 interface Badges {
@@ -101,6 +101,18 @@ export default function NavBar({
   if (badges.enabled && badges.vouch) {
     links.push({ href: "/vouch", label: t("vouch"), icon: <VouchIcon />, priority: 60 });
   }
+  // Organization administration (Budget categories, Positions, Teams, Members,
+  // Proposed changes, Admin) lives behind one entry now. On desktop it's this
+  // tab → /manage; on narrow widths it overflows into the account menu as a
+  // labeled "Manage" row (same menuTabs mechanism), so both breakpoints get a
+  // single, discoverable entry point. Lowest priority + not pinned: it's the
+  // first tab to give up its spot when the row is tight. The gate is the union
+  // of the per-tool guards (src/lib/manage-guard.ts), mirrored from the flags
+  // layout already computed.
+  const showManage = isAdmin || canManageMinistries || canViewMembers || canManageTeams;
+  if (showManage) {
+    links.push({ href: "/manage", label: t("manage"), icon: <ManageIcon />, priority: 50 });
+  }
 
   const overflowSet = new Set(nav.overflow);
   const menuTabs = nav.menu
@@ -123,10 +135,6 @@ export default function NavBar({
         </nav>
         <AccountMenu
           userName={userName}
-          isAdmin={isAdmin}
-          canManageMinistries={canManageMinistries}
-          canViewMembers={canViewMembers}
-          canManageTeams={canManageTeams}
           menuTabs={menuTabs}
           esignSetup={badges.enabled ? (badges.setup ?? null) : null}
         />
