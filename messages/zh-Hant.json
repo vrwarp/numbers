@@ -901,7 +901,8 @@
       "approverUnavailable": "該審批人目前不接收新的審批請求——請改選其他人",
       "approverRoleLost": "您的審批人角色已被移除——您可以拒絕，但無法批准",
       "decisionNotBinding": "已簽署的決定未能在帳本上生效——請重新整理本報銷單後重試，或請提交人改選其他審批人",
-      "invalidNudge": "此更新未能儲存。"
+      "invalidNudge": "此更新未能儲存。",
+      "timedOut": "此操作耗時過長——請檢查網路連線後重試"
     },
     "admin": {
       "contentString": "內容必須為文字。",

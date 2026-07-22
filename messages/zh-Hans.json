@@ -901,7 +901,8 @@
       "approverUnavailable": "该审批人目前不接收新的审批请求——请改选其他人",
       "approverRoleLost": "您的审批人角色已被移除——您可以拒绝，但无法批准",
       "decisionNotBinding": "已签署的决定未能在账本上生效——请刷新本报销单后重试，或请提交人改选其他审批人",
-      "invalidNudge": "此更新未能保存。"
+      "invalidNudge": "此更新未能保存。",
+      "timedOut": "此操作耗时过长——请检查网络连接后重试"
     },
     "admin": {
       "contentString": "内容必须为文本。",

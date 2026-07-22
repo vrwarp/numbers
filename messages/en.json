@@ -901,7 +901,8 @@
       "approverUnavailable": "That approver isn't taking new approval requests right now — pick someone else",
       "approverRoleLost": "Your approver role has been removed — you can decline, but not approve",
       "decisionNotBinding": "The signed decision doesn't bind on the ledger — reload this claim and try again, or ask its owner to reassign it",
-      "invalidNudge": "That update couldn't be saved."
+      "invalidNudge": "That update couldn't be saved.",
+      "timedOut": "This is taking too long — check your connection and try again"
     },
     "admin": {
       "contentString": "Content must be text.",

@@ -16,6 +16,7 @@ import { useModalDismiss } from "@/lib/use-modal-dismiss";
 import {
   backendNeedsPopup,
   bootstrapRegistry,
+  CEREMONY_TIMEOUT_MS,
   custodyFor,
   enroll,
   hasSigningSession,
@@ -25,6 +26,7 @@ import {
   reportRoster,
   subscribeRoster,
   updateSignatureImage,
+  withTimeout,
   type EsignEnv,
 } from "@/lib/esign/client";
 import type { DeviceStatus } from "@/lib/esign/custody";
@@ -201,7 +203,12 @@ export default function SigningIdentityCard() {
     setBusy(true);
     setError(null);
     try {
-      await bootstrapRegistry((await loadEnv())!);
+      // Watchdog: bootstrapRegistry runs charproof AMK custody + Firestore
+      // writes, which can HANG (not reject) on a wedged transport — the "stuck
+      // on Setting up…" failure. Bound it so it fails retryably instead. The
+      // server bootstrap is a single atomic transaction and each retry uses a
+      // fresh ledger id, so a timed-out attempt leaves nothing to clean up.
+      await withTimeout(bootstrapRegistry(await loadEnv()), CEREMONY_TIMEOUT_MS, "bootstrap");
       await refresh();
     } catch (err) {
       setError(thrown(err, t("setupFailed")));
@@ -559,7 +566,10 @@ function EnrollWizard({
     setBusy(true);
     setError(null);
     try {
-      await enroll(env, signatureImage!);
+      // Same watchdog as bootstrap: enroll() does multi-step charproof custody
+      // + Firestore writes that can hang. A timed-out enroll is self-healing —
+      // the identity card's repairEnrollment() finishes a half-done key report.
+      await withTimeout(enroll(env, signatureImage!), CEREMONY_TIMEOUT_MS, "enroll");
       await onDone();
     } catch (err) {
       setError(thrown(err, t("setupFailed")));

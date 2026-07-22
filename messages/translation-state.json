@@ -4993,6 +4993,12 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Errors.esign.timedOut": {
+    "source": "This is taking too long — check your connection and try again",
+    "context": "Shown when a signing setup ceremony (bootstrap or enroll) overruns a client-side watchdog because a Firestore/charproof step hung — e.g. inside an installed PWA on a wedged connection. Turns an infinite 'Setting up…' spinner into a retryable error.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Errors.admin.contentString": {
     "source": "Content must be text.",
     "zh-Hans": "machine",

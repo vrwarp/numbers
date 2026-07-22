@@ -70,6 +70,46 @@ export interface EsignEnv {
   me: EsignMe;
 }
 
+/**
+ * Thrown when a signing ceremony overruns its watchdog. The multi-step
+ * ceremonies (bootstrap, enroll) do charproof AMK custody + Firestore ledger
+ * writes; in a wedged transport (the installed-PWA / WebKit failure family)
+ * those awaits can HANG rather than reject, so the busy button — "Setting up…"
+ * — would spin forever with no way out. The watchdog converts that into a
+ * visible, retryable error. Carries a `code` so the UI can translate it.
+ */
+export class EsignTimeoutError extends Error {
+  code = "esign.timedOut";
+  payload = { code: "esign.timedOut" };
+  constructor(label: string) {
+    super(`${label} timed out`);
+    this.name = "EsignTimeoutError";
+  }
+}
+
+/** Reject with EsignTimeoutError if `p` hasn't settled within `ms`. Used to
+ *  bound the ceremonies whose Firestore/charproof steps can hang silently. */
+export function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new EsignTimeoutError(label)), ms);
+    p.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      }
+    );
+  });
+}
+
+/** Watchdog budget for the setup ceremonies (bootstrap/enroll). Generous — a
+ *  church network doing several Firestore round-trips is fine; only a genuine
+ *  hang overruns it. One-time actions, so a long ceiling costs nothing. */
+export const CEREMONY_TIMEOUT_MS = 45_000;
+
 async function jsonOrThrow(res: Response) {
   const data = await res.json().catch(() => null);
   if (!res.ok) {
