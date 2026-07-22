@@ -27,6 +27,13 @@ function configFilePath(): string {
 
 let cache: { mtimeMs: number; values: Record<string, string> } | null = null;
 
+function warnBadConfigFile(file: string, detail: string): void {
+  console.warn(
+    `config.json at ${file} could not be used (${detail}); ignoring it and ` +
+      `falling back to process.env. Fix the file so its settings take effect.`
+  );
+}
+
 function loadFileConfig(): Record<string, string> {
   const file = configFilePath();
   let stat: fs.Stats;
@@ -46,9 +53,22 @@ function loadFileConfig(): Record<string, string> {
         if (raw === null || raw === undefined) continue;
         values[key] = typeof raw === "string" ? raw : String(raw);
       }
+    } else {
+      // Valid JSON but not a `{ "KEY": "value" }` object (e.g. an array or a
+      // bare value): every key is ignored. Warn so this isn't silent — a
+      // deployment with only config.json settings would otherwise look
+      // entirely "unconfigured" (e.g. "No sign-in method is configured").
+      values = {};
+      warnBadConfigFile(file, "expected a JSON object of KEY: \"value\" pairs");
     }
-  } catch {
-    values = {}; // malformed JSON → ignore the file, fall back to env
+  } catch (err) {
+    // A single JSON syntax error (a trailing comma, an unescaped newline in a
+    // pasted service-account key, a missing quote) makes the WHOLE file fall
+    // back to env-only. Silently swallowing it stranded operators who had set,
+    // e.g., the Firebase keys here yet still saw "not configured". Surface it —
+    // the mtime cache below means this warns once per edit, not per request.
+    values = {};
+    warnBadConfigFile(file, err instanceof Error ? err.message : String(err));
   }
   cache = { mtimeMs: stat.mtimeMs, values };
   return values;
