@@ -1,7 +1,7 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   CONFIG_FILE_NAME,
   configValue,
@@ -56,6 +56,28 @@ describe("configValue (data-dir config file)", () => {
     fs.writeFileSync(path.join(dir, CONFIG_FILE_NAME), "{not json");
     process.env.AUTH_SECRET = "from-env";
     expect(configValue("AUTH_SECRET")).toBe("from-env");
+  });
+
+  it("warns (does not silently swallow) when the file is malformed", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // A trailing comma — the classic hand-edit that made a fully-populated
+    // config.json look "unconfigured" (e.g. Firebase sign-in) with no clue why.
+    fs.writeFileSync(
+      path.join(dir, CONFIG_FILE_NAME),
+      '{ "FIREBASE_API_KEY": "k", }'
+    );
+    expect(configValue("FIREBASE_API_KEY")).toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toContain("config.json");
+    warn.mockRestore();
+  });
+
+  it("warns when the file is valid JSON but not an object", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    fs.writeFileSync(path.join(dir, CONFIG_FILE_NAME), '["not", "an", "object"]');
+    expect(configValue("FIREBASE_API_KEY")).toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 
   it("picks up edits when the file changes on disk", () => {
