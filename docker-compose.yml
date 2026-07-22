@@ -26,4 +26,9 @@ services:
       # empty; set NODE_ARGS=--jitless only if the container still exits with
       # SIGILL after the sharp rebuild that ships in the image.
       NODE_ARGS: ${NODE_ARGS:-}
+      # Run as a non-root user so /data files are owned by your host user
+      # instead of root. Set to your host uid/gid (Synology: `id <user>`).
+      # Leave empty to keep the root default.
+      PUID: ${PUID:-}
+      PGID: ${PGID:-}
     restart: unless-stopped
