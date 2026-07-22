@@ -18,9 +18,9 @@ import { LOCALES, LOCALE_COOKIE, LOCALE_LABELS, LOCALE_SHORT_LABELS } from "@/li
  * (account menu) is a full-width menu row — a "Language" label plus that same
  * badge chip — with the invisible select stretched over the WHOLE row, so a
  * tap anywhere on the row opens the picker like the sibling menu links do;
- * "prominent" (empty Receipts screen) is a segmented row of tappable pills,
- * each labelled with its language's own name, sized to catch a brand-new
- * user's eye.
+ * "prominent" (empty Receipts screen) is a globe + "Language" caption over a
+ * fluid segmented control of equal-width cells, each labelled with its
+ * language's own name, sized to catch a brand-new user's eye.
  */
 export default function LocaleSwitcher({
   signedIn = false,
@@ -56,49 +56,60 @@ export default function LocaleSwitcher({
   if (variant === "prominent") {
     // A quiet segmented control, not a loud toggle: a neutral stone track with
     // a soft white "selected" pill (indigo *text*, never a saturated fill that
-    // would out-shout the page's real CTAs). The monochrome globe labels it as
-    // a language picker at a glance without adding a color spot, so the native
-    // language names can carry the meaning. Inactive options stay legible —
-    // they are exactly what a non-English reader is looking for.
+    // would out-shout the page's real CTAs). Everything sits horizontally —
+    // the earlier vertical-CJK experiment read as decoration, not options, and
+    // clashed with the horizontal English pill. The three native language names
+    // share equal-width cells so they weigh evenly despite different lengths;
+    // CJK rides a hair larger (15px vs 14px) to optically match the Latin
+    // ascenders. A monochrome globe + "Language" caption labels the control at
+    // a glance without a color spot. Width is fluid (max-w-xs) so it never
+    // overflows the card on a narrow phone, and each cell is a 44px tap target.
     return (
-      <div
-        className={`inline-flex items-center gap-0.5 rounded-full bg-stone-100 p-1 pl-3 ${className}`}
-        role="group"
-        aria-label={t("language")}
-        data-testid="locale-switcher-prominent"
-      >
-        <svg
-          aria-hidden
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.8}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="mr-1.5 h-4 w-4 shrink-0 text-stone-400"
+      <div className={`w-full ${className}`} data-testid="locale-switcher-prominent">
+        <div className="mb-2.5 flex items-center justify-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-stone-400">
+          <svg
+            aria-hidden
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-3.5 w-3.5 shrink-0"
+          >
+            <circle cx="12" cy="12" r="9.5" />
+            <path d="M2.5 12h19" />
+            <path d="M12 2.5a15 15 0 0 1 0 19 15 15 0 0 1 0-19" />
+          </svg>
+          <span>{t("language")}</span>
+        </div>
+        <div
+          className="mx-auto flex w-full max-w-xs gap-1 rounded-xl bg-stone-100 p-1"
+          role="group"
+          aria-label={t("language")}
         >
-          <circle cx="12" cy="12" r="9.5" />
-          <path d="M2.5 12h19" />
-          <path d="M12 2.5a15 15 0 0 1 0 19 15 15 0 0 1 0-19" />
-        </svg>
-        {LOCALES.map((l) => {
-          const active = l === locale;
-          return (
-            <button
-              key={l}
-              type="button"
-              onClick={() => change(l)}
-              aria-current={active ? "true" : undefined}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                active
-                  ? "bg-white text-indigo-700 shadow-sm"
-                  : "text-stone-500 hover:text-stone-800"
-              }`}
-            >
-              {LOCALE_LABELS[l]}
-            </button>
-          );
-        })}
+          {LOCALES.map((l) => {
+            const active = l === locale;
+            const cjk = l !== "en";
+            return (
+              <button
+                key={l}
+                type="button"
+                onClick={() => change(l)}
+                aria-current={active ? "true" : undefined}
+                className={`flex min-h-11 flex-1 items-center justify-center rounded-lg px-1 transition-colors ${
+                  cjk ? "text-[15px]" : "text-sm"
+                } ${
+                  active
+                    ? "bg-white font-semibold text-indigo-700 shadow-sm"
+                    : "font-normal text-stone-500 hover:text-stone-800"
+                }`}
+              >
+                {LOCALE_LABELS[l]}
+              </button>
+            );
+          })}
+        </div>
       </div>
     );
   }
