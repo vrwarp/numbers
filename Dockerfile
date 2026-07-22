@@ -73,10 +73,11 @@ ENV BUILD_SHA=${BUILD_SHA}
 
 # openssl for Prisma's query engine; prisma CLI to run migrations on boot;
 # fonts-dejavu-core so @napi-rs/canvas can draw the PDF-preview truncation notice
-# (the base image ships no fonts, so fillText would otherwise render nothing).
+# (the base image ships no fonts, so fillText would otherwise render nothing);
+# gosu to drop privileges to PUID/PGID at boot (docker-entrypoint.sh).
 # libvips runtime comes from the base stage.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends openssl ca-certificates fonts-dejavu-core \
+    && apt-get install -y --no-install-recommends openssl ca-certificates fonts-dejavu-core gosu \
     && rm -rf /var/lib/apt/lists/* \
     && npm install -g prisma@6
 

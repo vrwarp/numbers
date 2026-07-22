@@ -390,6 +390,17 @@ crashing with `SIGILL` the moment a receipt image is processed. If the container
 `SIGILL` (exit code 132) on such hardware, V8's JIT is the likely culprit — set `NODE_ARGS=--jitless`
 (env var / compose) to run Node interpreter-only. No rebuild needed.
 
+**Run as a non-root user (`PUID`/`PGID`).** By default the container runs as root, so files it
+writes to `/data` are root-owned. Set `PUID` and `PGID` to your host user's ids (Synology: `id
+<user>` over SSH) and the server drops to that uid:gid at boot, `chown`-ing `/data` so the database
+and receipt files are owned by you. Leaving both unset keeps the root default. Example:
+
+```yaml
+    environment:
+      PUID: "1026"
+      PGID: "100"
+```
+
 ### Environment variables
 
 Every setting below **except `DATA_DIR` / `DATABASE_URL`** can also be supplied by a JSON file at
