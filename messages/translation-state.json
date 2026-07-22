@@ -5023,6 +5023,48 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Errors.rules.keyMissing": {
+    "source": "Paste a service-account key to deploy with.",
+    "context": "Deploy/validate failures for the admin Firestore-rules card.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.rules.keyInvalid": {
+    "source": "That isn't a valid service-account JSON key.",
+    "context": "Deploy/validate failures for the admin Firestore-rules card.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.rules.noProject": {
+    "source": "No Firebase project ID is configured — set it first.",
+    "context": "Deploy/validate failures for the admin Firestore-rules card.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.rules.tokenFailed": {
+    "source": "Couldn't authenticate with that service-account key.",
+    "context": "Deploy/validate failures for the admin Firestore-rules card.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.rules.forbidden": {
+    "source": "That key isn't allowed to deploy rules — it needs the Firebase Rules Admin role.",
+    "context": "Deploy/validate failures for the admin Firestore-rules card.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.rules.rulesetFailed": {
+    "source": "Couldn't create the ruleset.",
+    "context": "Deploy/validate failures for the admin Firestore-rules card.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.rules.releaseFailed": {
+    "source": "Couldn't point Firestore at the new ruleset.",
+    "context": "Deploy/validate failures for the admin Firestore-rules card.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Errors.admin.contentString": {
     "source": "Content must be text.",
     "zh-Hans": "machine",
@@ -6862,6 +6904,150 @@
     "context": "Status badge: the service is running in test/mock mode. Short.",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
+  },
+  "Admin.rules.title": {
+    "source": "Firestore security rules",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.intro": {
+    "source": "Electronic signing writes to Cloud Firestore under a hardened ruleset that keeps the ledger tamper-evident. Deploy those rules and check they stay in place.",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.recheck": {
+    "source": "Re-check",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.statusMatch": {
+    "source": "The hardened rules are deployed and up to date.",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.statusDrift": {
+    "source": "The deployed rules differ from this app's — redeploy to restore them.",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.statusNoRelease": {
+    "source": "No Firestore security rules are deployed yet. Create the database and deploy the rules.",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.statusNoProject": {
+    "source": "Set your Firebase project ID first (Settings → Firebase).",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.statusNoKey": {
+    "source": "Add a read-only rules key in Settings → Firebase to check the deployed rules automatically — or just deploy them below.",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.statusKeyInvalid": {
+    "source": "The saved rules key isn't valid service-account JSON.",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.statusKeyOverprivileged": {
+    "source": "Your saved rules key can WRITE rules or data. A stored key must be read-only — replace it with a Firebase Rules Viewer key (see below).",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.statusError": {
+    "source": "Couldn't check the deployed rules: {detail}",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.viewerLabel": {
+    "source": "Checking with read-only key: {label}",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.deployTitle": {
+    "source": "Deploy the rules",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.deployWarnTitle": {
+    "source": "This key can rewrite your security rules",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.deployWarn": {
+    "source": "Paste a Firebase Rules Admin key below. It is used once for this deploy and is never saved to disk or logs. After deploying, delete or rotate that key in the Google Cloud console — a leaked deploy key could let someone weaken the rules that protect the ledger.",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.deployField": {
+    "source": "Rules Admin service-account key (used once, not stored)",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.deployButton": {
+    "source": "Deploy rules now",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.deployBusy": {
+    "source": "Deploying…",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.deploySuccess": {
+    "source": "Deployed. Ruleset {ruleset} is now live. Now delete or rotate the admin key you used.",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.deployFailed": {
+    "source": "Deploy failed",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.howToTitle": {
+    "source": "How to create the service accounts",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.howToViewer": {
+    "source": "Read-only checking (optional, saved): in Google Cloud console → IAM & Admin → Service Accounts, create an account, grant it ONLY the “Firebase Rules Viewer” role, add a JSON key, and paste it into Settings → Firebase → Rules viewer key. It can read the rules but never change them, so it's safe to store.",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.howToAdmin": {
+    "source": "Deploying (used once, not saved): create a second account with the “Firebase Rules Admin” role and a JSON key, paste it into the deploy box above, deploy, then delete the key. Keep these two roles separate — never give the saved key deploy power.",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.rules.storeSafely": {
+    "source": "Storing keys safely: keep service-account JSON out of screenshots, chat, and version control. The saved viewer key lives only in this deployment's config; the deploy key is never stored here at all. Rotate any key you've shared.",
+    "context": "Admin setup card for deploying/checking Firestore security rules (docs/ESIGN_DESIGN.md §9.2).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizardStepOf": {
     "source": "Step {n} of {total}",
