@@ -91,7 +91,10 @@ COPY --from=deps /app/node_modules/sharp ./node_modules/sharp
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/assets ./assets
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Stamp the image build time for the startup banner (accurate on a --no-cache
+# build; on a cached build it reflects when this layer was last rebuilt).
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+    && date -u +"%Y-%m-%dT%H:%M:%SZ" > /app/.build-date
 
 VOLUME /data
 EXPOSE 3000
