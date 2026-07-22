@@ -392,9 +392,11 @@ crashing with `SIGILL` the moment a receipt image is processed. If the container
 
 ### Environment variables
 
-Every setting below **except `DATA_DIR` / `DATABASE_URL`** can also be supplied by a JSON file at
-`<DATA_DIR>/config.json` (i.e. `/data/config.json` in the container) instead of — or on top of —
-process env vars:
+**Every env-style setting is dual-sourced: it can be given as an environment variable *and/or*
+saved in `config.json`.** The only two exceptions are `DATA_DIR` (it *locates* the config file) and
+`DATABASE_URL` (read directly by Prisma) — set those in the real environment. Every other setting
+below can be supplied by a JSON file at `<DATA_DIR>/config.json` (i.e. `/data/config.json` in the
+container) instead of — or on top of — process env vars:
 
 ```json
 { "AI_PROVIDER": "google", "GEMINI_API_KEY": "...", "AI_RPM_TARGET": "10" }
@@ -406,18 +408,18 @@ running deployment can be reconfigured (swap the AI provider, rotate a key) by e
 itself, and `DATABASE_URL` is read directly by Prisma. Since the file can hold secrets, it lives on
 the same volume as the database and receipts — keep it out of version control.
 
-See [`config.json.example`](config.json.example) for a full template (`cp config.json.example
-/data/config.json` and fill in your values).
+[`config.json.example`](config.json.example) is a **complete template listing every env-style
+setting** (`cp config.json.example /data/config.json` and fill in your values; delete or blank the
+keys you don't use).
 
-Not everything lives in `config.json`, though. The in-app **Admin → Settings** editor writes
-back to this file, but only for an **allowlisted subset** of keys — bootstrap / auth-critical /
-test-only keys (`DATABASE_URL`, `DATA_DIR`, `AUTH_SECRET`, `AI_MOCK`, `AUTH_TEST_MODE`,
-`ESIGN_MOCK`, `CHURCH_CONTEXT_PATH`, emulator hosts, …) are deliberately excluded so no admin can
-lock the deployment out through the form; supply those via env or by hand-editing the file. And a
-couple of subsystems keep their own store rather than `config.json`: the [church context
-document](#the-church-context-document) is its own markdown file (`CHURCH_CONTEXT_PATH`, edited
-under Admin → Church Context), and the semantic-search embedding config is a database row (Admin →
-Search).
+Two footnotes on where edits can come from. The in-app **Admin → Settings** editor writes back to
+`config.json` too, but only for an **allowlisted subset** of keys — bootstrap / auth-critical /
+test-only keys (`AUTH_SECRET`, `AI_MOCK`, `AUTH_TEST_MODE`, `ESIGN_MOCK`, emulator hosts, …) are
+deliberately kept out of the *form* so no admin can lock the deployment out through the UI; they
+still work in `config.json` when set by hand. And two non-env-style stores live outside this file:
+the [church context document](#the-church-context-document) is its own markdown file
+(`CHURCH_CONTEXT_PATH` points at it), and the semantic-search embedding config is a database row
+(Admin → Search).
 
 | Variable | Purpose |
 | :-- | :-- |

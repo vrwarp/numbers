@@ -1,34 +1,60 @@
 {
+  "_comment": "Complete template of every env-style setting. Each key here can equally be supplied as an environment variable; when a key appears in BOTH, this file wins and is re-read on change (no restart). The ONLY two env vars that cannot live here are DATABASE_URL (read directly by Prisma) and DATA_DIR (it locates this very file) — set those in the real environment. Copy to <DATA_DIR>/config.json and fill in your values; delete or blank the keys you don't use. JSON has no comments, so the _comment_* keys are ignored by the loader.",
+
   "AUTH_SECRET": "change-me",
 
   "PUBLIC_BASE_URL": "",
+  "TIME_ZONE": "America/Los_Angeles",
 
   "_comment_admin": "Comma/space-separated emails granted the /admin area, to seed the first admin before the e-sign roster bootstrap. App-surface only: never writes the verified User.role. Editable in-app under Admin -> Settings once one admin is in.",
   "ADMIN_EMAILS": "",
 
-  "TIME_ZONE": "America/Los_Angeles",
-
+  "_comment_firebase": "Firebase web-app config (client-safe). FIREBASE_AUTH_PROXY=1 fixes iOS/WebKit sign-in by serving the auth helper first-party (needs PUBLIC_BASE_URL + console setup); FIREBASE_AUTH_UPSTREAM_HOST overrides the proxy target for non-standard projects.",
   "FIREBASE_API_KEY": "",
   "FIREBASE_AUTH_DOMAIN": "your-project.firebaseapp.com",
   "FIREBASE_PROJECT_ID": "your-project",
   "FIREBASE_APP_ID": "",
+  "FIREBASE_AUTH_PROXY": "",
+  "FIREBASE_AUTH_UPSTREAM_HOST": "",
 
-  "_comment_push": "Optional push notifications (docs/PUSH_SETUP.md). The two keys below are client-safe; FCM_SERVICE_ACCOUNT_JSON is the one secret — a service account with a CUSTOM role holding exactly cloudmessaging.messages.create (never Firebase Admin). config.json is its recommended home since it is multi-line JSON.",
+  "_comment_push": "Optional push notifications (docs/PUSH_SETUP.md). The two client keys are safe; FCM_SERVICE_ACCOUNT_JSON is the one secret — a service account with a CUSTOM role holding exactly cloudmessaging.messages.create (never Firebase Admin). config.json is its recommended home since it is multi-line JSON. NOTIFY_PAUSED=1 stops all sending; NOTIFY_QUIET holds sends inside a window, e.g. 21:30-08:00,sun:09:00-12:30.",
   "FIREBASE_MESSAGING_SENDER_ID": "",
   "FIREBASE_VAPID_PUBLIC_KEY": "",
   "FCM_SERVICE_ACCOUNT_JSON": "",
   "NOTIFY_PAUSED": "",
   "NOTIFY_QUIET": "",
 
+  "_comment_ai": "Receipt extraction backend. AI_PROVIDER: openrouter (default) or google. Set the API key + model for whichever provider you use.",
   "AI_PROVIDER": "openrouter",
   "OPENROUTER_API_KEY": "",
   "OPENROUTER_MODEL": "google/gemini-3.1-flash-lite",
   "GEMINI_API_KEY": "",
   "GEMINI_MODEL": "gemini-3.1-flash-lite",
 
+  "_comment_ai_pace": "Rate limiting / quota retries and background-annotation pace. EXTRACTION_PACE_MS is the gap between background receipt reads (0 = no gap).",
   "AI_RPM_TARGET": "15",
   "AI_QUOTA_COOLDOWN_MS": "60000",
   "AI_QUOTA_MAX_RETRIES": "3",
+  "EXTRACTION_PACE_MS": "60000",
 
-  "TEMPLATE_PDF": ""
+  "_comment_context": "Path to the church-context markdown fed to the Suggest feature (default <DATA_DIR>/church-context.md). Its contents are sent to the AI provider with every suggestion request.",
+  "CHURCH_CONTEXT_PATH": "",
+
+  "_comment_esign": "E-signature workflow (docs/ESIGN_DESIGN.md). ESIGN_ROOT_EMAIL enables the one-time registry bootstrap; ESIGN_ROOT_FINGERPRINT (>=32 hex chars) is the recommended out-of-band root anchor; ESIGN_NUDGES_OFF=1 hides the home setup/closure nudge cards only.",
+  "ESIGN_ROOT_EMAIL": "",
+  "ESIGN_ROOT_FINGERPRINT": "",
+  "ESIGN_NUDGES_OFF": "",
+
+  "_comment_pdf": "Optional PDF overrides. TEMPLATE_PDF: a replacement blank form (must keep the same AcroForm field names). CJK_FONT_PATH: a replacement font for Chinese text on generated PDFs.",
+  "TEMPLATE_PDF": "",
+  "CJK_FONT_PATH": "",
+
+  "_comment_dev": "Development / testing ONLY — never set in production. AI_MOCK/PUSH_MOCK return fake data / record deliveries locally; AUTH_TEST_MODE enables passwordless dev login; ESIGN_MOCK swaps Firestore for a local SQLite ledger; the emulator hosts point e-sign e2e at the Firebase emulator suite. EXTRACTION_DEV=1 starts the background worker under `next dev` without a real key.",
+  "AI_MOCK": "",
+  "PUSH_MOCK": "",
+  "AUTH_TEST_MODE": "",
+  "ESIGN_MOCK": "",
+  "EXTRACTION_DEV": "",
+  "FIREBASE_AUTH_EMULATOR_HOST": "",
+  "FIRESTORE_EMULATOR_HOST": ""
 }
