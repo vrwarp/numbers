@@ -16,15 +16,18 @@ import { useModalDismiss } from "@/lib/use-modal-dismiss";
 import {
   backendNeedsPopup,
   bootstrapRegistry,
+  CEREMONY_TIMEOUT_MS,
   custodyFor,
   enroll,
   hasSigningSession,
   loadEnv,
   loadRoster,
+  probeFirestoreReachable,
   repairEnrollment,
   reportRoster,
   subscribeRoster,
   updateSignatureImage,
+  withTimeout,
   type EsignEnv,
 } from "@/lib/esign/client";
 import type { DeviceStatus } from "@/lib/esign/custody";
@@ -50,6 +53,7 @@ export default function SigningIdentityCard() {
   const [redrawOpen, setRedrawOpen] = useState(false);
   const [fingerprint, setFingerprint] = useState<string | null>(null);
   const [deviceStatus, setDeviceStatus] = useState<DeviceStatus | null>(null);
+  const [firestoreUnreachable, setFirestoreUnreachable] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -155,6 +159,35 @@ export default function SigningIdentityCard() {
     }
   }, [justConnected, env?.bootstrapped, env?.enabled, env?.me.identityStatus]);
 
+  // Firestore reachability preflight: a Firestore-writing ceremony is about to
+  // be offered (bootstrap, first enroll, or re-enroll). If the operator hasn't
+  // created the database / deployed the rules, that ceremony would hang — warn
+  // first. Runs once a signing session exists (so the owner-only probe read is
+  // authorized) and is fail-open (never disables the button).
+  useEffect(() => {
+    if (phase !== "ready" || !env || !backendNeedsPopup(env)) return;
+    const willBootstrap = !env.bootstrapped && !!env.canBootstrap;
+    const willEnroll =
+      env.bootstrapped && !!env.enabled && env.allowed !== false && !env.me.identityStatus;
+    const willReEnroll = env.me.identityStatus === "revoked";
+    if (!(willBootstrap || willEnroll || willReEnroll)) return;
+    let cancelled = false;
+    void probeFirestoreReachable(env).then((r) => {
+      if (!cancelled) setFirestoreUnreachable(r === "unreachable");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    phase,
+    env,
+    env?.bootstrapped,
+    env?.canBootstrap,
+    env?.enabled,
+    env?.allowed,
+    env?.me.identityStatus,
+  ]);
+
   // Live-update: while enrolled with a roster session, watch the roster ledger
   // so a vouch (pending → attested), role grant, or key revocation made
   // elsewhere updates this card without a manual reload (Firestore onSnapshot on
@@ -201,7 +234,12 @@ export default function SigningIdentityCard() {
     setBusy(true);
     setError(null);
     try {
-      await bootstrapRegistry((await loadEnv())!);
+      // Watchdog: bootstrapRegistry runs charproof AMK custody + Firestore
+      // writes, which can HANG (not reject) on a wedged transport — the "stuck
+      // on Setting up…" failure. Bound it so it fails retryably instead. The
+      // server bootstrap is a single atomic transaction and each retry uses a
+      // fresh ledger id, so a timed-out attempt leaves nothing to clean up.
+      await withTimeout(bootstrapRegistry(await loadEnv()), CEREMONY_TIMEOUT_MS, "bootstrap");
       await refresh();
     } catch (err) {
       setError(thrown(err, t("setupFailed")));
@@ -264,6 +302,16 @@ export default function SigningIdentityCard() {
         {env.enabled ? statusChip : null}
       </div>
       {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+
+      {firestoreUnreachable && (
+        <div
+          className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+          data-testid="firestore-unreachable"
+        >
+          <p className="font-semibold">{t("firestoreUnreachableTitle")}</p>
+          <p className="mt-1">{t("firestoreUnreachableBody")}</p>
+        </div>
+      )}
 
       {env.bootstrapped && env.canToggle && (
         <div
@@ -559,7 +607,10 @@ function EnrollWizard({
     setBusy(true);
     setError(null);
     try {
-      await enroll(env, signatureImage!);
+      // Same watchdog as bootstrap: enroll() does multi-step charproof custody
+      // + Firestore writes that can hang. A timed-out enroll is self-healing —
+      // the identity card's repairEnrollment() finishes a half-done key report.
+      await withTimeout(enroll(env, signatureImage!), CEREMONY_TIMEOUT_MS, "enroll");
       await onDone();
     } catch (err) {
       setError(thrown(err, t("setupFailed")));

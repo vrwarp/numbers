@@ -629,6 +629,8 @@
     "bootstrapButton": "Set up electronic signing",
     "bootstrapBusy": "Setting up…",
     "setupFailed": "Setup failed",
+    "firestoreUnreachableTitle": "Your Firestore database isn't ready",
+    "firestoreUnreachableBody": "Setup writes to Cloud Firestore, which this Firebase project can't reach yet. Create the database (Native mode) and deploy the security rules, then reload — see the e-signing setup steps in the README.",
     "notSetUp": "Electronic signing isn't set up for this church yet — ask your administrator.",
     "enrollIntro": "Sign and submit claims from your phone — no printing. You'll agree to sign electronically, draw your signature, and then two members (or one approver) confirm it's really you in person — one quick scan.",
     "enrollButton": "Set up signing",
@@ -905,7 +907,8 @@
       "approverUnavailable": "That approver isn't taking new approval requests right now — pick someone else",
       "approverRoleLost": "Your approver role has been removed — you can decline, but not approve",
       "decisionNotBinding": "The signed decision doesn't bind on the ledger — reload this claim and try again, or ask its owner to reassign it",
-      "invalidNudge": "That update couldn't be saved."
+      "invalidNudge": "That update couldn't be saved.",
+      "timedOut": "This is taking too long — check your connection and try again"
     },
     "admin": {
       "contentString": "Content must be text.",

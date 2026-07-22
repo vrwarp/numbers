@@ -629,6 +629,8 @@
     "bootstrapButton": "設定電子簽名",
     "bootstrapBusy": "設定中…",
     "setupFailed": "設定失敗",
+    "firestoreUnreachableTitle": "你的 Firestore 資料庫尚未就緒",
+    "firestoreUnreachableBody": "設定會寫入 Cloud Firestore，但目前 Firebase 專案還無法存取它。請建立資料庫（Native 模式）並部署安全性規則，然後重新載入——請參閱 README 中的電子簽署設定步驟。",
     "notSetUp": "本教會尚未設定電子簽名——請聯絡管理員。",
     "enrollIntro": "在手機上簽署並提交報銷單——無需列印。您將同意使用電子簽名、手寫您的簽名，然後由兩位會友（或一位審批人）當面確認是您本人——掃一次碼即可。",
     "enrollButton": "開通簽名",
@@ -905,7 +907,8 @@
       "approverUnavailable": "該審批人目前不接收新的審批請求——請改選其他人",
       "approverRoleLost": "您的審批人角色已被移除——您可以拒絕，但無法批准",
       "decisionNotBinding": "已簽署的決定未能在帳本上生效——請重新整理本報銷單後重試，或請提交人改選其他審批人",
-      "invalidNudge": "此更新未能儲存。"
+      "invalidNudge": "此更新未能儲存。",
+      "timedOut": "此操作耗時過長——請檢查網路連線後重試"
     },
     "admin": {
       "contentString": "內容必須為文字。",
