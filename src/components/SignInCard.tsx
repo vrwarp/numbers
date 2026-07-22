@@ -22,7 +22,7 @@ type LoadedFirebase = { auth: Auth; fb: FirebaseAuth };
 // Google's OAuth refuses to serve and whose storage is partitioned from the
 // system browser — sign-in cannot work there. Detection is shared with the
 // push capability pre-flight (src/lib/embedded-browser.ts).
-import { isEmbeddedBrowser } from "@/lib/embedded-browser";
+import { isEmbeddedBrowser, isStandaloneDisplay } from "@/lib/embedded-browser";
 
 /**
  * Google sign-in via the Firebase client SDK (loaded lazily — only visitors
@@ -37,11 +37,14 @@ import { isEmbeddedBrowser } from "@/lib/embedded-browser";
  * are preloaded (an await before window.open forfeits the gesture and iOS
  * blocks the popup).
  *
- * ONE exception: when the popup is BLOCKED (installed home-screen PWAs are the
- * common case) and FIREBASE_AUTH_PROXY has made the authDomain this very
- * origin, the redirect handler is first-party — partitioning can't touch it —
- * so we fall back to signInWithRedirect instead of dead-ending on an error
- * message. getRedirectResult on mount completes that round-trip.
+ * EXCEPTION — installed standalone PWAs: the popup can't be used at all (on
+ * Android Chrome it opens a Custom Tab whose handshake never returns and the
+ * flow HANGS; on iOS it is blocked). When FIREBASE_AUTH_PROXY has made the
+ * authDomain this very origin the redirect handler is first-party —
+ * partitioning can't touch it — so we use signInWithRedirect: up front when a
+ * standalone display is detected (a hang would never reach an error handler),
+ * and also as a fallback if a popup is BLOCKED in a normal tab.
+ * getRedirectResult on mount completes that round-trip.
  */
 export default function SignInCard({
   firebaseConfig,
@@ -136,6 +139,22 @@ export default function SignInCard({
     if (!firebaseConfig) return;
     setError(null);
     setBusy(true);
+
+    // Installed standalone PWA: signInWithPopup HANGS on Android (the Custom
+    // Tab never hands the credential back) and is blocked on iOS — so waiting
+    // for a popup error to trigger the fallback below would strand a fresh
+    // in-PWA login. When the auth proxy has made authDomain first-party, go
+    // straight to the redirect; getRedirectResult on mount completes it.
+    // Off-origin the redirect can't be trusted, so fall through to the popup.
+    if (isStandaloneDisplay() && firebaseConfig.authDomain === window.location.host) {
+      try {
+        const l = loaded.current ?? (await loadFirebase());
+        await l.fb.signInWithRedirect(l.auth, new l.fb.GoogleAuthProvider());
+      } catch (err) {
+        showError(err);
+      }
+      return;
+    }
 
     // Fast path: modules already preloaded, so signInWithPopup is the very first
     // async call — the browser still counts us as inside the click gesture.

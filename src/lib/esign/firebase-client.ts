@@ -13,13 +13,16 @@
  * email check instead of re-prompting — the popup only returns when the
  * session is missing or belongs to another account.
  *
- * Installed home-screen PWAs (standalone) can't open the popup at all, so —
- * exactly like SignInCard's login fallback — a blocked popup falls back to
- * signInWithRedirect when FIREBASE_AUTH_PROXY has made the redirect handler
- * first-party (authDomain === our own origin, immune to WebKit storage
- * partitioning). preloadFirebase() completes that round-trip on the next
- * load. Without the proxy the redirect can't be trusted, so the blocked-popup
- * error surfaces instead.
+ * Installed standalone PWAs can't use the popup: on Android Chrome it opens a
+ * Custom Tab whose handshake never returns (the flow HANGS), and on iOS it is
+ * blocked outright. So when running standalone we go straight to
+ * signInWithRedirect — but only when FIREBASE_AUTH_PROXY has made the redirect
+ * handler first-party (authDomain === our own origin), the sole configuration
+ * where the redirect round-trip survives third-party-storage restrictions.
+ * preloadFirebase() completes that round-trip on the next load. Without the
+ * proxy no trusted redirect exists, so the popup runs and surfaces its error.
+ * (A popup blocker in a normal tab keeps the error-catch fallback below.)
+ * SignInCard applies the same rule to LOGIN.
  *
  * Emulator e2e (docs/agent/TESTING.md): when the server-relayed config
  * carries an `emulator` block, the SDK is pointed at the local auth/firestore
@@ -34,6 +37,7 @@ import type { FirebaseApp } from "firebase/app";
 import type { FirestoreSettings } from "firebase/firestore";
 import type { Auth } from "firebase/auth";
 import type { FirebaseWebConfig } from "@/components/SignInCard";
+import { isStandaloneDisplay } from "@/lib/embedded-browser";
 
 type FirebaseAuthModule = typeof import("firebase/auth");
 
@@ -128,29 +132,40 @@ function matchesExpected(user: { email?: string | null } | null): boolean {
 }
 
 /**
- * Should a blocked/unsupported Google popup fall back to signInWithRedirect?
- * ONLY when the redirect handler is FIRST-PARTY — FIREBASE_AUTH_PROXY has made
- * the SDK's authDomain our own origin — because a third-party
- * *.firebaseapp.com redirect round-trip breaks under WebKit storage
- * partitioning ("missing initial state"). This is the exact escape hatch
- * SignInCard uses for LOGIN; the e-sign connect needs it too, since an
- * installed home-screen PWA (standalone) can't open the popup at all — the
- * "e-sign setup gets stuck in the PWA" case. Pure + exported for the unit
- * canary (tests/unit/esign-firebase-redirect.test.ts).
+ * Is signInWithRedirect a trustworthy substitute for the popup here? ONLY when
+ * the redirect handler is FIRST-PARTY — FIREBASE_AUTH_PROXY has made the SDK's
+ * authDomain our own origin — because a third-party *.firebaseapp.com redirect
+ * round-trip is broken by third-party storage access being blocked (WebKit
+ * partitioning "missing initial state"; Chrome's third-party cookie
+ * phase-out). Never on the emulator (no popup to replace). Pure + exported for
+ * the unit canary (tests/unit/esign-firebase-redirect.test.ts).
+ */
+export function isFirstPartyRedirect(
+  cfg: { authDomain?: string; emulator?: unknown } | null,
+  host: string
+): boolean {
+  if (!cfg || cfg.emulator) return false;
+  return !!cfg.authDomain && cfg.authDomain === host;
+}
+
+/**
+ * Should a blocked/unsupported Google popup ERROR fall back to
+ * signInWithRedirect? (Secondary path — a popup blocker in a normal tab. The
+ * installed-PWA case is handled up front by isStandaloneDisplay(), because
+ * there the popup hangs instead of erroring.) First-party redirect only.
  */
 export function shouldRedirectAuth(
   cfg: { authDomain?: string; emulator?: unknown } | null,
   errorCode: string,
   host: string
 ): boolean {
-  if (!cfg || cfg.emulator) return false;
   if (
     errorCode !== "auth/popup-blocked" &&
     errorCode !== "auth/operation-not-supported-in-environment"
   ) {
     return false;
   }
-  return !!cfg.authDomain && cfg.authDomain === host;
+  return isFirstPartyRedirect(cfg, host);
 }
 
 let authInFlight: Promise<void> | null = null;
@@ -257,16 +272,26 @@ async function signIn(
     return;
   }
 
+  // Installed standalone PWA: signInWithPopup HANGS on Android (the Custom Tab
+  // never hands the credential back) and is blocked on iOS. Detect it up front
+  // and go straight to the first-party redirect — waiting for a popup error
+  // that never comes is the "e-sign setup gets stuck in the PWA" bug. This
+  // navigates away; preloadFirebase() completes the round-trip (and re-runs
+  // the same-email guard) on the next load. Without the auth proxy no trusted
+  // redirect exists, so we fall through and let the popup surface its error.
+  if (isStandaloneDisplay() && isFirstPartyRedirect(config, window.location.host)) {
+    await fb.signInWithRedirect(auth, new fb.GoogleAuthProvider());
+    return;
+  }
+
   let credential: import("firebase/auth").UserCredential;
   try {
     credential = await fb.signInWithPopup(auth, new fb.GoogleAuthProvider());
   } catch (err) {
-    // Installed home-screen PWA (standalone) or partitioned WebKit: the popup
-    // can't open. When the auth proxy has made the redirect handler
-    // first-party, fall back to signInWithRedirect instead of dead-ending the
-    // connect — the exact escape hatch SignInCard uses to log in. This
-    // navigates away; preloadFirebase() completes the round-trip (and re-runs
-    // the same-email guard) on the next load. Any other failure propagates.
+    // Secondary path: a popup blocker in a normal browser tab. (The installed
+    // PWA is handled above — there the popup hangs instead of erroring.) When
+    // the redirect handler is first-party, fall back instead of dead-ending —
+    // the same escape hatch SignInCard uses to log in.
     const code = (err as { code?: string })?.code ?? "";
     if (shouldRedirectAuth(config, code, window.location.host)) {
       await fb.signInWithRedirect(auth, new fb.GoogleAuthProvider());
