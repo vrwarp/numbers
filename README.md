@@ -409,6 +409,16 @@ the same volume as the database and receipts — keep it out of version control.
 See [`config.json.example`](config.json.example) for a full template (`cp config.json.example
 /data/config.json` and fill in your values).
 
+Not everything lives in `config.json`, though. The in-app **Admin → Settings** editor writes
+back to this file, but only for an **allowlisted subset** of keys — bootstrap / auth-critical /
+test-only keys (`DATABASE_URL`, `DATA_DIR`, `AUTH_SECRET`, `AI_MOCK`, `AUTH_TEST_MODE`,
+`ESIGN_MOCK`, `CHURCH_CONTEXT_PATH`, emulator hosts, …) are deliberately excluded so no admin can
+lock the deployment out through the form; supply those via env or by hand-editing the file. And a
+couple of subsystems keep their own store rather than `config.json`: the [church context
+document](#the-church-context-document) is its own markdown file (`CHURCH_CONTEXT_PATH`, edited
+under Admin → Church Context), and the semantic-search embedding config is a database row (Admin →
+Search).
+
 | Variable | Purpose |
 | :-- | :-- |
 | `AUTH_SECRET` | Session-cookie signing secret (`openssl rand -base64 32`) — required |
