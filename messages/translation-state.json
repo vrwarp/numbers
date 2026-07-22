@@ -3455,6 +3455,18 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Identity.firestoreUnreachableTitle": {
+    "source": "Your Firestore database isn't ready",
+    "context": "Heading of a warning shown on the e-signing setup card when a reachability probe finds Cloud Firestore isn't set up (database not created or rules not deployed), before the operator hits a hang.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Identity.firestoreUnreachableBody": {
+    "source": "Setup writes to Cloud Firestore, which this Firebase project can't reach yet. Create the database (Native mode) and deploy the security rules, then reload — see the e-signing setup steps in the README.",
+    "context": "Body of the Firestore-not-ready warning on the e-signing setup card. 'Native mode' is a Firebase console database option; 'README' is the project's setup document — keep both as-is. Points the operator at the one-time Firebase setup.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Identity.notSetUp": {
     "source": "Electronic signing isn't set up for this church yet — ask your administrator.",
     "context": "Shown to members while the church hasn't set up e-signing.",

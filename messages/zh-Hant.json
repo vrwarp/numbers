@@ -625,6 +625,8 @@
     "bootstrapButton": "設定電子簽名",
     "bootstrapBusy": "設定中…",
     "setupFailed": "設定失敗",
+    "firestoreUnreachableTitle": "你的 Firestore 資料庫尚未就緒",
+    "firestoreUnreachableBody": "設定會寫入 Cloud Firestore，但目前 Firebase 專案還無法存取它。請建立資料庫（Native 模式）並部署安全性規則，然後重新載入——請參閱 README 中的電子簽署設定步驟。",
     "notSetUp": "本教會尚未設定電子簽名——請聯絡管理員。",
     "enrollIntro": "在手機上簽署並提交報銷單——無需列印。您將同意使用電子簽名、手寫您的簽名，然後由兩位會友（或一位審批人）當面確認是您本人——掃一次碼即可。",
     "enrollButton": "開通簽名",

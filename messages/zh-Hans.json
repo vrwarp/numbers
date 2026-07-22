@@ -625,6 +625,8 @@
     "bootstrapButton": "设置电子签名",
     "bootstrapBusy": "设置中…",
     "setupFailed": "设置失败",
+    "firestoreUnreachableTitle": "你的 Firestore 数据库尚未就绪",
+    "firestoreUnreachableBody": "设置会写入 Cloud Firestore，但当前 Firebase 项目还无法访问它。请创建数据库（Native 模式）并部署安全规则，然后重新加载——参见 README 中的电子签名设置步骤。",
     "notSetUp": "本教会尚未设置电子签名——请联系管理员。",
     "enrollIntro": "在手机上签署并提交报销单——无需打印。您将同意使用电子签名、手写您的签名，然后由两位会友（或一位审批人）当面确认是您本人——扫一次码即可。",
     "enrollButton": "开通签名",

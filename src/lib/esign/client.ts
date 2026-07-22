@@ -171,6 +171,62 @@ export async function connectSigningSession(env: EsignEnv): Promise<void> {
   await ensureFirebaseAuth();
 }
 
+// --- Firestore reachability preflight -------------------------------------------
+//
+// The setup ceremonies write to Cloud Firestore. If the operator hasn't
+// created the database yet (or hasn't deployed the forked rules), the SDK
+// queues those writes and retries forever instead of erroring — the ceremony
+// hangs (the watchdog above now surfaces it at 45s). This cheap probe lets the
+// UI warn BEFORE the hang, pointing at the one-time setup instead.
+
+const PROBE_TIMEOUT_MS = 8_000;
+
+/** Map a probe read's rejection to a verdict. A definitely-not-set-up signal
+ *  (no database, or default locked rules denying the owner read our rules
+ *  allow) is "unreachable"; any other/unknown error fails OPEN to "ok" so a
+ *  working deployment is never blocked by a quirk. Pure + exported for tests. */
+export function classifyProbeError(err: unknown): "ok" | "unreachable" {
+  const code = (err as { code?: string })?.code ?? "";
+  if (
+    code === "permission-denied" ||
+    code === "not-found" ||
+    code === "unavailable" ||
+    code === "failed-precondition"
+  ) {
+    return "unreachable";
+  }
+  return "ok";
+}
+
+/**
+ * Is the production Firestore backend actually set up — database created AND
+ * the forked rules deployed — so a write ceremony won't hang on it? Reads an
+ * owner-only, non-existent doc the deployed rules ALLOW (resolves fast when
+ * reachable), forced to the server so it truly tests reachability, and bounded
+ * by a short timeout. Fail-open everywhere: mock/emulator, unknown errors, and
+ * probe-machinery failures all return "ok" — the warning fires only on a clear
+ * not-set-up signal, never on a healthy deployment.
+ */
+export async function probeFirestoreReachable(env: EsignEnv): Promise<"ok" | "unreachable"> {
+  if (!backendNeedsPopup(env)) return "ok";
+  try {
+    const { getDb } = await import("./firebase-client");
+    const { doc, getDocFromServer } = await import("firebase/firestore");
+    const db = await getDb();
+    const ref = doc(db, `users/${env.me.userId}/_probe/reachability`);
+    const read: Promise<"ok" | "unreachable"> = getDocFromServer(ref).then(
+      () => "ok",
+      (err) => classifyProbeError(err)
+    );
+    const timeout = new Promise<"unreachable">((resolve) =>
+      setTimeout(() => resolve("unreachable"), PROBE_TIMEOUT_MS)
+    );
+    return await Promise.race([read, timeout]);
+  } catch {
+    return "ok";
+  }
+}
+
 export function storeFor(env: EsignEnv): LedgerStore {
   return getLedgerStore(env.backend);
 }
