@@ -17,6 +17,18 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Brand.canary": {
+    "source": "Canary",
+    "context": "Short badge/label marking a canary (pre-release / staging) instance. Release-channel term. Appears in the nav wordmark pill, the sign-in hero, and prefixed on the browser-tab title. Keep it short.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Brand.canaryTooltip": {
+    "source": "Canary (pre-release) instance — not the production site.",
+    "context": "Hover tooltip on the canary badge, explaining the instance is a pre-release / non-production deployment.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
   "Common.status.draft": {
     "source": "Draft",
     "context": "Status pill: claim not yet generated, still editable. Pairs with 'Generated'. One word.",
@@ -7351,6 +7363,18 @@
   },
   "Admin.feedbackScreenshot": {
     "source": "Screenshot",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_CANARY_label": {
+    "source": "Canary instance",
+    "context": "Admin settings label for the CANARY boolean toggle (Deployment group).",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Admin.fields_CANARY_help": {
+    "source": "Repaint the brand amber — logo badge, favicon, PWA and home-screen icons, app name, and theme color — so this non-production instance is unmistakable everywhere.",
+    "context": "Admin settings help text for the CANARY toggle, describing what turning it on changes visually.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

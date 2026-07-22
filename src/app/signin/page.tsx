@@ -2,8 +2,10 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { currentUserId } from "@/auth";
 import { isAuthTestMode } from "@/lib/config";
+import { isCanary } from "@/lib/brand/canary";
 import { firebaseWebConfig } from "@/lib/firebase-admin";
 import SignInCard from "@/components/SignInCard";
+import CanaryBadge from "@/components/CanaryBadge";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 
 export default async function SignInPage({
@@ -28,6 +30,11 @@ export default async function SignInPage({
           ⛪
         </div>
         <h1 className="keyboard-smooth mt-3 text-2xl font-bold text-indigo-700 short:mt-1 short:text-xl">Numbers</h1>
+        {isCanary() && (
+          <div className="mt-2">
+            <CanaryBadge />
+          </div>
+        )}
         <div className="collapse-short">
           <p className="pt-1 text-sm text-stone-500">{t("tagline")}</p>
         </div>

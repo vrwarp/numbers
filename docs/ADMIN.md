@@ -145,6 +145,15 @@ end-to-end under the mock flags.
 - `GET /api/admin/members` — verified-mirror users (role, enrollment, allowlist,
   activity counts).
 
+A `CANARY` boolean (Deployment group) marks a non-production instance: when on,
+the brand is repainted amber at runtime — the nav/sign-in wordmark grow a
+"Canary" badge (`src/components/CanaryBadge.tsx`), and the favicon, PWA and
+apple-touch icons, web manifest name, `theme-color`, and browser-tab title all
+shift (`src/lib/brand/canary.ts`, `src/lib/brand/icons.ts`, and the icon +
+`manifest.webmanifest` route handlers under `src/app/`). Because the marker is a
+runtime toggle, the brand icons are served by routes rather than static
+`public/` files; the base PNGs live at `assets/brand/`.
+
 The e-sign master switch/scope reuses the existing `PATCH /api/esign/registry`;
 the rollout allowlist reuses `PATCH /api/esign/allowlist`. The vouch chain is
 rendered client-side via `loadRoster()` (the admin is the enrolled root).

@@ -4,6 +4,10 @@
     "description": "隨手拍下教會收據，之後再提交報銷申請。",
     "appName": "Numbers"
   },
+  "Brand": {
+    "canary": "金絲雀",
+    "canaryTooltip": "金絲雀（預發佈）實例——不是正式網站。"
+  },
   "Common": {
     "status": {
       "draft": "草稿",
@@ -1420,7 +1424,9 @@
     "feedbackReportedBy": "由 {name} 提交",
     "feedbackCopy": "複製",
     "feedbackCopied": "已複製",
-    "feedbackScreenshot": "截圖"
+    "feedbackScreenshot": "截圖",
+    "fields_CANARY_label": "金絲雀實例",
+    "fields_CANARY_help": "將品牌重新著成琥珀色——標誌標記、網站圖示、PWA 與主畫面圖示、應用程式名稱以及主題色——讓這個非正式實例在各處都一目了然。"
   },
   "Ministries": {
     "title": "Budget categories",

@@ -6,6 +6,7 @@ import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import AccountMenu from "./AccountMenu";
+import CanaryBadge from "./CanaryBadge";
 import NavTabs, { type NavLink } from "./NavTabs";
 import { ApprovalsIcon, ClaimsIcon, FinanceIcon, ManageIcon, ReceiptsIcon, SearchIcon, VouchIcon } from "./nav-icons";
 import { APPROVER_PLUS_ROLES } from "@/lib/esign/types";
@@ -32,6 +33,7 @@ export default function NavBar({
   canViewMembers,
   canManageTeams,
   searchEnabled,
+  canary,
 }: {
   userName: string;
   isAdmin?: boolean;
@@ -39,6 +41,7 @@ export default function NavBar({
   canViewMembers?: boolean;
   canManageTeams?: boolean;
   searchEnabled?: boolean;
+  canary?: boolean;
 }) {
   const pathname = usePathname();
   const t = useTranslations("NavBar");
@@ -129,6 +132,7 @@ export default function NavBar({
           aria-label="Numbers"
         >
           <span aria-hidden>⛪</span> <span className="hidden sm:inline">Numbers</span>
+          {canary && <CanaryBadge />}
         </Link>
         <nav className="flex min-w-0 flex-1 items-center" aria-label="Main">
           <NavTabs links={links} onMenuChange={onMenuChange} />
