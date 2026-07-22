@@ -22,4 +22,8 @@ services:
       OPENROUTER_MODEL: ${OPENROUTER_MODEL:-google/gemini-3.1-flash-lite}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.1-flash-lite}
+      # Extra node flags for very old CPUs (e.g. an Atom without AVX). Leave
+      # empty; set NODE_ARGS=--jitless only if the container still exits with
+      # SIGILL after the sharp rebuild that ships in the image.
+      NODE_ARGS: ${NODE_ARGS:-}
     restart: unless-stopped

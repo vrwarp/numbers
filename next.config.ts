@@ -6,6 +6,12 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   output: "standalone",
+  // This app serves receipt images through its own API routes, never <Image>,
+  // so Next's built-in image optimizer is unused. Disabling it keeps Next from
+  // pulling in its own copy of sharp — whose prebuilt binary is compiled with
+  // SSE4.2 and would SIGILL on old CPUs (Atom D2700) if /_next/image were ever
+  // hit. The app's own sharp is rebuilt against baseline libvips in the image.
+  images: { unoptimized: true },
   // sharp and @prisma/client contain native binaries that must not be bundled;
   // firebase-admin resolves internal modules at runtime and breaks if inlined;
   // pdfjs-dist loads its native canvas backend (@napi-rs/canvas) at runtime;
