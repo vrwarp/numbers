@@ -48,6 +48,10 @@ export const ADMIN_CONFIG_FIELDS: readonly AdminConfigField[] = [
   { key: "EXTRACTION_PACE_MS", group: "ai", type: "number", min: 0, max: 3600000 },
 
   // --- Deployment -----------------------------------------------------------
+  // Canary marker: repaints the brand (logo badge, favicon/PWA/apple icons,
+  // manifest name, theme color, tab title) amber so a non-production instance
+  // is unmistakable — src/lib/brand/canary.ts.
+  { key: "CANARY", group: "deployment", type: "boolean", onValue: "1" },
   { key: "PUBLIC_BASE_URL", group: "deployment", type: "text", placeholder: "https://numbers.example.org" },
   { key: "ADMIN_EMAILS", group: "deployment", type: "text", placeholder: "you@example.org, other@example.org" },
   {

@@ -4,6 +4,10 @@
     "description": "Snap church receipts now, submit reimbursement claims later.",
     "appName": "Numbers"
   },
+  "Brand": {
+    "canary": "Canary",
+    "canaryTooltip": "Canary (pre-release) instance — not the production site."
+  },
   "Common": {
     "status": {
       "draft": "Draft",
@@ -1420,7 +1424,9 @@
     "feedbackReportedBy": "by {name}",
     "feedbackCopy": "Copy",
     "feedbackCopied": "Copied",
-    "feedbackScreenshot": "Screenshot"
+    "feedbackScreenshot": "Screenshot",
+    "fields_CANARY_label": "Canary instance",
+    "fields_CANARY_help": "Repaint the brand amber — logo badge, favicon, PWA and home-screen icons, app name, and theme color — so this non-production instance is unmistakable everywhere."
   },
   "Ministries": {
     "title": "Budget categories",

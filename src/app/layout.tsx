@@ -4,6 +4,7 @@ import { getLocale, getMessages, getTimeZone, getTranslations } from "next-intl/
 import "./globals.css";
 import { currentUser } from "@/auth";
 import { isAppAdmin } from "@/lib/config";
+import { isCanary, CANARY_THEME_COLOR, DEFAULT_THEME_COLOR } from "@/lib/brand/canary";
 import { canManageMinistries } from "@/lib/ministries-guard";
 import { canViewMembers } from "@/lib/members-guard";
 import { canManageTeams } from "@/lib/teams-guard";
@@ -17,9 +18,12 @@ import NotificationsRuntime from "@/components/notifications/NotificationsRuntim
 import FeedbackRuntime from "@/components/feedback/FeedbackRuntime";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("Meta");
+  const [t, tb] = await Promise.all([getTranslations("Meta"), getTranslations("Brand")]);
+  const base = t("title");
   return {
-    title: t("title"),
+    // Canary instances prefix the browser-tab title so the marker rides along
+    // wherever the page is bookmarked or shows up in a tab strip.
+    title: isCanary() ? `${tb("canary")} · ${base}` : base,
     description: t("description"),
     manifest: "/manifest.webmanifest",
     icons: {
@@ -30,8 +34,10 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export const viewport: Viewport = {
-  themeColor: "#4f46e5",
+export function generateViewport(): Viewport {
+  return {
+  // Canary repaints the browser chrome / PWA theme color amber.
+  themeColor: isCanary() ? CANARY_THEME_COLOR : DEFAULT_THEME_COLOR,
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -44,7 +50,8 @@ export const viewport: Viewport = {
   // letting it cover fixed footers), so a dialog's pinned Save/Confirm stays
   // reachable while an input is focused. dvh units below rely on this.
   interactiveWidget: "resizes-content",
-};
+  };
+}
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const [user, locale, messages, timeZone, searchEnabled] = await Promise.all([
@@ -66,6 +73,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               canViewMembers={canViewMembers(user)}
               canManageTeams={canManageTeams(user)}
               searchEnabled={searchEnabled}
+              canary={isCanary()}
             />
           )}
           {user && <DeviceRequestsBanner />}
