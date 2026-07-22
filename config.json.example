@@ -3,6 +3,9 @@
 
   "PUBLIC_BASE_URL": "",
 
+  "_comment_admin": "Comma/space-separated emails granted the /admin area, to seed the first admin before the e-sign roster bootstrap. App-surface only: never writes the verified User.role. Editable in-app under Admin -> Settings once one admin is in.",
+  "ADMIN_EMAILS": "",
+
   "TIME_ZONE": "America/Los_Angeles",
 
   "FIREBASE_API_KEY": "",

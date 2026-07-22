@@ -413,6 +413,7 @@ See [`config.json.example`](config.json.example) for a full template (`cp config
 | :-- | :-- |
 | `AUTH_SECRET` | Session-cookie signing secret (`openssl rand -base64 32`) — required |
 | `PUBLIC_BASE_URL` | The URL users reach the deployment at, e.g. `https://numbers.example.org`. Enables the QR self-link stamp on generated PDFs (the server can't infer its public origin behind Docker/reverse proxies). Unset → PDFs are generated without the stamp |
+| `ADMIN_EMAILS` | Comma/space-separated emails granted the `/admin` area on a fresh deployment — the way to seed the **first admin** before (or instead of) the e-sign roster bootstrap. **App-surface only:** it never writes the verified `User.role`, so e-sign signing/validity is untouched. Editable in-app under Admin → Settings once one admin is in. Unset → admin is only the roster-granted `admin` role |
 | `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID` | Firebase web-app config ([console](https://console.firebase.google.com) → Project settings → Your apps). Enable the **Google** provider under Authentication → Sign-in method and add your app's domain to Authentication → Authorized domains. These values are client-safe |
 | `FIREBASE_APP_ID` | Optional, from the same Firebase web-app config |
 | `FIREBASE_AUTH_PROXY` | Set to `1` to fix Google sign-in on iOS/WebKit by serving Firebase's sign-in helper from this app's own origin (see [iOS / in-app-browser sign-in](#ios--in-app-browser-sign-in) below). Requires `PUBLIC_BASE_URL` plus two console entries |
