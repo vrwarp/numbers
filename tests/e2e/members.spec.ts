@@ -19,9 +19,8 @@ function e2ePrisma(): PrismaClient {
 
 test("a member cannot see or reach the Members page", async ({ page }) => {
   await signInAs(page, "directory-member@example.org", "Directory Member");
-  await page.getByTestId("account-menu").click();
-  await expect(page.getByTestId("nav-members")).toHaveCount(0);
-  await page.keyboard.press("Escape");
+  // Members lives on the /manage hub now; a member has no Manage nav tab.
+  await expect(page.getByTestId("nav-tab-manage")).toHaveCount(0);
   // Direct navigation is bounced home (the page redirects; the API 404s).
   await page.goto("/members");
   await page.waitForURL("/");
@@ -40,12 +39,12 @@ test("a treasurer reaches the directory alongside Budget categories and Position
     await prisma.$disconnect();
   }
 
-  // The management trio sits together in the account menu.
+  // The management trio sits together on the Manage hub.
   await page.reload();
-  await page.getByTestId("account-menu").click();
-  await expect(page.getByTestId("nav-budget-categories")).toBeVisible();
-  await expect(page.getByTestId("nav-positions")).toBeVisible();
-  const membersLink = page.getByTestId("nav-members");
+  await page.getByTestId("nav-tab-manage").click();
+  await expect(page.getByTestId("manage-budget-categories")).toBeVisible();
+  await expect(page.getByTestId("manage-positions")).toBeVisible();
+  const membersLink = page.getByTestId("manage-members");
   await expect(membersLink).toBeVisible();
   await membersLink.click();
 

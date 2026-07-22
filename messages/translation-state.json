@@ -304,6 +304,54 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "Manage.title": {
+    "source": "Manage organization",
+    "context": "Page title of the /manage hub — the landing page listing organization-administration tools (budget categories, positions, teams, members, etc.).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Manage.subtitle": {
+    "source": "Church catalogs, teams, and roster.",
+    "context": "One-line subtitle under the /manage page title, summarizing what the admin tools cover.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Manage.budgetCategoriesDesc": {
+    "source": "Ministry codes and budgets",
+    "context": "Card description on the /manage hub for the Budget categories tool (the chart of accounts).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Manage.positionsDesc": {
+    "source": "Approval roles and duties",
+    "context": "Card description on the /manage hub for the Positions tool (custom approval roles).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Manage.teamsDesc": {
+    "source": "Budget-category groups",
+    "context": "Card description on the /manage hub for the Teams tool (groups of budget-category codes).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Manage.membersDesc": {
+    "source": "Directory and access",
+    "context": "Card description on the /manage hub for the Members tool (member directory and roles).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Manage.proposedChangesDesc": {
+    "source": "Catalog edits staged by the assistant",
+    "context": "Card description on the /manage hub for Proposed changes (catalog edits an AI assistant staged over MCP, awaiting human review).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Manage.adminDesc": {
+    "source": "App-level settings",
+    "context": "Card description on the /manage hub for the Admin tool (app-level configuration).",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "Home.profileNudge": {
     "source": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
     "context": "Warning banner on the home page; <link> wraps the word that opens the profile page.",

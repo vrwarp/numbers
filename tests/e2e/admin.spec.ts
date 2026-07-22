@@ -20,11 +20,12 @@ function e2ePrisma(): PrismaClient {
 
 test("a member cannot see or reach the admin area", async ({ page }) => {
   await signInAs(page, "plain-member@example.org", "Plain Member");
-  // Admin lives in the account menu now; a member has no such entry there.
-  await page.getByTestId("account-menu").click();
-  await expect(page.getByRole("link", { name: "Admin" })).toHaveCount(0);
-  await page.keyboard.press("Escape");
-  // Direct navigation is bounced home (the page redirects; the API 404s).
+  // Admin lives on the /manage hub now; a member has neither the Manage nav tab
+  // nor access to the hub or the admin page.
+  await expect(page.getByTestId("nav-tab-manage")).toHaveCount(0);
+  // Direct navigation is bounced home (the pages redirect; the APIs 404).
+  await page.goto("/manage");
+  await page.waitForURL("/");
   await page.goto("/admin");
   await page.waitForURL("/");
   await expect(page.getByRole("heading", { name: "Receipts" })).toBeVisible();
@@ -50,11 +51,12 @@ test("a paused admin loses the admin area until they turn the duty back on", asy
   await page.getByTestId("duty-adminPaused-toggle").click();
   await expect(page.getByText("Role controls and admin pages are hidden")).toBeVisible();
 
-  // Nav entry gone, page bounces home, API 404s — same posture as a member.
+  // Admin duty paused: isAppAdmin fails, so /admin bounces and its APIs 404. The
+  // Manage tab itself stays (approvals/finance duties still grant the other
+  // tools), but the Admin card is gone from the hub.
   await page.reload();
-  await page.getByTestId("account-menu").click();
-  await expect(page.getByRole("link", { name: "Admin" })).toHaveCount(0);
-  await page.keyboard.press("Escape");
+  await page.goto("/manage");
+  await expect(page.getByTestId("manage-admin")).toHaveCount(0);
   await page.goto("/admin");
   await page.waitForURL("/");
   const denied = await page.request.get("/api/admin/overview");
@@ -86,26 +88,22 @@ test("a fully stepped-back treasurer loses the master-data surfaces (Members, Po
   }
   await setState({ role: "treasurer" });
 
-  // Un-paused: all three master-data links are present in the account menu.
+  // Un-paused: the Manage hub carries the master-data trio.
   await page.reload();
-  await page.getByTestId("account-menu").click();
-  await expect(page.getByTestId("nav-budget-categories")).toBeVisible();
-  await expect(page.getByTestId("nav-positions")).toBeVisible();
-  await expect(page.getByTestId("nav-members")).toBeVisible();
-  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("nav-tab-manage")).toBeVisible();
+  await page.goto("/manage");
+  await expect(page.getByTestId("manage-budget-categories")).toBeVisible();
+  await expect(page.getByTestId("manage-positions")).toBeVisible();
+  await expect(page.getByTestId("manage-members")).toBeVisible();
 
   // Step back from every duty a treasurer holds (approvals + finance) — the
   // A10 "fully paused reads like a member" state, same as the search grant.
   await setState({ approvalsPaused: true, financePaused: true });
 
-  // Nav entries gone, pages bounce home, APIs 404 — a member's view.
+  // Manage entry gone, hub + pages bounce home, APIs 404 — a member's view.
   await page.reload();
-  await page.getByTestId("account-menu").click();
-  await expect(page.getByTestId("nav-budget-categories")).toHaveCount(0);
-  await expect(page.getByTestId("nav-positions")).toHaveCount(0);
-  await expect(page.getByTestId("nav-members")).toHaveCount(0);
-  await page.keyboard.press("Escape");
-  for (const dest of ["/ministries", "/positions", "/members"]) {
+  await expect(page.getByTestId("nav-tab-manage")).toHaveCount(0);
+  for (const dest of ["/manage", "/ministries", "/positions", "/members"]) {
     await page.goto(dest);
     await page.waitForURL("/");
   }
@@ -116,9 +114,9 @@ test("a fully stepped-back treasurer loses the master-data surfaces (Members, Po
   // Un-pausing a single duty restores the whole cluster (any active duty).
   await setState({ financePaused: false });
   await page.reload();
-  await page.getByTestId("account-menu").click();
-  await expect(page.getByTestId("nav-members")).toBeVisible();
-  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("nav-tab-manage")).toBeVisible();
+  await page.goto("/manage");
+  await expect(page.getByTestId("manage-members")).toBeVisible();
   await page.goto("/members");
   await expect(page.getByTestId("members-directory")).toBeVisible();
 });
@@ -134,12 +132,11 @@ test("an admin edits and saves the church context", async ({ page }) => {
     await prisma.$disconnect();
   }
 
-  // The admin entry appears in the account menu once the role is in place.
+  // Admin is reached via the Manage nav tab → the hub's Admin card.
   await page.reload();
-  await page.getByTestId("account-menu").click();
-  const adminLink = page.getByRole("link", { name: "Admin" });
-  await expect(adminLink).toBeVisible();
-  await adminLink.click();
+  await page.getByTestId("nav-tab-manage").click();
+  await expect(page.getByTestId("manage-hub")).toBeVisible();
+  await page.getByTestId("manage-admin").click();
 
   await expect(page.getByTestId("admin-dashboard")).toBeVisible();
 

@@ -63,6 +63,16 @@
     "proposedChanges": "Proposed changes",
     "reportProblem": "Report a problem"
   },
+  "Manage": {
+    "title": "Manage organization",
+    "subtitle": "Church catalogs, teams, and roster.",
+    "budgetCategoriesDesc": "Ministry codes and budgets",
+    "positionsDesc": "Approval roles and duties",
+    "teamsDesc": "Budget-category groups",
+    "membersDesc": "Directory and access",
+    "proposedChangesDesc": "Catalog edits staged by the assistant",
+    "adminDesc": "App-level settings"
+  },
   "Home": {
     "profileNudge": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
     "profileNudgeShort": "Finish your profile",
