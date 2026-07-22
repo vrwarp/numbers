@@ -16,9 +16,11 @@ describe("mcp scopes", () => {
     }
   });
 
-  it("recognizes only catalog scopes", () => {
+  it("recognizes the catalog + feedback scopes", () => {
     expect(isMcpScope("claims:read")).toBe(true);
     expect(isMcpScope("catalog:draft")).toBe(true);
+    expect(isMcpScope("feedback:read")).toBe(true);
+    expect(isMcpScope("feedback:triage")).toBe(true);
     expect(isMcpScope("claims:submit")).toBe(false);
     expect(isMcpScope("")).toBe(false);
   });

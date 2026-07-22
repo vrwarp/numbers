@@ -807,8 +807,10 @@ model ReimbursementReceipt {
 // so a database read can never reveal a live token (invariant: no secrets over
 // MCP applies to the store too). `scopesJson` is the user-chosen capability
 // subset (receipts:read | claims:read | claims:draft | catalog:read |
-// catalog:draft); the token grants only what its owner granted, owner-scoped,
-// and never any signing, and no scope makes the app call an LLM.
+// catalog:draft | feedback:read | feedback:triage); the token grants only what
+// its owner granted, owner-scoped (the catalog + feedback grants are the app's
+// own role-gated §6.3 reads), and never any signing, and no scope makes the app
+// call an LLM.
 model McpToken {
   id         String    @id @default(cuid())
   userId     String

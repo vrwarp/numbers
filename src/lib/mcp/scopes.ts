@@ -22,6 +22,11 @@ export const MCP_SCOPES = [
   // for that entity, so a token can never exceed what its owner could do.
   "catalog:read",
   "catalog:draft",
+  // User feedback reports (triage). `feedback:read` views them; `feedback:triage`
+  // moves one through new → triaged → closed. Both additionally require the
+  // app-admin role, since reports carry free-text PII (invariant 13).
+  "feedback:read",
+  "feedback:triage",
 ] as const;
 
 export type McpScope = (typeof MCP_SCOPES)[number];

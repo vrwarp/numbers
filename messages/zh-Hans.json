@@ -943,7 +943,9 @@
     "feedbackRateLimited": "反馈太频繁了——请稍后再试。",
     "feedbackInvalid": "无法读取该反馈。",
     "catalogDraftStale": "The item was deleted since this change was proposed",
-    "catalogDraftConflict": "The item changed since this change was proposed"
+    "catalogDraftConflict": "The item changed since this change was proposed",
+    "feedbackRoleRequired": "You do not have the admin role required to view feedback",
+    "feedbackNotFound": "Feedback report not found"
   },
   "AddReceipts": {
     "title": "向这张报销单添加收据",
@@ -1818,11 +1820,14 @@
       "claimsDraft": "Create and edit draft claims",
       "aiSuggest": "Ask AI for ministry suggestions",
       "catalogRead": "Read ministries, teams, and positions",
-      "catalogDraft": "Propose ministry/team/position edits (a human applies them)"
+      "catalogDraft": "Propose ministry/team/position edits (a human applies them)",
+      "feedbackRead": "View user feedback reports",
+      "feedbackTriage": "Update feedback report status (new / triaged / closed)"
     },
     "scopeHint": {
       "catalogRead": "Only works if your role can manage that catalog.",
-      "catalogDraft": "Proposals are reviewed on Proposed Changes; nothing changes until a human applies it."
+      "catalogDraft": "Proposals are reviewed on Proposed Changes; nothing changes until a human applies it.",
+      "feedbackRead": "Admin only — reports can contain personal details."
     },
     "reviewLink": "Review proposed changes"
   },

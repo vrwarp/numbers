@@ -5161,6 +5161,16 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Errors.feedbackRoleRequired": {
+    "source": "You do not have the admin role required to view feedback",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Errors.feedbackNotFound": {
+    "source": "Feedback report not found",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "AddReceipts.title": {
     "source": "Add receipts to this claim",
     "context": "Dialog heading: add receipts to an existing draft claim.",
@@ -9230,6 +9240,16 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Connections.scope.feedbackRead": {
+    "source": "View user feedback reports",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.scope.feedbackTriage": {
+    "source": "Update feedback report status (new / triaged / closed)",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "Connections.scopeHint.catalogRead": {
     "source": "Only works if your role can manage that catalog.",
     "zh-Hans": "todo",
@@ -9237,6 +9257,11 @@
   },
   "Connections.scopeHint.catalogDraft": {
     "source": "Proposals are reviewed on Proposed Changes; nothing changes until a human applies it.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
+  "Connections.scopeHint.feedbackRead": {
+    "source": "Admin only — reports can contain personal details.",
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
