@@ -224,6 +224,13 @@ export default function EsignPanel({
         },
         submit.actionHash
       );
+      // Re-verify the chain, not just refetch the claim: the WITHDRAW closed the
+      // thread on the ledger, but useClaimChain only re-runs on ledger/packet/seq
+      // changes (never `status`), so without this the cached state still reports
+      // the thread "open" — the submitted panel's status flip to `generated`
+      // would then land on a stale orphan-recovery card offering the same
+      // Withdraw button, as if nothing happened.
+      await refresh();
       await onChanged();
       setWithdrawOpen(false);
     } catch (err) {
@@ -232,6 +239,10 @@ export default function EsignPanel({
       // reconciliation/auto-refresh; anything else failed.
       if (err instanceof LedgerCommittedError) {
         setWithdrawError(t("signedButNotSynced"));
+        // The append reached the ledger; re-verifying reflects the now-closed
+        // thread and its opportunistic reconcile can repair the mirror the
+        // failed sync left behind.
+        await refresh();
         await onChanged();
       } else {
         setWithdrawError(thrown(err, t("withdrawFailed")));
