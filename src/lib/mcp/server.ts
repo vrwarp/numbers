@@ -24,6 +24,7 @@ import {
   listPositionsForEditor,
   type CatalogEntity,
 } from "@/lib/catalog-drafts";
+import { mcpListFeedback, mcpGetFeedback, mcpSetFeedbackStatus } from "@/lib/mcp/feedback";
 
 /**
  * The Numbers MCP tool surface (docs/MCP_DESIGN.md). A small, task-oriented set
@@ -404,6 +405,65 @@ export function registerMcpTools(server: McpServer): void {
       run(() => {
         requireScope(extra, "catalog:draft");
         return discardCatalogDraft(userIdFrom(extra.authInfo), args.draftId);
+      })
+  );
+
+  // --- Feedback triage (admin) ---------------------------------------------
+  // Reports carry free-text PII, so every tool requires the app-admin role
+  // (checked inside the feedback module) on top of the feedback:* scope.
+  // Screenshot bytes are never returned — only a hasScreenshot flag.
+
+  server.registerTool(
+    "numbers_list_feedback",
+    {
+      title: "List feedback reports",
+      description:
+        "List user feedback/bug reports for triage, newest first, with category, situation, status (new | triaged | closed), message, route, and reporter. No diagnostics bundle (use numbers_get_feedback). Requires an app-admin role.",
+      inputSchema: {
+        status: z.enum(["new", "triaged", "closed"]).optional().describe("Filter by triage status."),
+        limit: z.number().int().min(1).max(100).optional().describe("Max reports (default 25)."),
+      },
+      annotations: READ_ONLY,
+    },
+    (args, extra) =>
+      run(() => {
+        requireScope(extra, "feedback:read");
+        return mcpListFeedback(userIdFrom(extra.authInfo), args);
+      })
+  );
+
+  server.registerTool(
+    "numbers_get_feedback",
+    {
+      title: "Get a feedback report",
+      description:
+        "Fetch one feedback report by id with its redacted diagnostics (breadcrumbs = route templates + API {method,status,requestId}, env, recent request-ids, crash stack), build, and user agent. Never returns screenshot bytes. Requires an app-admin role.",
+      inputSchema: { reportId: z.string().min(1).describe("The feedback report id.") },
+      annotations: READ_ONLY,
+    },
+    (args, extra) =>
+      run(() => {
+        requireScope(extra, "feedback:read");
+        return mcpGetFeedback(userIdFrom(extra.authInfo), args.reportId);
+      })
+  );
+
+  server.registerTool(
+    "numbers_set_feedback_status",
+    {
+      title: "Set a feedback report's status",
+      description:
+        "Move a feedback report through its triage states: new → triaged → closed. Requires an app-admin role.",
+      inputSchema: {
+        reportId: z.string().min(1).describe("The feedback report id."),
+        status: z.enum(["new", "triaged", "closed"]).describe("The new triage status."),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    (args, extra) =>
+      run(() => {
+        requireScope(extra, "feedback:triage");
+        return mcpSetFeedbackStatus(userIdFrom(extra.authInfo), args.reportId, args.status);
       })
   );
 }

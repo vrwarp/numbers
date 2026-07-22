@@ -53,6 +53,8 @@ backend never spends the deployment's AI quota (see Tools).
 | `claims:draft` | create/edit **draft** claims |
 | `catalog:read` | list ministries/teams/positions (**also** needs the manage role) |
 | `catalog:draft` | stage catalog edits as drafts (**also** needs the manage role) |
+| `feedback:read` | view user feedback reports (**also** needs the app-admin role) |
+| `feedback:triage` | move a feedback report new → triaged → closed (**also** needs the app-admin role) |
 
 Enforcement is **per tool** inside the callback (`requireScope`); an ungranted scope returns a
 clear, actionable tool error (PAT has no OAuth step-up).
@@ -73,6 +75,14 @@ invariants hold):** `numbers_create_draft_claim`, `numbers_add_receipts_to_claim
 
 **Catalog (list + draft edits):** `numbers_list_teams`, `numbers_list_positions`,
 `numbers_draft_catalog_edit`, `numbers_list_catalog_drafts`, `numbers_discard_catalog_draft`.
+
+**Feedback triage (admin):** `numbers_list_feedback`, `numbers_get_feedback`,
+`numbers_set_feedback_status` (new → triaged → closed). Reports carry free-text PII, so every one
+requires the **app-admin role** on top of the `feedback:*` scope — the same §6.3-style admin read
+grant the triage UI uses (invariant 13). The list is lean (no diagnostics); `get` adds the redacted
+diagnostics the admin UI shows; screenshot **bytes are never returned** (only a `hasScreenshot`
+flag — the image has its own admin-served route). `src/lib/mcp/feedback.ts` wraps the existing
+`src/lib/feedback/server.ts` service.
 
 **No AI-calling tools.** Draft-building always uses the **`stored`** extract mode
 (`src/lib/claims.ts` `ExtractMode`): consume each receipt's background-worker annotation, blank
@@ -143,7 +153,11 @@ first already wrote.
    never spends the deployment's provider quota.
 3. **Owner-scoped, least privilege.** Every query filters by the token's `userId`; a token
    grants only its chosen scopes; catalog tools additionally require the manage role, so a token
-   can never exceed what its owner could do in the app.
+   can never exceed what its owner could do in the app. The two deliberate cross-tenant reads are
+   the app's own §6.3 grants, mirrored: catalog tools (manage role) and **feedback tools
+   (app-admin role)** — feedback carries free-text PII, so those tools are admin-gated on top of
+   the scope, matching the admin triage UI. Still no secrets (invariant 1): feedback returns the
+   reporter's name/email and redacted diagnostics, never screenshot bytes, tokens, or keys.
 4. **Invariant parity.** Because the write tools reuse the app's service functions, the audit
    (invariant 7), embedding (invariant 11), money-in-cents (invariant 1), un-verification
    (invariant 4), and total-recompute (invariant 5) trails stay complete.

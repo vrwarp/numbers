@@ -43,10 +43,14 @@ export default function ConnectionsCard() {
     "claims:draft": t("scope.claimsDraft"),
     "catalog:read": t("scope.catalogRead"),
     "catalog:draft": t("scope.catalogDraft"),
+    "feedback:read": t("scope.feedbackRead"),
+    "feedback:triage": t("scope.feedbackTriage"),
   };
   const scopeHint: Partial<Record<McpScope, string>> = {
     "catalog:read": t("scopeHint.catalogRead"),
     "catalog:draft": t("scopeHint.catalogDraft"),
+    "feedback:read": t("scopeHint.feedbackRead"),
+    "feedback:triage": t("scopeHint.feedbackRead"),
   };
 
   const [connections, setConnections] = useState<Connection[] | null>(null);

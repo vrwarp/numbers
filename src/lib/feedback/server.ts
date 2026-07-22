@@ -167,6 +167,47 @@ export interface AdminFeedbackRow {
   hasScreenshot: boolean;
 }
 
+type FeedbackRowWithUser = {
+  id: string;
+  category: string;
+  situation: string;
+  message: string;
+  route: string;
+  buildSha: string;
+  locale: string;
+  userAgent: string;
+  status: string;
+  createdAt: Date;
+  diagnosticsJson: string;
+  screenshotPath: string;
+  user: { email: string; fullName: string | null };
+};
+
+/** Shared shape for the admin triage views (queue + single report). */
+function mapAdminRow(r: FeedbackRowWithUser): AdminFeedbackRow {
+  let diagnostics: unknown = null;
+  try {
+    diagnostics = JSON.parse(r.diagnosticsJson);
+  } catch {
+    diagnostics = null;
+  }
+  return {
+    id: r.id,
+    category: r.category,
+    situation: r.situation,
+    message: r.message,
+    route: r.route,
+    buildSha: r.buildSha,
+    locale: r.locale,
+    userAgent: r.userAgent,
+    status: r.status,
+    createdAt: r.createdAt.toISOString(),
+    reporter: r.user.fullName || r.user.email,
+    diagnostics,
+    hasScreenshot: !!r.screenshotPath,
+  };
+}
+
 /** The admin triage queue: ALL reports (a §6.3-style read grant beside
  *  invariant 2 — reports can carry free-text PII, so this is admin-gated by the
  *  caller). Optional status filter. Diagnostics parsed for display. */
@@ -179,29 +220,16 @@ export async function listAdminFeedback(status?: string): Promise<AdminFeedbackR
     take: 100,
     include: { user: { select: { email: true, fullName: true } } },
   });
-  return rows.map((r) => {
-    let diagnostics: unknown = null;
-    try {
-      diagnostics = JSON.parse(r.diagnosticsJson);
-    } catch {
-      diagnostics = null;
-    }
-    return {
-      id: r.id,
-      category: r.category,
-      situation: r.situation,
-      message: r.message,
-      route: r.route,
-      buildSha: r.buildSha,
-      locale: r.locale,
-      userAgent: r.userAgent,
-      status: r.status,
-      createdAt: r.createdAt.toISOString(),
-      reporter: r.user.fullName || r.user.email,
-      diagnostics,
-      hasScreenshot: !!r.screenshotPath,
-    };
+  return rows.map(mapAdminRow);
+}
+
+/** A single report for the triage detail view (admin-gated by the caller). */
+export async function getAdminFeedback(id: string): Promise<AdminFeedbackRow | null> {
+  const r = await prisma.feedbackReport.findUnique({
+    where: { id },
+    include: { user: { select: { email: true, fullName: true } } },
   });
+  return r ? mapAdminRow(r) : null;
 }
 
 /** The stored screenshot path for a report (admin serve route), or null. */

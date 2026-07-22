@@ -217,7 +217,8 @@ catalogs. It deliberately cannot sign, submit, approve, pay, generate a PDF, or 
 
 - **You mint the credential.** In **Profile → AI assistant connections** a member creates a
   personal access token and ticks exactly which capabilities it carries
-  (`receipts:read`, `claims:read`, `claims:draft`, `catalog:read`, `catalog:draft`).
+  (`receipts:read`, `claims:read`, `claims:draft`, `catalog:read`, `catalog:draft`, and — for
+  admins — `feedback:read` / `feedback:triage`).
   The token is a 256-bit secret shown **once**, stored only as a SHA-256 hash, revocable anytime,
   with an optional expiry. There is no signing scope to grant — and no scope that makes the app
   call an LLM, so the backend never spends the deployment's AI quota.
