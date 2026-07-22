@@ -18,16 +18,26 @@ function e2ePrisma(): PrismaClient {
   });
 }
 
+/**
+ * A server-guarded page bounces an unauthorized caller home. Next streams the
+ * server `redirect("/")` as a client-side redirect, which WebKit reports as the
+ * goto navigation being "interrupted by another navigation" — waiting only for
+ * "commit" lets the goto resolve before that redirect fires, so we then assert
+ * on the landing URL. (Chromium tolerates the interrupt; WebKit does not.)
+ */
+async function expectBounceHome(page: import("@playwright/test").Page, dest: string) {
+  await page.goto(dest, { waitUntil: "commit" });
+  await page.waitForURL("/");
+}
+
 test("a member cannot see or reach the admin area", async ({ page }) => {
   await signInAs(page, "plain-member@example.org", "Plain Member");
   // Admin lives on the /manage hub now; a member has neither the Manage nav tab
   // nor access to the hub or the admin page.
   await expect(page.getByTestId("nav-tab-manage")).toHaveCount(0);
   // Direct navigation is bounced home (the pages redirect; the APIs 404).
-  await page.goto("/manage");
-  await page.waitForURL("/");
-  await page.goto("/admin");
-  await page.waitForURL("/");
+  await expectBounceHome(page, "/manage");
+  await expectBounceHome(page, "/admin");
   await expect(page.getByRole("heading", { name: "Receipts" })).toBeVisible();
 });
 
@@ -57,8 +67,7 @@ test("a paused admin loses the admin area until they turn the duty back on", asy
   await page.reload();
   await page.goto("/manage");
   await expect(page.getByTestId("manage-admin")).toHaveCount(0);
-  await page.goto("/admin");
-  await page.waitForURL("/");
+  await expectBounceHome(page, "/admin");
   const denied = await page.request.get("/api/admin/overview");
   expect(denied.status()).toBe(404);
   expect((await page.request.get("/api/admin/extraction-jobs")).status()).toBe(404);
@@ -86,7 +95,9 @@ test("a fully stepped-back treasurer loses the master-data surfaces (Members, Po
       await prisma.$disconnect();
     }
   }
-  await setState({ role: "treasurer" });
+  // Reset the pause flags too: a retried run reuses this per-project user, so a
+  // prior attempt that left it paused (below) must not bleed into a fresh start.
+  await setState({ role: "treasurer", approvalsPaused: false, financePaused: false });
 
   // Un-paused: the Manage hub carries the master-data trio.
   await page.reload();
@@ -104,8 +115,7 @@ test("a fully stepped-back treasurer loses the master-data surfaces (Members, Po
   await page.reload();
   await expect(page.getByTestId("nav-tab-manage")).toHaveCount(0);
   for (const dest of ["/manage", "/ministries", "/positions", "/members"]) {
-    await page.goto(dest);
-    await page.waitForURL("/");
+    await expectBounceHome(page, dest);
   }
   expect((await page.request.get("/api/ministries?scope=all")).status()).toBe(404);
   expect((await page.request.get("/api/positions")).status()).toBe(404);
