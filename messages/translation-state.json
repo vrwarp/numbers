@@ -232,6 +232,12 @@
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
+  "NavBar.manage": {
+    "source": "Manage",
+    "context": "Nav item (desktop) and account-menu section that group the organization-administration tools — budget categories, positions, teams, members, proposed changes, admin. Short label.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "NavBar.budgetCategories": {
     "source": "Budget categories",
     "zh-Hans": "todo",

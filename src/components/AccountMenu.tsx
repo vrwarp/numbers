@@ -69,6 +69,11 @@ export default function AccountMenu({
   const overflowBadge = menuTabs.some((l) => l.hidden && l.badge);
   const itemClass =
     "block w-full rounded-lg px-2.5 py-2 text-left text-sm text-stone-700 hover:bg-stone-100";
+  // Section headers give the flat list seams so the org-management cluster reads
+  // as its own group, not peers of Profile. Rendered only when the group has ≥1
+  // visible row (the Manage items are each role-gated).
+  const sectionClass = "px-2.5 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400";
+  const hasManage = canManageMinistries || canManageTeams || canViewMembers || isAdmin;
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
@@ -163,6 +168,7 @@ export default function AccountMenu({
               ) : null}
             </Link>
           ) : null}
+          <p className={sectionClass}>{t("account")}</p>
           <Link href="/profile" className={itemClass}>
             {t("profile")}
           </Link>
@@ -176,6 +182,7 @@ export default function AccountMenu({
             {t("recentActivity")}
           </Link>
           <LocaleSwitcher signedIn variant="row" />
+          {hasManage ? <p className={sectionClass}>{t("manage")}</p> : null}
           {canManageMinistries ? (
             <Link href="/ministries" className={itemClass} data-testid="nav-budget-categories">
               {t("budgetCategories")}
