@@ -58,11 +58,12 @@ function ok(data: unknown): CallToolResult {
   return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
 }
 
-/** Run a tool body, turning expected failures (scope/ApiError) into readable
- *  tool errors and never leaking internal error detail. */
-async function run(fn: () => Promise<unknown>): Promise<CallToolResult> {
+/** Run a tool body that builds its own CallToolResult (e.g. one carrying an
+ *  image block), turning expected failures (scope/ApiError) into readable tool
+ *  errors and never leaking internal error detail. */
+async function runResult(fn: () => Promise<CallToolResult>): Promise<CallToolResult> {
   try {
-    return ok(await fn());
+    return await fn();
   } catch (err) {
     if (err instanceof ScopeError) {
       return { content: [{ type: "text", text: err.message }], isError: true };
@@ -74,6 +75,11 @@ async function run(fn: () => Promise<unknown>): Promise<CallToolResult> {
     console.error("MCP tool error:", err);
     return { content: [{ type: "text", text: "The request could not be completed." }], isError: true };
   }
+}
+
+/** The common case: a tool body returning plain JSON-able data, wrapped as text. */
+function run(fn: () => Promise<unknown>): Promise<CallToolResult> {
+  return runResult(async () => ok(await fn()));
 }
 
 const READ_ONLY = { readOnlyHint: true, destructiveHint: false, openWorldHint: false } as const;
@@ -437,14 +443,17 @@ export function registerMcpTools(server: McpServer): void {
     {
       title: "Get a feedback report",
       description:
-        "Fetch one feedback report by id with its redacted diagnostics (breadcrumbs = route templates + API {method,status,requestId}, env, recent request-ids, crash stack), build, and user agent. Never returns screenshot bytes. Requires an app-admin role.",
+        "Fetch one feedback report by id with its redacted diagnostics (breadcrumbs = route templates + API {method,status,requestId}, env, recent request-ids, crash stack), build, and user agent. When the reporter attached an opt-in screenshot, it is returned as an image. Requires an app-admin role.",
       inputSchema: { reportId: z.string().min(1).describe("The feedback report id.") },
       annotations: READ_ONLY,
     },
     (args, extra) =>
-      run(() => {
+      runResult(async () => {
         requireScope(extra, "feedback:read");
-        return mcpGetFeedback(userIdFrom(extra.authInfo), args.reportId);
+        const { report, screenshot } = await mcpGetFeedback(userIdFrom(extra.authInfo), args.reportId);
+        const content: CallToolResult["content"] = [{ type: "text", text: JSON.stringify(report, null, 2) }];
+        if (screenshot) content.push({ type: "image", data: screenshot.base64, mimeType: screenshot.mimeType });
+        return { content };
       })
   );
 

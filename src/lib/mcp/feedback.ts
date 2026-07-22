@@ -5,10 +5,18 @@ import {
   listAdminFeedback,
   getAdminFeedback,
   setFeedbackStatus,
+  feedbackScreenshotPath,
   FEEDBACK_STATUSES,
   type AdminFeedbackRow,
 } from "@/lib/feedback/server";
+import { readFeedbackScreenshot } from "@/lib/feedback/storage";
 import { shortRef } from "@/lib/feedback/types";
+
+export interface McpScreenshot {
+  mimeType: string;
+  /** base64-encoded image bytes, for an MCP image content block. */
+  base64: string;
+}
 
 /**
  * Feedback triage for the MCP backend (docs/MCP_DESIGN.md). SERVER ONLY.
@@ -67,18 +75,31 @@ export async function mcpListFeedback(
   return { reports: rows.slice(0, limit).map(summary), total: rows.length };
 }
 
-export async function mcpGetFeedback(userId: string, id: string) {
+export async function mcpGetFeedback(
+  userId: string,
+  id: string
+): Promise<{ report: Record<string, unknown>; screenshot: McpScreenshot | null }> {
   await requireFeedbackAdmin(userId);
   const r = await getAdminFeedback(id);
   if (!r) throw new ApiError(404, "Feedback report not found.", "feedbackNotFound");
   // Full detail: summary + the redacted diagnostics + build/agent context.
-  return {
+  const report = {
     ...summary(r),
     buildSha: r.buildSha || null,
     locale: r.locale,
     userAgent: r.userAgent || null,
     diagnostics: r.diagnostics,
   };
+  // The opt-in screenshot, when the reporter attached one — the same bytes the
+  // admin triage UI serves. Returned as image bytes (never a disk path); the
+  // server layer hands it back as an MCP image content block.
+  let screenshot: McpScreenshot | null = null;
+  if (r.hasScreenshot) {
+    const rel = await feedbackScreenshotPath(id);
+    const file = rel ? readFeedbackScreenshot(rel) : null;
+    if (file) screenshot = { mimeType: file.contentType, base64: file.bytes.toString("base64") };
+  }
+  return { report, screenshot };
 }
 
 export async function mcpSetFeedbackStatus(userId: string, id: string, status: string) {

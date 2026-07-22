@@ -80,9 +80,10 @@ invariants hold):** `numbers_create_draft_claim`, `numbers_add_receipts_to_claim
 `numbers_set_feedback_status` (new → triaged → closed). Reports carry free-text PII, so every one
 requires the **app-admin role** on top of the `feedback:*` scope — the same §6.3-style admin read
 grant the triage UI uses (invariant 13). The list is lean (no diagnostics); `get` adds the redacted
-diagnostics the admin UI shows; screenshot **bytes are never returned** (only a `hasScreenshot`
-flag — the image has its own admin-served route). `src/lib/mcp/feedback.ts` wraps the existing
-`src/lib/feedback/server.ts` service.
+diagnostics the admin UI shows and — when the reporter attached an **opt-in screenshot** — returns
+the image as an **MCP image content block** (the same bytes the admin triage UI serves; never a
+disk path, and only through the admin-gated `get`, never the list). `src/lib/mcp/feedback.ts` wraps
+the existing `src/lib/feedback/server.ts` service.
 
 **No AI-calling tools.** Draft-building always uses the **`stored`** extract mode
 (`src/lib/claims.ts` `ExtractMode`): consume each receipt's background-worker annotation, blank
@@ -157,7 +158,8 @@ first already wrote.
    the app's own §6.3 grants, mirrored: catalog tools (manage role) and **feedback tools
    (app-admin role)** — feedback carries free-text PII, so those tools are admin-gated on top of
    the scope, matching the admin triage UI. Still no secrets (invariant 1): feedback returns the
-   reporter's name/email and redacted diagnostics, never screenshot bytes, tokens, or keys.
+   reporter's name/email, redacted diagnostics, and the report's opt-in screenshot (the same content
+   the admin UI already exposes) — never tokens, keys, or another surface's data.
 4. **Invariant parity.** Because the write tools reuse the app's service functions, the audit
    (invariant 7), embedding (invariant 11), money-in-cents (invariant 1), un-verification
    (invariant 4), and total-recompute (invariant 5) trails stay complete.
