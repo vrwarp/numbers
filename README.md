@@ -384,6 +384,12 @@ docker run -d --name numbers -p 3000:3000 \
 or use the provided `docker-compose.yml`. Migrations run automatically on boot.
 **Backup = copy the `/data` folder** (database + receipt files).
 
+**Older CPUs (e.g. Synology Atom).** The image builds `sharp` against the distro's baseline
+libvips, so it runs on x86-64 CPUs without SSE4.2/AVX (an Intel Atom D2700, etc.) rather than
+crashing with `SIGILL` the moment a receipt image is processed. If the container still exits with
+`SIGILL` (exit code 132) on such hardware, V8's JIT is the likely culprit — set `NODE_ARGS=--jitless`
+(env var / compose) to run Node interpreter-only. No rebuild needed.
+
 ### Environment variables
 
 Every setting below **except `DATA_DIR` / `DATABASE_URL`** can also be supplied by a JSON file at
