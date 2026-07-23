@@ -59,6 +59,15 @@ backend never spends the deployment's AI quota (see Tools).
 Enforcement is **per tool** inside the callback (`requireScope`); an ungranted scope returns a
 clear, actionable tool error (PAT has no OAuth step-up).
 
+The role-gated scopes are also enforced **at mint time** so a token can never carry a capability
+its owner lacks: `mcpAccessibleScopes(userId)` (`src/lib/mcp/access.ts`) resolves the exact same
+gates the tools use — `catalog:*` needs the catalog manage role (`canManageMinistries` for
+ministries/positions, `canManageTeams` for teams — both honoring the A10 duty pauses), `feedback:*`
+needs app-admin — and the connections settings UI offers only that subset (`GET /api/mcp-tokens`
+returns `availableScopes`) while `POST /api/mcp-tokens` refuses any scope outside it
+(`mcpScopeForbidden`). A role change is re-read on every request, so a lost role removes the option;
+existing tokens still fail closed at the tool layer.
+
 ## Tools (`src/lib/mcp/server.ts`)
 
 Small, task-oriented surface (kept well under the context-bloat threshold), each annotated

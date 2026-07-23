@@ -47,3 +47,24 @@ export function normalizeScopes(values: readonly string[]): McpScope[] {
  * data both reading and drafting need) is available to any of these.
  */
 export const READ_SCOPES: readonly McpScope[] = ["receipts:read", "claims:read", "claims:draft"];
+
+/**
+ * The extra role a scope needs BEYOND being an authenticated user. The MCP
+ * tools enforce these at call time (catalog:* needs the catalog manage role,
+ * feedback:* needs app-admin — docs/MCP_DESIGN.md); everything else is open to
+ * any user. Pure so both the connection UI (to hide scopes the owner can't
+ * grant) and the token route (to refuse them) classify identically.
+ */
+export type McpAccess = { canManageCatalog: boolean; isAppAdmin: boolean };
+
+export function scopeAllowed(scope: McpScope, access: McpAccess): boolean {
+  if (scope.startsWith("catalog:")) return access.canManageCatalog;
+  if (scope.startsWith("feedback:")) return access.isAppAdmin;
+  return true;
+}
+
+/** The subset of the catalog a user with these capabilities may actually grant
+ *  a token — a token can never exceed what its owner could do in the app. */
+export function accessibleScopes(access: McpAccess): McpScope[] {
+  return MCP_SCOPES.filter((s) => scopeAllowed(s, access));
+}

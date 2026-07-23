@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireUserId, handleApi, ApiError } from "@/lib/api";
 import { createMcpToken, listMcpTokens } from "@/lib/mcp/tokens";
 import { isMcpScope, normalizeScopes } from "@/lib/mcp/scopes";
+import { mcpAccessibleScopes } from "@/lib/mcp/access";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,13 @@ export const runtime = "nodejs";
 export async function GET() {
   return handleApi(async () => {
     const userId = await requireUserId();
-    return NextResponse.json({ connections: await listMcpTokens(userId) });
+    const [connections, availableScopes] = await Promise.all([
+      listMcpTokens(userId),
+      mcpAccessibleScopes(userId),
+    ]);
+    // `availableScopes` is what this owner may grant — the UI offers only these
+    // (catalog:*/feedback:* appear only if the role allows them).
+    return NextResponse.json({ connections, availableScopes });
   });
 }
 
@@ -43,6 +50,15 @@ export async function POST(req: NextRequest) {
     }
     const scopes = normalizeScopes(parsed.data.scopes);
     if (scopes.length === 0) throw new ApiError(400, "Choose at least one capability", "mcpScopeRequired");
+
+    // A token can never exceed what its owner could do in the app: refuse any
+    // scope the caller's role can't exercise (catalog:* / feedback:*). The UI
+    // already hides these, so this backs the filter against a crafted request.
+    const allowed = new Set(await mcpAccessibleScopes(userId));
+    const forbidden = scopes.find((s) => !allowed.has(s));
+    if (forbidden) {
+      throw new ApiError(403, `Your role can't grant: ${forbidden}`, "mcpScopeForbidden", { scope: forbidden });
+    }
 
     const expiresAt = parsed.data.expiresInDays
       ? new Date(Date.now() + parsed.data.expiresInDays * 24 * 60 * 60 * 1000)

@@ -54,6 +54,12 @@ export default function ConnectionsCard() {
   };
 
   const [connections, setConnections] = useState<Connection[] | null>(null);
+  // Which scopes this account may actually grant (server-computed). Until it
+  // loads, offer only the always-available read/draft scopes so the list never
+  // over-shows a capability the role lacks.
+  const [availableScopes, setAvailableScopes] = useState<McpScope[]>(
+    MCP_SCOPES.filter((s) => !s.startsWith("catalog:") && !s.startsWith("feedback:"))
+  );
   const [error, setError] = useState<string | null>(null);
   const [endpoint, setEndpoint] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
@@ -74,8 +80,18 @@ export default function ConnectionsCard() {
   async function refresh() {
     const res = await fetch("/api/mcp-tokens").catch(() => null);
     if (res?.ok) {
-      const { connections } = (await res.json()) as { connections: Connection[] };
+      const { connections, availableScopes } = (await res.json()) as {
+        connections: Connection[];
+        availableScopes?: McpScope[];
+      };
       setConnections(connections);
+      if (availableScopes) {
+        setAvailableScopes(availableScopes);
+        // Drop any now-unavailable scope from a pending selection (e.g. a role
+        // change since the form was opened) so we never submit one we'll refuse.
+        const allowed = new Set(availableScopes);
+        setScopes((prev) => new Set([...prev].filter((s) => allowed.has(s))));
+      }
     } else {
       setError(t("loadFailed"));
     }
@@ -205,7 +221,7 @@ export default function ConnectionsCard() {
 
         <p className="mt-3 text-sm text-stone-600">{t("scopesLabel")}</p>
         <div className="mt-1 space-y-1">
-          {MCP_SCOPES.map((s) => (
+          {MCP_SCOPES.filter((s) => availableScopes.includes(s)).map((s) => (
             <label key={s} className="flex items-start gap-2 rounded-lg border border-stone-200 p-2 text-sm">
               <input
                 type="checkbox"
