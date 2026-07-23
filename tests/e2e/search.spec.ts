@@ -112,8 +112,11 @@ test("member: upload → indexed → exact + semantic → Find in Receipts lands
   await exact.locator('[data-testid^="search-result-receipt-"] a, a[data-testid^="search-result-receipt-"]').first().click();
   await page.waitForURL(/\/(\?.*)?$/);
   await expect(page.locator(".highlight-pulse")).toBeVisible({ timeout: 10_000 });
-  // Param stripped once handled (back/refresh must not re-scroll).
-  await expect.poll(() => page.url().includes("open=")).toBe(false);
+  // Param stripped once handled (back/refresh must not re-scroll). The strip
+  // runs in the same rAF as the pulse above, but goes through an async
+  // router.replace(), so give it the same 10s headroom as the pulse — under a
+  // loaded CI webkit the navigation can lag past the default 5s poll.
+  await expect.poll(() => page.url().includes("open="), { timeout: 10_000 }).toBe(false);
 });
 
 test("search state lives in the URL: a deep link re-runs the query and recents appear under the input", async ({ page }, testInfo) => {
