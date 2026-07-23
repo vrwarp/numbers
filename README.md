@@ -144,6 +144,35 @@ ledger store. One-time setup on your Firebase project:
    `ESIGN_ROOT_FINGERPRINT`. Clients and the offline verifier refuse any registry that
    doesn't match it.
 
+#### Managing the rules from the app (optional)
+
+Steps 2–3 are a one-time CLI task. If you'd rather deploy and monitor the rules from the
+admin UI (Admin → Setup → *Firestore security rules*), you can — using **two separate
+service accounts**, because deploying rules and reading them carry very different risk:
+
+- **A read-only checker (safe to store).** In Google Cloud console → *IAM & Admin → Service
+  Accounts*, create an account, grant it **only** the **Firebase Rules Viewer** role, and add
+  a JSON key. Paste it into Admin → Settings → Firebase → *Rules viewer key*
+  (`FIREBASE_RULES_VIEWER_JSON`). The Setup card then shows whether the deployed rules match
+  this app's, and re-checks on demand. This key **can only read** rules — it can't rewrite
+  them, so it can't weaken the ledger's tamper-evidence, which is why it's safe to persist.
+  The card **refuses** a saved key that turns out to have write/deploy power and tells you to
+  replace it.
+- **A deploy key (used once, never stored).** Create a *second* account with the **Firebase
+  Rules Admin** role and a JSON key. Paste it into the card's *Deploy the rules* box and
+  deploy. The server uses it for that single call and **never writes it to `config.json` or
+  the logs** — only its email is recorded in the audit event. **Delete or rotate that key in
+  the console right after.**
+
+> **Why the split, and why the deploy key is never saved:** a key that can rewrite Firestore
+> rules can also grant a custom client the ability to backdate/overwrite ledger events — i.e.
+> forge history. The whole design keeps the server free of any such standing credential, so
+> the deploy key is only ever held for the moment it's used. Keep service-account JSON out of
+> screenshots, chat, and version control, and never give the *saved* key deploy power.
+
+Deploying from the app still isn't the enforcement proof — run the canary (step 3) after any
+deploy to confirm the rules are actually **enforced**, not merely present.
+
 Dev and CI never need any of this: `ESIGN_MOCK=1` runs the identical protocol (real
 cryptography, real ceremonies) on SQLite stores, and the committed e2e suite runs the real
 Firestore backend against the **Firebase emulator** — see Tests below.

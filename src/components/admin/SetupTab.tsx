@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { WIZARDS, type Wizard } from "@/lib/admin/wizards";
 import SetupWizard from "./SetupWizard";
+import RulesCard from "./RulesCard";
 
 /**
  * Setup tab (docs/ADMIN.md): a launcher of guided, per-service configuration
@@ -108,6 +109,8 @@ export default function SetupTab() {
           );
         })}
       </div>
+
+      <RulesCard />
     </div>
   );
 }

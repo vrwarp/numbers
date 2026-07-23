@@ -85,6 +85,13 @@ export const ADMIN_CONFIG_FIELDS: readonly AdminConfigField[] = [
   { key: "FIREBASE_APP_ID", group: "firebase", type: "text" },
   { key: "FIREBASE_AUTH_PROXY", group: "firebase", type: "boolean", onValue: "1" },
   { key: "FIREBASE_AUTH_UPSTREAM_HOST", group: "firebase", type: "text" },
+  // Optional READ-ONLY (Firebase Rules Viewer) service account used only to
+  // read the deployed Firestore rules and diff them against the canonical
+  // source. Secret/write-only. It must NOT be able to write — the rules card
+  // flags an over-privileged key. Deploying rules uses a separate, EPHEMERAL
+  // admin key that is never stored (POST /api/esign/rules), so no
+  // forgery-capable credential lives on the data volume.
+  { key: "FIREBASE_RULES_VIEWER_JSON", group: "firebase", type: "text", secret: true, placeholder: '{"type":"service_account", …}' },
 
   // --- Push notifications (docs/NOTIFICATIONS_DESIGN.md §12/§13) ------------
   // The SA JSON is the ONE server-held Firebase credential — messaging-only
