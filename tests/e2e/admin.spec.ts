@@ -48,7 +48,14 @@ test("a paused admin loses the admin area until they turn the duty back on", asy
   await signInAs(page, email, "Duty Admin");
   const prisma = e2ePrisma();
   try {
-    await prisma.user.update({ where: { email }, data: { role: "admin" } });
+    // Reset the pause flags too: a retried run reuses this per-project user, and
+    // an attempt that failed after pausing (below) but before the un-pause at the
+    // end would otherwise leave adminPaused=true — the retry would then toggle it
+    // OFF and the "hidden" assertion would never appear.
+    await prisma.user.update({
+      where: { email },
+      data: { role: "admin", approvalsPaused: false, financePaused: false, adminPaused: false },
+    });
   } finally {
     await prisma.$disconnect();
   }
