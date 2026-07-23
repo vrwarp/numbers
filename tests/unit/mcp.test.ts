@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MCP_SCOPES, isMcpScope, normalizeScopes, READ_SCOPES } from "@/lib/mcp/scopes";
+import { MCP_SCOPES, isMcpScope, normalizeScopes, READ_SCOPES, accessibleScopes } from "@/lib/mcp/scopes";
 import { hashToken, verifyMcpTokenSecret } from "@/lib/mcp/tokens";
 
 /**
@@ -35,6 +35,33 @@ describe("mcp scopes", () => {
 
   it("keeps the draft scope in the read set (ministries reference data)", () => {
     expect(READ_SCOPES).toContain("claims:draft");
+  });
+});
+
+describe("accessibleScopes (what a user may grant a token)", () => {
+  it("offers a plain member only the always-available read/draft scopes", () => {
+    const scopes = accessibleScopes({ canManageCatalog: false, isAppAdmin: false });
+    expect(scopes).toEqual(["receipts:read", "claims:read", "claims:draft"]);
+    expect(scopes.some((s) => s.startsWith("catalog:"))).toBe(false);
+    expect(scopes.some((s) => s.startsWith("feedback:"))).toBe(false);
+  });
+
+  it("adds catalog scopes only for a catalog manager", () => {
+    const scopes = accessibleScopes({ canManageCatalog: true, isAppAdmin: false });
+    expect(scopes).toContain("catalog:read");
+    expect(scopes).toContain("catalog:draft");
+    expect(scopes).not.toContain("feedback:read");
+  });
+
+  it("adds feedback scopes only for an app-admin", () => {
+    const scopes = accessibleScopes({ canManageCatalog: false, isAppAdmin: true });
+    expect(scopes).toContain("feedback:read");
+    expect(scopes).toContain("feedback:triage");
+    expect(scopes).not.toContain("catalog:read");
+  });
+
+  it("grants the full catalog to a catalog-managing admin", () => {
+    expect(accessibleScopes({ canManageCatalog: true, isAppAdmin: true })).toEqual([...MCP_SCOPES]);
   });
 });
 

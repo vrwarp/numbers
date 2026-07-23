@@ -5215,6 +5215,12 @@
     "zh-Hans": "todo",
     "zh-Hant": "todo"
   },
+  "Errors.mcpScopeForbidden": {
+    "source": "Your role can't grant that capability",
+    "context": "Error when creating an AI-assistant connection (personal access token) with a capability the user's role can't exercise — e.g. a non-admin picking the feedback scopes, or a member picking the catalog scopes. The UI normally hides these, so this backs a crafted request.",
+    "zh-Hans": "todo",
+    "zh-Hant": "todo"
+  },
   "Errors.mcpTokenNotFound": {
     "source": "Connection not found",
     "zh-Hans": "todo",

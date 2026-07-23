@@ -956,6 +956,7 @@
     "mcpLabelRequired": "Give this connection a name",
     "mcpScopeRequired": "Choose at least one capability",
     "mcpInvalidScope": "Unknown capability requested",
+    "mcpScopeForbidden": "Your role can't grant that capability",
     "mcpTokenNotFound": "Connection not found",
     "mcpExpiryInvalid": "Choose a valid expiry",
     "feedbackRateLimited": "反馈太频繁了——请稍后再试。",
