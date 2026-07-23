@@ -200,8 +200,8 @@
   "NavBar.recentActivity": {
     "source": "Recent activity",
     "context": "Account-menu item linking to the recent-activity page. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "NavBar.signOut": {
     "source": "Sign out",
@@ -247,13 +247,13 @@
   "NavBar.manage": {
     "source": "Manage",
     "context": "Nav item (desktop) and account-menu section that group the organization-administration tools — budget categories, positions, teams, members, proposed changes, admin. Short label.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "NavBar.budgetCategories": {
     "source": "Budget categories",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "NavBar.pendingWork": {
     "source": "pending work",
@@ -269,8 +269,8 @@
   },
   "NavBar.positions": {
     "source": "Positions",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "NavBar.members": {
     "source": "Members",
@@ -279,8 +279,8 @@
   },
   "NavBar.teams": {
     "source": "Teams",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "NavBar.setupSigning": {
     "source": "Set up signing",
@@ -308,8 +308,8 @@
   },
   "NavBar.proposedChanges": {
     "source": "Proposed changes",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "NavBar.reportProblem": {
     "source": "Report a problem",
@@ -319,50 +319,50 @@
   "Manage.title": {
     "source": "Manage organization",
     "context": "Page title of the /manage hub — the landing page listing organization-administration tools (budget categories, positions, teams, members, etc.).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Manage.subtitle": {
     "source": "Church catalogs, teams, and roster.",
     "context": "One-line subtitle under the /manage page title, summarizing what the admin tools cover.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Manage.budgetCategoriesDesc": {
     "source": "Ministry codes and budgets",
     "context": "Card description on the /manage hub for the Budget categories tool (the chart of accounts).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Manage.positionsDesc": {
     "source": "Approval roles and duties",
     "context": "Card description on the /manage hub for the Positions tool (custom approval roles).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Manage.teamsDesc": {
     "source": "Budget-category groups",
     "context": "Card description on the /manage hub for the Teams tool (groups of budget-category codes).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Manage.membersDesc": {
     "source": "Directory and access",
     "context": "Card description on the /manage hub for the Members tool (member directory and roles).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Manage.proposedChangesDesc": {
     "source": "Catalog edits staged by the assistant",
     "context": "Card description on the /manage hub for Proposed changes (catalog edits an AI assistant staged over MCP, awaiting human review).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Manage.adminDesc": {
     "source": "App-level settings",
     "context": "Card description on the /manage hub for the Admin tool (app-level configuration).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Home.profileNudge": {
     "source": "Your <link>profile</link> needs a name and mailing address — both are printed on the reimbursement form.",
@@ -1854,38 +1854,38 @@
   },
   "Review.browseCategories": {
     "source": "Browse categories",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Review.guideTitle": {
     "source": "Category guide",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Review.guideSubtitle": {
     "source": "Search by account number or name.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Review.guideSearchPlaceholder": {
     "source": "Try “245” or “water”…",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Review.guideEmpty": {
     "source": "No category matches — you can still type it under “Other…”.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Review.guideClose": {
     "source": "Close",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Review.accountsLabel": {
     "source": "Accounts",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Review.undo": {
     "source": "Undo",
@@ -3044,8 +3044,8 @@
   },
   "Esign.approverPrefilledFrom": {
     "source": "Pre-filled from the {position} default. Change it below if needed.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Esign.signedButNotSynced": {
     "source": "Your signature was recorded. The page couldn’t refresh the claim’s status — it will catch up on its own. Do not sign again.",
@@ -3134,8 +3134,8 @@
   "Esign.stalledNote": {
     "source": "Waiting for a signature for {days, plural, one {# day} other {# days}}. Notifications are often missed — phones get muted, batteries die. You can withdraw and pick a different approver at any time.",
     "context": "Amber note on a claim waiting >7 days for a signature. MUST stay de-personalized and charitable (phones mute, batteries die) — never imply the approver is ignoring the owner. ICU plural on {days}.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Esign.notAttestedNull": {
     "source": "To e-sign, first set up signing on your <link>profile</link> — then two members confirm it's really you in person.",
@@ -5046,14 +5046,14 @@
   "Errors.admin.invalidValidation": {
     "source": "That test request was invalid.",
     "context": "API error: the wizard test request was malformed.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.admin.unknownService": {
     "source": "Unknown service to test.",
     "context": "API error: asked to test a service that has no wizard.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.admin.selfLockout": {
     "source": "This change would remove your own admin access — keep your email in the list",
@@ -5063,18 +5063,18 @@
   },
   "Errors.ministry.invalid": {
     "source": "Those budget categories couldn’t be saved — check the form and try again.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.ministry.codeFormat": {
     "source": "Account code must be exactly 3 digits and not 999: “{code}”.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.ministry.codeDuplicate": {
     "source": "Two active categories share the code {code} — codes must be unique.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.embeddingProbeFailed": {
     "source": "Could not reach the embedding server. Check the address and key, or use “Save without testing”.",
@@ -5083,28 +5083,28 @@
   },
   "Errors.position.invalid": {
     "source": "Those positions couldn’t be saved — check the form and try again.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.position.unknownHolder": {
     "source": "One of the selected people couldn’t be found. Refresh and try again.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.team.invalid": {
     "source": "Those teams couldn’t be saved — check the form and try again.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.team.codeFormat": {
     "source": "Invalid budget category code: “{code}”.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.team.unknownMember": {
     "source": "One of the selected people couldn’t be found. Refresh and try again.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.searchInvalid": {
     "source": "That search couldn’t be understood — adjust it and try again",
@@ -5127,109 +5127,109 @@
   "Errors.push.invalidToken": {
     "source": "That notification registration is invalid.",
     "context": "API error: malformed device registration.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.push.invalidHint": {
     "source": "That notification hint is invalid.",
     "context": "API error: malformed device-alert hint.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.push.hintRateLimited": {
     "source": "Too many device alerts in a short time — try again later.",
     "context": "API error: too many self-triggered device alerts (rate limit).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.push.notConfigured": {
     "source": "Push notifications aren’t set up for this deployment.",
     "context": "API error: this deployment has no push configured.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.push.notEnabled": {
     "source": "Turn notifications on first.",
     "context": "API error when self-testing while the master switch is off.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.push.invalidUiState": {
     "source": "That settings update is invalid.",
     "context": "API error: malformed notification-settings state update.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.catalogRoleRequired": {
     "source": "You don't have the role required to manage this catalog",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.catalogInvalidFields": {
     "source": "The proposed change has invalid fields",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.catalogEntityInvalid": {
     "source": "Unknown catalog type",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.catalogOperationInvalid": {
     "source": "That operation isn't allowed for this catalog",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.catalogTargetInvalid": {
     "source": "A create draft can't target an existing row",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.catalogTargetRequired": {
     "source": "This change must name a target row",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.catalogTargetNotFound": {
     "source": "The target row was not found",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.catalogDraftNotFound": {
     "source": "Proposed change not found",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.mcpLabelRequired": {
     "source": "Give this connection a name",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.mcpScopeRequired": {
     "source": "Choose at least one capability",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.mcpInvalidScope": {
     "source": "Unknown capability requested",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.mcpScopeForbidden": {
     "source": "Your role can't grant that capability",
     "context": "Error when creating an AI-assistant connection (personal access token) with a capability the user's role can't exercise — e.g. a non-admin picking the feedback scopes, or a member picking the catalog scopes. The UI normally hides these, so this backs a crafted request.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.mcpTokenNotFound": {
     "source": "Connection not found",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.mcpExpiryInvalid": {
     "source": "Choose a valid expiry",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.feedbackRateLimited": {
     "source": "Too many reports just now — please try again in a little while.",
@@ -5243,23 +5243,23 @@
   },
   "Errors.catalogDraftStale": {
     "source": "The item was deleted since this change was proposed",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.catalogDraftConflict": {
     "source": "The item changed since this change was proposed",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.feedbackRoleRequired": {
     "source": "You do not have the admin role required to view feedback",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Errors.feedbackNotFound": {
     "source": "Feedback report not found",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "AddReceipts.title": {
     "source": "Add receipts to this claim",
@@ -6656,164 +6656,164 @@
   "Admin.group_push": {
     "source": "Push notifications",
     "context": "Settings-editor group heading for push notification config. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.fields_FCM_SERVICE_ACCOUNT_JSON_label": {
     "source": "Messaging service account (JSON)",
     "context": "Field label: the Google service-account JSON used only for sending pushes. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.fields_FCM_SERVICE_ACCOUNT_JSON_help": {
     "source": "Paste the whole JSON key of the MESSAGING-ONLY service account (custom role with exactly cloudmessaging.messages.create — see docs/PUSH_SETUP.md). Write-only.",
     "context": "Help under the field; 'cloudmessaging.messages.create' is a literal Google permission id — never translate it; docs/PUSH_SETUP.md is a file path, verbatim.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.fields_FIREBASE_VAPID_PUBLIC_KEY_label": {
     "source": "Web Push certificate key",
     "context": "Field label for the Web Push certificate public key. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.fields_FIREBASE_VAPID_PUBLIC_KEY_help": {
     "source": "Firebase console → Project settings → Cloud Messaging → Web Push certificates → key pair. Public, client-safe.",
     "context": "Help text quoting the Firebase console menu path — console chrome stays English.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.fields_FIREBASE_MESSAGING_SENDER_ID_label": {
     "source": "Messaging sender ID",
     "context": "Field label. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.fields_FIREBASE_MESSAGING_SENDER_ID_help": {
     "source": "Firebase console → Project settings → Cloud Messaging → Sender ID.",
     "context": "Help text quoting the Firebase console path — console chrome stays English.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.fields_NOTIFY_PAUSED_label": {
     "source": "Pause all sending",
     "context": "Field label of the deployment-wide pause switch. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.fields_NOTIFY_PAUSED_help": {
     "source": "The incident switch: nothing is delivered while paused, but events keep recording (the in-app activity list is unaffected). Unpausing releases only still-fresh notifications.",
     "context": "Explains the pause: nothing sends, events still record, unpausing never fires stale ones.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.fields_NOTIFY_QUIET_label": {
     "source": "Quiet hours",
     "context": "Field label for optional quiet hours. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.fields_NOTIFY_QUIET_help": {
     "source": "Optional hold-then-send window, e.g. 21:30-08:00,sun:09:00-12:30 (server time). Off by default — phones’ own Do Not Disturb is usually the better tool. Device alerts are never held.",
     "context": "Explains the quiet-hours format ('21:30-08:00,sun:09:00-12:30' is a literal config format — keep verbatim) and that device DND is usually better.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthTitle": {
     "source": "Push notification health",
     "context": "Admin health card heading. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthLoadFailed": {
     "source": "Could not load push health.",
     "context": "Error when the health fetch fails.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthState": {
     "source": "Status",
     "context": "Health row label: overall sending status. One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthOff": {
     "source": "Not configured",
     "context": "Status value: push not configured. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthPaused": {
     "source": "Paused",
     "context": "Status value: admin paused all sending. One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthMock": {
     "source": "Mock mode",
     "context": "Status value: PUSH_MOCK test mode. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthOn": {
     "source": "Sending",
     "context": "Status value: deliveries flowing. One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthQueue": {
     "source": "Waiting to send",
     "context": "Health row label: jobs waiting to send. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthFailed": {
     "source": "Failed (last 24h)",
     "context": "Health row label: failed deliveries in the last 24 hours.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthLastSent": {
     "source": "Last delivered",
     "context": "Health row label: timestamp of the newest successful delivery.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthNever": {
     "source": "Never",
     "context": "Value when nothing was ever delivered. One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthDevices": {
     "source": "Registered devices",
     "context": "Health row label: total registered devices (aggregate).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthFewer": {
     "source": "Fewer than 5",
     "context": "Floored small count shown instead of an identifying exact number. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthSa": {
     "source": "Service account",
     "context": "Health row label: which service account is configured (its email fingerprint).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthScopeBroad": {
     "source": "This service account can do more than send messages — that weakens the e-sign security model. Recreate it with ONLY the custom messaging role (docs/PUSH_SETUP.md).",
     "context": "RED warning: the service account holds more than the messaging permission, weakening the e-sign trust model; tells the admin to recreate it. docs/PUSH_SETUP.md verbatim.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.pushHealthScopeOk": {
     "source": "Service account is messaging-only — as designed.",
     "context": "Green confirmation that the service account is correctly minimal.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.fields_ESIGN_NUDGES_OFF_label": {
     "source": "Pause setup suggestions",
@@ -6830,485 +6830,485 @@
   "Admin.tab_setup": {
     "source": "Setup",
     "context": "Admin dashboard tab label for the guided setup wizards. One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.setupIntro": {
     "source": "Guided, step-by-step configuration for each optional service — with a dry-run test where one applies. Once a service is set up, day-to-day tweaks live in Settings and Search.",
     "context": "Intro paragraph under the Setup tab.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizardSetUp": {
     "source": "Set up",
     "context": "Button on a service card that opens its setup wizard. Two words max.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizardReconfigure": {
     "source": "Reconfigure",
     "context": "Button label when a service is already configured (re-open its wizard). One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizardConfigured": {
     "source": "Configured",
     "context": "Status badge: this service is already set up. One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizardNeedsSetup": {
     "source": "Not set up",
     "context": "Status badge: this service is not configured yet. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizardMock": {
     "source": "Mock mode",
     "context": "Status badge: the service is running in test/mock mode. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizardStepOf": {
     "source": "Step {n} of {total}",
     "context": "Progress label inside a wizard; {n} current step number, {total} total steps.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizardTest": {
     "source": "Test this step",
     "context": "Button that runs a dry-run validation of the current wizard step. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizardTesting": {
     "source": "Testing…",
     "context": "Busy label on the test button while it runs. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizardTestFailed": {
     "source": "The test couldn't run — check the values and try again.",
     "context": "Error shown when the dry-run test request itself fails.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizardBack": {
     "source": "Back",
     "context": "Wizard navigation: go to the previous step. One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizardSaveNext": {
     "source": "Save & continue",
     "context": "Wizard button: save this step and go to the next. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizardSaveFinish": {
     "source": "Save & finish",
     "context": "Wizard button on the LAST step: save and finish. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizardFinish": {
     "source": "Done",
     "context": "Button on the wizard's done screen that closes it. One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizardCancel": {
     "source": "Close",
     "context": "Button that closes the wizard without finishing. One word ('Close').",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.push.title": {
     "source": "Push notifications",
     "context": "Setup-wizard title for the push-notifications service. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.push.blurb": {
     "source": "Let approvers, owners, and treasurers hear when a claim needs them.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.push.done": {
     "source": "Push notifications are configured. Send yourself a test from Profile → Notifications to confirm the whole path.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.push.steps.keys.title": {
     "source": "Web Push keys",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.push.steps.keys.intro": {
     "source": "From the Firebase console → Project settings → Cloud Messaging. Both values are client-safe.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.push.steps.account.title": {
     "source": "Sending credential",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.push.steps.account.intro": {
     "source": "Paste the whole JSON key of the messaging-only service account. The test checks that its role is scoped to sending messages and nothing more.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.push.steps.delivery.title": {
     "source": "Delivery options",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.push.steps.delivery.intro": {
     "source": "Optional. Quiet hours hold claim notifications inside a window; the pause switch stops all sending without losing the in-app activity list.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.ai.title": {
     "source": "Receipt reading (AI)",
     "context": "Setup-wizard title for receipt reading (the AI vision model). Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.ai.blurb": {
     "source": "The vision model that drafts line items from receipt photos.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.ai.done": {
     "source": "Receipt reading is configured. Generate a claim to see it in action.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.ai.steps.provider.title": {
     "source": "Provider",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.ai.steps.provider.intro": {
     "source": "Choose which backend reads receipts — OpenRouter or Google AI Studio.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.ai.steps.credentials.title": {
     "source": "API key & model",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.ai.steps.credentials.intro": {
     "source": "Enter the key and model for the provider you chose above. The test makes one tiny call to confirm they work.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.ai.steps.limits.title": {
     "source": "Rate limits",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.ai.steps.limits.intro": {
     "source": "Optional. How fast to call the model and how to back off when the provider is busy.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.firebase.title": {
     "source": "Sign-in (Firebase)",
     "context": "Setup-wizard title for Google/Firebase sign-in. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.firebase.blurb": {
     "source": "Google sign-in — the identity layer the whole app sits on.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.firebase.done": {
     "source": "Sign-in is configured. Open the app in a private window to try signing in.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.firebase.steps.webconfig.title": {
     "source": "Web app config",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.firebase.steps.webconfig.intro": {
     "source": "From the Firebase console → Project settings → Your apps. These values are client-safe.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.firebase.steps.ios.title": {
     "source": "iPhone sign-in",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.firebase.steps.ios.intro": {
     "source": "Optional but recommended if members use iPhones: serve Firebase's sign-in helper from your own origin so WebKit's storage rules don't break it. Requires your public URL plus two console entries.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.search.title": {
     "source": "Semantic search",
     "context": "Setup-wizard title for semantic search. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.search.blurb": {
     "source": "Natural-language search over receipts and claims.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.search.done": {
     "source": "Search is set up. It indexes existing content in the background; new receipts index within seconds.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.search.steps.endpoint.title": {
     "source": "Embedding endpoint",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.search.steps.endpoint.intro": {
     "source": "The address of your embedding server and its model. The test connects and detects the vector size for you.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.search.steps.enable.title": {
     "source": "Turn it on",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.wizard.search.steps.enable.intro": {
     "source": "Enable search and set how close a match has to be to show up. Saving here starts the first index build.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.push.mock": {
     "source": "Mock mode — deliveries are recorded locally, no real sending.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.push.vapidPresent": {
     "source": "Web Push key is set.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.push.vapidMissing": {
     "source": "Web Push key is missing — devices can't be registered without it.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.push.senderPresent": {
     "source": "Sender ID is set.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.push.senderMissing": {
     "source": "Sender ID is missing — add it so the browser can register for push.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.push.saMissing": {
     "source": "No sending credential yet — paste the service-account JSON.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.push.saInvalid": {
     "source": "That doesn't look like a service-account JSON key.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.push.saParsed": {
     "source": "Service account read: {email}",
     "context": "Dry-run result; {email} is the service-account email, verbatim.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.push.scopeOk": {
     "source": "The service account can send messages and nothing more — exactly right.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.push.scopeBroad": {
     "source": "This service account can do more than send messages. That weakens the e-sign security model — recreate it with only the custom messaging role.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.push.scopeUnknown": {
     "source": "Couldn't verify the service account's permissions from here. Double-check it holds only the custom messaging role.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.push.quietValid": {
     "source": "Quiet hours understood ({count, plural, one {# window} other {# windows}}).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.push.quietInvalid": {
     "source": "Quiet hours couldn't be read — expected times like 21:30-08:00,sun:09:00-12:30.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.ai.providerSelected": {
     "source": "Provider: {provider}",
     "context": "Dry-run result fragment; {provider} is a product name (OpenRouter / Google), keep as-is.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.ai.providerInvalid": {
     "source": "Unknown provider \"{provider}\" — choose OpenRouter or Google.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.ai.modelPresent": {
     "source": "Model: {model}",
     "context": "Dry-run result fragment; {model} is a model id, keep verbatim.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.ai.mock": {
     "source": "Mock mode — receipt reading returns fixed sample data, no API calls.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.ai.keyMissing": {
     "source": "{key} is missing — the model can't be reached without it.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.ai.callOk": {
     "source": "The model answered in {ms} ms — key and model work.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.ai.callFailed": {
     "source": "Test call failed: {error}",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.firebase.apiKey": {
     "source": "Web API key is set.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.firebase.apiKeyMissing": {
     "source": "Web API key is missing.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.firebase.projectId": {
     "source": "Project ID is set.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.firebase.projectIdMissing": {
     "source": "Project ID is missing.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.firebase.authDomain": {
     "source": "Auth domain is set.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.firebase.authDomainMissing": {
     "source": "Auth domain is missing.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.firebase.proxyBaseUrl": {
     "source": "Public URL is set — the iPhone sign-in proxy can use it.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.firebase.proxyNeedsBaseUrl": {
     "source": "The iPhone sign-in proxy needs your public URL — set it, or turn the proxy off.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.search.mock": {
     "source": "Mock mode — search uses recorded vectors, no endpoint call.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.search.endpointMissing": {
     "source": "Endpoint is missing.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.search.endpointPresent": {
     "source": "Endpoint is set.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.search.probeOk": {
     "source": "Connected — {dim}-dimension vectors, {ms} ms.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.checks.search.probeFailed": {
     "source": "Couldn't reach the endpoint: {error}",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.searchFields.endpoint.label": {
     "source": "Embedding endpoint",
     "context": "Field label: the embedding server URL. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.searchFields.endpoint.help": {
     "source": "Base URL of your embedding server (llama.cpp / OpenAI-compatible).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.searchFields.model.label": {
     "source": "Model",
     "context": "Field label: the embedding model name. One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.searchFields.model.help": {
     "source": "The embedding model name your server serves.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.searchFields.apiKey.label": {
     "source": "API key",
     "context": "Field label: API key for the embedding endpoint. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.searchFields.apiKey.help": {
     "source": "Sent as a Bearer token to the endpoint. Leave blank if it needs none.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.searchFields.enabled.label": {
     "source": "Enable search",
     "context": "Toggle label: turn semantic search on. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.searchFields.enabled.help": {
     "source": "Turn semantic search on and start indexing.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.searchFields.minScore.label": {
     "source": "Match threshold",
     "context": "Field label: the similarity threshold (0-1). Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.searchFields.minScore.help": {
     "source": "How close a match must be to show up, 0–1 (higher = stricter). 0.25 is a good start.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Admin.tab_feedback": {
     "source": "Feedback",
@@ -7404,192 +7404,192 @@
   },
   "Ministries.title": {
     "source": "Budget categories",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.subtitle": {
     "source": "The list requesters pick from, and the descriptions that guide them. Church-wide.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.loading": {
     "source": "Loading…",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.loadFailed": {
     "source": "Couldn’t load the categories.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.saveFailed": {
     "source": "Couldn’t save.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.addGroup": {
     "source": "+ Add group",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.addCategory": {
     "source": "+ Add category",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.loadDefaults": {
     "source": "Load defaults",
     "context": "Button in the treasurer's budget-category editor, beside '+ Add group'. Stages the app's built-in category list into the editor (adds missing categories, fills blank descriptions). 'defaults' = the built-in chart of accounts, not a settings reset. Keep short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.loadDefaultsTitle": {
     "source": "Add any missing built-in categories and fill blank descriptions with the built-in guidance. Nothing is overwritten, and nothing is saved until you save.",
     "context": "Tooltip on the 'Load defaults' button explaining what it stages; 'save' refers to the editor's own Save button.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.defaultsLoaded": {
     "source": "Loaded the built-in defaults — {added, plural, =0 {no new categories} one {# new category} other {# new categories}} added, {filled, plural, =0 {no blank descriptions} one {# blank description} other {# blank descriptions}} filled in. Review the changes, then save.",
     "context": "Info banner after clicking 'Load defaults': reports the staged (unsaved) changes. {added} = new categories appended, {filled} = blank description fields filled with built-in guidance.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.defaultsNoop": {
     "source": "Nothing to load — every built-in category is already in the list, and no blank description matched one.",
     "context": "Info banner after clicking 'Load defaults' when there was nothing to stage: every built-in category code already exists and no blank description had a built-in match.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.newGroup": {
     "source": "New group",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.groupNameAria": {
     "source": "Group name",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.code": {
     "source": "Code",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.name": {
     "source": "Name",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.description": {
     "source": "Description (optional)",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.descriptionPlaceholder": {
     "source": "Add a hint for requesters — it also guides the AI’s category suggestions…",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.codeAria": {
     "source": "Account code",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.nameAria": {
     "source": "Category name",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.active": {
     "source": "Active",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.archived": {
     "source": "Archived",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.save": {
     "source": "Save {count} change(s)",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.saveNone": {
     "source": "Saved",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.saving": {
     "source": "Saving…",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.discard": {
     "source": "Discard",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.saved": {
     "source": "Categories saved.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.renameWarning": {
     "source": "Renaming or recoding a category that’s already on claims won’t relabel those past rows — their printed value stays as it was. To retire one, archive it instead.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.reservedNote": {
     "source": "Codes are 3 digits. 999 is reserved for uncategorized “Other…” entries and never prints on the form.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.empty": {
     "source": "No categories yet — add one to get started.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.countActive": {
     "source": "{active} of {total} active",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.managePositions": {
     "source": "Manage positions",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.defaultApprover": {
     "source": "Default approver",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.defaultApproverNone": {
     "source": "No default — submitter chooses",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.positionArchivedOption": {
     "source": "{name} (archived)",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.routesTo": {
     "source": "Routes to {name}",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.routesNobody": {
     "source": "No holder here can approve yet — claims won't be pre-filled.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.routesNoHolder": {
     "source": "This position has no holder yet.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Ministries.removeUnsavedAria": {
     "source": "Remove the unsaved category {name}",
@@ -7833,13 +7833,13 @@
   },
   "Search.scopeTeam": {
     "source": "My teams",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Search.scopeTeamHint": {
     "source": "Receipts and claims under your teams' budget categories. Leave the search empty to list all of them.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Search.viewOnlyCard": {
     "source": "View only — you don’t have access to open this claim.",
@@ -7873,68 +7873,68 @@
   },
   "Positions.title": {
     "source": "Positions",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.subtitle": {
     "source": "Custom approval roles you assign to people and use as the default approver for budget categories.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.authorityNote": {
     "source": "A position is a routing label, not authority. Assigning someone here does not let them approve — they still need the Approver role, granted through the signature roster on the <link>Members</link> page.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.loading": {
     "source": "Loading…",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.loadFailed": {
     "source": "Couldn't load positions.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.saveFailed": {
     "source": "Couldn't save positions.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.saved": {
     "source": "Positions saved.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.save": {
     "source": "Save {count} change(s)",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.saveNone": {
     "source": "Saved",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.saving": {
     "source": "Saving…",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.discard": {
     "source": "Discard changes",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.addPosition": {
     "source": "New position",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.backToCategories": {
     "source": "Budget categories",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.membersPage": {
     "source": "Members",
@@ -7943,20 +7943,20 @@
   },
   "Positions.empty": {
     "source": "No positions yet — add one to set default approvers for your budget categories.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.loadDefaults": {
     "source": "Load default positions",
     "context": "Button in the empty Positions editor. Populates the editor with the standard set of deacon positions (approval roles) so the treasurer can assign people and save. Not a destructive reset — it only appears when no positions exist.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.loadDefaultsHint": {
     "source": "Adds the standard deacon roles, ready for you to assign people and save.",
     "context": "Helper text under the Load default positions button, explaining what it does.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.builtinBadge": {
     "source": "Built-in",
@@ -8026,126 +8026,126 @@
   },
   "Positions.namePlaceholder": {
     "source": "Position name (e.g. Deacon of Missions)",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.nameEnLabel": {
     "source": "English name",
     "context": "Accessible label for the English name input of a custom position in the Positions editor. English is the required fallback name.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.nameZhHansPlaceholder": {
     "source": "Simplified Chinese name (optional)",
     "context": "Placeholder/label for the optional Simplified Chinese name input of a custom position in the Positions editor.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.nameZhHantPlaceholder": {
     "source": "Traditional Chinese name (optional)",
     "context": "Placeholder/label for the optional Traditional Chinese name input of a custom position in the Positions editor.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.descriptionPlaceholder": {
     "source": "Description of this position (optional)",
     "context": "Placeholder text in a free-text input on the position editor card, under the position's name — a short note describing the role itself (e.g. its scope or who holds it), not a list of what it approves.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.active": {
     "source": "Active",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.archived": {
     "source": "Archived",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.delete": {
     "source": "Delete",
     "context": "Label for the button that permanently deletes a custom approval role (Position) in the Positions editor; also the confirm button.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.deleteConfirm": {
     "source": "Delete “{name}”? This permanently removes the position.",
     "context": "Confirmation prompt shown before permanently deleting a Position. {name} is the position's name.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.deleteConfirmInUse": {
     "source": "It is the default approver for {count, plural, one {# budget category} other {# budget categories}} — that default will be cleared.",
     "context": "Extra warning in the delete confirmation when the position is set as the default approver for one or more budget categories; deleting clears that default.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.usedByCategories": {
     "source": "Default approver for: {list}",
     "context": "Shown under a position's description on the position editor card when it is the default approver for one or more budget categories. {list} is a pre-formatted, locale-aware conjunction list (e.g. \"245 Drinking Water, 101 Missions, and 102 Youth\") of budget-category names — data, passed through as-is, never translated.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.usedByNone": {
     "source": "Not used by any budget category",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.holders": {
     "source": "Holders",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.noHolders": {
     "source": "No holder assigned yet.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.addHolder": {
     "source": "Add a holder",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.choosePerson": {
     "source": "Choose a person…",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.primary": {
     "source": "Primary",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.makePrimary": {
     "source": "Make primary",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.removeHolder": {
     "source": "Remove",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.eligibilityOk": {
     "source": "Can approve",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.eligibilityPaused": {
     "source": "Approvals paused",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.eligibilityCannot": {
     "source": "Needs Approver grant",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.holderPausedWarn": {
     "source": "{name} has paused approvals, so claims won't pre-fill to them until they resume.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Positions.holderCannotWarn": {
     "source": "{name} can't approve until an executive officer or admin grants them the Approver role on the <link>Members</link> page.",
@@ -8207,13 +8207,13 @@
   },
   "Members.positionsLink": {
     "source": "Positions",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Members.categoriesLink": {
     "source": "Budget categories",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Members.esignOffNote": {
     "source": "Electronic signing is turned off right now, so enrollment status and access controls are hidden here.",
@@ -8462,138 +8462,138 @@
   },
   "Teams.title": {
     "source": "Teams",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.subtitle": {
     "source": "Groups of members who can view the receipts filed under their budget categories.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.readOnlyNote": {
     "source": "Team membership is view-only. Members can see, list, and search receipts on filed claims under the team's budget categories — they can't edit anything, and drafts stay private to their owners.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.loading": {
     "source": "Loading…",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.loadFailed": {
     "source": "Couldn't load teams.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.saveFailed": {
     "source": "Couldn't save teams.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.saved": {
     "source": "Teams saved.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.save": {
     "source": "Save {count} change(s)",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.saveNone": {
     "source": "Saved",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.saving": {
     "source": "Saving…",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.discard": {
     "source": "Discard changes",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.addTeam": {
     "source": "New team",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.empty": {
     "source": "No teams yet — add one to share budget-category receipts with its members.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.namePlaceholder": {
     "source": "Team name (e.g. Missions team)",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.descriptionPlaceholder": {
     "source": "What this team looks after (optional)",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.active": {
     "source": "Active",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.archived": {
     "source": "Archived",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.ministries": {
     "source": "Budget categories",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.noMinistries": {
     "source": "No budget categories yet — members won't see anything until one is added.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.addMinistry": {
     "source": "Add a budget category",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.chooseMinistry": {
     "source": "Choose a category…",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.removeMinistryAria": {
     "source": "Remove category {code}",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.members": {
     "source": "Members",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.noMembers": {
     "source": "No members yet.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.addMember": {
     "source": "Add a member",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.choosePerson": {
     "source": "Choose a person…",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.removeMember": {
     "source": "Remove",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Teams.archiveEndsAccess": {
     "source": "Archiving ends every member’s read access when you save.",
@@ -8604,908 +8604,908 @@
   "Notifications.push.signingRequest.title": {
     "source": "Signature requested — {label}",
     "context": "Push notification title on a lock screen. ACTION VERB FIRST, the {label} (claim event name, user data, verbatim) LAST so tray truncation eats the label, never the verb — keep that order in Chinese too. Use 您-register (formal) for all Notifications.* text.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.signingRequest.titleBare": {
     "source": "Signature requested",
     "context": "Same push title when the claim has no event label — must read as a complete phrase on its own, no dangling dash.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.signingRequest.body": {
     "source": "Submitted by {name}",
     "context": "Push body under the signing-request title. {name} is the submitter's name, verbatim.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.signingRequest.bodyBare": {
     "source": "A claim is waiting for your signature.",
     "context": "Push body when the submitter's name is unavailable. Complete sentence.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.claimApproved.title": {
     "source": "Your claim was approved — {label}",
     "context": "Push title to the claim owner. Action first, {label} last (see signingRequest.title).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.claimApproved.titleBare": {
     "source": "Your claim was approved",
     "context": "Approved push title without a label. Complete phrase.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.claimRejected.title": {
     "source": "Your claim needs changes — {label}",
     "context": "Push title to the owner when the approver asked for changes. Deliberately soft ('needs changes', not 'rejected'). Action first, {label} last.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.claimRejected.titleBare": {
     "source": "Your claim needs changes",
     "context": "Needs-changes push title without a label.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.claimRejected.body": {
     "source": "Tap to see the reviewer’s note.",
     "context": "Push body inviting the tap; the reviewer's note itself NEVER appears on the lock screen.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.financeQueue.title": {
     "source": "{count, plural, =1 {A claim is ready for payment} other {# claims are ready for payment}}",
     "context": "Push title to treasurers; coalesces — ICU plural on {count} (approved claims awaiting payment).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.financeQueue.bodySingle": {
     "source": "Ready for payment — {label}",
     "context": "Push body when exactly one claim is ready; {label} = claim event name, verbatim. Also reused as the activity-list line for this event.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.claimPaid.title": {
     "source": "Your reimbursement was paid — {label}",
     "context": "Push title to the owner when a treasurer records payment. No amounts, no check number — deliberate.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.claimPaid.titleBare": {
     "source": "Your reimbursement was paid",
     "context": "Paid push title without a label.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.deviceRequest.title": {
     "source": "A new device asked to join your signing identity",
     "context": "SECURITY push: a new device asked to join the user's e-sign identity. Calm but attention-getting.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.deviceRequest.body": {
     "source": "If this wasn’t you, review now.",
     "context": "Security push body. 'review now' = open the app and look at the device request banner.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.selfTest.title": {
     "source": "This is your test notification.",
     "context": "The test notification a user sends themselves from the profile card.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.selfTest.body": {
     "source": "Notifications are working on this device.",
     "context": "Body of the self-test notification.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.discreet.signing": {
     "source": "A signature request is waiting",
     "context": "Discreet-mode replacement title: reveals NOTHING about who/what on a shared lock screen. Pairs with discreet.body.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.discreet.claims": {
     "source": "An update on one of your claims",
     "context": "Discreet-mode replacement title for any own-claim event (approved/changes/paid) — outcome-neutral on purpose.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.discreet.finance": {
     "source": "Claims may be ready for payment",
     "context": "Discreet-mode replacement title for the treasurer queue event.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.push.discreet.body": {
     "source": "Open Numbers to see the details.",
     "context": "Discreet-mode shared body. 'Numbers' stays verbatim.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.title": {
     "source": "Notifications",
     "context": "Profile page card heading for notification settings. One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.undo": {
     "source": "Turn everything off anytime: Profile → Notifications → Off. This works even if your phone’s settings are wrong.",
     "context": "THE taught undo sentence — opens the card and ends the soft-ask, verbatim in both places. 'Profile → Notifications → Off' quotes this app's own UI path.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.notConfigured": {
     "source": "Push notifications aren’t set up for this deployment yet — an admin can enable them in Admin → Settings.",
     "context": "Muted note when the deployment has no push configured; points admins to Admin → Settings (quotes app UI names).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.loadFailed": {
     "source": "Could not load your notification settings.",
     "context": "Error line when the settings fetch fails.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.saveFailed": {
     "source": "Could not save that change.",
     "context": "Error line when saving a toggle fails.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.enable": {
     "source": "Turn on notifications",
     "context": "Primary button starting the enable flow (opens the soft-ask dialog). Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.enableFailed": {
     "source": "Could not turn notifications on — please try again.",
     "context": "Error line when token registration fails after permission was granted.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.thisDeviceOn": {
     "source": "This device is receiving notifications.",
     "context": "Status line: the device you are looking at is registered. Pairs with the 'Turn off on this device' button.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.thisDeviceOff": {
     "source": "Turn off on this device",
     "context": "Button: stop notifications on the current device only (account stays on). Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.thisDeviceEnable": {
     "source": "Turn on for this device",
     "context": "Button: account is on but THIS device isn't registered yet. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.noDevices": {
     "source": "Notifications are on, but no device is currently receiving them.",
     "context": "Amber banner: account-level on but zero registered devices — nothing will actually arrive. Also shown app-wide.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.devices": {
     "source": "Devices receiving notifications",
     "context": "List heading for registered devices. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.deviceCurrent": {
     "source": "This device",
     "context": "Tiny badge marking the device row you are on. One-two words.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.deviceUnnamed": {
     "source": "Unnamed device",
     "context": "Fallback device label when no browser label was captured. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.deviceRemove": {
     "source": "Remove",
     "context": "Button on a device row: deregister that device. One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.deviceRemoveAria": {
     "source": "Stop notifications on {label}",
     "context": "aria-label of the remove button; {label} is the device label ('Safari · iPhone'), verbatim.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.selfTest": {
     "source": "Send myself a test notification",
     "context": "Button: send yourself one test notification (the 'is it working?' check). Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.selfTestSent": {
     "source": "Sent at {time} — did this device show it?",
     "context": "In-page confirmation after the test send; {time} is a localized clock time. The question makes the user verify the phone actually showed it.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.accountOff": {
     "source": "Turn all notifications off",
     "context": "The master OFF button (danger style): stops all delivery server-side for the whole account. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.turnOn": {
     "source": "Turn on",
     "context": "Generic toggle button label used on category rows. One-two words. Pairs with turnOff.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.card.turnOff": {
     "source": "Turn off",
     "context": "Generic toggle button label used on category rows. One-two words. Pairs with turnOn.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.categories.title": {
     "source": "What you’ll be told about",
     "context": "Heading above the per-category toggle rows. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.categories.signing.name": {
     "source": "Signing requests",
     "context": "Category toggle name: pushes about claims awaiting YOUR signature (shown to approvers only). Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.categories.signing.example": {
     "source": "e.g. “Signature requested — Retreat 2026”",
     "context": "Example line under the toggle AND a bullet in the soft-ask; quotes the actual push title format with a sample label.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.categories.claims.name": {
     "source": "My claims",
     "context": "Category toggle name: pushes about the user's OWN claims. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.categories.claims.example": {
     "source": "e.g. “Your claim was approved”",
     "context": "Example line; quotes the approved-push title.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.categories.finance.name": {
     "source": "Payments to make",
     "context": "Category toggle name for treasurers: approved claims awaiting payment. Deliberately plain-language ('Payments to make'), NOT the jargon 'Finance'. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.categories.finance.example": {
     "source": "e.g. “A claim is ready for payment”",
     "context": "Example line; quotes the finance push title.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.categories.security.name": {
     "source": "Security",
     "context": "Category toggle name: new-device security alerts. One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.categories.security.example": {
     "source": "e.g. “A new device asked to join your signing identity”",
     "context": "Example line; quotes the device-request push title.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.categories.discreet.name": {
     "source": "Discreet previews",
     "context": "Toggle name for discreet lock-screen previews. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.categories.discreet.example": {
     "source": "Lock-screen text hides names and outcomes — “An update on one of your claims”.",
     "context": "Explains what discreet mode does and quotes the neutral preview text.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.softAsk.title": {
     "source": "Turn on notifications?",
     "context": "Dialog heading of the pre-permission explainer ('soft ask'). Question form.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.softAsk.body": {
     "source": "Numbers will notify this device about:",
     "context": "Line above the bullet list of what the user will be notified about. 'Numbers' verbatim.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.softAsk.privacy": {
     "source": "Only you can see your notification settings. No one is told whether a notification reached you, or when.",
     "context": "Privacy promise in the soft-ask — key trust sentence, translate precisely: nobody can see settings or delivery state.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.softAsk.noDuty": {
     "source": "This doesn’t create a duty to respond faster — the badges in the app remain the official queue.",
     "context": "Reassurance for role-holders: enabling creates no obligation to answer faster. 'badges' = the red count dots in this app's navigation.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.softAsk.reassign": {
     "source": "Owners can withdraw or reassign a signature request at any time — that is routine, not a judgment.",
     "context": "Normalization line for approvers: vanished requests are routine workflow (withdrawal/reassignment), NEVER censure. Must not imply cause or blame.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.softAsk.shared": {
     "source": "Is this a shared computer or a family tablet? Don’t turn notifications on here — or use discreet previews.",
     "context": "Warning line about shared computers / family tablets, pointing at discreet previews as the alternative.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.softAsk.promptHint": {
     "source": "Next, your device asks permission — choose “Allow”.",
     "context": "Line right before the native browser permission dialog; “Allow” quotes the OS button and must NOT be naturalized — keep the English word, optionally adding the Chinese beside it.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.softAsk.promptHintOs": {
     "source": "Your device may show that dialog in its own language; “Allow / 允許” is the agree button.",
     "context": "Shown when the device language differs from the app language. “Allow / 允許” quotes OS chrome verbatim in both languages — do not alter.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.softAsk.confirm": {
     "source": "Continue",
     "context": "Soft-ask confirm button (then the native prompt fires). One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.softAsk.decline": {
     "source": "Not now",
     "context": "Soft-ask decline button — genuinely neutral, no guilt. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.embedded.title": {
     "source": "Open in your browser first",
     "context": "Heading when the app runs inside WeChat/Line/etc. where notifications are impossible. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.embedded.body": {
     "source": "Notifications can’t be turned on inside this app (WeChat, Line…). Open Numbers in Safari or Chrome, then come back to this page.",
     "context": "Explains to open the site in a real browser; 'WeChat, Line' are product names, keep recognizable (微信 / LINE fine).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.embedded.copyLink": {
     "source": "Copy link",
     "context": "Button copying the app URL. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.embedded.copied": {
     "source": "Copied",
     "context": "Button label after copying. One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.iosInstall.title": {
     "source": "Add Numbers to your Home Screen first",
     "context": "Heading of the iPhone install instructions. 'Home Screen' quotes iOS chrome — dual-language per glossary if needed.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.iosInstall.step1": {
     "source": "1. In Safari, tap the Share button (the square with an arrow).",
     "context": "iOS install step; 'Share' quotes the iOS button name — do not naturalize away the English.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.iosInstall.step2": {
     "source": "2. Choose “Add to Home Screen”.",
     "context": "iOS install step; “Add to Home Screen” quotes the iOS menu item verbatim — keep the English, Chinese may follow in parentheses.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.iosInstall.step3": {
     "source": "3. Open the new Numbers icon, sign in there, and turn notifications on.",
     "context": "iOS install step: open the installed icon, sign in, enable.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.iosInstall.note": {
     "source": "The installed app counts as a new device for signing — if you e-sign, approve it from here when it asks. If you stop partway, the app will remind you to finish; nothing is lost.",
     "context": "Reassurance: the installed app is a NEW signing device (typed-code approval will run), and abandoning mid-flow is safe/resumable.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.iosInstall.started": {
     "source": "I’ve added it",
     "context": "Button the user taps after adding the icon. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.iosInstall.marked": {
     "source": "Great — continue in the installed app.",
     "context": "Confirmation after tapping 'I've added it' — continue inside the installed app.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.iosOld.body": {
     "source": "This iPhone’s software is too old for web notifications — iOS 16.4 or later is required.",
     "context": "Honest dead-end for iOS 15 and older; no workaround exists.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.unsupported.body": {
     "source": "This browser can’t receive push notifications.",
     "context": "Honest dead-end for browsers without the Push API.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.denied.title": {
     "source": "Notifications are blocked by this browser",
     "context": "Heading when browser permission is permanently denied. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.denied.desktop": {
     "source": "Click the lock icon in the address bar → “Site settings” → allow Notifications, then try again.",
     "context": "Desktop/Android unblock path; 'Site settings' quotes browser chrome — keep English, may add Chinese beside.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.denied.ios": {
     "source": "Remove the app icon from your Home Screen and add it again (Share → “Add to Home Screen”), then choose Allow when asked. Removing the icon also removes this device’s signing key — you’ll approve this device again afterwards.",
     "context": "iOS recovery: remove + re-add the Home Screen icon (the honest path — there is no settings toggle before first grant). Warns the signing key resets. “Add to Home Screen” quotes iOS chrome.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.runtime.reconnect": {
     "source": "Reconnect",
     "context": "Chip button re-registering this device. One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.runtime.reconnectBody": {
     "source": "Notifications are on for your account, but this device stopped receiving them.",
     "context": "Banner text when the account is on but THIS device silently stopped receiving (phone migration, storage eviction).",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.runtime.resumeBody": {
     "source": "Finish setting up notifications — you’re almost there.",
     "context": "Banner text resuming the abandoned iPhone setup. Encouraging, short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.runtime.openSettings": {
     "source": "Open settings",
     "context": "Banner button to the profile notifications card. Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.runtime.dismiss": {
     "source": "Dismiss",
     "context": "Dismiss button (also aria-label of the ✕). One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.runtime.open": {
     "source": "Open",
     "context": "Toast button opening the notification's target page. One word.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.runtime.openWhenReady": {
     "source": "A notification arrived — open it when you’re ready (your receipts are still processing).",
     "context": "Toast shown when a notification arrives while receipts are mid-extraction: we refuse to navigate away; parenthetical explains why.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.activity.title": {
     "source": "Recent activity",
     "context": "Page heading for the recent-activity list (its own page, reached from the account menu). Short.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.activity.deletedClaim": {
     "source": "a deleted claim",
     "context": "Substituted for the claim label when the claim was deleted; lowercase, slots into titles like 'Signature requested — a deleted claim'.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.activity.byName": {
     "source": "by {name}",
     "context": "Small attribution line under an activity row; {name} is a member name, verbatim. Lowercase 'by'.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.activity.subtitle": {
     "source": "Approvals, payments, and signing requests — the same updates sent as notifications, gathered here.",
     "context": "Subtitle under the Recent activity page heading, explaining what the list contains.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Notifications.activity.empty": {
     "source": "No activity yet. Updates about your claims and signing requests will show up here.",
     "context": "Empty-state message on the Recent activity page when the member has no activity yet.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.title": {
     "source": "AI assistant connections",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.subtitle": {
     "source": "Connect an AI assistant (like Claude or ChatGPT) to Numbers. Each connection is a token you control — pick exactly what it may do, and revoke it anytime. Connections can never sign, submit, or approve.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.endpointTitle": {
     "source": "MCP endpoint",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.endpointBody": {
     "source": "In your assistant, add this URL as a custom connector (Claude) or app (ChatGPT), then paste a token below as the bearer credential.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.copy": {
     "source": "Copy",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.copied": {
     "source": "Copied",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.newTitle": {
     "source": "New connection",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.nameLabel": {
     "source": "Name",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.namePlaceholder": {
     "source": "e.g. Claude on my laptop",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.scopesLabel": {
     "source": "What may this connection do?",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.expiryLabel": {
     "source": "Expires",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.expiryNever": {
     "source": "Never",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.expiry30": {
     "source": "In 30 days",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.expiry90": {
     "source": "In 90 days",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.expiry365": {
     "source": "In a year",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.create": {
     "source": "Create connection",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.creating": {
     "source": "Creating…",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.tokenTitle": {
     "source": "Copy your token now",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.tokenBody": {
     "source": "This is the only time the token is shown. Paste it into your assistant's Numbers connection.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.done": {
     "source": "Done",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.existingTitle": {
     "source": "Your connections",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.empty": {
     "source": "No connections yet.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.can": {
     "source": "Can:",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.created": {
     "source": "Created {date}",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.lastUsed": {
     "source": "Last used {date}",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.neverUsed": {
     "source": "Never used",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.expires": {
     "source": "Expires {date}",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.expired": {
     "source": "Expired",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.revoked": {
     "source": "Revoked",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.revoke": {
     "source": "Revoke",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.revoking": {
     "source": "Revoking…",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.loadFailed": {
     "source": "Couldn't load your connections.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.saveFailed": {
     "source": "Couldn't save. Try again.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.scope.receiptsRead": {
     "source": "Read receipts",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.scope.claimsRead": {
     "source": "Read claims and their status",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.scope.claimsDraft": {
     "source": "Create and edit draft claims",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.scope.aiSuggest": {
     "source": "Ask AI for ministry suggestions",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.scope.catalogRead": {
     "source": "Read ministries, teams, and positions",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.scope.catalogDraft": {
     "source": "Propose ministry/team/position edits (a human applies them)",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.scope.feedbackRead": {
     "source": "View user feedback reports",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.scope.feedbackTriage": {
     "source": "Update feedback report status (new / triaged / closed)",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.scopeHint.catalogRead": {
     "source": "Only works if your role can manage that catalog.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.scopeHint.catalogDraft": {
     "source": "Proposals are reviewed on Proposed Changes; nothing changes until a human applies it.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.scopeHint.feedbackRead": {
     "source": "Admin only — reports can contain personal details.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Connections.reviewLink": {
     "source": "Review proposed changes",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.navLabel": {
     "source": "Proposed changes",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.title": {
     "source": "Proposed changes",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.subtitle": {
     "source": "Catalog edits your AI assistant staged for review. Applying performs the change and is audited; discarding drops it. Nothing here has changed the catalogs yet.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.empty": {
     "source": "No proposed changes to review.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.loadFailed": {
     "source": "Couldn't load proposed changes.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.actionFailed": {
     "source": "Couldn't complete that. Try again.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.sectionMinistry": {
     "source": "Ministries",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.sectionTeam": {
     "source": "Teams",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.sectionPosition": {
     "source": "Positions",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.opCreate": {
     "source": "Create",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.opUpdate": {
     "source": "Update",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.opArchive": {
     "source": "Archive",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.opDelete": {
     "source": "Delete",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.target": {
     "source": "Target: {label}",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.proposed": {
     "source": "Proposed: {summary}",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.note": {
     "source": "Note: {note}",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.by": {
     "source": "by {name}",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.apply": {
     "source": "Apply",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.applying": {
     "source": "Applying…",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.discard": {
     "source": "Discard",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.discarding": {
     "source": "Discarding…",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.currentLabel": {
     "source": "Now",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.proposedLabel": {
     "source": "Proposed",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.conflictTag": {
     "source": "changed",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.staleGone": {
     "source": "This {entity} was deleted since the change was proposed — discard it.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.staleConflict": {
     "source": "This {entity} changed since the change was proposed. Re-review before applying.",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "CatalogDrafts.cantApply": {
     "source": "Can’t apply",
-    "zh-Hans": "todo",
-    "zh-Hant": "todo"
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
   },
   "Feedback.title": {
     "source": "Something not working?",
