@@ -143,6 +143,17 @@ export async function esignCharproof(
     charproof.initializeZK({
       db: (await import("firebase/firestore")).getFirestore(getApps()[0]),
       auth: fb.getAuth(getApps()[0]),
+      // Request a discoverable PLATFORM passkey (charproof ≥1.0.10). Its default
+      // residentKey:"required" is what makes Android Chrome route credential
+      // creation to Google Password Manager — which provisions the PRF/hmac-secret
+      // the AMK genesis needs — instead of the legacy security-key chooser, which
+      // yields no PRF. Pinning platform additionally skips the cross-device chooser
+      // so members land straight on the fingerprint prompt (the church is all
+      // phones/laptops; roaming security keys aren't a recovery path here). The
+      // default userVerification "discouraged" is kept, matching credentials sealed
+      // by earlier versions so their recovery is unchanged. Overridden by the mock
+      // provider below when the emulator is configured.
+      prf: { authenticatorAttachment: "platform" },
     });
     if (isEmulatorConfigured()) {
       // Headless e2e can't drive real WebAuthn; the emulator-gated mock
