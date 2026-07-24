@@ -506,7 +506,7 @@
     "ceremonyFailed": "签署失败",
     "loadFailed": "加载失败",
     "connectTitle": "在此设备上连接签名",
-    "connectBody": "使用教会 Google 账号登录以安全签名。此设备上只需操作一次。",
+    "connectBody": "使用教会 Google 账号登录，以便安全签署。如果您退出登录，或有一段时间未在此设备上使用 Numbers，可能需要重新登录。",
     "connectButton": "连接签名",
     "connecting": "连接中…",
     "connectFailed": "无法连接签名",

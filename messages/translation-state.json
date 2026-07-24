@@ -2770,7 +2770,8 @@
     "zh-Hant": "machine"
   },
   "Esign.connectBody": {
-    "source": "Sign in with your church Google account to sign securely. You only need to do this once on this device.",
+    "source": "Sign in with your church Google account to sign securely. You may be asked again if you sign out of Numbers, or if you haven't used it on this device for a while.",
+    "context": "Body of the \"Connect signing on this device\" card, under Esign.connectTitle. Deliberately does NOT promise a one-time step: the login exchange drops the Firebase client session, and Safari evicts browser storage after about a week unused, so the card legitimately returns. \"sign out of Numbers\" = the app's own sign-out, not signing a claim.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

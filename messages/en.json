@@ -506,7 +506,7 @@
     "ceremonyFailed": "Ceremony failed",
     "loadFailed": "Could not load",
     "connectTitle": "Connect signing on this device",
-    "connectBody": "Sign in with your church Google account to sign securely. You only need to do this once on this device.",
+    "connectBody": "Sign in with your church Google account to sign securely. You may be asked again if you sign out of Numbers, or if you haven't used it on this device for a while.",
     "connectButton": "Connect signing",
     "connecting": "Connecting…",
     "connectFailed": "Could not connect signing",

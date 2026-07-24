@@ -10,7 +10,15 @@
  *
  * The mock backend has no Firebase and the emulator signs in silently, so
  * `hasSigningSession` reports "ready" immediately there and this card never
- * shows — the gate is invisible except on the real backend, once per device.
+ * shows — the gate is invisible except on the real backend.
+ *
+ * It is NOT a once-per-device step, and the copy (`Esign.connectBody`) must not
+ * promise that it is: SignInCard signs out of Firebase on every numbers login
+ * (firebase-client's "verified posture"), and the restored session lives in
+ * IndexedDB, which WebKit evicts after ~7 days of not visiting the site while
+ * our own session cookie runs 90. So the card legitimately reappears after a
+ * re-login or a quiet week — connecting again is cheap (the vouched signing KEY
+ * is separate custody), and the wording says so.
  */
 
 import { useCallback, useEffect, useState } from "react";
