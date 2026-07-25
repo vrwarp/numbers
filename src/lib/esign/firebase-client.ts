@@ -132,6 +132,40 @@ function matchesExpected(user: { email?: string | null } | null): boolean {
 }
 
 /**
+ * Thrown when the Google account picked in the chooser isn't the one this
+ * numbers session belongs to. Carries a `code` + `params` so the UI translates
+ * it (invariant 10) instead of surfacing raw English — it is a member-facing
+ * mistake, not one of the deliberately-English protocol diagnostics.
+ */
+export class EsignAccountMismatchError extends Error {
+  code = "esign.accountMismatch";
+  payload: { code: string; params: { expected: string } };
+  /** Only the EXPECTED address travels: it is the actionable half, and the
+   *  account they mistakenly picked is still in front of them in the chooser.
+   *  Keeping one param also avoids an empty-string placeholder on the rare
+   *  credential with no email. */
+  constructor(expected: string) {
+    super(`Wrong Google account — this numbers account is ${expected}.`);
+    this.name = "EsignAccountMismatchError";
+    this.payload = { code: "esign.accountMismatch", params: { expected } };
+  }
+}
+
+/**
+ * The Google provider, pre-pointed at the account this numbers session belongs
+ * to. `login_hint` makes the chooser open on the right account, so the common
+ * "picked the wrong Google account" dead-end mostly stops happening — the card
+ * now invites the chooser explicitly ("Sign in with Google"). It is only a
+ * HINT: a member can still switch accounts, so the same-email check below stays
+ * authoritative and EsignAccountMismatchError stays reachable.
+ */
+function googleProvider(fb: FirebaseAuthModule) {
+  const provider = new fb.GoogleAuthProvider();
+  if (expectedEmail) provider.setCustomParameters({ login_hint: expectedEmail });
+  return provider;
+}
+
+/**
  * Is signInWithRedirect a trustworthy substitute for the popup here? ONLY when
  * the redirect handler is FIRST-PARTY — FIREBASE_AUTH_PROXY has made the SDK's
  * authDomain our own origin — because a third-party *.firebaseapp.com redirect
@@ -280,13 +314,13 @@ async function signIn(
   // the same-email guard) on the next load. Without the auth proxy no trusted
   // redirect exists, so we fall through and let the popup surface its error.
   if (isStandaloneDisplay() && isFirstPartyRedirect(config, window.location.host)) {
-    await fb.signInWithRedirect(auth, new fb.GoogleAuthProvider());
+    await fb.signInWithRedirect(auth, googleProvider(fb));
     return;
   }
 
   let credential: import("firebase/auth").UserCredential;
   try {
-    credential = await fb.signInWithPopup(auth, new fb.GoogleAuthProvider());
+    credential = await fb.signInWithPopup(auth, googleProvider(fb));
   } catch (err) {
     // Secondary path: a popup blocker in a normal browser tab. (The installed
     // PWA is handled above — there the popup hangs instead of erroring.) When
@@ -294,7 +328,7 @@ async function signIn(
     // the same escape hatch SignInCard uses to log in.
     const code = (err as { code?: string })?.code ?? "";
     if (shouldRedirectAuth(config, code, window.location.host)) {
-      await fb.signInWithRedirect(auth, new fb.GoogleAuthProvider());
+      await fb.signInWithRedirect(auth, googleProvider(fb));
       return;
     }
     throw err;
@@ -302,9 +336,6 @@ async function signIn(
   const email = credential.user.email?.toLowerCase();
   if (email !== expectedEmail) {
     await fb.signOut(auth).catch(() => {});
-    throw new Error(
-      `Signed into Google as ${email ?? "an unknown account"}, but this numbers account is ${expectedEmail}. ` +
-        "Use the same Google account to sign ledger events."
-    );
+    throw new EsignAccountMismatchError(expectedEmail ?? "");
   }
 }

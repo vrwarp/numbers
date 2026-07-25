@@ -2765,34 +2765,38 @@
     "zh-Hant": "machine"
   },
   "Esign.connectTitle": {
-    "source": "Connect signing on this device",
+    "source": "Google sign-in needed",
+    "context": "Heading of the card asking the member to sign in to Google before signing. States a NEED, not a state, so it stays true both for a member setting signing up for the first time and one whose browser sign-in lapsed. Do NOT translate as verification (验证 = signature-chain verification) or confirmation (确认 = vouching) — both are other features in this app.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Esign.connectBody": {
-    "source": "Sign in with your church Google account to sign securely. You only need to do this once on this device.",
+    "source": "Your Google sign-in is how the church knows a signature is yours. Numbers asks for it again from time to time.",
+    "context": "Body of that card. Two jobs: why Google is involved (it is what lets the church attribute a signature to this member) and that it recurs. Deliberately names no cause — there are three (re-login, browser storage cleared, installed app is a separate container) and picking one would be wrong for members hitting another. Avoid 确认/验证 for 'knows'; 知道 is the intended sense.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Esign.connectButton": {
-    "source": "Connect signing",
-    "context": "Button to connect this device's signing session (unlock the signing key for a ceremony). Imperative.",
+    "source": "Sign in with Google",
+    "context": "Button that opens the Google sign-in window. Use the settled platform wording for 'Sign in with Google' in each locale, not a literal re-translation.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Esign.connecting": {
-    "source": "Connecting…",
-    "context": "Transient status shown while the signing session connects. Trailing ellipsis.",
+    "source": "Opening Google…",
+    "context": "Busy label on that button while the Google window opens. Present progressive.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Esign.connectFailed": {
-    "source": "Could not connect signing",
+    "source": "Could not sign in with Google",
+    "context": "Fallback error when the Google sign-in could not be completed.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
   "Esign.connectBlocked": {
-    "source": "Your browser blocked the sign-in window. Tap “Connect signing” again to allow it.",
+    "source": "Your browser blocked the sign-in window. Tap “Sign in with Google” again to allow it.",
+    "context": "Shown when the browser blocked the Google popup. Quotes the button label verbatim — keep it identical to Esign.connectButton in this locale.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -3710,12 +3714,6 @@
   "Identity.reEnrollButton": {
     "source": "Set up signing again",
     "context": "Button re-starting enrollment after a key revocation. Short.",
-    "zh-Hans": "machine",
-    "zh-Hant": "machine"
-  },
-  "Identity.connectFraming": {
-    "source": "First, sign in with the same Google account you use for this app.",
-    "context": "One plain line above the connect (Google popup) card on the profile signing card — sets the expectation the nudges promised.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },
@@ -5020,6 +5018,12 @@
   "Errors.esign.timedOut": {
     "source": "This is taking too long — check your connection and try again",
     "context": "Shown when a signing setup ceremony (bootstrap or enroll) overruns a client-side watchdog because a Firestore/charproof step hung — e.g. inside an installed PWA on a wedged connection. Turns an infinite 'Setting up…' spinner into a retryable error.",
+    "zh-Hans": "machine",
+    "zh-Hant": "machine"
+  },
+  "Errors.esign.accountMismatch": {
+    "source": "That is a different Google account. Sign in as {expected} to sign.",
+    "context": "Shown when the member picked a different Google account in the chooser than the one their Numbers account uses. {expected} is an email address. Tell them which account to use; the wrong one they picked is still visible to them.",
     "zh-Hans": "machine",
     "zh-Hant": "machine"
   },

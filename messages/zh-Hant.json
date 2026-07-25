@@ -505,12 +505,12 @@
     "submissionFailed": "提交失敗",
     "ceremonyFailed": "簽署失敗",
     "loadFailed": "載入失敗",
-    "connectTitle": "在此裝置上連接簽署",
-    "connectBody": "使用教會 Google 帳號登入以安全簽署。此裝置上只需操作一次。",
-    "connectButton": "連接簽署",
-    "connecting": "連接中…",
-    "connectFailed": "無法連接簽署",
-    "connectBlocked": "瀏覽器封鎖了登入視窗。請再次點按「連接簽署」以允許彈出。",
+    "connectTitle": "需要 Google 登入",
+    "connectBody": "您的 Google 登入讓教會知道簽署出自您本人。Numbers 會不時再次請您登入。",
+    "connectButton": "使用 Google 登入",
+    "connecting": "正在開啟 Google…",
+    "connectFailed": "無法使用 Google 登入",
+    "connectBlocked": "瀏覽器封鎖了登入視窗。請再次點按「使用 Google 登入」以允許彈出。",
     "itemsCount": "{count} 個項目",
     "metaSubmitted": "提交於 {date}",
     "metaApproved": "核准於 {date}",
@@ -669,8 +669,7 @@
     "scanFromVouchTab": "重要提示：請對方在本應用程式的「擔保」分頁中掃描此碼——不要用手機相機應用程式掃描。",
     "whoCanVouch": "可以為您擔保的成員：{names}{more, plural, =0 {} other { 等，還有 # 人}}。",
     "revokedBody": "您的簽名金鑰已被管理員停用。您之前簽署的內容仍然有效，但若要再次簽署，需要重新設定簽名並再次當面獲得擔保。",
-    "reEnrollButton": "重新設定簽名",
-    "connectFraming": "請先用您在本應用程式使用的同一個 Google 帳號登入。"
+    "reEnrollButton": "重新設定簽名"
   },
   "Devices": {
     "newDeviceTitle": "這似乎是一台新裝置。",
@@ -908,7 +907,8 @@
       "approverRoleLost": "您的審批人角色已被移除——您可以拒絕，但無法批准",
       "decisionNotBinding": "已簽署的決定未能在帳本上生效——請重新整理本報銷單後重試，或請提交人改選其他審批人",
       "invalidNudge": "此更新未能儲存。",
-      "timedOut": "此操作耗時過長——請檢查網路連線後重試"
+      "timedOut": "此操作耗時過長——請檢查網路連線後重試",
+      "accountMismatch": "這是另一個 Google 帳號。請以 {expected} 登入後再簽署。"
     },
     "rules": {
       "keyMissing": "請貼上用於部署的服務帳號金鑰。",
