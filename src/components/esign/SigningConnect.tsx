@@ -12,13 +12,25 @@
  * `hasSigningSession` reports "ready" immediately there and this card never
  * shows — the gate is invisible except on the real backend.
  *
- * It is NOT a once-per-device step, and the copy (`Esign.connectBody`) must not
- * promise that it is: SignInCard signs out of Firebase on every numbers login
- * (firebase-client's "verified posture"), and the restored session lives in
- * IndexedDB, which WebKit evicts after ~7 days of not visiting the site while
- * our own session cookie runs 90. So the card legitimately reappears after a
- * re-login or a quiet week — connecting again is cheap (the vouched signing KEY
- * is separate custody), and the wording says so.
+ * COPY CONTRACT — three constraints, each learned the hard way:
+ *
+ * 1. It is NOT a once-per-device step and must never promise that it is.
+ *    SignInCard signs out of Firebase on every numbers login (firebase-client's
+ *    "verified posture"); the restored session lives in IndexedDB, which WebKit
+ *    evicts after ~7 days unvisited while our own cookie runs 90; and an
+ *    installed home-screen app is a separate storage container from the
+ *    browser. Three causes, so `Esign.connectBody` says "again from time to
+ *    time" and names none of them — a string that picked one would be wrong for
+ *    members hitting another.
+ * 2. Never call this "verification" or "confirmation". Both are taken:
+ *    verify/验证 is signature-chain verification (`Verify.failedTitle` is
+ *    literally "Verification failed") and row verification (`Review.verifyAll`);
+ *    confirm/确认 is VOUCHING (`NavBar.chipPending` "Waiting for confirmation",
+ *    `Vouch.confirmLabel`). On a claim page this card renders directly above
+ *    `ChainAlert`, so "Verification needed" there reads as a tamper warning,
+ *    and "confirmation" sends members hunting for an officer to scan their QR.
+ * 3. The title is a NEED, not a state, so it stays true on every surface and
+ *    for both the never-enrolled and lapsed cases — one string, no selector.
  */
 
 import { useCallback, useEffect, useState } from "react";

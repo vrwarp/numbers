@@ -101,6 +101,9 @@ export const QUOTED_IN: readonly { message: string; quotes: string; strip?: stri
   { message: "Home.esignClosureVouchLine", quotes: "NavBar.vouch" },
   // The Members rollout hint names the Vouch tab/page link.
   { message: "Members.selfVouchHint", quotes: "NavBar.vouch" },
+  // The popup-blocked recovery tells the member to tap the connect button by
+  // name, so it has to quote whatever that button currently says.
+  { message: "Esign.connectBlocked", quotes: "Esign.connectButton" },
 ];
 
 export function flatten(obj: Messages, prefix = ""): Map<string, string> {

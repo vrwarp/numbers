@@ -505,12 +505,12 @@
     "submissionFailed": "Submission failed",
     "ceremonyFailed": "Ceremony failed",
     "loadFailed": "Could not load",
-    "connectTitle": "Connect signing on this device",
-    "connectBody": "Sign in with your church Google account to sign securely. You may be asked again if you sign out of Numbers, or if you haven't used it on this device for a while.",
-    "connectButton": "Connect signing",
-    "connecting": "Connecting…",
-    "connectFailed": "Could not connect signing",
-    "connectBlocked": "Your browser blocked the sign-in window. Tap “Connect signing” again to allow it.",
+    "connectTitle": "Google sign-in needed",
+    "connectBody": "Your Google sign-in is how the church knows a signature is yours. Numbers asks for it again from time to time.",
+    "connectButton": "Sign in with Google",
+    "connecting": "Opening Google…",
+    "connectFailed": "Could not sign in with Google",
+    "connectBlocked": "Your browser blocked the sign-in window. Tap “Sign in with Google” again to allow it.",
     "itemsCount": "{count, plural, one {# item} other {# items}}",
     "metaSubmitted": "Submitted {date}",
     "metaApproved": "Approved {date}",
@@ -669,8 +669,7 @@
     "scanFromVouchTab": "Important: they should scan this from the Vouch tab inside this app — not with their phone’s camera app.",
     "whoCanVouch": "Members who can vouch for you: {names}{more, plural, =0 {} other { and # more}}.",
     "revokedBody": "Your signing key was retired by an administrator. Everything you signed before stays valid, but to sign again you’ll need to set up signing afresh and be vouched in person again.",
-    "reEnrollButton": "Set up signing again",
-    "connectFraming": "First, sign in with the same Google account you use for this app."
+    "reEnrollButton": "Set up signing again"
   },
   "Devices": {
     "newDeviceTitle": "This looks like a new device.",
@@ -908,7 +907,8 @@
       "approverRoleLost": "Your approver role has been removed — you can decline, but not approve",
       "decisionNotBinding": "The signed decision doesn't bind on the ledger — reload this claim and try again, or ask its owner to reassign it",
       "invalidNudge": "That update couldn't be saved.",
-      "timedOut": "This is taking too long — check your connection and try again"
+      "timedOut": "This is taking too long — check your connection and try again",
+      "accountMismatch": "That is a different Google account. Sign in as {expected} to sign."
     },
     "rules": {
       "keyMissing": "Paste a service-account key to deploy with.",

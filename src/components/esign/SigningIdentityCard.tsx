@@ -275,18 +275,13 @@ export default function SigningIdentityCard() {
   // On production Firestore, gate them behind an explicit connect click so the
   // Google popup opens in-gesture (iOS/Safari blocks it otherwise).
   const mustConnect = backendNeedsPopup(env) && phase !== "ready";
+  // The card itself now says which sign-in is needed and why ("Google sign-in
+  // needed" / Esign.connectBody), so the framing paragraph that used to sit
+  // above it was the third statement of the same instruction — title, body and
+  // button already carry it. Deleted with Identity.connectFraming.
   const connectGate =
     phase === "connect" ? (
-      <div className="space-y-2">
-        {/* Connect-gate framing (§3.4): the nudges promise "about two minutes";
-            on production the FIRST tap is a Google popup — say so in plain
-            words before the credential card, for the null and pending paths
-            alike, so the promise survives the landing. */}
-        <p className="text-sm text-stone-600" data-testid="connect-framing">
-          {t("connectFraming")}
-        </p>
-        <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
-      </div>
+      <SigningConnectCard connect={connect} connecting={connecting} error={connectError} />
     ) : (
       <p className="text-sm text-stone-400">{t("checkingDevice")}</p>
     );
