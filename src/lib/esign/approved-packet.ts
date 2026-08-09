@@ -19,6 +19,7 @@ import type { SignaturePlacement } from "./placement";
 import { embedCjkFont } from "@/lib/pdf/fonts";
 import { stampSignatureAt, toEncodableText } from "@/lib/pdf/generate";
 import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
+import { savePrintable } from "@/lib/pdf/save";
 import { FORM_ROWS_PER_PAGE } from "@/lib/config";
 import { formatDateMMDDYYYY } from "@/lib/timezone";
 
@@ -144,6 +145,6 @@ export async function deriveApprovedPacket(input: {
     { x: 36, y: 7, size: 6.5, font: helv, color: rgb(0.45, 0.43, 0.4) }
   );
 
-  const bytes = await doc.save();
+  const bytes = await savePrintable(doc);
   return { bytes, sha256: await sha256Hex(bytes) };
 }

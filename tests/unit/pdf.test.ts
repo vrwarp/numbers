@@ -79,6 +79,22 @@ function pdfVisibleText(bytes: Uint8Array): string {
   return out + decoded;
 }
 
+/** The decoded content streams of one page, concatenated. */
+async function pdfContentStreams(bytes: Uint8Array, pageIndex = 0): Promise<string> {
+  const { PDFArray, PDFRawStream, decodePDFRawStream } = await import("pdf-lib");
+  const doc = await PDFDocument.load(bytes);
+  const contents = doc.getPage(pageIndex).node.Contents();
+  const streams = contents instanceof PDFArray ? contents.asArray() : [contents];
+  let out = "";
+  for (const ref of streams) {
+    const stream = doc.context.lookup(ref);
+    if (stream instanceof PDFRawStream) {
+      out += Buffer.from(decodePDFRawStream(stream).decode()).toString("latin1");
+    }
+  }
+  return out;
+}
+
 const baseInput = () => ({
   requesterName: "Grace Chen",
   requesterAddress: "123 Main St, San Jose, CA 95110",
@@ -229,6 +245,46 @@ describe("generateClaimPdf (official CFCC AcroForm template)", () => {
   it("omits the stamp (and leaves the note box alone) without selfLinkUrl", async () => {
     const bytes = await generateClaimPdf({ ...baseInput(), items: items(1), receipts: [] });
     expect(pdfVisibleText(bytes)).not.toContain("pastor/deacon.");
+  });
+});
+
+describe("print compatibility (src/lib/pdf/save.ts)", () => {
+  it("writes a classic xref table — no object streams, no xref stream", async () => {
+    const bytes = await generateClaimPdf({
+      ...baseInput(),
+      items: items(1),
+      receipts: [],
+      selfLinkUrl: "https://numbers.example.org/c/AbC123xyz_-AbC123xyz_-AbC123xyz_",
+    });
+    const raw = Buffer.from(bytes).toString("latin1");
+    // pdf-lib's default (useObjectStreams) buries the catalog, the page tree
+    // and every font dict in compressed object streams behind a PDF 1.5 xref
+    // STREAM. Printer firmware that only knows the classic table then cannot
+    // find the pages at all — the job errors out or prints blank.
+    expect(raw).not.toContain("/ObjStm");
+    expect(raw).not.toContain("/Type /XRef");
+    expect(raw).toMatch(/\nxref\n/);
+    expect(raw).toMatch(/\ntrailer\n/);
+  });
+
+  it("draws the QR stamp as one filled path, not ~600 of them", async () => {
+    const bytes = await generateClaimPdf({
+      ...baseInput(),
+      items: items(1),
+      receipts: [],
+      selfLinkUrl: "https://numbers.example.org/c/AbC123xyz_-AbC123xyz_-AbC123xyz_",
+    });
+    const content = await pdfContentStreams(bytes);
+    // Every dark module as its own save/rect/fill/restore made the stamp
+    // ~120 KB of page content and the heaviest thing on the sheet. Runs of
+    // `re` under a single `f` render identically at a fraction of the ops.
+    // The template's own rules and the flattened widgets account for ~80
+    // fills; the stamp used to add ~600 more on top of those.
+    const rects = content.match(/ re\n/g)?.length ?? 0;
+    const fills = content.match(/\nf\n/g)?.length ?? 0;
+    expect(rects).toBeGreaterThan(100); // the modules are there…
+    expect(fills).toBeLessThan(200); // …but they share a handful of fills
+    expect(content.length).toBeLessThan(60_000); // was ~124 KB per form page
   });
 });
 

@@ -9,6 +9,7 @@ import { FORM_ROWS_PER_PAGE, appTimeZone, publicBaseUrl, esignRootFingerprint } 
 import { drawCertificateCover } from "@/lib/esign/certificate";
 import { signatureAnchor } from "@/lib/pdf/generate";
 import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
+import { savePrintable } from "@/lib/pdf/save";
 import { formatApprovalDate, pngFromDataUrl, stampApprovalMarks } from "@/lib/esign/approved-packet";
 import type { SignaturePlacement } from "@/lib/esign/placement";
 
@@ -156,7 +157,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const bytes = await out.save();
+    const bytes = await savePrintable(out);
     return new NextResponse(new Uint8Array(bytes), {
       headers: {
         "Content-Type": "application/pdf",

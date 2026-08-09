@@ -10,6 +10,7 @@ import { CONSENT_TEXT } from "@/lib/esign/consent";
 import { drawCertificateCover } from "@/lib/esign/certificate";
 import { signatureAnchor } from "@/lib/pdf/generate";
 import { loadTemplateBytes } from "@/lib/pdf/loadTemplate";
+import { savePrintable } from "@/lib/pdf/save";
 import {
   formatApprovalDate,
   pngFromDataUrl,
@@ -145,7 +146,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
       });
     }
 
-    const bytes = await doc.save();
+    const bytes = await savePrintable(doc);
     return new NextResponse(new Uint8Array(bytes), {
       headers: {
         "Content-Type": "application/pdf",

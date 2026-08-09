@@ -2,6 +2,7 @@ import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from "pdf-lib";
 import { paginateItems } from "./paginate";
 import { applyQrStamp } from "./qr";
 import { embedCjkFont } from "./fonts";
+import { savePrintable } from "./save";
 import { centsToDollarString } from "@/lib/money";
 import type { FieldAnchor, SignaturePlacement } from "@/lib/esign/placement";
 
@@ -263,7 +264,7 @@ export async function generateClaimPdf(input: ClaimPdfInput): Promise<Uint8Array
     await appendReceipt(doc, helv, cjkFont, input.receipts[i], i + 1, input.receipts.length);
   }
 
-  return doc.save();
+  return savePrintable(doc);
 }
 
 /** Fill one copy of the template and flatten it so values are permanent. */
