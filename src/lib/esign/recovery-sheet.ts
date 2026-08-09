@@ -9,6 +9,8 @@
  * persisted anywhere.
  */
 
+import { PRINT_SAFE_SAVE } from "@/lib/pdf/save";
+
 export interface RecoverySheetInput {
   words: string[];
   name: string;
@@ -97,5 +99,5 @@ export async function buildRecoverySheetPdf(input: RecoverySheetInput): Promise<
     y -= 17;
   }
 
-  return doc.save();
+  return doc.save(PRINT_SAFE_SAVE);
 }

@@ -1,5 +1,15 @@
 import qrcode from "qrcode-generator";
-import { rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import {
+  fill,
+  popGraphicsState,
+  pushGraphicsState,
+  rectangle,
+  rgb,
+  setFillingRgbColor,
+  type PDFFont,
+  type PDFOperator,
+  type PDFPage,
+} from "pdf-lib";
 
 /**
  * QR self-link stamp for generated form pages. The code encodes the claim's
@@ -124,9 +134,21 @@ function redrawNoteBox(page: PDFPage, font: PDFFont): void {
   page.drawText(NOTE_ITEMS[3], { x: colBX, y: line2Y, size, font, color: black });
 }
 
+/** 0.05pt overdraw hides hairline seams between adjacent modules that some
+ *  renderers show due to antialiasing. */
+const MODULE_BLEED = 0.05;
+
 /**
  * Draw the QR modules as vector rectangles so the code stays crisp at any
  * print resolution; the blank slot around it doubles as the quiet zone.
+ *
+ * Emitted as ONE path with a single fill, with each row's consecutive dark
+ * modules merged into one rectangle. Drawing every module as its own
+ * save/rect/fill/restore (pdf-lib's drawRectangle) turned a version-5 code
+ * into ~600 fill operations and ~120 KB of page content — the single heaviest
+ * thing on the sheet, and the kind of path count that makes a low-end printer
+ * RIP crawl or give up. Runs + one fill cut both by roughly an order of
+ * magnitude; the rasterized result is identical.
  */
 function drawQrModules(page: PDFPage, url: string): void {
   const matrix = qrMatrix(url);
@@ -135,20 +157,24 @@ function drawQrModules(page: PDFPage, url: string): void {
   const module = size / n;
   const x0 = right - size;
   const yTop = centerY + size / 2;
-  const black = rgb(0, 0, 0);
+  // 1/1000 pt is ~1/70 of a dot at 1200 dpi — far below anything a printer
+  // can resolve, and it keeps 17-significant-digit floats out of the stream.
+  const round = (v: number) => Math.round(v * 1000) / 1000;
 
+  const ops: PDFOperator[] = [pushGraphicsState(), setFillingRgbColor(0, 0, 0)];
   for (let r = 0; r < n; r++) {
+    const y = round(yTop - (r + 1) * module - MODULE_BLEED);
+    const height = round(module + MODULE_BLEED);
     for (let c = 0; c < n; c++) {
       if (!matrix[r][c]) continue;
-      page.drawRectangle({
-        x: x0 + c * module,
-        // 0.05pt overdraw hides hairline seams between adjacent modules that
-        // some renderers show due to antialiasing.
-        y: yTop - (r + 1) * module - 0.05,
-        width: module + 0.05,
-        height: module + 0.05,
-        color: black,
-      });
+      let end = c;
+      while (end + 1 < n && matrix[r][end + 1]) end += 1;
+      ops.push(
+        rectangle(round(x0 + c * module), y, round((end - c + 1) * module + MODULE_BLEED), height)
+      );
+      c = end;
     }
   }
+  ops.push(fill(), popGraphicsState());
+  page.pushOperators(...ops);
 }
