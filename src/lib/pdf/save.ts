@@ -1,4 +1,5 @@
 import type { PDFDocument } from "pdf-lib";
+import { tagUntypedFormXObjects } from "./printsafe";
 
 /**
  * Save options for every PDF that leaves the app for a human — or a printer.
@@ -20,7 +21,13 @@ import type { PDFDocument } from "pdf-lib";
  */
 export const PRINT_SAFE_SAVE = { useObjectStreams: false } as const;
 
-/** `doc.save()` with the print-compatibility options above. */
+/**
+ * `doc.save()` with the print-compatibility options above, after the
+ * structural repairs in ./printsafe. Every PDF the app hands out goes through
+ * here, so a new assembly route cannot forget them — including routes that
+ * re-emit pages copied out of packets generated before those repairs existed.
+ */
 export function savePrintable(doc: PDFDocument): Promise<Uint8Array> {
+  tagUntypedFormXObjects(doc);
   return doc.save(PRINT_SAFE_SAVE);
 }

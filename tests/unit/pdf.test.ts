@@ -267,6 +267,47 @@ describe("print compatibility (src/lib/pdf/save.ts)", () => {
     expect(raw).toMatch(/\ntrailer\n/);
   });
 
+  it("declares /Subtype /Form on every flattened widget appearance", async () => {
+    const bytes = await generateClaimPdf({ ...baseInput(), items: items(1), receipts: [] });
+    const doc = await PDFDocument.load(bytes);
+    const { PDFDict, PDFName, PDFRawStream } = await import("pdf-lib");
+    for (const [index, page] of doc.getPages().entries()) {
+      const xobjects = page.node.Resources()?.lookupMaybe(PDFName.of("XObject"), PDFDict);
+      for (const [name] of xobjects?.entries() ?? []) {
+        const xobject = xobjects!.lookup(name);
+        if (!(xobject instanceof PDFRawStream)) continue;
+        // form.flatten() reuses the TEMPLATE's appearance stream for fields we
+        // never touched, and four of the CFCC form's carry no /Subtype at all —
+        // so the page ran `Do` on an XObject of undeclared kind.
+        expect(
+          `page ${index} ${name.asString()}: ${xobject.dict.get(PDFName.of("Subtype"))?.toString()}`
+        ).toMatch(/\/(Form|Image)$/);
+      }
+    }
+  });
+
+  it.each(["cfcc-form-template.pdf", "cfcc-form-template-9row.pdf", "cfcc-form-template-5row.pdf"])(
+    "flattens %s's stencil shading pattern into a flat tint",
+    async (template) => {
+      const bytes = await generateClaimPdf({
+        ...baseInput(),
+        templateBytes: new Uint8Array(
+          await fs.readFile(path.join(process.cwd(), "assets", template))
+        ),
+        items: items(1),
+        receipts: [],
+      });
+      const content = await pdfContentStreams(bytes);
+      // The "For Treasurer use only" band ships as a 1.92pt tiling pattern
+      // stamping an 8×8 stencil — ~4,900 tile instantiations for one band,
+      // which is what makes a printer RIP stall on this page.
+      expect(content).not.toMatch(/\/Pattern\s+(cs|CS)/);
+      // Replaced by the same ink coverage as a flat DeviceGray tint (the
+      // template's dither is 4 painted pixels in 64, so 1 - 0.0625).
+      expect(content).toMatch(/(^|\n)0\.9375 g(\n|$)/);
+    }
+  );
+
   it("draws the QR stamp as one filled path, not ~600 of them", async () => {
     const bytes = await generateClaimPdf({
       ...baseInput(),

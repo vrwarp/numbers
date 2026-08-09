@@ -3,6 +3,7 @@ import { paginateItems } from "./paginate";
 import { applyQrStamp } from "./qr";
 import { embedCjkFont } from "./fonts";
 import { savePrintable } from "./save";
+import { flattenStencilShading } from "./printsafe";
 import { centsToDollarString } from "@/lib/money";
 import type { FieldAnchor, SignaturePlacement } from "@/lib/esign/placement";
 
@@ -276,6 +277,11 @@ async function fillFormPage(
   grandTotalCents: number
 ): Promise<PDFDocument> {
   const tpl = await PDFDocument.load(input.templateBytes);
+  // Before anything is drawn: the form's shaded bands are Word-exported
+  // stencil tiling patterns that make printer RIPs stall on this page (see
+  // ./printsafe). Swapping them for the equivalent flat tint changes nothing a
+  // reader sees and everything a printer has to do.
+  flattenStencilShading(tpl);
   const form = tpl.getForm();
   const helv = await tpl.embedFont(StandardFonts.Helvetica);
   let cjk: PDFFont | null = null;
