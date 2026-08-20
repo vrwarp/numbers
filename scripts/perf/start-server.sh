@@ -16,6 +16,18 @@ export EMBEDDING_MOCK="1"
 export EXTRACTION_PACE_MS="900000"
 export PORT="${PORT:-3200}"
 
+# A server already on this port would keep serving its OWN (pre-rebuild) build
+# while `next start` here dies with EADDRINUSE in the background — the symptom
+# is a ChunkLoadError in the browser and measurements silently taken against
+# stale code. Refuse to start instead, and say what to do about it.
+if curl -sf -o /dev/null --max-time 2 "http://127.0.0.1:$PORT/" 2>/dev/null ||
+   curl -s -o /dev/null --max-time 2 "http://127.0.0.1:$PORT/signin" 2>/dev/null; then
+  echo "ERROR: something is already serving port $PORT." >&2
+  echo "It would keep serving its old build while this one fails to bind." >&2
+  echo "Stop it first, e.g.:  kill \$(lsof -t -i:$PORT)" >&2
+  exit 1
+fi
+
 if [ "${PERF_RESET:-0}" = "1" ]; then rm -rf .perf-data; fi
 mkdir -p .perf-data
 

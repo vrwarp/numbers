@@ -23,6 +23,7 @@
     "perf:network": "node scripts/perf/measure-network.mjs",
     "perf:indexes": "node scripts/perf/index-scale.mjs",
     "perf:explain": "node scripts/perf/explain.mjs",
+    "perf:shot": "node scripts/perf/shot.mjs",
     "translate": "tsx scripts/translate-messages.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

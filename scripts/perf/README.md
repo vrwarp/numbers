@@ -36,6 +36,7 @@ holding :3200 silently serves pre-rebuild chunks — the symptom is a
 | `npm run perf:network` | how many receipt-image requests the wall actually issues at first paint vs after a full scroll |
 | `npm run perf:explain` | `EXPLAIN QUERY PLAN` + timing for the hot queries against the seeded db — flags full-table scans |
 | `npm run perf:indexes` | builds a **decade-scale** db (50k receipts / 5k claims / 150k logs / 60k audit rows) and times the hot queries with and without candidate indexes, printing a KEEP / no-gain verdict per index |
+| `npm run perf:shot` | screenshots the wall at phone + desktop widths, plain / selected / filtered, into `screenshots/perf/` — a layout change should be looked at, not only asserted |
 
 The client scripts need Chromium; in a sandbox pass the pre-installed one:
 
