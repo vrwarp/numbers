@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { configValue } from "@/lib/config-file";
+import { superviseWorkerLoop } from "@/lib/worker-supervisor";
 import { readStoredFile, previewPagePath } from "@/lib/storage";
 import { renderPdfPreviewPages } from "@/lib/pdf/preview";
 import { embeddingSettings, modelConfigOf } from "./settings";
@@ -454,7 +455,7 @@ export function startEmbeddingWorker(): EmbeddingWorkerHandle {
 
   (globalThis as { __embedWake?: () => void }).__embedWake = () => wake?.();
 
-  (async () => {
+  superviseWorkerLoop("embedding worker", () => stopped, async () => {
     // Give the server a moment to finish booting before the first sweep.
     await new Promise((r) => setTimeout(r, 3000));
     while (!stopped) {
@@ -474,7 +475,7 @@ export function startEmbeddingWorker(): EmbeddingWorkerHandle {
       });
       wake = null;
     }
-  })();
+  });
 
   return {
     stop() {

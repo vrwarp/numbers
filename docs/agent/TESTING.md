@@ -3,8 +3,10 @@
 ## Commands
 
 ```bash
-npm test                                   # Vitest unit suite (~5s, no db/network)
+npm test                                   # Vitest: unit + integration (~17s)
+npm run test:coverage                      # …with a v8 line/branch report over src/lib
 npx vitest run tests/unit/pdf.test.ts      # single file
+npx vitest run tests/integration           # db-backed suite only
 npm run test:e2e                           # Playwright, all engines (chromium+webkit)
 E2E_BROWSERS=chromium npm run test:e2e     # chromium projects only
 E2E_FORCE_BUILD=1 …                        # force `next build` even if .next exists —
@@ -29,6 +31,25 @@ npx playwright test tests/e2e/journey.spec.ts --project=chromium-desktop   # one
 | `annotation-retry.test.ts` | background-worker retry plan (quota never burns attempts, exponential backoff, terminal at 5) + the ≤1/minute pace window math |
 | `ministries.test.ts` | budget-list integrity, isKnownMinistry, formatMinistryEvent, mostCommonMinistryEvent (mode-switch adoption) |
 | `suggest.test.ts` | suggestion prompt (chart of accounts + church context), response parsing (unknown ministry → null), account-number fallback matching, mockSuggest keyword rules (e2e depends on them), mock-mode metadata |
+| `storage.test.ts` | DATA_DIR-relative round-trip, path-traversal refusal (read + delete + absolute + empty), generated-packet path, preview-cache derivation and teardown |
+| `worker-supervisor.test.ts` | restart backoff + cap; a loop that throws or exits early is restarted; stop() ends it; the supervisor promise never rejects |
+
+## Integration suite (`tests/integration/`, Vitest, REAL SQLite)
+
+Same runner and `npm test` invocation as the unit suite, but each FILE gets its
+own throwaway database and `DATA_DIR` via `freshTestDb(tag)`
+(`tests/integration/db.ts`). The schema is applied once per `schema.prisma`
+content-hash into a cached template db under the OS tmpdir, then copied
+per-file — so files stay parallel and a run costs milliseconds, not `db push`
+seconds. ⚠ `freshTestDb()` must run BEFORE anything imports `@/lib/prisma`
+(the client captures `DATABASE_URL` at first import), which is why these files
+`await import(...)` the code under test inside `beforeAll`.
+
+| File | Covers |
+| :-- | :-- |
+| `claims-db.test.ts` | `src/lib/claims.ts` end to end: stored-annotation consumption with no AI call + background-log adoption, `original*` freezing (ai) vs NULL (manual), inline mock extraction stamping the receipt, unreadable receipt → blank manual row without failing the batch, `manual`/`stored` modes, quota 429 all-or-nothing (no claim, every call logged), add-receipts sortOrder/single-ministry inheritance/audit/total recompute, and the 404/409 resolve guards |
+| `grants-db.test.ts` | the two cross-tenant READ grants: role-read (`canAll`/`canDecided` per A10 duty pause, per role) and team-read (membership-derived `canTeam`, per-receipt grain, draft exclusion, excluded rows, archived team) |
+| `extraction-worker-db.test.ts` | annotation worker crash/race safety: lease reclaim, generation-conditional finalize (a manual-entry supersede mid-call is never clobbered), annotated-while-queued short circuit, missing receipt, retry backoff → terminal fail at 5 with `failedFileSha256`, and the backfill/GC sweep's orphan + failed-sha rules |
 
 Reusable helper: `pdfVisibleText(bytes)` in `pdf.test.ts` — inflates flate streams and decodes
 hex strings so you can assert on rendered PDF text. pdf tests load the real template from

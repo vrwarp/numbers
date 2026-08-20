@@ -7,6 +7,7 @@ import { enqueueReceiptEmbedding } from "@/lib/embeddings/queue";
 import { enqueueAnnotationForSweep } from "./queue";
 import { aiCallReady, annotationPaceMs, extractionPollMs } from "./settings";
 import { annotationRetryPlan, paceWaitMs } from "./retry";
+import { superviseWorkerLoop } from "@/lib/worker-supervisor";
 
 /**
  * The background receipt-annotation worker: a singleton loop registered from
@@ -53,8 +54,9 @@ async function writeLog(
 }
 
 /** Process one runnable job. "idle" = nothing to do; "worked" = handled
- *  without a provider call; "called" = made a provider call (paces the drip). */
-async function processOne(): Promise<"idle" | "worked" | "called"> {
+ *  without a provider call; "called" = made a provider call (paces the drip).
+ *  Exported for the integration suite — production entry is the loop below. */
+export async function processOne(): Promise<"idle" | "worked" | "called"> {
   if (!aiCallReady()) return "idle";
   const now = new Date();
 
@@ -250,7 +252,7 @@ export function startExtractionWorker(): ExtractionWorkerHandle {
       wake = null;
     });
 
-  (async () => {
+  superviseWorkerLoop("annotation worker", () => stopped, async () => {
     // Give the server a moment to finish booting before the first sweep.
     await new Promise((r) => setTimeout(r, 3000));
     while (!stopped) {
@@ -276,7 +278,7 @@ export function startExtractionWorker(): ExtractionWorkerHandle {
       }
       await sleep(extractionPollMs());
     }
-  })();
+  });
 
   return {
     stop() {

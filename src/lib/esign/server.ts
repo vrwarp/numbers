@@ -250,7 +250,13 @@ async function syncRosterMirrors(roster: RosterTimeline): Promise<void> {
       | undefined;
     await prisma.user
       .update({ where: { id: identity.userId }, data: { role: highest ?? "member" } })
-      .catch(() => {});
+      .catch((err) => {
+        // The role mirror drives every app-surface grant, so a lost write
+        // leaves someone silently under- or over-privileged until the next
+        // roster report re-syncs them. Never fatal (the roster is the truth),
+        // but never silent either.
+        console.error(`role mirror write failed for user ${identity.userId}:`, err);
+      });
   }
 }
 
@@ -320,5 +326,19 @@ export async function recordSignature(
         ledgerEventId: event.eventId,
       },
     })
-    .catch(() => {}); // duplicate report — idempotent
+    .catch((err: { code?: string }) => {
+      // A duplicate report (same actionHash) IS the idempotency contract —
+      // expected, ignore. Anything else means this claim's certificate trail
+      // is missing a signature it should carry (invariant 9): the ledger
+      // still holds the cryptographic truth and `reconcile` can replay it,
+      // but the operator has to be able to SEE that it happened. Logged
+      // rather than thrown so a mirror hiccup never fails a ceremony whose
+      // signature already committed to the ledger.
+      if (err?.code === "P2002") return;
+      console.error(
+        `signature mirror write failed (claim ${claimId}, event ${event.eventId}); ` +
+          `re-run reconcile to restore it:`,
+        err
+      );
+    });
 }

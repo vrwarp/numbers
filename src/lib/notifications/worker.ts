@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { configValue } from "@/lib/config-file";
+import { superviseWorkerLoop } from "@/lib/worker-supervisor";
 import type { Locale } from "@/lib/locales";
 import { isLocale } from "@/lib/locales";
 import type { NotificationParams } from "./catalog";
@@ -221,7 +222,7 @@ export function startNotificationWorker(): { stop(): void } {
   let wake: (() => void) | null = null;
   (globalThis as { __notifyWake?: () => void }).__notifyWake = () => wake?.();
 
-  (async () => {
+  superviseWorkerLoop("notification worker", () => stopped, async () => {
     let lastPrune = 0;
     while (!stopped) {
       let didWork = false;
@@ -242,7 +243,7 @@ export function startNotificationWorker(): { stop(): void } {
         wake = null;
       }
     }
-  })();
+  });
 
   return {
     stop() {

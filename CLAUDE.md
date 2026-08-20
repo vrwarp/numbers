@@ -16,7 +16,11 @@ Single Docker container, `/data` volume.
 ```bash
 npm run dev                 # dev server (needs .env; see .env.example)
 npm run build               # prod build (runs type checking; use to validate changes)
-npm test                    # Vitest unit suite (fast, no db)
+npm test                    # Vitest: unit suite (no db) + integration suite
+                            #   (tests/integration/, real throwaway SQLite per file)
+npm run test:coverage       # …with a v8 coverage report over src/lib
+npm run perf:server         # seeded perf deployment on :3200 (scripts/perf/README.md)
+                            #   then: npm run perf:api | perf:client | perf:indexes | …
 npm run translate           # draft/refresh zh catalogs + translation-state (see CONVENTIONS)
 npm run test:e2e            # Playwright; local sandbox: E2E_BROWSERS=chromium \
                             #   PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run test:e2e
@@ -169,6 +173,8 @@ First-time setup: `cp .env.example .env` (uncomment `AI_MOCK=1`, `AUTH_TEST_MODE
 - `docs/agent/CONVENTIONS.md` — code patterns + gotchas that have already bitten (read before UI/test work)
 - `docs/agent/TESTING.md` — how suites run, how to write tests here, known failure modes
 - `docs/agent/PLAYBOOKS.md` — step-by-step recipes for common change types
+- `scripts/perf/README.md` — performance harness: seeded 320-receipt deployment,
+  API/mutation/client-jank/index-scale measurement commands + reference numbers
 - `docs/DESIGN.md` — human-oriented rationale; read when you need the "why"
 
 ## Repo etiquette

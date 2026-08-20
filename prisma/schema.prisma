@@ -460,6 +460,12 @@ model AuditEvent {
 
   @@index([reimbursementId])
   @@index([userId, createdAt])
+  // The admin logs screen offers an action filter, which it populates with a
+  // DISTINCT over this column. Unindexed that is a full scan + temp B-tree of
+  // every audit event the deployment ever wrote: measured at 60k rows
+  // (scripts/perf/index-scale.mjs) it costs 12.4ms, versus 0.28ms with this
+  // index — the one index of ~13 candidates that measurably paid for itself.
+  @@index([action])
 }
 
 // User-initiated feedback / bug report (docs/FEEDBACK_DESIGN.md). One row per

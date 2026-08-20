@@ -359,14 +359,17 @@ export default function Shoebox({
     await uploadPending([item], note);
   }
 
-  function toggle(id: string) {
+  // Stable identity (like the other grid callbacks below): every tile of the
+  // wall is memoized on its props, so handler churn would re-render all of
+  // them on any state change — the wall was measurably janky before this.
+  const toggle = useCallback((id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  }
+  }, []);
 
   /** One tap for the common "file everything I've collected" case. Only the
    *  unassigned receipts currently in view — re-claiming processed receipts
@@ -379,28 +382,31 @@ export default function Shoebox({
     });
   }
 
-  async function saveNote(id: string, note: string) {
-    // Optimistic: reflect the note locally; a one-field save must not reload
-    // (and briefly flicker) the entire grid.
-    const prev = receipts;
-    setReceipts((rs) => (rs ?? []).map((r) => (r.id === id ? { ...r, note } : r)));
-    const res = await fetch(`/api/receipts/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ note }),
-    });
-    if (!res.ok) {
-      setError(apiError(await res.json().catch(() => null), t("noteSaveFailed")));
-      setReceipts(prev);
-    }
-  }
+  const saveNote = useCallback(
+    async (id: string, note: string) => {
+      // Optimistic: reflect the note locally; a one-field save must not reload
+      // (and briefly flicker) the entire grid.
+      setReceipts((rs) => (rs ?? []).map((r) => (r.id === id ? { ...r, note } : r)));
+      const res = await fetch(`/api/receipts/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note }),
+      });
+      if (!res.ok) {
+        setError(apiError(await res.json().catch(() => null), t("noteSaveFailed")));
+        // The optimistic value is wrong now — resync rather than guessing.
+        await load();
+      }
+    },
+    [apiError, t, load]
+  );
 
   // Deletion confirms through ConfirmDialog, never window.confirm(): iOS
   // suppresses native dialogs in home-screen (standalone) web apps, which made
   // the delete button silently do nothing on installed iPhones.
-  function deleteReceipt(id: string) {
+  const deleteReceipt = useCallback((id: string) => {
     setDeletingId(id);
-  }
+  }, []);
 
   async function confirmDeleteReceipt() {
     if (!deletingId) return;

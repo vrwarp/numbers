@@ -49,7 +49,14 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
               iv: String(doc.iv).slice(0, 100),
             },
           })
-          .catch(() => {});
+          .catch((err: { code?: string }) => {
+            // Create-once: re-offering a doc we already hold is the normal
+            // case (that is what reconcile IS). Any other failure means an
+            // offered event did NOT land — log it, since the evaluation below
+            // will then be computed over an incomplete mirror.
+            if (err?.code === "P2002") return;
+            console.error(`reconcile: mirroring event ${doc.eventId} failed:`, err);
+          });
       }
     }
     const { evaluation, events } = await claimEvaluation(registry, ledgerCtx);
