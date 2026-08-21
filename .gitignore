@@ -42,3 +42,4 @@ firestore-debug.log
 .esign-e2e-data/
 test-results-esign/
 playwright-report-esign/
+/.perf-data/

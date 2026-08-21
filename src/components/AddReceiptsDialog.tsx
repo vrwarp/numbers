@@ -64,14 +64,16 @@ export default function AddReceiptsDialog({
   // (excludeReceiptIds is a fresh array each time).
   const offered = receipts?.filter((r) => !excludeReceiptIds.includes(r.id)) ?? null;
 
-  function toggle(id: string) {
+  // Stable identity — ReceiptGrid memoizes each tile on its props, so a fresh
+  // handler every render would re-render the whole wall (see its perf note).
+  const toggle = useCallback((id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  }
+  }, []);
 
   async function onFilesPicked(files: FileList | null) {
     if (!files || files.length === 0) return;

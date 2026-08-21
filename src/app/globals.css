@@ -179,6 +179,17 @@ body {
   @apply transition duration-150 ease-out hover:border-indigo-300 hover:shadow-md;
 }
 
+/* Off-screen wall tiles skip layout/paint entirely (content-visibility) —
+   with hundreds of receipts mounted this is what keeps scrolling smooth, and
+   it stops every lazy-image load from re-laying-out the whole masonry. The
+   intrinsic-size placeholder approximates a typical card so scrollbar/column
+   geometry stays sane; ?open= deep links still work (scrollIntoView renders
+   the target on demand). Browsers without support simply ignore both lines. */
+.receipt-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+}
+
 /* Receipts wall: on a hover-capable pointer the per-card overlay controls
    (select ✓, delete 🗑, view ⤢) stay hidden until the card is hovered, so the
    photo wall reads as photos; with no card hovered the first card reveals them
@@ -191,7 +202,10 @@ body {
     transition: opacity 0.15s ease-out;
   }
   .receipt-card:hover .receipt-card-action,
-  .receipt-wall:not(:hover) .receipt-card:first-child .receipt-card-action,
+  /* The wall is column DIVS now (see ReceiptGrid), so "the first card" is the
+     first card of the first column — a bare .receipt-card:first-child would
+     reveal one per column. */
+  .receipt-wall:not(:hover) > :first-child > .receipt-card:first-child .receipt-card-action,
   .receipt-card-action:focus-visible {
     opacity: 1;
   }
